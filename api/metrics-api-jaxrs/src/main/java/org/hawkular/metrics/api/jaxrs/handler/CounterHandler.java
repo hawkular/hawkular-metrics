@@ -54,6 +54,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -281,9 +282,17 @@ public class CounterHandler {
                 @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
+            return;
+        }
 
         if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
             TimeRange timeRange = new TimeRange(start, end);
@@ -292,10 +301,29 @@ public class CounterHandler {
                 return;
             }
 
-            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd())
+            if (limit != null) {
+                if (order == null) {
+                    if (start == null && end != null) {
+                        order = Order.DESC;
+                    } else if (start != null && end == null) {
+                        order = Order.ASC;
+                    } else {
+                        order = Order.DESC;
+                    }
+                }
+            } else {
+                limit = 0;
+            }
+
+            if (order == null) {
+                order = Order.DESC;
+            }
+
+            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
             return;
         }
 

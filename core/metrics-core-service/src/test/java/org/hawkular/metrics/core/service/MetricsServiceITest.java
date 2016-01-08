@@ -528,7 +528,7 @@ public class MetricsServiceITest extends MetricsITest {
         insertObservable.toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Double>> observable = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "m1"),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         List<DataPoint<Double>> actual = toList(observable);
         List<DataPoint<Double>> expected = asList(
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
@@ -558,12 +558,12 @@ public class MetricsServiceITest extends MetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         Observable<DataPoint<Long>> data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         List<DataPoint<Long>> actual = toList(data);
         List<DataPoint<Long>> expected = asList(
-                new DataPoint<>(start.getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 15L),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L)
+                new DataPoint<>(start.getMillis(), 10L)
         );
 
         assertEquals(actual, expected, "The counter data does not match the expected values");
@@ -1348,21 +1348,21 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Double>> observable1 = metricsService.findDataPoints(m1.getMetricId(),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         assertEquals(toList(observable1), m1.getDataPoints(),
                 "The gauge data for " + m1.getMetricId() + " does not match");
 
         Observable<DataPoint<Double>> observable2 = metricsService.findDataPoints(m2.getMetricId(),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         assertEquals(toList(observable2), m2.getDataPoints(),
                 "The gauge data for " + m2.getMetricId() + " does not match");
 
         Observable<DataPoint<Double>> observable3 = metricsService.findDataPoints(m3.getMetricId(),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         assertTrue(toList(observable3).isEmpty(), "Did not expect to get back results for " + m3.getMetricId());
 
         Observable<DataPoint<Double>> observable4 = metricsService.findDataPoints(m4.getMetricId(),
-                start.getMillis(), end.getMillis());
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         Metric<Double> expected = new Metric<>(new MetricId<>(tenantId, GAUGE, "m4"), emptyMap(), 24,
                 singletonList(new DataPoint<>(start.plusSeconds(30).getMillis(), 55.5)));
         assertEquals(toList(observable4), expected.getDataPoints(),
@@ -1396,14 +1396,16 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m1, m2, m3)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.<AvailabilityType> findDataPoints(m1.getMetricId(),
-                start.getMillis(), end.getMillis()).toList().toBlocking().last();
+                start.getMillis(), end.getMillis(), 0, Order.ASC).toList().toBlocking().last();
         assertEquals(actual, m1.getDataPoints(), "The availability data does not match expected values");
 
-        actual = metricsService.<AvailabilityType> findDataPoints(m2.getMetricId(), start.getMillis(), end.getMillis())
+        actual = metricsService
+                .<AvailabilityType> findDataPoints(m2.getMetricId(), start.getMillis(), end.getMillis(), 0, Order.ASC)
                 .toList().toBlocking().last();
         assertEquals(actual, m2.getDataPoints(), "The availability data does not match expected values");
 
-        actual = metricsService.<AvailabilityType> findDataPoints(m3.getMetricId(), start.getMillis(), end.getMillis())
+        actual = metricsService
+                .<AvailabilityType> findDataPoints(m3.getMetricId(), start.getMillis(), end.getMillis(), 0, Order.DESC)
                 .toList().toBlocking().last();
         assertEquals(actual.size(), 0, "Did not expect to get back results since there is no data for " + m3);
 
@@ -1415,7 +1417,8 @@ public class MetricsServiceITest extends MetricsITest {
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m4)).toBlocking().lastOrDefault(null);
 
-        actual = metricsService.<AvailabilityType> findDataPoints(m4.getMetricId(), start.getMillis(), end.getMillis())
+        actual = metricsService
+                .<AvailabilityType> findDataPoints(m4.getMetricId(), start.getMillis(), end.getMillis(), 0, Order.DESC)
                 .toList().toBlocking().last();
         Metric<AvailabilityType> expected = new Metric<>(m4.getMetricId(), emptyMap(), 24,
                 singletonList(new DataPoint<>(start.plusMinutes(2).getMillis(), UP)));
@@ -1454,7 +1457,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = metricsService.findAvailabilityData(metricId,
-                start.getMillis(), end.getMillis(), true).toList().toBlocking().lastOrDefault(null);
+                start.getMillis(), end.getMillis(), true, 0, Order.ASC).toList().toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> expected = asList(
             metric.getDataPoints().get(0),

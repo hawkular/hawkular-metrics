@@ -139,10 +139,12 @@ public interface MetricsService {
      * @param id         identifier of the metric
      * @param start      start time inclusive as a Unix timestamp in milliseconds
      * @param end        end time exclusive as a Unix timestamp in milliseconds
+     * @param limit      limit the number of data points
+     * @param order      the sort order for the results
      *
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
-    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end);
+    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
@@ -196,7 +198,7 @@ public interface MetricsService {
             List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles, boolean stacked);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
-                                                                 boolean distinct);
+            boolean distinct, int limit, Order order);
 
     Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
                                                                     long end, Buckets buckets);

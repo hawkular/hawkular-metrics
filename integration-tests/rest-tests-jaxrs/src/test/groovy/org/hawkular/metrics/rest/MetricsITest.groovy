@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,8 +112,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: 10],
-            [timestamp: start.plusMinutes(1).millis, value: 20]
+            [timestamp: start.plusMinutes(1).millis, value: 20],
+            [timestamp: start.millis, value: 10]
         ],
         response.data
     )
@@ -122,9 +122,9 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: 150],
+            [timestamp: start.plusMinutes(2).millis, value: 300],
             [timestamp: start.plusMinutes(1).millis, value: 225],
-            [timestamp: start.plusMinutes(2).millis, value: 300]
+            [timestamp: start.millis, value: 150]
         ],
         response.data
     )
@@ -133,8 +133,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "down"],
-            [timestamp: start.plusMinutes(1).millis, value: "up"]
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.millis, value: "down"]
         ],
         response.data
     )
@@ -143,8 +143,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "up"],
-            [timestamp: start.plusMinutes(1).millis, value: "up"]
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.millis, value: "up"]
         ],
         response.data
     )
@@ -185,8 +185,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: 10],
-            [timestamp: start.plusMinutes(1).millis, value: 20]
+            [timestamp: start.plusMinutes(1).millis, value: 20],
+            [timestamp: start.millis, value: 10]
         ],
         response.data
     )
@@ -195,8 +195,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "down"],
-            [timestamp: start.plusMinutes(1).millis, value: "up"]
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.millis, value: "down"]
         ],
         response.data
     )
@@ -248,8 +248,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "down"],
-            [timestamp: start.plusMinutes(1).millis, value: "up"]
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.millis, value: "down"]
         ],
         response.data
     )
@@ -300,8 +300,8 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: 10],
-            [timestamp: start.plusMinutes(1).millis, value: 20]
+            [timestamp: start.plusMinutes(1).millis, value: 20],
+            [timestamp: start.millis, value: 10]
         ],
         response.data
     )

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,48 +125,26 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime) {
-        return delegate.findCounterData(id, startTime, endTime);
+    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
+            Order order) {
+        return delegate.findCounterData(id, startTime, endTime, limit, order);
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime) {
-        return delegate.findGaugeData(id, startTime, endTime);
+    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
+            Order order, boolean includeWriteTime) {
+        return delegate.findGaugeData(id, startTime, endTime, 0, order, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long startTime, long endTime, Order
-            order) {
-        return delegate.findGaugeData(metric, startTime, endTime, order);
+    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime) {
+        return delegate.findGaugeData(id, timestamp, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime,
-            boolean includeWriteTime) {
-        return delegate.findGaugeData(id, startTime, endTime, includeWriteTime);
-    }
-
-    @Override
-    public Observable<ResultSet> findGaugeData(Metric<Double> metric, long timestamp, boolean includeWriteTime) {
-        return delegate.findGaugeData(metric, timestamp, includeWriteTime);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
-            endTime) {
-        return delegate.findAvailabilityData(metric, startTime, endTime);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long startTime, long
-            endTime, boolean
-            includeWriteTime) {
-        return delegate.findAvailabilityData(metric, startTime, endTime, includeWriteTime);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(Metric<AvailabilityType> metric, long timestamp) {
-        return delegate.findAvailabilityData(metric, timestamp);
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
+            int limit, Order order, boolean includeWriteTime) {
+        return delegate.findAvailabilityData(id, startTime, endTime, limit, order, includeWriteTime);
     }
 
     @Override
@@ -177,11 +155,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return delegate.insertAvailabilityData(metric, ttl);
-    }
-
-    @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime) {
-        return delegate.findAvailabilityData(id, startTime, endTime);
     }
 
     @Override
@@ -218,5 +191,10 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
         return delegate.findMetricsByTagNameValue(tenantId, tag, tvalue);
+    }
+
+    @Override
+    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
+        return delegate.findAvailabilityData(id, timestamp);
     }
 }

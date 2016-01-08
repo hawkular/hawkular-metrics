@@ -306,8 +306,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "up"],
-            [timestamp: start.plusMinutes(1).millis, value: "up"]
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.millis, value: "up"]
         ],
         response.data
     )
@@ -340,13 +340,13 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(
         [
-            [timestamp: start.millis, value: "up"],
-            [timestamp: start.plusMinutes(2).millis, value: "down"],
+            [timestamp: start.plusMinutes(12).millis, value: "up"],
+            [timestamp: start.plusMinutes(11).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(8).millis, value: "up"],
+            [timestamp: start.plusMinutes(6).millis, value: "down"],
             [timestamp: start.plusMinutes(4).millis, value: "up"],
-            [timestamp: start.plusMinutes(5).millis, value: "down"],
-            [timestamp: start.plusMinutes(7).millis, value: "up"],
-            [timestamp: start.plusMinutes(9).millis, value: "unknown"],
-            [timestamp: start.plusMinutes(12).millis, value: "up"]
+            [timestamp: start.plusMinutes(3).millis, value: "down"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"]
         ],
         response.data
     )

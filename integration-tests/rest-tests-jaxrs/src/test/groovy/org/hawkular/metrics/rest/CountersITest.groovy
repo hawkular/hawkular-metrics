@@ -243,8 +243,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     expectedData = [
-        [timestamp: start.millis, value: 150],
-        [timestamp: start.plusMinutes(1).millis, value: 225]
+        [timestamp: start.plusMinutes(1).millis, value: 225],
+        [timestamp: start.millis, value: 150]
     ]
     assertEquals(expectedData, response.data)
   }
@@ -273,8 +273,8 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: start.plusHours(1).millis, value: 200],
-        [timestamp: start.plusHours(4).millis, value: 500]
+        [timestamp: start.plusHours(4).millis, value: 500],
+        [timestamp: start.plusHours(1).millis, value: 200]
     ]
     assertEquals(expectedData, response.data)
   }

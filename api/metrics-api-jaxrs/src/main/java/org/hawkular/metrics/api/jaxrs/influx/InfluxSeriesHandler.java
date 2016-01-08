@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,6 +83,7 @@ import org.hawkular.metrics.api.jaxrs.influx.query.validation.QueryValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InfluxObjectValidator;
 import org.hawkular.metrics.api.jaxrs.influx.write.validation.InvalidObjectException;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -343,11 +344,11 @@ public class InfluxSeriesHandler {
             MetricId<? extends Number> metricId;
             if (metricType == GAUGE) {
                 metricId = new MetricId<>(tenantId, GAUGE, metricName);
-                return metricsService.findDataPoints(metricId, start, end).toList();
+                return metricsService.findDataPoints(metricId, start, end, 0, Order.DESC).toList();
             }
             if (metricType == COUNTER) {
                 metricId = new MetricId<>(tenantId, COUNTER, metricName);
-                return metricsService.findDataPoints(metricId, start, end)
+                return metricsService.findDataPoints(metricId, start, end, 0, Order.DESC)
                         .toSortedList((dataPoint, dataPoint2) -> {
                     return Long.compare(dataPoint2.getTimestamp(), dataPoint.getTimestamp());
                 });

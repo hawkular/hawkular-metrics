@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,6 +53,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Buckets;
@@ -280,8 +281,16 @@ public class AvailabilityHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
-            @QueryParam("distinct") @DefaultValue("false") Boolean distinct
+                @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
+            return;
+        }
+
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
@@ -296,7 +305,26 @@ public class AvailabilityHandler {
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
-            metricsService.findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct)
+            if (limit != null) {
+                if (order == null) {
+                    if (start == null && end != null) {
+                        order = Order.DESC;
+                    } else if (start != null && end == null) {
+                        order = Order.ASC;
+                    } else {
+                        order = Order.DESC;
+                    }
+                }
+            } else {
+                limit = 0;
+            }
+
+            if (order == null) {
+                order = Order.DESC;
+            }
+
+            metricsService
+                    .findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct, limit, order)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
