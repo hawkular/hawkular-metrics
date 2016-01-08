@@ -88,7 +88,8 @@ public class PublishDataPointsTest {
 
         Collection<JavaArchive> dependencies = new HashSet<>();
 
-        JavaArchive rxjava = Maven.configureResolver().workOffline().resolve("io.reactivex:rxjava:1.0.13")
+        JavaArchive rxjava = Maven.configureResolver()
+                .workOffline().resolve("io.reactivex:rxjava:1.0.13")
                 .withoutTransitivity()
                 .asSingleResolvedArtifact().as(JavaArchive.class);
 
