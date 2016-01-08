@@ -480,7 +480,7 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/data/rate")
+    @Path("/rate")
     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +

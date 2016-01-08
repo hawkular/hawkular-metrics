@@ -1018,7 +1018,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/data/rate',
+        path: 'counters/rate',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1043,7 +1043,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/data/rate',
+        path: 'counters/rate',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1167,7 +1167,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/data/rate',
+        path: 'counters/rate',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1192,7 +1192,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/data/rate',
+        path: 'counters/rate',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
