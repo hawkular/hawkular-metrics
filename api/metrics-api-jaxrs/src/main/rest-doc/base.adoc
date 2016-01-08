@@ -141,7 +141,7 @@ Either or both of them can be omitted. `start` defaults to _now_ minus 8 eight h
 
 === Limit and Order
 
-The API offers the ability to limit the number of data points returned as well specify the oder of the results.
+The API offers the ability to limit the number of data points returned as well specify the order of the results.
 Limit and order only work with raw data; if used in conjunction with bucketed results, it will return an error.
 
 Usage and default value details:
@@ -158,6 +158,8 @@ Usage and default value details:
  ** order defaults are overridden if order specified
 * default order is descending if limit is not specified regardless of specified time range
 
+NOTE: please refer to `Time Ranges` section for defaults when omitting end, start, or both.
+
 Sample operations with time range query parameters
 [source,bash]
 ----
@@ -167,11 +169,17 @@ Sample operations with time range query parameters
 # Explicit limit of 10, implicit time range, implicit descending order
 /hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?limit=10
 
+# Explicit limit of 10, implicit time range, explicit ascending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?limit=10&order=ASC
+
 # Explicit limit of 10, explicit time range, implicit descending order
 /hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=10101010&end=20202020&limit=10
 
 # Explicit limit of 10, explicit start, implicit end, implicit ascending order
 /hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=20202020&limit=10
+
+# Explicit limit of 10, explicit start, implicit end, explicit descending order
+/hawkular/metrics/gauges/paris01.web001.example.com.cpu.usage/data?start=20202020&limit=10&order=DESC
 ----
 
 === Bucket parameters
