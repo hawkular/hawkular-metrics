@@ -815,11 +815,16 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start,
             long end, boolean distinct, int limit, Order order) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        Observable<DataPoint<AvailabilityType>> availabilityData = findDataPoints(id, start, end, limit, order);
         if (distinct) {
-            return availabilityData.distinctUntilChanged(DataPoint::getValue);
+            Observable<DataPoint<AvailabilityType>> availabilityData = findDataPoints(id, start, end, 0, order)
+                    .distinctUntilChanged(DataPoint::getValue);
+            if (limit <= 0) {
+                return availabilityData;
+            } else {
+                return availabilityData.limit(limit);
+            }
         } else {
-            return availabilityData;
+            return findDataPoints(id, start, end, limit, order);
         }
     }
 

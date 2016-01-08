@@ -578,7 +578,8 @@ public class DataAccessImpl implements DataAccess {
                         GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
                 } else {
                     return rxSession.execute(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
-                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                            limit));
                 }
             }
         }

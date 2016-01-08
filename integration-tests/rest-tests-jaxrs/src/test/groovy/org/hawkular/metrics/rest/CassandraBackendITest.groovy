@@ -350,6 +350,90 @@ class CassandraBackendITest extends RESTTest {
         ],
         response.data
     )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [distinct: "true", order: "ASC"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "up"],
+            [timestamp: start.plusMinutes(2).millis, value: "down"],
+            [timestamp: start.plusMinutes(4).millis, value: "up"],
+            [timestamp: start.plusMinutes(5).millis, value: "down"],
+            [timestamp: start.plusMinutes(7).millis, value: "up"],
+            [timestamp: start.plusMinutes(9).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(12).millis, value: "up"]
+       ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [distinct: "true", limit: 2], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(12).millis, value: "up"],
+            [timestamp: start.plusMinutes(11).millis, value: "unknown"]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [limit: 3], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(12).millis, value: "up"],
+            [timestamp: start.plusMinutes(11).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(10).millis, value: "unknown"],
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [limit: 3, end: start.plusMinutes(14).millis], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(12).millis, value: "up"],
+            [timestamp: start.plusMinutes(11).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(10).millis, value: "unknown"],
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data",
+      query: [limit: 3, start: start.plusMinutes(4).millis, order: "DESC"],
+      headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(12).millis, value: "up"],
+            [timestamp: start.plusMinutes(11).millis, value: "unknown"],
+            [timestamp: start.plusMinutes(10).millis, value: "unknown"],
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [limit: 4, order: "ASC"], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "up"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.plusMinutes(2).millis, value: "down"],
+            [timestamp: start.plusMinutes(3).millis, value: "down"],
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: "availability/$metric/data", query: [limit: 4, start: (start.millis - 1)], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.millis, value: "up"],
+            [timestamp: start.plusMinutes(1).millis, value: "up"],
+            [timestamp: start.plusMinutes(2).millis, value: "down"],
+            [timestamp: start.plusMinutes(3).millis, value: "down"],
+        ],
+        response.data
+    )
   }
 
   @Test
