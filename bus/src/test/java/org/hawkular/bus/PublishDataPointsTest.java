@@ -88,18 +88,21 @@ public class PublishDataPointsTest {
 
         Collection<JavaArchive> dependencies = new HashSet<>();
 
-        JavaArchive rxjava = Maven.configureResolver().resolve("io.reactivex:rxjava:1.0.13").withoutTransitivity()
+        JavaArchive rxjava = Maven.configureResolver().workOffline().resolve("io.reactivex:rxjava:1.0.13")
+                .withoutTransitivity()
                 .asSingleResolvedArtifact().as(JavaArchive.class);
 
-        JavaArchive busCommon = Maven.configureResolver().resolve(
+        JavaArchive busCommon = Maven.configureResolver().workOffline().resolve(
                 "org.hawkular.commons:hawkular-bus-common:0.3.2.Final").withoutTransitivity().asSingleResolvedArtifact()
                 .as(JavaArchive.class);
 
-        JavaArchive metricsModel = Maven.configureResolver().resolve("org.hawkular.metrics:hawkular-metrics-model:" +
-                projectVersion).withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
-        
-        JavaArchive apiUtil = Maven.configureResolver().resolve("org.hawkular.metrics:hawkular-metrics-api-util:" +
-                projectVersion).withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
+        JavaArchive metricsModel = Maven.configureResolver().workOffline()
+                .resolve("org.hawkular.metrics:hawkular-metrics-model:" + projectVersion)
+                .withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
+
+        JavaArchive apiUtil = Maven.configureResolver().workOffline()
+                .resolve("org.hawkular.metrics:hawkular-metrics-api-util:" + projectVersion)
+                .withoutTransitivity().asSingleResolvedArtifact().as(JavaArchive.class);
 
         dependencies.add(metricsModel);
         dependencies.add(apiUtil);
