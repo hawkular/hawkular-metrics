@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    Copyright 2015 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +16,9 @@
     limitations under the License.
 
 -->
-<jboss-deployment-structure>
-  <deployment>
-    <exclusions>
-      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
-      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
-    </exclusions>
-    <dependencies>
-      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.hawkular.bus"/>
-    </dependencies>
-  </deployment>
-</jboss-deployment-structure>
+<server-provisioning xmlns="urn:wildfly:server-provisioning:1.1" extract-schemas="true"
+  copy-module-artifacts="true">
+  <feature-packs>
+    <feature-pack groupId="org.hawkular.accounts" artifactId="hawkular-accounts-feature-pack" version="${version.org.hawkular.accounts}" />
+  </feature-packs>
+</server-provisioning>

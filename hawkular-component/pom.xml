@@ -35,7 +35,8 @@
   <description>Metrics component within Hawkular suite</description>
 
   <properties>
-    <version.org.hawkular.bus>0.7.0.Final</version.org.hawkular.bus>
+    <version.org.hawkular.accounts>2.0.10.Final-SNAPSHOT</version.org.hawkular.accounts>
+    <version.org.hawkular.bus>0.8.1.Final-SNAPSHOT</version.org.hawkular.bus>
     <!-- For tests -->
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_component_integration_tests</cassandra.keyspace>
@@ -60,22 +61,14 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.hawkular.bus</groupId>
       <artifactId>hawkular-bus-common</artifactId>
       <version>${version.org.hawkular.bus}</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-all</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.activemq</groupId>
-          <artifactId>activemq-jaas</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
+
     <!-- Nest provided -->
     <dependency>
       <groupId>org.apache.activemq</groupId>
@@ -137,6 +130,19 @@
       <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.wildfly</groupId>
+      <artifactId>wildfly-jms-client-bom</artifactId>
+      <version>${version.org.wildfly}</version>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -170,14 +176,21 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.wildfly.plugins</groupId>
-        <artifactId>wildfly-maven-plugin</artifactId>
-        <configuration>
-          <groupId>org.hawkular.nest</groupId>
-          <artifactId>hawkular-nest-distro</artifactId>
-          <version>${version.org.hawkular.bus}</version>
-          <classifier>distribution</classifier>
-        </configuration>
+        <groupId>org.wildfly.build</groupId>
+        <artifactId>wildfly-server-provisioning-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>server-provisioning</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <buildName>${project.build.directory}/server</buildName>
+              <config-file>server-provisioning.xml</config-file>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -195,8 +208,8 @@
         <component.wildfly.port.offset>3</component.wildfly.port.offset>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
         <base-uri>127.0.0.1:8083/hawkular/metrics</base-uri>
-        <!-- IMPORTANT: The port must be the port offset + 62626. -->
-        <broker.url>tcp://localhost:62629</broker.url>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <remoting.url>http-remoting://127.0.0.1:8083</remoting.url>
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <component.wildfly.management.port>9993</component.wildfly.management.port>
         <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
@@ -214,7 +227,7 @@
               <systemPropertyVariables>
                 <keyspace>${cassandra.keyspace}</keyspace>
                 <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
-                <hawkular-bus.broker.url>${broker.url}</hawkular-bus.broker.url>
+                <hawkular-metrics.remoting.url>${remoting.url}</hawkular-metrics.remoting.url>
               </systemPropertyVariables>
             </configuration>
             <executions>
@@ -239,9 +252,10 @@
                 <configuration>
                   <skip>${wildfly-maven-plugin.skip}</skip>
                   <port>${component.wildfly.management.port}</port>
+                  <jbossHome>${project.build.directory}/server/${project.build.finalName}</jbossHome>
                   <javaOpts>
                     <javaOpt>-Xms64m</javaOpt>
-                    <javaOpt>-Xmx512m</javaOpt>
+                    <javaOpt>-Xmx1024m</javaOpt>
                     <javaOpt>-Xss256k</javaOpt>
                     <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
                     <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
@@ -264,17 +278,19 @@
                 <configuration>
                   <skip>${wildfly-maven-plugin.skip}</skip>
                   <port>${component.wildfly.management.port}</port>
-                  <!-- <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome> -->
-                  <!-- hardcoded to 9.0.1.Final after we upgraded to WF10.
-                       The hawkular-nest-distro zip does not exist anymore.
-                       This needs to be fixed by using some of the feauture packs (Bus, Nest, or plain WF) -->
-                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-9.0.1.Final</jbossHome>
+                  <jbossHome>${project.build.directory}/server/${project.build.finalName}</jbossHome>
                   <executeCommands>
                     <commands>
-                      <!-- In the Nest, org.hawkular logger is already defined, we only need to set the level -->
                       <command>
-                        /subsystem=logging/logger=org.hawkular:write-attribute(name="level",value="TRACE")
+                        jms-topic add --topic-address=HawkularAvailData --entries=java:/topic/HawkularAvailData
                       </command>
+                      <command>
+                        jms-topic add --topic-address=HawkularMetricData --entries=java:/topic/HawkularMetricData
+                      </command>
+                      <!-- In the Nest, org.hawkular logger is already defined, we only need to set the level -->
+                      <!--<command>-->
+                        <!--/subsystem=logging/logger=org.hawkular:write-attribute(name="level",value="TRACE")-->
+                      <!--</command>-->
                       <command>
                         /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
                       </command>
