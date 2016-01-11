@@ -1964,19 +1964,21 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 < import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 56a54
 > import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
-59,63d56
+59d56
+< import com.google.common.base.Strings;
+62,66d58
 < import io.swagger.annotations.Api;
 < import io.swagger.annotations.ApiOperation;
 < import io.swagger.annotations.ApiParam;
 < import io.swagger.annotations.ApiResponse;
 < import io.swagger.annotations.ApiResponses;
-66d58
+70d61
 < 
-75d66
+79d69
 < @Api(tags = "Metric")
-76a68
+80a71
 > 
-85,98c77,78
+89,102c80,81
 <     @ApiOperation(value = "Create metric.", notes = "Clients are not required to explicitly create "
 <             + "a metric before storing data. Doing so however allows clients to prevent naming collisions and to "
 <             + "specify tags and data retention.")
@@ -1994,11 +1996,11 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >     public <T> Response createMetric(
 >             Metric<T> metric,
-102c82
+106c85
 <             asyncResponse.resume(badRequest(new ApiError("Metric type is invalid")));
 ---
 >             return badRequest(new ApiError("Metric type is invalid"));
-108c88,98
+112c91,101
 <         metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
 ---
 > 
@@ -2012,7 +2014,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-113,129c103,105
+117,135c106,109
 <     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
 <  response = Metric.class, responseContainer = "List")
 <     @ApiResponses(value = {
@@ -2029,17 +2031,24 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 <             @QueryParam("type")
 <             MetricType<T> metricType,
 <             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
-<             Tags tags
+<             Tags tags,
+<             @ApiParam(value = "Regexp to match metricId, requires tags filtering", required = false) @QueryParam("id")
+<             String id
 ---
 >     public <T> Response findMetrics(
 >             @QueryParam("type") MetricType<T> metricType,
->             @QueryParam("tags") Tags tags
-132,133c108
+>             @QueryParam("tags") Tags tags,
+>             @QueryParam("id") String id
+138,139c112
 <             asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
 <             return;
 ---
 >             return badRequest(new ApiError("Incorrect type param " + metricType.toString()));
-140,149c115,125
+143c116
+<         if(!Strings.isNullOrEmpty(id)) {
+---
+>         if(id != null) {
+151,160c124,134
 <         metricObservable
 <                 .toList()
 <                 .map(ApiUtils::collectionToResponse)
@@ -2062,7 +2071,7 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 >         } catch (Exception e) {
 >             return serverError(e);
 >         }
-154,163c130,131
+165,174c139,140
 <     @ApiOperation(value = "Add data for multiple metrics in a single call.")
 <     @ApiResponses(value = {
 <             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -2076,12 +2085,12 @@ diff -r '--exclude-from=api/diff-excludes' api/metrics-api-jaxrs/src/main/java/o
 ---
 >     public Response addMetricsData(
 >             MixedMetricsRequest metricsRequest
-166,167c134
+177,178c143
 <             asyncResponse.resume(emptyPayload());
 <             return;
 ---
 >             return emptyPayload();
-176,184c143,151
+187,195c152,160
 <         metricsService.addDataPoints(GAUGE, gauges)
 <                 .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
 <                 .mergeWith(metricsService.addDataPoints(COUNTER, counters))
