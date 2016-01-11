@@ -211,6 +211,20 @@ class TagsITest extends RESTTest {
          // Missing query
         assertEquals(400, exception.response.status)
       }
+
+      // Fetch with tags & type & id filter
+      response = hawkularMetrics.get(path: "metrics",
+          query: [tags: "a1:*", type: it.type, id: ".2"],
+          headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([[
+                        tenantId: tenantId,
+                        id      : 'N2',
+                        tags    : ['a1': 'A2'],
+                        dataRetention: 7,
+                        type: it.type
+                    ]], response.data)
+
     }
   }
 

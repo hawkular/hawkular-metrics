@@ -138,7 +138,7 @@ public class GaugeHandler {
 
         Observable<Metric<Double>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, GAUGE)
-                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), GAUGE);
+                : metricsService.findMetricsWithFilters(tenantId, GAUGE, tags.getTags());
 
         metricObservable
                 .toList()

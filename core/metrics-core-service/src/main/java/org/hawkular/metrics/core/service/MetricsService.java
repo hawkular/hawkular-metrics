@@ -109,12 +109,12 @@ public interface MetricsService {
      *                                           t1 or t2 etc
      *
      * @param tenantId
-     * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @param type If type is null, no type filtering is used
+     * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @return Metric's that are filtered with given conditions
      */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, Map<String, String> tagsQueries,
-            MetricType<T> type);
+    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
+            tagsQueries, Func1<Metric<T>, Boolean>... filters);
 
     Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id);
 
@@ -275,4 +275,6 @@ public interface MetricsService {
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
      */
     Observable<Metric<?>> insertedDataEvents();
+
+    <T> Func1<Metric<T>, Boolean> idFilter(String regexp);
 }

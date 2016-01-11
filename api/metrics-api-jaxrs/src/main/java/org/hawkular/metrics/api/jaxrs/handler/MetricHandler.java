@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,12 +56,16 @@ import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.MixedMetricsRequest;
 import org.hawkular.metrics.model.param.Tags;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.ObjectArrays;
+
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.functions.Func1;
 
 
 /**
@@ -126,16 +130,23 @@ public class MetricHandler {
             @QueryParam("type")
             MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
-            Tags tags
+            Tags tags,
+            @ApiParam(value = "Regexp to match metricId, requires tags filtering", required = false) @QueryParam("id")
+            String id
     ) {
         if (metricType != null && !metricType.isUserType()) {
             asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
             return;
         }
 
+        Func1<Metric<T>, Boolean>[] metricFuncs = ObjectArrays.newArray(Func1.class, 0);
+        if(!Strings.isNullOrEmpty(id)) {
+            metricFuncs = ObjectArrays.concat(metricFuncs, metricsService.idFilter(id));
+        }
+
         Observable<Metric<T>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, metricType)
-                : metricsService.findMetricsWithFilters(tenantId, tags.getTags(), metricType);
+                : metricsService.findMetricsWithFilters(tenantId, metricType, tags.getTags(), metricFuncs);
 
         metricObservable
                 .toList()
