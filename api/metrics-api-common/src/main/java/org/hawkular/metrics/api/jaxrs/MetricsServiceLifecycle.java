@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -151,7 +151,7 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @ServiceReady
-    Event<MetricsService> metricsServiceReady;
+    Event<ServiceReadyEvent> metricsServiceReady;
 
     private volatile State state;
     private int connectionAttempts;
@@ -244,7 +244,7 @@ public class MetricsServiceLifecycle {
 
             initJobs();
 
-            metricsServiceReady.fire(metricsService);
+            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             state = State.STARTED;
             log.infoServiceStarted();
