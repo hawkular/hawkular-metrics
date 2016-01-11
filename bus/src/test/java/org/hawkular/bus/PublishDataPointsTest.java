@@ -76,7 +76,7 @@ public class PublishDataPointsTest {
 
     @Deployment
     public static WebArchive createDeployment() {
-        String projectVersion = "0.11.0-SNAPSHOT";
+        String projectVersion = "0.12.0-SNAPSHOT";
         MavenResolverSystem mavenResolver = Resolvers.use(MavenResolverSystem.class);
         List<String> deps = asList(
                 "org.hawkular.metrics:hawkular-metrics-model:" + projectVersion,
