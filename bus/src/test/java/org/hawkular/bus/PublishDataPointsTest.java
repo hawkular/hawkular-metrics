@@ -76,13 +76,12 @@ public class PublishDataPointsTest {
 
     @Deployment
     public static WebArchive createDeployment() {
-        String projectVersion = "0.12.0-SNAPSHOT";
         MavenResolverSystem mavenResolver = Resolvers.use(MavenResolverSystem.class);
         List<String> deps = asList(
-                "org.hawkular.metrics:hawkular-metrics-model:" + projectVersion,
-                "org.hawkular.metrics:hawkular-metrics-api-util:" + projectVersion,
-                "org.hawkular.commons:hawkular-bus-common:0.3.2.Final",
-                "io.reactivex:rxjava:1.0.13"
+                "org.hawkular.metrics:hawkular-metrics-model:" + System.getProperty("hawkular.metrics.version"),
+                "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("hawkular.metrics.version"),
+                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("hawkular.bus.version"),
+                "io.reactivex:rxjava:" + System.getProperty("rxjava.version")
         );
 
         Collection<JavaArchive> dependencies = new HashSet<JavaArchive>();

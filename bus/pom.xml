@@ -71,16 +71,6 @@
       <artifactId>hawkular-bus-common</artifactId>
       <version>${version.org.hawkular.bus}</version>
       <scope>provided</scope>
-      <!--<exclusions>-->
-        <!--&lt;!&ndash;-->
-          <!--jboss-logging is getting pulled in transitively by commons bus which does not declare it with provided-->
-          <!--scope.-->
-        <!--&ndash;&gt;-->
-        <!--<exclusion>-->
-          <!--<groupId>org.jboss.logging</groupId>-->
-          <!--<artifactId>jboss-logging</artifactId>-->
-        <!--</exclusion>-->
-      <!--</exclusions>-->
     </dependency>
 
     <dependency>
@@ -194,10 +184,43 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
-            <org.apache.maven.user-settings>nonExistentSetting.xml</org.apache.maven.user-settings>
+            <hawkular.metrics.version>${project.version}</hawkular.metrics.version>
+            <hawkular.bus.version>${version.org.hawkular.bus}</hawkular.bus.version>
+            <rxjava.version>${version.io.reactivex.rxjava}</rxjava.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>travis-build</id>
+      <activation>
+        <property>
+          <name>travis</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <systemPropertyVariables>
+                <!--
+                  This needs to be set for travis builds otherwise Shrinkwrap, which is used in Arquillian tests, is
+                  not able to resolve Maven dependencies. See http://goo.gl/cVf6uI for details.
+                -->
+                <org.apache.maven.user-settings>nonExistentSetting.xml</org.apache.maven.user-settings>
+                <hawkular.metrics.version>${project.version}</hawkular.metrics.version>
+                <hawkular.bus.version>${version.org.hawkular.bus}</hawkular.bus.version>
+                <rxjava.version>${version.io.reactivex.rxjava}</rxjava.version>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
