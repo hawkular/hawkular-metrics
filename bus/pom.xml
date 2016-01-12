@@ -70,16 +70,17 @@
       <groupId>org.hawkular.commons</groupId>
       <artifactId>hawkular-bus-common</artifactId>
       <version>${version.org.hawkular.bus}</version>
-      <exclusions>
-        <!--
-          jboss-logging is getting pulled in transitively by commons bus which does not declare it with provided
-          scope.
-        -->
-        <exclusion>
-          <groupId>org.jboss.logging</groupId>
-          <artifactId>jboss-logging</artifactId>
-        </exclusion>
-      </exclusions>
+      <scope>provided</scope>
+      <!--<exclusions>-->
+        <!--&lt;!&ndash;-->
+          <!--jboss-logging is getting pulled in transitively by commons bus which does not declare it with provided-->
+          <!--scope.-->
+        <!--&ndash;&gt;-->
+        <!--<exclusion>-->
+          <!--<groupId>org.jboss.logging</groupId>-->
+          <!--<artifactId>jboss-logging</artifactId>-->
+        <!--</exclusion>-->
+      <!--</exclusions>-->
     </dependency>
 
     <dependency>
