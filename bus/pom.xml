@@ -213,9 +213,9 @@
                   not able to resolve Maven dependencies. See http://goo.gl/cVf6uI for details.
                 -->
                 <org.apache.maven.user-settings>nonExistentSetting.xml</org.apache.maven.user-settings>
-                <hawkular.metrics.version>${project.version}</hawkular.metrics.version>
-                <hawkular.bus.version>${version.org.hawkular.bus}</hawkular.bus.version>
-                <rxjava.version>${version.io.reactivex.rxjava}</rxjava.version>
+                <version.org.hawkular.metrics>${project.version}</version.org.hawkular.metrics>
+                <version.org.hawkular.bus>${version.org.hawkular.bus}</version.org.hawkular.bus>
+                <version.io.reactivex.rxjava>${version.io.reactivex.rxjava}</version.io.reactivex.rxjava>
               </systemPropertyVariables>
             </configuration>
           </plugin>

@@ -78,10 +78,10 @@ public class PublishDataPointsTest {
     public static WebArchive createDeployment() {
         MavenResolverSystem mavenResolver = Resolvers.use(MavenResolverSystem.class);
         List<String> deps = asList(
-                "org.hawkular.metrics:hawkular-metrics-model:" + System.getProperty("hawkular.metrics.version"),
-                "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("hawkular.metrics.version"),
-                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("hawkular.bus.version"),
-                "io.reactivex:rxjava:" + System.getProperty("rxjava.version")
+                "org.hawkular.metrics:hawkular-metrics-model:" + System.getProperty("version.org.hawkular.metrics"),
+                "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("version.org.hawkular.metrics"),
+                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("version.org.hawkular.bus"),
+                "io.reactivex:rxjava:" + System.getProperty("version.io.reactivex.rxjava")
         );
 
         Collection<JavaArchive> dependencies = new HashSet<JavaArchive>();
@@ -93,8 +93,6 @@ public class PublishDataPointsTest {
                 .addAsLibraries(dependencies)
                 .setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: com.google.guava\n"));
 
-//        ZipExporter exporter = new ZipExporterImpl(archive);
-//        exporter.exportTo(new File("target", "test-archive.war"));
         return archive;
     }
 
