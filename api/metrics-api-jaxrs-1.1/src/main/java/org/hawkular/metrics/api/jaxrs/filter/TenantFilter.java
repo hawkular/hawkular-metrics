@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,6 @@ import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 import org.hawkular.metrics.model.ApiError;
 import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.ResourceMethod;
@@ -59,8 +58,7 @@ public class TenantFilter implements PreProcessInterceptor {
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
                 //On older version, the path value from localhost:8080/hawkular/metrics is an empty String instead of /
-                || path.equals(BaseHandler.PATH) || path.equals("")
-                || path.startsWith(VirtualClockHandler.PATH)) {
+                || path.equals(BaseHandler.PATH) || path.equals("")) {
             // Tenants, Influx and status handlers do not check the tenant header
             return null;
         }

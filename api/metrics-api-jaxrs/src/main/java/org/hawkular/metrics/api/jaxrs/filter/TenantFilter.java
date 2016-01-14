@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,6 @@ import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.api.jaxrs.handler.VirtualClockHandler;
 import org.hawkular.metrics.model.ApiError;
 
 /**
@@ -53,7 +52,7 @@ public class TenantFilter implements ContainerRequestFilter {
         String path = uriInfo.getPath();
 
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-            || path.equals(BaseHandler.PATH) || path.startsWith(VirtualClockHandler.PATH)) {
+            || path.equals(BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header
             return;
         }
