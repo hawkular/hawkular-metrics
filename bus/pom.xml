@@ -34,7 +34,7 @@
   <description>Metrics bus for integrating with other Hawkular components</description>
 
   <properties>
-    <version.org.hawkular.bus>0.3.2.Final</version.org.hawkular.bus>
+    <version.org.hawkular.commons>0.3.4.Final</version.org.hawkular.commons>
     <version.arquillian_core>1.1.10.Final</version.arquillian_core>
     <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
   </properties>
@@ -69,7 +69,7 @@
     <dependency>
       <groupId>org.hawkular.commons</groupId>
       <artifactId>hawkular-bus-common</artifactId>
-      <version>${version.org.hawkular.bus}</version>
+      <version>${version.org.hawkular.commons}</version>
       <scope>provided</scope>
     </dependency>
 
