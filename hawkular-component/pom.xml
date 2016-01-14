@@ -35,7 +35,6 @@
   <description>Metrics component within Hawkular suite</description>
 
   <properties>
-    <version.org.hawkular.bus>0.7.0.Final</version.org.hawkular.bus>
     <!-- For tests -->
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_component_integration_tests</cassandra.keyspace>
