@@ -35,7 +35,6 @@
 
   <properties>
     <version.org.hawkular.commons>0.3.4.Final</version.org.hawkular.commons>
-    <version.arquillian_core>1.1.10.Final</version.arquillian_core>
     <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
   </properties>
 
@@ -44,7 +43,7 @@
       <dependency>
         <groupId>org.jboss.arquillian</groupId>
         <artifactId>arquillian-bom</artifactId>
-        <version>1.1.10.Final</version>
+        <version>${version.org.jboss.arquillian}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
