@@ -112,6 +112,9 @@
     <version.io.swagger>1.5.3</version.io.swagger>
     <version.org.codehaus.mojo.findbugs-maven-plugin>3.0.0</version.org.codehaus.mojo.findbugs-maven-plugin>
 
+    <!-- See https://github.com/wildfly/wildfly-maven-plugin/issues/84 introduced by 1.1.0.Alpha5 -->
+    <version.wildfly-maven-plugin>1.1.0.Alpha4</version.wildfly-maven-plugin>
+
     <!-- from various submodules -->
     <version.com.github.jnr.jnr-posix>3.0.9</version.com.github.jnr.jnr-posix>
     <version.com.github.kongchen.swagger-maven-plugin>3.1.0</version.com.github.kongchen.swagger-maven-plugin>
