@@ -54,8 +54,6 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
-import org.hawkular.metrics.api.jaxrs.util.TestClock;
-import org.hawkular.metrics.api.jaxrs.util.VirtualClock;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.DateTimeService;
@@ -68,7 +66,6 @@ import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.joda.time.DateTime;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
@@ -106,8 +103,6 @@ public class MetricsServiceLifecycle {
     private TaskScheduler taskScheduler;
 
     private final ScheduledExecutorService lifecycleExecutor;
-
-    private VirtualClock virtualClock;
 
     @Inject
     @Configurable
@@ -314,7 +309,6 @@ public class MetricsServiceLifecycle {
         if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
             TestScheduler scheduler = Schedulers.test();
             scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
-            virtualClock = new VirtualClock(scheduler);
             AbstractTrigger.now = scheduler::now;
             ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
 
@@ -342,11 +336,7 @@ public class MetricsServiceLifecycle {
     }
 
     private DateTimeService createDateTimeService() {
-        DateTimeService dateTimeService = new DateTimeService();
-        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-            dateTimeService.now = () -> new DateTime(virtualClock.now());
-        }
-        return dateTimeService;
+        return new DateTimeService();
     }
 
     /**
@@ -356,13 +346,6 @@ public class MetricsServiceLifecycle {
     @ApplicationScoped
     public MetricsService getMetricsService() {
         return metricsService;
-    }
-
-    @Produces
-    @ApplicationScoped
-    @TestClock
-    public VirtualClock getVirtualClock() {
-        return virtualClock;
     }
 
     @Produces
