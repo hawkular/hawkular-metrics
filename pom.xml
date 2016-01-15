@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>31</version>
+    <version>33</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
@@ -111,6 +111,9 @@
     <version.io.reactivex.rxjava-math>1.0.0</version.io.reactivex.rxjava-math>
     <version.io.swagger>1.5.3</version.io.swagger>
     <version.org.codehaus.mojo.findbugs-maven-plugin>3.0.0</version.org.codehaus.mojo.findbugs-maven-plugin>
+
+    <!-- See https://github.com/wildfly/wildfly-maven-plugin/issues/84 introduced by 1.1.0.Alpha5 -->
+    <version.wildfly-maven-plugin>1.1.0.Alpha4</version.wildfly-maven-plugin>
 
     <!-- from various submodules -->
     <version.com.github.jnr.jnr-posix>3.0.9</version.com.github.jnr.jnr-posix>

@@ -34,8 +34,7 @@
   <description>Metrics bus for integrating with other Hawkular components</description>
 
   <properties>
-    <version.org.hawkular.bus>0.3.2.Final</version.org.hawkular.bus>
-    <version.arquillian_core>1.1.10.Final</version.arquillian_core>
+    <version.org.hawkular.commons>0.3.4.Final</version.org.hawkular.commons>
     <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
   </properties>
 
@@ -44,7 +43,7 @@
       <dependency>
         <groupId>org.jboss.arquillian</groupId>
         <artifactId>arquillian-bom</artifactId>
-        <version>1.1.10.Final</version>
+        <version>${version.org.jboss.arquillian}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -69,7 +68,7 @@
     <dependency>
       <groupId>org.hawkular.commons</groupId>
       <artifactId>hawkular-bus-common</artifactId>
-      <version>${version.org.hawkular.bus}</version>
+      <version>${version.org.hawkular.commons}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -184,9 +183,9 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
-            <hawkular.metrics.version>${project.version}</hawkular.metrics.version>
-            <hawkular.bus.version>${version.org.hawkular.bus}</hawkular.bus.version>
-            <rxjava.version>${version.io.reactivex.rxjava}</rxjava.version>
+            <version.org.hawkular.metrics>${project.version}</version.org.hawkular.metrics>
+            <version.org.hawkular.commons>${version.org.hawkular.commons}</version.org.hawkular.commons>
+            <version.io.reactivex.rxjava>${version.io.reactivex.rxjava}</version.io.reactivex.rxjava>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -214,7 +213,7 @@
                 -->
                 <org.apache.maven.user-settings>nonExistentSetting.xml</org.apache.maven.user-settings>
                 <version.org.hawkular.metrics>${project.version}</version.org.hawkular.metrics>
-                <version.org.hawkular.bus>${version.org.hawkular.bus}</version.org.hawkular.bus>
+                <version.org.hawkular.commons>${version.org.hawkular.commons}</version.org.hawkular.commons>
                 <version.io.reactivex.rxjava>${version.io.reactivex.rxjava}</version.io.reactivex.rxjava>
               </systemPropertyVariables>
             </configuration>

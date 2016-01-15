@@ -80,7 +80,7 @@ public class PublishDataPointsTest {
         List<String> deps = asList(
                 "org.hawkular.metrics:hawkular-metrics-model:" + System.getProperty("version.org.hawkular.metrics"),
                 "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("version.org.hawkular.metrics"),
-                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("version.org.hawkular.bus"),
+                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("version.org.hawkular.commons"),
                 "io.reactivex:rxjava:" + System.getProperty("version.io.reactivex.rxjava")
         );
 

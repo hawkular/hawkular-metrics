@@ -1,6 +1,6 @@
 <!--
 
-    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -127,13 +127,13 @@
       <p><em>Supports returning a gzip'ed Content-Encoding</em></p>
     </xsl:if>
     <xsl:choose>
-    <xsl:when test="param">
-    Parameters:
-    <table>
-        <tr><th>Name</th><th>P.Type</th><th>Description</th><th>Required</th><th>Type</th><th>Allowed values</th><th>Default value</th></tr>
-      <xsl:apply-templates select="param"/>
-    </table>
-    </xsl:when>
+      <xsl:when test="param">
+        Parameters:
+        <table>
+          <tr><th>Name</th><th>P.Type</th><th>Description</th><th>Required</th><th>Type</th><th>Allowed values</th><th>Default value</th></tr>
+          <xsl:apply-templates select="param"/>
+        </table>
+      </xsl:when>
       <xsl:otherwise>
         This method has no parameters
       </xsl:otherwise>
@@ -144,9 +144,9 @@
     <xsl:if test="error">
       Error codes:<br/>
       <table>
-          <tr>
-            <th>Code</th><th>Reason</th>
-          </tr>
+        <tr>
+          <th>Code</th><th>Reason</th>
+        </tr>
         <xsl:apply-templates select="error"/>
       </table>
     </xsl:if>
@@ -166,8 +166,8 @@
 
   <xsl:template match="error">
     <tr>
-        <td><xsl:value-of select="@code"/></td>
-        <td><xsl:value-of select="@reason"/></td>
+      <td><xsl:value-of select="@code"/></td>
+      <td><xsl:value-of select="@reason"/></td>
     </tr>
   </xsl:template>
 
@@ -178,13 +178,13 @@
     <xsl:if test="$produces">
       <b>Produces:</b>
       <ul>
-      <xsl:for-each select="$produces/type">
-        <li>
-        <xsl:value-of select="."/>
-        </li>
-      </xsl:for-each>
+        <xsl:for-each select="$produces/type">
+          <li>
+            <xsl:value-of select="."/>
+          </li>
+        </xsl:for-each>
       </ul>
-  </xsl:if>
+    </xsl:if>
 
   </xsl:template>
 
