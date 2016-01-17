@@ -43,6 +43,7 @@
       <modules>
         <module>rest-tests-jaxrs</module>
         <module>rest-tests-jaxrs-1.1</module>
+        <module>hawkular-server-tests</module>
         <module>load-tests</module>
       </modules>
     </profile>

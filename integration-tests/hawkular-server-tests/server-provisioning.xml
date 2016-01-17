@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
@@ -17,13 +16,9 @@
     limitations under the License.
 
 -->
-<arquillian xmlns="http://jboss.org/schema/arquillian" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
-  <container qualifier="jboss" default="true">
-    <configuration>
-      <property name="jbossHome">target/hawkular-metrics-component/</property>
-      <property name="startupTimeoutInSeconds">300</property>
-      <property name="javaVmArguments">-Dkeycloak.import=${jboss.home.dir}/standalone/configuration/hawkular-realm-for-dev.json</property>
-    </configuration>
-  </container>
-</arquillian>
+<server-provisioning xmlns="urn:wildfly:server-provisioning:1.1" extract-schemas="true"
+                     copy-module-artifacts="true">
+  <feature-packs>
+    <feature-pack groupId="org.hawkular.accounts" artifactId="hawkular-accounts-feature-pack" version="2.0.10.Final" />
+  </feature-packs>
+</server-provisioning>

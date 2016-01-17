@@ -18,6 +18,6 @@
 
 -->
 <jboss-web>
-  <context-root>/hawkular/alerts</context-root>
+  <context-root>/hawkular/metrics</context-root>
   <security-domain>keycloak</security-domain>
 </jboss-web>
