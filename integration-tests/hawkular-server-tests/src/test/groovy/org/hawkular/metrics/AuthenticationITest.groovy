@@ -88,6 +88,15 @@ ${entity}
     assertEquals(200, response.status)
   }
 
+  @Test
+  void requestWithCredentialsAndTenantHeaderIsInvalid() {
+    RESTClient client = createClient(testUser, testPasword)
+
+    def response = client.get(path: 'status', headers: ['Hawkular-Tenant': 'test'])
+
+    assertEquals(400, response.status)
+  }
+
   static RESTClient createClient(String username, String password) {
     /* http://en.wikipedia.org/wiki/Basic_access_authentication#Client_side :
      * The Authorization header is constructed as follows:

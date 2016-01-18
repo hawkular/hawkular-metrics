@@ -20,6 +20,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.io.IOException;
 
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -49,19 +50,26 @@ public class PersonaFilter implements ContainerRequestFilter {
     public static final String MISSING_TENANT_MSG = "Tenant is not specified. Use '" + TENANT_HEADER_NAME
             + "' header.";
 
+    public static final String TENANT_HEADER_NOT_ALLOWED = "The " + TENANT_HEADER_NAME + " header is not allowed. " +
+            "The tenant is determined from the credentials supplied with the request";
+
     @Inject
-    Persona persona;
+    Instance<Persona> persona;
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (!checkPersona()) {
-            Response response = Response.status(Response.Status.BAD_REQUEST)
+        if (requestContext.getHeaderString(TENANT_HEADER_NAME) != null) {
+            requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
+                    .type(APPLICATION_JSON_TYPE)
+                    .entity(new ApiError(TENANT_HEADER_NOT_ALLOWED))
+                    .build());
+        } else if (!checkPersona()) {
+            requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(MISSING_TENANT_MSG))
-                    .build();
-            requestContext.abortWith(response);
+                    .build());
         } else {
-            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.getId());
+            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.get().getId());
         }
     }
 
@@ -70,7 +78,7 @@ public class PersonaFilter implements ContainerRequestFilter {
             log.warn("Persona is null. Possible issue with accounts integration ? ");
             return false;
         }
-        if (isEmpty(persona.getId())) {
+        if (isEmpty(persona.get().getId())) {
             log.warn("Persona is empty. Possible issue with accounts integration ? ");
             return false;
         }
