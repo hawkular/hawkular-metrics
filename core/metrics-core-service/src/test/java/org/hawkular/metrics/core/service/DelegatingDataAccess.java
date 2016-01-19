@@ -52,10 +52,6 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.insertTenant(tenant);
     }
 
-    @Override public Observable<ResultSet> insertTenantId(long time, String id) {
-        return delegate.insertTenantId(time, id);
-    }
-
     @Override
     public Observable<ResultSet> findAllTenantIds() {
         return delegate.findAllTenantIds();
@@ -64,14 +60,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<ResultSet> findTenant(String id) {
         return delegate.findTenant(id);
-    }
-
-    @Override public Observable<ResultSet> findTenantIds(long time) {
-        return delegate.findTenantIds(time);
-    }
-
-    @Override public Observable<ResultSet> deleteTenantsBucket(long time) {
-        return delegate.deleteTenantsBucket(time);
     }
 
     @Override

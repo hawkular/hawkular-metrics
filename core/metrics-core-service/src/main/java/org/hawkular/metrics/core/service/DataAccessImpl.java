@@ -24,7 +24,6 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.nio.ByteBuffer;
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -68,13 +67,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findAllTenantIdsFromMetricsIdx;
 
-    private PreparedStatement insertTenantIdIntoBucket;
-
-    private PreparedStatement findTenantIdsByTime;
-
     private PreparedStatement findTenant;
-
-    private PreparedStatement deleteTenantsBucket;
 
     private PreparedStatement insertIntoMetricsIndex;
 
@@ -174,13 +167,7 @@ public class DataAccessImpl implements DataAccess {
 
         findAllTenantIdsFromMetricsIdx = session.prepare("SELECT DISTINCT tenant_id, type FROM metrics_idx");
 
-        findTenantIdsByTime = session.prepare("SELECT tenant FROM tenants_by_time WHERE bucket = ?");
-
-        insertTenantIdIntoBucket = session.prepare("INSERT into tenants_by_time (bucket, tenant) VALUES (?, ?)");
-
         findTenant = session.prepare("SELECT id, retentions FROM tenants WHERE id = ?");
-
-        deleteTenantsBucket = session.prepare("DELETE FROM tenants_by_time WHERE bucket = ?");
 
         findMetric = session.prepare(
             "SELECT metric, tags, data_retention " +
@@ -409,21 +396,9 @@ public class DataAccessImpl implements DataAccess {
                 .concatWith(rxSession.execute(findAllTenantIdsFromMetricsIdx.bind()));
     }
 
-    @Override public Observable<ResultSet> findTenantIds(long time) {
-        return rxSession.execute(findTenantIdsByTime.bind(new Date(time)));
-    }
-
-    @Override public Observable<ResultSet> insertTenantId(long time, String id) {
-        return rxSession.execute(insertTenantIdIntoBucket.bind(new Date(time), id));
-    }
-
     @Override
     public Observable<ResultSet> findTenant(String id) {
         return rxSession.execute(findTenant.bind(id));
-    }
-
-    @Override public Observable<ResultSet> deleteTenantsBucket(long time) {
-        return rxSession.execute(deleteTenantsBucket.bind(new Date(time)));
     }
 
     @Override

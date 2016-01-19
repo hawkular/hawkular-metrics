@@ -23,7 +23,6 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
-import static org.joda.time.Duration.standardMinutes;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -86,7 +85,7 @@ import rx.subjects.PublishSubject;
 /**
  * @author John Sanda
  */
-public class MetricsServiceImpl implements MetricsService, TenantsService {
+public class MetricsServiceImpl implements MetricsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
     public static final String SYSTEM_TENANT_ID = makeSafe("system");
@@ -348,42 +347,16 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
 
-//                Trigger trigger = new RepeatingTrigger.Builder()
-//                        .withDelay(1, MINUTES)
-//                        .withInterval(1, MINUTES)
-//                        .build();
-//                Map<String, String> params = ImmutableMap.of("tenant", tenant.getId());
-//                Observable<Void> ratesScheduled = taskScheduler.scheduleTask("generate-rates", tenant.getId(),
-//                        100, params, trigger).map(task -> null);
-
                 Observable<Void> retentionUpdates = Observable.from(tenant.getRetentionSettings().entrySet())
                         .flatMap(entry -> dataAccess.updateRetentionsIndex(tenant.getId(), entry.getKey(),
                                 ImmutableMap.of(makeSafe(entry.getKey().getText()), entry.getValue())))
                         .map(rs -> null);
 
-//                return ratesScheduled.concatWith(retentionUpdates);
                 return retentionUpdates;
             });
             updates.subscribe(resultSet -> {
             }, subscriber::onError, subscriber::onCompleted);
         });
-    }
-
-    @Override
-    public Observable<Void> createTenants(long creationTime, Observable<String> tenantIds) {
-//        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).flatMap(resultSet -> {
-//            Trigger trigger = new RepeatingTrigger.Builder()
-//                    .withDelay(1, MINUTES)
-//                    .withInterval(1, MINUTES)
-//                    .build();
-//            Map<String, String> params = ImmutableMap.of(
-//                    "tenant", tenantId,
-//                    "creationTime", Long.toString(creationTime));
-//
-//            return taskScheduler.scheduleTask("generate-rates", tenantId, 100, params, trigger).map(task -> null);
-//        }));
-
-        return tenantIds.flatMap(tenantId -> dataAccess.insertTenant(tenantId).map(resultSet -> null));
     }
 
     @Override
@@ -607,11 +580,9 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
                     });
                 }).doOnNext(meter::mark);
 
-        Observable<Integer> tenantUpdates = updateTenantBuckets(metrics);
-
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
-        return Observable.concat(updates, indexUpdates, tenantUpdates)
+        return Observable.concat(updates, indexUpdates)
                 .takeLast(1)
                 .map(count -> null);
     }
@@ -632,17 +603,6 @@ public class MetricsServiceImpl implements MetricsService, TenantsService {
             throw new UnsupportedOperationException(metricType.getText());
         }
         return inserter;
-    }
-
-    private Observable<Integer> updateTenantBuckets(Observable<? extends Metric<?>> metrics) {
-        return metrics.flatMap(metric -> {
-            return Observable.<DataPoint<?>>from(metric.getDataPoints()).map(dataPoint -> {
-                return new TenantBucket(metric.getMetricId().getTenantId(),
-                        dateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(30)));
-            });
-        }).distinct().flatMap(tenantBucket -> {
-            return dataAccess.insertTenantId(tenantBucket.getBucket(), tenantBucket.getTenant()).map(resultSet -> 0);
-        });
     }
 
     @Override

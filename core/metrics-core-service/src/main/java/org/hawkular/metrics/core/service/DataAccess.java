@@ -41,13 +41,7 @@ public interface DataAccess {
 
     Observable<ResultSet> findAllTenantIds();
 
-    Observable<ResultSet> findTenantIds(long time);
-
-    Observable<ResultSet> insertTenantId(long time, String id);
-
     Observable<ResultSet> findTenant(String id);
-
-    Observable<ResultSet> deleteTenantsBucket(long time);
 
     <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric);
 
