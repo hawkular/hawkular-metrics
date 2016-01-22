@@ -58,6 +58,12 @@ public class PersonaFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        String path = requestContext.getUriInfo().getPath();
+        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith("/status") || path.equals("/")) {
+            // Tenants, Influx and status handlers do not check the tenant header
+            return;
+        }
+
         if (requestContext.getHeaderString(TENANT_HEADER_NAME) != null) {
             requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
                     .type(APPLICATION_JSON_TYPE)

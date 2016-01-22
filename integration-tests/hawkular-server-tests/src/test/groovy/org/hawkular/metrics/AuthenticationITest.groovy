@@ -60,6 +60,8 @@ ${entity}
     int portOffset = Integer.parseInt(System.getProperty('hawkular.port.offset') ?: '0')
     int httpPort = portOffset + 8080
     baseURI = "http://${host}:${httpPort}/hawkular/metrics/"
+
+    protectedEndpoint = 'gauges'
   }
 
   @Test
@@ -86,7 +88,7 @@ ${entity}
 
     def response = client.get(path: protectedEndpoint)
 
-    assertEquals(200, response.status)
+    assertEquals(204, response.status)
   }
 
   @Test
@@ -101,6 +103,8 @@ ${entity}
   @Test
   void statusEndpointShouldNotRequireAuthentication() {
     def client = createClientWithoutCredentials()
+
+    Thread.sleep 3000
 
     def response = client.get(path: 'status')
 
