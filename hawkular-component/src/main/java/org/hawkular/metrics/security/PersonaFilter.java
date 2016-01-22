@@ -35,7 +35,7 @@ import org.jboss.logging.Logger;
  * When metrics is deployed in the full Hawkular server, the value of the tenant header is determined by the current
  * Persona which is injected from PersonaService. The person is only injected when the request supplies valid
  * credentials. This filter will not execute when the request has invalid credentials or no credentials at all. In
- * the former case the a 401 status code is included in the response. In the latter case, a 500 status code is included
+ * the former case a 401 status code is included in the response. In the latter case, a 500 status code is included
  * in the response. See AuthenticationITest.groovy for examples.
  *
  * @author jsanda

@@ -33,6 +33,7 @@ class AuthenticationITest {
   static String testPasword = 'password'
   static String baseURI
   static Closure defaultFailureHandler
+  static String protectedEndpoint
 
   @BeforeClass
   static void initClient() {
@@ -63,38 +64,47 @@ ${entity}
 
   @Test
   void noCredentialsShouldFail() {
-    RESTClient client = createClientWithoutCredentials()
+    def client = createClientWithoutCredentials()
 
-    def response = client.get(path: "status")
+    def response = client.get(path: protectedEndpoint)
 
     assertEquals(500, response.status)
   }
 
   @Test
   void invalidCredentialsShouldFail() {
-    RESTClient client = createClient(testUser, 'badPassword')
+    def client = createClient(testUser, 'badPassword')
 
-    def response = client.get(path: 'status')
+    def response = client.get(path: protectedEndpoint)
 
     assertEquals(401, response.status)
   }
 
   @Test
   void validCredentialsShouldSucceed() {
-    RESTClient client = createClient(testUser, testPasword)
+    def client = createClient(testUser, testPasword)
 
-    def response = client.get(path: 'status')
+    def response = client.get(path: protectedEndpoint)
 
     assertEquals(200, response.status)
   }
 
   @Test
   void requestWithCredentialsAndTenantHeaderIsInvalid() {
-    RESTClient client = createClient(testUser, testPasword)
+    def client = createClient(testUser, testPasword)
 
-    def response = client.get(path: 'status', headers: ['Hawkular-Tenant': 'test'])
+    def response = client.get(path: protectedEndpoint, headers: ['Hawkular-Tenant': 'test'])
 
     assertEquals(400, response.status)
+  }
+
+  @Test
+  void statusEndpointShouldNotRequireAuthentication() {
+    def client = createClientWithoutCredentials()
+
+    def response = client.get(path: 'status')
+
+    assertEquals(200, response.status)
   }
 
   static RESTClient createClient(String username, String password) {
