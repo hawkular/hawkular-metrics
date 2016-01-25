@@ -1,4 +1,0 @@
-Only in api/metrics-api-jaxrs: README.adoc
-Only in api/metrics-api-jaxrs: ping.html
-Only in api/metrics-api-jaxrs: pom.xml
-Only in api/metrics-api-jaxrs: src
