@@ -42,7 +42,6 @@
       </activation>
       <modules>
         <module>rest-tests-jaxrs</module>
-        <module>rest-tests-jaxrs-1.1</module>
         <module>load-tests</module>
       </modules>
     </profile>
