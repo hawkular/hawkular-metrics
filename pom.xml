@@ -429,7 +429,6 @@
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-util</module>
-        <module>api/metrics-api-common</module>
         <module>api/metrics-api-jaxrs</module>
         <module>bus</module>
         <module>hawkular-component</module>
@@ -455,7 +454,6 @@
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-util</module>
-        <module>api/metrics-api-common</module>
         <module>containers</module>
       </modules>
     </profile>

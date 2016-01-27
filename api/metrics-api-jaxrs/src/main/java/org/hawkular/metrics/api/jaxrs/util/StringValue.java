@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -27,8 +24,7 @@ import io.swagger.annotations.ApiModelProperty;
  *
  * @author Heiko W. Rupp
  */
-@ApiModel(value = "Encapsulates a simple string value. In XML this is represented as <value value=\"...\"/>")
-@XmlRootElement(name =  "value")
+@ApiModel(value = "Encapsulates a simple string value.")
 public class StringValue {
 
     String value;
@@ -40,7 +36,6 @@ public class StringValue {
         this.value = value;
     }
 
-    @XmlAttribute
     @ApiModelProperty(value = "The actual value")
     public String getValue() {
         return value;
