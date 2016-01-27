@@ -25,8 +25,7 @@
     <web-resource-collection>
       <web-resource-name>Unprotected endpoint</web-resource-name>
       <url-pattern>/status</url-pattern>
-      <url-pattern>/tenants</url-pattern>
-      <url-pattern>/db*</url-pattern>
+      <url-pattern>/</url-pattern>
     </web-resource-collection>
   </security-constraint>
 

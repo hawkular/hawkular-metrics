@@ -104,9 +104,16 @@ ${entity}
   void statusEndpointShouldNotRequireAuthentication() {
     def client = createClientWithoutCredentials()
 
-    Thread.sleep 3000
-
     def response = client.get(path: 'status')
+
+    assertEquals(200, response.status)
+  }
+
+  @Test
+  void rootNotRequireAuthentication() {
+    def client = createClientWithoutCredentials()
+
+    def response = client.get(path: '')
 
     assertEquals(200, response.status)
   }
