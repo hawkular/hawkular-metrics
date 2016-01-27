@@ -27,6 +27,5 @@
 
   <weld:scan>
     <weld:exclude pattern="org.hawkular.metrics.api.jaxrs.fasterxml.jackson.*"/>
-    <weld:exclude pattern="org.hawkular.metrics.api.jaxrs.codehaus.jackson.*"/>
   </weld:scan>
 </beans>

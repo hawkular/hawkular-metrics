@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,16 +39,12 @@ public class MixedMetricsRequest {
     private final List<Metric<Long>> counters;
 
     @JsonCreator(mode = Mode.PROPERTIES)
-    @org.codehaus.jackson.annotate.JsonCreator
     public MixedMetricsRequest(
             @JsonProperty("gauges")
-            @org.codehaus.jackson.annotate.JsonProperty("gauges")
             List<Metric<Double>> gauges,
             @JsonProperty("availabilities")
-            @org.codehaus.jackson.annotate.JsonProperty("availabilities")
             List<Metric<AvailabilityType>> availabilities,
             @JsonProperty("counters")
-            @org.codehaus.jackson.annotate.JsonProperty("counters")
             List<Metric<Long>> counters
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
@@ -72,7 +68,6 @@ public class MixedMetricsRequest {
      * @return true if this instance has no data point (of any type)
      */
     @JsonIgnore
-    @org.codehaus.jackson.annotate.JsonIgnore
     public boolean isEmpty() {
         return gauges.isEmpty() && availabilities.isEmpty() && counters.isEmpty();
     }

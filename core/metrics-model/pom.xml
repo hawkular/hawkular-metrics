@@ -47,13 +47,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Used with JAX-RS 1.1 -->
-    <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-mapper-asl</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- documentation -->
     <dependency>
       <groupId>io.swagger</groupId>

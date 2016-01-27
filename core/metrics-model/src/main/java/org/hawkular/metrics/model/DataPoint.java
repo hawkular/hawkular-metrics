@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,13 +42,10 @@ public class DataPoint<T> {
     protected final T value;
 
     @JsonCreator(mode = Mode.PROPERTIES)
-    @org.codehaus.jackson.annotate.JsonCreator
     public DataPoint(
             @JsonProperty("timestamp")
-            @org.codehaus.jackson.annotate.JsonProperty("timestamp")
             Long timestamp,
             @JsonProperty("value")
-            @org.codehaus.jackson.annotate.JsonProperty("value")
             T value
     ) {
         checkArgument(timestamp != null, "Data point timestamp is null");

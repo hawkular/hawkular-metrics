@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,19 +39,14 @@ public class TagRequest {
     private final Long timestamp;
 
     @JsonCreator(mode = Mode.PROPERTIES)
-    @org.codehaus.jackson.annotate.JsonCreator
     public TagRequest(
             @JsonProperty("tags")
-            @org.codehaus.jackson.annotate.JsonProperty("tags")
             Map<String, String> tags,
             @JsonProperty("start")
-            @org.codehaus.jackson.annotate.JsonProperty("start")
             Long start,
             @JsonProperty("end")
-            @org.codehaus.jackson.annotate.JsonProperty("end")
             Long end,
             @JsonProperty("timestamp")
-            @org.codehaus.jackson.annotate.JsonProperty("timestamp")
             Long timestamp
     ) {
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
