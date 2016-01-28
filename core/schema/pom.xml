@@ -28,12 +28,18 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-schema-manager</artifactId>
+  <artifactId>hawkular-metrics-schema</artifactId>
 
-  <name>Hawkular Metrics Schema Manager</name>
-  <description>Hawkular Metrics Schema Manager for Cassandra</description>
+  <name>Hawkular Metrics Schema</name>
+  <description>Hawkular Metrics Schema Cassandra</description>
 
   <dependencies>
+    <dependency>
+      <groupId>org.cassalog</groupId>
+      <artifactId>cassalog</artifactId>
+      <version>${version.org.cassalog}</version>
+    </dependency>
+
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>

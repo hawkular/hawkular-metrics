@@ -61,7 +61,6 @@ public class DataAccessITest extends MetricsITest {
 
     @BeforeClass
     public void initClass() {
-        initSession();
         dataAccess = new DataAccessImpl(session);
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");

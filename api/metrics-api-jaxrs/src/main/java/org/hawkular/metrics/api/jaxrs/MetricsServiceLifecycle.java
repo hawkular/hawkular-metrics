@@ -17,6 +17,7 @@
 
 package org.hawkular.metrics.api.jaxrs;
 
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -59,7 +60,7 @@ import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.DateTimeService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
@@ -298,11 +299,8 @@ public class MetricsServiceLifecycle {
     }
 
     private void initSchema() {
-        SchemaManager schemaManager = new SchemaManager(session);
-        if (Boolean.parseBoolean(resetDb)) {
-            schemaManager.dropKeyspace(keyspace);
-        }
-        schemaManager.createSchema(keyspace);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb), emptyList());
         session.execute("USE " + keyspace);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,13 @@
  */
 package org.hawkular.metrics.tasks;
 
+import static java.util.Collections.emptyList;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.hawkular.metrics.schema.SchemaManager;
+import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -54,8 +56,8 @@ public abstract class BaseITest {
         session = cluster.connect("system");
         rxSession = new RxSessionImpl(session);
 
-        SchemaManager schemaManager = new SchemaManager(session);
-        schemaManager.createSchema(keyspace);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, true, emptyList());
 
         session.execute("USE " + keyspace);
 

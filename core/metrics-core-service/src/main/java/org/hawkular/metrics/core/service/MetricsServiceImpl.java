@@ -58,7 +58,6 @@ import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
-import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.joda.time.Duration;
 
@@ -174,14 +173,6 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void startUp(Session session, String keyspace, boolean resetDb, boolean createSchema,
             MetricRegistry metricRegistry) {
-        SchemaManager schemaManager = new SchemaManager(session);
-        if (resetDb) {
-            schemaManager.dropKeyspace(keyspace);
-        }
-        if (createSchema) {
-            // This creates/updates the keyspace + tables if needed
-            schemaManager.createSchema(keyspace);
-        }
         session.execute("USE " + keyspace);
         log.infoKeyspaceUsed(keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));

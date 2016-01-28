@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,15 +22,18 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
+import org.testng.annotations.BeforeSuite;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
@@ -50,35 +53,49 @@ public class MetricsITest {
 
     private static final long FUTURE_TIMEOUT = 3;
 
-    protected Session session;
+    protected static Session session;
 
-    protected RxSession rxSession;
+    protected static RxSession rxSession;
 
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
 
-    public void initSession() {
+    @BeforeSuite
+    public static void initSuite() {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
         Cluster cluster = new Cluster.Builder()
-            .addContactPoints(nodeAddresses.split(","))
-            // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
-            // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
-            .withProtocolVersion(ProtocolVersion.V4)
-            .build();
+                .addContactPoints(nodeAddresses.split(","))
+                .withProtocolVersion(ProtocolVersion.V4)
+                .build();
         session = cluster.connect(getKeyspace());
         rxSession = new RxSessionImpl(session);
 
-//        truncateMetrics = session.prepare("TRUNCATE metrics");
-//        truncateCounters = session.prepare("TRUNCATE counters");
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, getKeyspace(), true, Collections.emptyList());
     }
+
+//    public void initSession() {
+//        String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
+//        Cluster cluster = new Cluster.Builder()
+//            .addContactPoints(nodeAddresses.split(","))
+//            // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
+//            // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
+//            .withProtocolVersion(ProtocolVersion.V4)
+//            .build();
+//        session = cluster.connect(getKeyspace());
+//        rxSession = new RxSessionImpl(session);
+//
+////        truncateMetrics = session.prepare("TRUNCATE metrics");
+////        truncateCounters = session.prepare("TRUNCATE counters");
+//    }
 
     protected void resetDB() {
         session.execute(truncateMetrics.bind());
         session.execute(truncateCounters.bind());
     }
 
-    protected String getKeyspace() {
+    protected static String getKeyspace() {
         return System.getProperty("keyspace", "hawkulartest");
     }
 

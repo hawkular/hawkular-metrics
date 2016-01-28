@@ -53,8 +53,6 @@ public class GenerateRateITest extends MetricsITest {
 
     @BeforeClass
     public void initClass() {
-        initSession();
-
         DataAccess dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
