@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableMap;
  *
  * @author Thomas Segismont
  */
-@org.codehaus.jackson.map.annotate.JsonSerialize(
-        include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
 public class Tags {
     public static final String LIST_DELIMITER = ",";
     public static final String TAG_DELIMITER = ":";

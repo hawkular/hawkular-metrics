@@ -52,25 +52,17 @@ public class Metric<T> {
 
     @SuppressWarnings("unchecked")
     @JsonCreator(mode = Mode.PROPERTIES)
-    @org.codehaus.jackson.annotate.JsonCreator
     public Metric(
             @JsonProperty("id")
-            @org.codehaus.jackson.annotate.JsonProperty("id")
             String id,
             @JsonProperty(value = "tags")
-            @org.codehaus.jackson.annotate.JsonProperty("tags")
             Map<String, String> tags,
             @JsonProperty("dataRetention")
-            @org.codehaus.jackson.annotate.JsonProperty("dataRetention")
             Integer dataRetention,
             @JsonProperty("type")
-            @org.codehaus.jackson.annotate.JsonProperty("type")
             @JsonDeserialize(using = MetricTypeDeserializer.class)
-            @org.codehaus.jackson.map.annotate.JsonDeserialize(
-                    using = org.hawkular.metrics.model.codehaus.jackson.MetricTypeDeserializer.class
-            )
             MetricType<T> type,
-            @JsonProperty("data") @org.codehaus.jackson.annotate.JsonProperty("data")
+            @JsonProperty("data")
             List<DataPoint<T>> data
     ) {
         checkArgument(id != null, "Metric id is null");
@@ -125,23 +117,17 @@ public class Metric<T> {
 
     @ApiModelProperty(value = "Metric type", dataType = "string", allowableValues = "gauge, availability, counter")
     @JsonSerialize(using = MetricTypeSerializer.class)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            using = org.hawkular.metrics.model.codehaus.jackson.MetricTypeSerializer.class)
     public MetricType<T> getType() {
         return getMetricId().getType();
     }
 
     @JsonIgnore
-    @org.codehaus.jackson.annotate.JsonIgnore
     public MetricId<T> getMetricId() {
         return id;
     }
 
     @ApiModelProperty("Metric tags")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY
-    )
     public Map<String, String> getTags() {
         return tags;
     }
@@ -153,8 +139,6 @@ public class Metric<T> {
 
     @ApiModelProperty("Metric data points")
     @JsonSerialize(include = Inclusion.NON_EMPTY)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY)
     public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
     }

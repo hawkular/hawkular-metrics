@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,14 +45,11 @@ public class TenantDefinition {
     private final Map<MetricType<?>, Integer> retentionSettings;
 
     @JsonCreator(mode = Mode.PROPERTIES)
-    @org.codehaus.jackson.annotate.JsonCreator
     public TenantDefinition(
             @JsonProperty("id")
-            @org.codehaus.jackson.annotate.JsonProperty("id")
             String id,
             @JsonProperty("retentions")
             @JsonDeserialize(keyUsing = MetricTypeKeyDeserializer.class)
-            @org.codehaus.jackson.annotate.JsonProperty("retentions")
             Map<MetricType<?>, Integer> retentionSettings) {
         checkArgument(id != null, "Tenant id is null");
         this.id = id;
@@ -71,16 +68,7 @@ public class TenantDefinition {
 
     @ApiModelProperty("Retention settings for metrics, expressed in days")
     @JsonProperty("retentions")
-    @org.codehaus.jackson.annotate.JsonProperty("retentions")
     @JsonSerialize(include = Inclusion.NON_EMPTY, keyUsing = MetricTypeKeySerializer.class)
-    @org.codehaus.jackson.map.annotate.JsonSerialize(
-            include = org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion.NON_EMPTY,
-            keyUsing = org.hawkular.metrics.model.codehaus.jackson.MetricTypeKeySerializer.class
-    )
-    // Codehaus Jackson wants @JsonDeserialize here
-    @org.codehaus.jackson.map.annotate.JsonDeserialize(
-            keyUsing = org.hawkular.metrics.model.codehaus.jackson.MetricTypeKeyDeserializer.class
-    )
     public Map<MetricType<?>, Integer> getRetentionSettings() {
         return retentionSettings;
     }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,13 @@
 -->
 <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
+       xmlns:weld="http://jboss.org/schema/weld/beans"
+       xsi:schemaLocation="
+        http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd
+        http://jboss.org/schema/weld/beans http://jboss.org/schema/weld/beans_1_1.xsd"
        version="1.1" bean-discovery-mode="annotated">
+
+  <weld:scan>
+    <weld:exclude pattern="org.hawkular.metrics.api.jaxrs.fasterxml.jackson.*"/>
+  </weld:scan>
 </beans>
