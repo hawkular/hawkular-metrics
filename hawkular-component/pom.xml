@@ -55,7 +55,7 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-common</artifactId>
+      <artifactId>hawkular-metrics-model</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -63,30 +63,38 @@
       <artifactId>hawkular-metrics-bus</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.hawkular.accounts</groupId>
+      <artifactId>hawkular-accounts-api</artifactId>
+      <version>${version.org.hawkular.accounts}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-processor</artifactId>
+    </dependency>
     <!-- Overlay -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <type>war</type>
-      <scope>runtime</scope>
-    </dependency>
-    <!-- Test dependencies -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
-      <scope>test</scope>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jaxrs</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.groovy.modules.http-builder</groupId>
-      <artifactId>http-builder</artifactId>
-      <scope>test</scope>
+      <groupId>javax.enterprise</groupId>
+      <artifactId>cdi-api</artifactId>
+      <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
@@ -111,13 +119,13 @@
             <overlay>
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+              <excludes>
+                <exclude>**/TenantFilter.class</exclude>
+              </excludes>
             </overlay>
           </overlays>
         </configuration>
       </plugin>
     </plugins>
   </build>
-
-
-
 </project>
