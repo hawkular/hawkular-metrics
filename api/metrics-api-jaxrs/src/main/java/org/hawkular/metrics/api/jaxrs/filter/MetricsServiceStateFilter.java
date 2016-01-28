@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import java.io.IOException;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
@@ -37,6 +38,7 @@ import org.hawkular.metrics.model.ApiError;
  * @author Matt Wringe
  */
 @Provider
+@PreMatching
 public class MetricsServiceStateFilter implements ContainerRequestFilter {
 
     private static final String STARTING = "Service unavailable while initializing.";

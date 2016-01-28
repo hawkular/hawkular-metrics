@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
@@ -35,6 +36,7 @@ import org.hawkular.metrics.model.ApiError;
  * @author Stefan Negrea
  */
 @Provider
+@PreMatching
 public class TenantFilter implements ContainerRequestFilter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
