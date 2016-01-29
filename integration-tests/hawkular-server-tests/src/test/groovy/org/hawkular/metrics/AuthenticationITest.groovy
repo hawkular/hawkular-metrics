@@ -121,6 +121,34 @@ ${entity}
     assertEquals(200, response.status)
   }
 
+  @Test
+  void influxShouldRejectInvalidDatabaseIdentifier() {
+    def client = createClientWithoutCredentials()
+
+    def response = client.get(path: 'db/invalid_tenant/series', query: [q: 'list series'])
+
+    assertEquals(400, response.status)
+  }
+
+  @Test
+  void influxShouldRejectInvalidDatabaseFormat() {
+    def client = createClientWithoutCredentials()
+    def response = client.get(path: 'db/invalid_tenant/series', query: [q: 'list series'])
+    assertEquals(400, response.status)
+  }
+
+  @Test
+  void influxShouldAuthenticateUserWithRequestParams() {
+    def client = createClient('jdoe', 'password')
+    def response = client.get(path: 'http://localhost:8080/hawkular/accounts/personas/current')
+    assertEquals(200, response.status)
+
+    def unauthenticatedClient = createClientWithoutCredentials()
+    def tenantId = response.data.id
+    response = unauthenticatedClient.get(path: "db/${tenantId}/series", query: [q: 'list series', u: 'jdoe', p: 'password'])
+    assertEquals(200, response.status)
+  }
+
   static RESTClient createClient(String username, String password) {
     /* http://en.wikipedia.org/wiki/Basic_access_authentication#Client_side :
      * The Authorization header is constructed as follows:
