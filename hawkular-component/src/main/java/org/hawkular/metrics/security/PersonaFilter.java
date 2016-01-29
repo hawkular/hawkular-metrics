@@ -31,7 +31,6 @@ import javax.ws.rs.ext.Provider;
 
 import org.hawkular.accounts.api.model.Persona;
 import org.hawkular.metrics.model.ApiError;
-import org.jboss.logging.Logger;
 
 /**
  * When metrics is deployed in the full Hawkular server, the value of the tenant header is determined by the current
@@ -45,14 +44,7 @@ import org.jboss.logging.Logger;
 @Provider
 @PreMatching
 public class PersonaFilter implements ContainerRequestFilter {
-
-    private final Logger log = Logger.getLogger(PersonaFilter.class);
-
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
-
-    public static final String MISSING_TENANT_MSG = "Tenant is not specified. Use '" + TENANT_HEADER_NAME
-            + "' header.";
-
     public static final String TENANT_HEADER_NOT_ALLOWED = "The " + TENANT_HEADER_NAME + " header is not allowed. " +
             "The tenant is determined from the credentials supplied with the request";
 
@@ -62,7 +54,7 @@ public class PersonaFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
-        if (path.startsWith("/db") || path.startsWith("/status") || path.equals("/")) {
+        if (path.startsWith("/status") || path.equals("/")) {
             return;
         }
 
@@ -71,30 +63,8 @@ public class PersonaFilter implements ContainerRequestFilter {
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(TENANT_HEADER_NOT_ALLOWED))
                     .build());
-        } else if (!checkPersona()) {
-            requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
-                    .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(MISSING_TENANT_MSG))
-                    .build());
         } else {
-            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.get().getId());
+            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.get().getIdAsUUID().toString());
         }
     }
-
-    private boolean checkPersona() {
-        if (persona == null) {
-            log.warn("Persona is null. Possible issue with accounts integration ? ");
-            return false;
-        }
-        if (isEmpty(persona.get().getId())) {
-            log.warn("Persona is empty. Possible issue with accounts integration ? ");
-            return false;
-        }
-        return true;
-    }
-
-    private boolean isEmpty(String s) {
-        return s == null || s.trim().isEmpty();
-    }
-
 }
