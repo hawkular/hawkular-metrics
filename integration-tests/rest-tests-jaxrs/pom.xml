@@ -58,9 +58,9 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-api-common</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
-      <type>jar</type>
+      <classifier>classes</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>

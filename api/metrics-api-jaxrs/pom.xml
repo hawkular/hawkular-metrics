@@ -156,6 +156,7 @@
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
+          <attachClasses>true</attachClasses>
           <archive>
             <manifest>
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
@@ -184,7 +185,6 @@
           </webResources>
         </configuration>
       </plugin>
-
     </plugins>
   </build>
 
