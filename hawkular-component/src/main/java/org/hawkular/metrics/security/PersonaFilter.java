@@ -65,10 +65,14 @@ public class PersonaFilter implements ContainerRequestFilter {
         }
 
         if (requestContext.getHeaderString(TENANT_HEADER_NAME) != null) {
-            requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
-                    .type(APPLICATION_JSON_TYPE)
-                    .entity(new ApiError(TENANT_HEADER_NOT_ALLOWED))
-                    .build());
+            log.error("HEADS UP: Metrics has deprecated the " + TENANT_HEADER_NAME + " for calls to Hawkular server. " +
+                    "The tenant is now determined from the credentials used. In the next release, Metrics will return" +
+                    " a 400 - Bad Request.");
+            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.get().getId());
+//            requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
+//                    .type(APPLICATION_JSON_TYPE)
+//                    .entity(new ApiError(TENANT_HEADER_NOT_ALLOWED))
+//                    .build());
         } else if (!checkPersona()) {
             requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST)
                     .type(APPLICATION_JSON_TYPE)
