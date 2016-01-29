@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,8 @@ package org.hawkular.metrics.api.jaxrs.filter;
 
 import java.io.IOException;
 
+import javax.annotation.Priority;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
@@ -32,6 +34,7 @@ import org.hawkular.metrics.api.jaxrs.util.Headers;
  */
 @Provider
 @PreMatching
+@Priority(0)
 public class CorsRequestFilter implements ContainerRequestFilter {
 
     @Override
@@ -42,7 +45,7 @@ public class CorsRequestFilter implements ContainerRequestFilter {
         }
 
         //It is a CORS pre-flight request, there is no route for it, just return 200
-        if (requestContext.getRequest().getMethod().equalsIgnoreCase("OPTIONS")) {
+        if (requestContext.getMethod().equalsIgnoreCase(HttpMethod.OPTIONS)) {
             requestContext.abortWith(Response.status(Response.Status.OK).build());
         }
     }
