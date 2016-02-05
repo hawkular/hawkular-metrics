@@ -60,6 +60,18 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-core-service</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-api-util</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-bus</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -86,6 +98,17 @@
       <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <type>war</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.spec.javax.jms</groupId>
+      <artifactId>jboss-jms-api_2.0_spec</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-bus-common</artifactId>
+      <version>${version.org.hawkular.commons}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
