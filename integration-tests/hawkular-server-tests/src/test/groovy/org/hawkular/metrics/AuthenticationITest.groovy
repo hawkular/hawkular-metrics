@@ -73,7 +73,7 @@ ${entity}
 
     def response = client.get(path: protectedEndpoint)
 
-    assertEquals(500, response.status)
+    assertEquals(401, response.status)
   }
 
   @Test
