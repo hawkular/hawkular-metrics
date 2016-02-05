@@ -68,14 +68,6 @@
       <artifactId>hawkular-accounts-api</artifactId>
       <version>${version.org.hawkular.accounts}</version>
     </dependency>
-    <dependency>
-      <groupId>org.jboss.logging</groupId>
-      <artifactId>jboss-logging-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.logging</groupId>
-      <artifactId>jboss-logging-processor</artifactId>
-    </dependency>
     <!-- Overlay -->
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -84,6 +76,7 @@
       <type>war</type>
       <scope>provided</scope>
     </dependency>
+    <!-- Provided by container -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>
@@ -94,7 +87,12 @@
       <artifactId>cdi-api</artifactId>
       <scope>provided</scope>
     </dependency>
-
+    <dependency>
+      <groupId>io.undertow</groupId>
+      <artifactId>undertow-servlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Test dependencies -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
@@ -121,6 +119,9 @@
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <excludes>
                 <exclude>**/TenantFilter.class</exclude>
+                <exclude>**/CorsRequestFilter.class</exclude>
+                <exclude>**/CorsResponseFilter.class</exclude>
+                <exclude>**/OriginValidation.class</exclude>
               </excludes>
             </overlay>
           </overlays>
