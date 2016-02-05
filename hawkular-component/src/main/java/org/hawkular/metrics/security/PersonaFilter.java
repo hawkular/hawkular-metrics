@@ -44,17 +44,17 @@ import org.hawkular.metrics.model.ApiError;
 @Provider
 @PreMatching
 public class PersonaFilter implements ContainerRequestFilter {
-    public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
-    public static final String TENANT_HEADER_NOT_ALLOWED = "The " + TENANT_HEADER_NAME + " header is not allowed. " +
+    private static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
+    private static final String TENANT_HEADER_NOT_ALLOWED = "The " + TENANT_HEADER_NAME + " header is not allowed. " +
             "The tenant is determined from the credentials supplied with the request";
 
     @Inject
-    Instance<Persona> persona;
+    Instance<Persona> personaInstance;
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
-        if (path.startsWith("/status") || path.equals("/")) {
+        if (path.equals("/status") || path.equals("/")) {
             return;
         }
 
@@ -63,8 +63,14 @@ public class PersonaFilter implements ContainerRequestFilter {
                     .type(APPLICATION_JSON_TYPE)
                     .entity(new ApiError(TENANT_HEADER_NOT_ALLOWED))
                     .build());
+            return;
+        }
+
+        Persona persona = personaInstance.get();
+        if (persona == null) {
+            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         } else {
-            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.get().getIdAsUUID().toString());
+            requestContext.getHeaders().putSingle(TENANT_HEADER_NAME, persona.getIdAsUUID().toString());
         }
     }
 }
