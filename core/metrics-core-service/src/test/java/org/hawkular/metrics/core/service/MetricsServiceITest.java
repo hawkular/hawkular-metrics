@@ -288,55 +288,50 @@ public class MetricsServiceITest extends MetricsITest {
 
         String tenantId = "t1";
 
+        ImmutableList<MetricId> ids = ImmutableList.of(
+                new MetricId<>(tenantId, GAUGE, "m1"),
+                new MetricId<>(tenantId, GAUGE, "m2"),
+                new MetricId<>(tenantId, GAUGE, "m3"),
+                new MetricId<>(tenantId, GAUGE, "m4"),
+                new MetricId<>(tenantId, GAUGE, "m5"),
+                new MetricId<>(tenantId, GAUGE, "m6"),
+                new MetricId<>(tenantId, GAUGE, "mA"),
+                new MetricId<>(tenantId, GAUGE, "mB"),
+                new MetricId<>(tenantId, GAUGE, "mC"),
+                new MetricId<>(tenantId, GAUGE, "mD"),
+                new MetricId<>(tenantId, GAUGE, "mE"),
+                new MetricId<>(tenantId, GAUGE, "mF"),
+                new MetricId<>(tenantId, GAUGE, "mG"),
+                new MetricId<>(tenantId, AVAILABILITY, "a1")
+                );
+        ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
+                ImmutableMap.of("a1", "1"),
+                ImmutableMap.of("a1", "2", "a3", "3"),
+                ImmutableMap.of("a1", "2", "a2", "2"),
+                ImmutableMap.of("a1", "2", "a2", "3"),
+                ImmutableMap.of("a1", "2", "a2", "4"),
+                ImmutableMap.of("a2", "4"),
+                ImmutableMap.of("hostname", "webfin01"),
+                ImmutableMap.of("hostname", "webswe02"),
+                ImmutableMap.of("hostname", "backendfin01"),
+                ImmutableMap.of("hostname", "backendswe02"),
+                ImmutableMap.of("owner", "hede"),
+                ImmutableMap.of("owner", "hades"),
+                ImmutableMap.of("owner", "had"),
+                ImmutableMap.of("a1","4")
+                );
+        assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
+
         // Create the gauges
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), ImmutableMap.of("a1", "1"), 24);
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m2"), ImmutableMap.of("a1", "2", "a3", "3")
-                , 24);
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m3"), ImmutableMap.of("a1", "2", "a2", "2")
-                , 24);
-        Metric<Double> m4 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m4"), ImmutableMap.of("a1", "2", "a2", "3")
-                , 24);
-        Metric<Double> m5 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m5"), ImmutableMap.of("a1", "2", "a2", "4")
-                , 24);
-        Metric<Double> m6 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m6"), ImmutableMap.of("a2", "4"), 24);
-
-        Metric<Double> mA = new Metric<>(new MetricId<>(tenantId, GAUGE, "mA"),
-                ImmutableMap.of("hostname", "webfin01"), 24);
-        Metric<Double> mB = new Metric<>(new MetricId<>(tenantId, GAUGE, "mB"),
-                ImmutableMap.of("hostname", "webswe02"), 24);
-        Metric<Double> mC = new Metric<>(new MetricId<>(tenantId, GAUGE, "mC"), ImmutableMap.of("hostname",
-                                                                                              "backendfin01"),
-                                         24);
-        Metric<Double> mD = new Metric<>(new MetricId<>(tenantId, GAUGE, "mD"), ImmutableMap.of("hostname",
-                                                                                              "backendswe02"),
-                                         24);
-        Metric<Double> mE = new Metric<>(new MetricId<>(tenantId, GAUGE, "mE"), ImmutableMap.of("owner", "hede"),
-                                         24);
-        Metric<Double> mF = new Metric<>(new MetricId<>(tenantId, GAUGE, "mF"), ImmutableMap.of("owner", "hades"),
-                                         24);
-        Metric<Double> mG = new Metric<>(new MetricId<>(tenantId, GAUGE, "mG"), ImmutableMap.of("owner", "had"),
-                                         24);
-
-        // Create the availabilities
-        Metric<AvailabilityType> a1 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "a1"),
-                                                   ImmutableMap.of("a1","4"), 24);
+        List<Metric> metricsToAdd = new ArrayList<>(ids.size());
+        for (int i = 0; i < ids.size(); i++) {
+            metricsToAdd.add(new Metric(ids.get(i), maps.get(i), 24));
+        }
 
         // Insert gauges
-        metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(m3).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(m5).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(m6).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(a1).toBlocking().lastOrDefault(null);
-
-        metricsService.createMetric(mA).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mB).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mC).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mD).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mE).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mF).toBlocking().lastOrDefault(null);
-        metricsService.createMetric(mG).toBlocking().lastOrDefault(null);
+        for (Metric m : metricsToAdd) {
+            metricsService.createMetric(m).toBlocking().lastOrDefault(null);
+        }
 
         // Check different scenarios..
         List<Metric<Double>> gauges = metricsService.findMetricsWithFilters("t1", GAUGE, ImmutableMap.of("a1", "*"))
@@ -375,6 +370,7 @@ public class MetricsServiceITest extends MetricsITest {
         // Test that we actually get correct gauges also, not just correct size
         gauges = metricsService.<Double> findMetricsWithFilters("t1", GAUGE, ImmutableMap.of("a1", "2", "a2", "2"))
                 .toList().toBlocking().lastOrDefault(null);
+        Metric m3 = metricsToAdd.get(2);
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
         assertEquals(gauges.get(0), m3, "m3 did not match the original inserted metric");
 
