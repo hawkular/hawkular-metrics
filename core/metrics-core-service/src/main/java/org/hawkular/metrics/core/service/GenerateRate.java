@@ -60,7 +60,7 @@ public class GenerateRate implements Action1<Task2> {
                 .flatMap(counter ->
                         metricsService.<Long> findDataPoints(counter.getMetricId(), start, end, 0, Order.DESC)
                         .take(1)
-                        .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000)))
+                        .map(dataPoint -> ((dataPoint.getValue().doubleValue() / (end - start) * 1000 * 60)))
                         .map(rate -> new Metric<>(
                                 new MetricId<>(tenant, COUNTER_RATE, counter.getMetricId().getName()),
                                 singletonList(new DataPoint<>(start, rate)))));
