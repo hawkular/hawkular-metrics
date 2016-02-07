@@ -50,7 +50,7 @@ class PidFile {
      * On failure to open the file, acquire the lock or write to the file, an error message will be printed to {@link
      * java.lang.System#err}.
      * <p>
-     * The caller must call {@link #release()} before the JVM stops, regardless of the the result of this method.
+     * The caller must call {@link #release()} before the JVM stops, regardless of the result of this method.
      *
      * @param pid the process id to write
      *
