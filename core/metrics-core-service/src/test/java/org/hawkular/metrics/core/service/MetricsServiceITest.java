@@ -1037,6 +1037,31 @@ public class MetricsServiceITest extends MetricsITest {
                 .build();
     }
 
+    private <T> List<DataPoint<T>> getDataPointList(String name, DateTime start) {
+        switch (name) {
+            case "M1":
+                return asList(
+                        new DataPoint<T>(start.getMillis(), (T)Double.valueOf(12.23)),
+                        new DataPoint<T>(start.plusMinutes(1).getMillis(), (T)Double.valueOf(9.745)),
+                        new DataPoint<T>(start.plusMinutes(2).getMillis(), (T)Double.valueOf(14.01)),
+                        new DataPoint<T>(start.plusMinutes(3).getMillis(), (T)Double.valueOf(16.18)),
+                        new DataPoint<T>(start.plusMinutes(4).getMillis(), (T)Double.valueOf(18.94)));
+            case "M2":
+                return asList(
+                        new DataPoint<T>(start.getMillis(), (T)Double.valueOf(15.47)),
+                        new DataPoint<T>(start.plusMinutes(1).getMillis(), (T)Double.valueOf(8.08)),
+                        new DataPoint<T>(start.plusMinutes(2).getMillis(), (T)Double.valueOf(14.39)),
+                        new DataPoint<T>(start.plusMinutes(3).getMillis(), (T)Double.valueOf(17.76)),
+                        new DataPoint<T>(start.plusMinutes(4).getMillis(), (T)Double.valueOf(17.502)));
+            case "M3":
+                return asList(
+                        new DataPoint<T>(start.getMillis(), (T)Double.valueOf(11.456)),
+                        new DataPoint<T>(start.plusMinutes(1).getMillis(), (T)Double.valueOf(18.32)));
+            default:
+                return Collections.emptyList();
+        }
+    }
+
     @Test
     public void findStackedGaugeStatsByTags() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
@@ -1044,27 +1069,15 @@ public class MetricsServiceITest extends MetricsITest {
         String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
-                new DataPoint<>(start.getMillis(), 12.23),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)));
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
         doAction(() -> metricsService.addTags(m1, ImmutableMap.of("type", "cpu_usage", "node", "server1")));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
-                new DataPoint<>(start.getMillis(), 15.47),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)));
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
         doAction(() -> metricsService.addTags(m2, ImmutableMap.of("type", "cpu_usage", "node", "server2")));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
-                new DataPoint<>(start.getMillis(), 11.456),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)));
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
         doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
 
@@ -1104,28 +1117,13 @@ public class MetricsServiceITest extends MetricsITest {
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
-                new DataPoint<>(start.getMillis(), 12.23),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)
-        ));
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
-                new DataPoint<>(start.getMillis(), 15.47),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)
-        ));
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
-                new DataPoint<>(start.getMillis(), 11.456),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)
-        ));
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
@@ -1150,25 +1148,13 @@ public class MetricsServiceITest extends MetricsITest {
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), asList(
-                new DataPoint<>(start.getMillis(), 12.23),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 9.745),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.01),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 16.18),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 18.94)));
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), asList(
-                new DataPoint<>(start.getMillis(), 15.47),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 8.08),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 14.39),
-                new DataPoint<>(start.plusMinutes(3).getMillis(), 17.76),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 17.502)));
+        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), asList(
-                new DataPoint<>(start.getMillis(), 11.456),
-                new DataPoint<>(start.plusMinutes(1).getMillis(), 18.32)));
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
