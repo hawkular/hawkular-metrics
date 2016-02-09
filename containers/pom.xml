@@ -45,6 +45,12 @@
     <hawkular-deployment.image>${docker.user}/metrics-deployment:${project.version}</hawkular-deployment.image>
   </properties>
 
+  <modules>
+    <module>hawkular-metrics-openshift-integration</module>
+    <module>metrics-api-jaxrs-openshift</module>
+  </modules>
+
+
   <build>
     <plugins>
       <plugin>
@@ -74,43 +80,4 @@
     </pluginManagement>
   </build>
 
-  <profiles>
-    <profile>
-      <id>wildfly-containers</id>
-      <activation>
-        <property>
-          <name>wildfly-containers</name>
-        </property>
-      </activation>
-      <modules>
-        <module>cassandra-seed-provider</module>
-        <module>hawkular-metrics-openshift-integration</module>
-        <module>metrics-api-jaxrs-openshift</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>eap-containers</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <modules>
-        <module>cassandra-seed-provider</module>
-        <module>hawkular-metrics-openshift-integration</module>
-        <module>metrics-api-jaxrs-openshift</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>openshift</id>
-      <activation>
-        <property>
-          <name>openshift</name>
-        </property>
-      </activation>
-      <modules>
-        <module>cassandra-seed-provider</module>
-        <module>hawkular-metrics-openshift-integration</module>
-        <module>metrics-api-jaxrs-openshift</module>
-      </modules>
-    </profile>
-  </profiles>
 </project>
