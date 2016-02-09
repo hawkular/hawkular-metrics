@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,6 +87,7 @@ public class OpenShiftTokenAuthentication {
             connection.setDoOutput(true);
             //Set Headers
             connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Content-type", "application/json");
             connection.setRequestProperty("Authorization", token);
 
             //Add the body
@@ -131,6 +132,7 @@ public class OpenShiftTokenAuthentication {
      */
     private String generateSubjectAccessReview(String namespace, String verb) throws IOException {
         ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+        objectNode.put("apiVersion", "v1");
         objectNode.put("kind", KIND);
         objectNode.put("resource", RESOURCE);
         objectNode.put("verb", verb);
