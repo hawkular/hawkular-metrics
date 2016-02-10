@@ -329,9 +329,7 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         // Insert gauges
-        for (Metric m : metricsToAdd) {
-            metricsService.createMetric(m).toBlocking().lastOrDefault(null);
-        }
+        Observable.from(metricsToAdd).subscribe(m -> metricsService.createMetric(m).toBlocking().lastOrDefault(null));
 
         // Check different scenarios..
         List<Metric<Double>> gauges = metricsService.findMetricsWithFilters("t1", GAUGE, ImmutableMap.of("a1", "*"))
