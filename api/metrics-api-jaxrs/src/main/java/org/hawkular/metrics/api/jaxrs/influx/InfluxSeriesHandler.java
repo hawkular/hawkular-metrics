@@ -472,7 +472,7 @@ public class InfluxSeriesHandler {
                     retVal /= size;
                     break;
                 case MAX:
-                    retVal = Double.MIN_VALUE;
+                    retVal = -Double.MAX_VALUE;
                     for (DataPoint<Double> rnm : list) {
                         if (rnm.getValue() > retVal) {
                             retVal = rnm.getValue();
