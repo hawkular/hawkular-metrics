@@ -111,7 +111,8 @@ public class GaugeHandler {
         if (metric.getType() != null
                 && MetricType.UNDEFINED != metric.getType()
                 && MetricType.GAUGE != metric.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType.GAUGE.getText())));
+            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType
+                    .GAUGE.getText())));
         }
         metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
@@ -121,7 +122,9 @@ public class GaugeHandler {
 
     @GET
     @Path("/")
-    @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ", response = Metric.class, responseContainer = "List")
+    @ApiOperation(value = "Find tenant's metric definitions.",
+                    notes = "Does not include any metric values. ",
+                    response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -155,7 +158,8 @@ public class GaugeHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's definition was successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.", response = ApiError.class) })
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
+                         response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
         metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
                 .map(metricDef -> Response.ok(metricDef).build())
@@ -169,14 +173,17 @@ public class GaugeHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully retrieved."),
             @ApiResponse(code = 204, message = "Query was successful, but no metrics were found."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.", response = ApiError.class) })
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's tags.",
+                response = ApiError.class) })
     public void getMetricTags(
             @Suspended final AsyncResponse asyncResponse,
-            @PathParam("id") String id) {
+            @PathParam("id") String id
+    ) {
         metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
                 .subscribe(
                         optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
-                        t -> asyncResponse.resume(ApiUtils.serverError(t)));
+                        t ->asyncResponse.resume(ApiUtils.serverError(t))
+                );
     }
 
     @PUT
@@ -184,11 +191,13 @@ public class GaugeHandler {
     @ApiOperation(value = "Update tags associated with the metric definition.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully updated."),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.", response = ApiError.class) })
+            @ApiResponse(code = 500, message = "Unexpected error occurred while updating metric's tags.",
+                response = ApiError.class) })
     public void updateMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(required = true) Map<String, String> tags) {
+            @ApiParam(required = true) Map<String, String> tags
+    ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -199,11 +208,13 @@ public class GaugeHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric's tags were successfully deleted."),
             @ApiResponse(code = 400, message = "Invalid tags", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.", response = ApiError.class) })
+            @ApiResponse(code = 500, message = "Unexpected error occurred while trying to delete metric's tags.",
+                response = ApiError.class) })
     public void deleteMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags) {
+            @ApiParam("Tag list") @PathParam("tags") Tags tags
+    ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -214,12 +225,15 @@ public class GaugeHandler {
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
+                    response = ApiError.class),
     })
     public void addDataForMetric(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "List of datapoints containing timestamp and value", required = true) List<DataPoint<Double>> data) {
+            @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
+            List<DataPoint<Double>> data
+    ) {
         Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
@@ -236,7 +250,8 @@ public class GaugeHandler {
     })
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
-            @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges) {
+            @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges
+    ) {
         Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
@@ -245,26 +260,29 @@ public class GaugeHandler {
     @GET
     @Path("/{id}/data")
     @ApiOperation(value = "Retrieve gauge data.", notes = "When buckets or bucketDuration query parameter is used, " +
-            "the time range between start and end will be divided in buckets of equal duration, and metric statistics"
-            +
+            "the time range between start and end will be divided in buckets of equal duration, and metric statistics" +
             " will be computed for each bucket.", response = DataPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.", response = ApiError.class)
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
     })
     public void findGaugeData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
-            @ApiParam(value = "Use data from earliest received, subject to retention period") @QueryParam("fromEarliest") Boolean fromEarliest,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
-            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order) {
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
+            ) {
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 
@@ -370,15 +388,17 @@ public class GaugeHandler {
     @ApiOperation(value = "Find stats for multiple metrics.", notes = "Fetches data points from one or more metrics"
             + " that are determined using either a tags filter or a list of metric names. The time range between " +
             "start and end is divided into buckets of equal size (i.e., duration) using either the buckets or " +
-            "bucketDuration parameter. Functions are applied to the data points in each bucket to produce statistics "
-            +
-            "or aggregated metrics.", response = NumericBucketPoint.class, responseContainer = "List")
+            "bucketDuration parameter. Functions are applied to the data points in each bucket to produce statistics " +
+            "or aggregated metrics.",
+            response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
             @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
-                    "bucketDuration parameter is required but not both.", response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.", response = ApiError.class) })
+                    "bucketDuration parameter is required but not both.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class) })
     public void findGaugeData(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
@@ -388,7 +408,8 @@ public class GaugeHandler {
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)", required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                    required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -414,8 +435,8 @@ public class GaugeHandler {
             return;
         }
 
-        if (percentiles == null) {
-            percentiles = new Percentiles(Collections.<Double> emptyList());
+        if(percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double>emptyList());
         }
 
         if (metricNames.isEmpty()) {
@@ -433,8 +454,7 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/periods")
-    @ApiOperation(value = "Find condition periods.", notes = "Retrieve periods for which the condition holds true for"
-            +
+    @ApiOperation(value = "Find condition periods.", notes = "Retrieve periods for which the condition holds true for" +
             " each consecutive data point.", response = List.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched periods."),
@@ -446,8 +466,11 @@ public class GaugeHandler {
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
-            @ApiParam(value = "A threshold against which values are compared", required = true) @QueryParam("threshold") double threshold,
-            @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true, allowableValues = "ge, gte, lt, lte, eq, neq") @QueryParam("op") String operator
+            @ApiParam(value = "A threshold against which values are compared", required = true)
+            @QueryParam("threshold") double threshold,
+            @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
+                    allowableValues = "ge, gte, lt, lte, eq, neq")
+            @QueryParam("op") String operator
     ) {
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -483,7 +506,9 @@ public class GaugeHandler {
             asyncResponse.resume(badRequest(
                     new ApiError(
                             "Invalid value for op parameter. Supported values are lt, "
-                                    + "lte, eq, gt, gte.")));
+                                    + "lte, eq, gt, gte."
+                    )
+            ));
         } else {
             MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
