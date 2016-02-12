@@ -35,6 +35,7 @@
   <description>Metrics component within Hawkular suite</description>
 
   <properties>
+    <version.org.hawkular.commons>0.3.4.Final</version.org.hawkular.commons>
     <!-- For tests -->
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_component_integration_tests</cassandra.keyspace>
@@ -60,6 +61,18 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-core-service</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-api-util</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-bus</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -77,6 +90,17 @@
       <scope>provided</scope>
     </dependency>
     <!-- Provided by container -->
+    <dependency>
+      <groupId>org.jboss.spec.javax.jms</groupId>
+      <artifactId>jboss-jms-api_2.0_spec</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-bus-common</artifactId>
+      <version>${version.org.hawkular.commons}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jaxrs</artifactId>
