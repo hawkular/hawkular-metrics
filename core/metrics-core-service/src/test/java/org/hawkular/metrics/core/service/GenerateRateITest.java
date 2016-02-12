@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,11 +109,11 @@ public class GenerateRateITest extends MetricsITest {
         List<DataPoint<Double>> c3Rate = getOnNextEvents(() -> metricsService.findRateData(c3.getMetricId(),
                 start.getMillis(), start.plusMinutes(1).getMillis()));
 
-        assertEquals(c1Rate, singletonList(new DataPoint<>(start.getMillis(), calculateRate(25, start,
+        assertEquals(c1Rate, singletonList(new DataPoint<>(start.plusSeconds(30).getMillis(), calculateRate(30, start,
                 start.plusMinutes(1)))));
-        assertEquals(c2Rate, singletonList(new DataPoint<>(start.getMillis(), calculateRate(165, start,
+        assertEquals(c2Rate, singletonList(new DataPoint<>(start.plusSeconds(30).getMillis(), calculateRate(130, start,
                 start.plusMinutes(1)))));
-        assertEquals(c3Rate, singletonList(new DataPoint<>(start.getMillis(), calculateRate(77, start,
+        assertEquals(c3Rate, singletonList(new DataPoint<>(start.plusSeconds(30).getMillis(), calculateRate(70, start,
                 start.plusMinutes(1)))));
     }
 
