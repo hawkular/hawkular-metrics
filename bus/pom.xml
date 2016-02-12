@@ -34,7 +34,6 @@
   <description>Metrics bus for integrating with other Hawkular components</description>
 
   <properties>
-    <version.org.hawkular.commons>0.3.4.Final</version.org.hawkular.commons>
     <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
   </properties>
 
