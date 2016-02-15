@@ -81,10 +81,6 @@
       <version>${version.org.hawkular.accounts}</version>
     </dependency>
     <dependency>
-      <groupId>org.keycloak.secretstore</groupId>
-      <artifactId>secret-store-undertow-filter</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.jboss.logging</groupId>
       <artifactId>jboss-logging-annotations</artifactId>
     </dependency>
