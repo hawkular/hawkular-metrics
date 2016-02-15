@@ -42,6 +42,8 @@ before_install:
 - cp .travis.maven.settings.xml $HOME/.m2/settings.xml
 install:
 - mvn -version -B
+# unshallow is needed by license-maven-plugin
+- git fetch origin --unshallow
 script:
 - mvn verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=INFO -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -Dtravis -B
 after_failure: bash .travis.diagnose.sh
