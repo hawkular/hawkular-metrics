@@ -36,30 +36,27 @@
     <hawkular.port.offset>0</hawkular.port.offset>
     <hawkular.management.port>9990</hawkular.management.port>
     <hawkular.agent.enabled>false</hawkular.agent.enabled>
-    <hawkular.log>DEBUG</hawkular.log>
+    <hawkular.log>ERROR</hawkular.log>
     <hawkular.backend>remote</hawkular.backend>
+    <wildfly.application.username>jmsuser</wildfly.application.username>
+    <wildfly.application.password>password</wildfly.application.password>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.jboss.arquillian</groupId>
-        <artifactId>arquillian-bom</artifactId>
-        <version>1.1.10.Final</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-
-      <dependency>
-        <groupId>org.wildfly</groupId>
-        <artifactId>wildfly-arquillian-container-managed</artifactId>
-        <version>8.2.1.Final</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
+
+    <dependency>
+      <groupId>org.wildfly</groupId>
+      <artifactId>wildfly-client-all</artifactId>
+      <version>${version.org.wildfly}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-component</artifactId>
@@ -205,6 +202,18 @@
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
+          <add-user>
+            <users>
+              <user>
+                <username>${wildfly.application.username}</username>
+                <password>${wildfly.application.password}</password>
+                <applicationUser>true</applicationUser>
+                <groups>
+                  <group>guest</group>
+                </groups>
+              </user>
+            </users>
+          </add-user>
           <jboss-home>${project.build.directory}/${project.artifactId}-${project.version}</jboss-home>
           <skip>${skipTests}</skip>
           <startupTimeout>240</startupTimeout>
@@ -266,6 +275,9 @@
           <systemPropertyVariables>
             <hawkular.bind.address>${hawkular.bind.address}</hawkular.bind.address>
             <hawkular.port.offset>${hawkular.port.offset}</hawkular.port.offset>
+            <wildfly.application.username>${wildfly.application.username}</wildfly.application.username>
+            <wildfly.application.password>${wildfly.application.password}</wildfly.application.password>
+            <hawkular.log>${hawkular.log}</hawkular.log>
 
             <!--output over-the-wire traffic-->
             <!--<org.apache.commons.logging.Log>-->
