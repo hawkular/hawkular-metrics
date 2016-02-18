@@ -46,6 +46,7 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
+import org.hawkular.metrics.model.BucketPoint;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -705,7 +706,7 @@ public class MetricsServiceImpl implements MetricsService {
                         buckets, percentiles);
             }
         } else {
-            Observable<Observable<NumericBucketPoint>> individualStats = null;
+            Observable<Observable<NumericBucketPoint>> individualStats;
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = findMetricsWithFilters(tenantId, metricType, tagFilters)
@@ -719,11 +720,12 @@ public class MetricsServiceImpl implements MetricsService {
             }
 
             return Observable.merge(individualStats)
-                    .groupBy(g -> g.getStart())
+                    .groupBy(BucketPoint::getStart)
                     .flatMap(group -> group.collect(SumNumericBucketPointCollector::new,
                             SumNumericBucketPointCollector::increment))
                     .map(SumNumericBucketPointCollector::toBucketPoint)
-                    .toList();
+                    .toMap(NumericBucketPoint::getStart)
+                    .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
         }
     };
 
@@ -749,7 +751,7 @@ public class MetricsServiceImpl implements MetricsService {
                         buckets, percentiles);
             }
         } else {
-            Observable<Observable<NumericBucketPoint>> individualStats = null;
+            Observable<Observable<NumericBucketPoint>> individualStats;
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = Observable.from(metrics)
@@ -767,11 +769,12 @@ public class MetricsServiceImpl implements MetricsService {
             }
 
             return Observable.merge(individualStats)
-                    .groupBy(g -> g.getStart())
-                    .flatMap(group -> group.collect(() -> new SumNumericBucketPointCollector(),
+                    .groupBy(BucketPoint::getStart)
+                    .flatMap(group -> group.collect(SumNumericBucketPointCollector::new,
                             SumNumericBucketPointCollector::increment))
                     .map(SumNumericBucketPointCollector::toBucketPoint)
-                    .toList();
+                    .toMap(NumericBucketPoint::getStart)
+                    .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
         }
     }
 
