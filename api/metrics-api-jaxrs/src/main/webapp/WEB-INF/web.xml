@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,6 @@
          version="3.1">
 
   <display-name>Hawkular Metrics Rest interface</display-name>
-
-  <context-param>
-    <param-name>resteasy.providers</param-name>
-    <param-value>org.hawkular.metrics.api.jaxrs.util.JacksonConfig</param-value>
-  </context-param>
 
   <servlet>
     <servlet-name>staticContent</servlet-name>
