@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,7 +52,7 @@ public class OpenShiftTokenAuthentication {
 
     private static final String KIND = "SubjectAccessReview";
 
-    private enum HTTP_METHOD {GET, PUT, POST, DELETE, PATCH};
+    private enum HTTP_METHOD {GET, PUT, POST, DELETE, PATCH, OPTIONS};
 
     public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws
             IOException, ServletException {
@@ -86,6 +86,7 @@ public class OpenShiftTokenAuthentication {
             connection.setDoOutput(true);
             //Set Headers
             connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Content-type", "application/json");
             connection.setRequestProperty("Authorization", token);
 
             //Add the body
@@ -130,6 +131,7 @@ public class OpenShiftTokenAuthentication {
      */
     private String generateSubjectAccessReview(String namespace, String verb) throws IOException {
         ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+        objectNode.put("apiVersion", "v1");
         objectNode.put("kind", KIND);
         objectNode.put("resource", RESOURCE);
         objectNode.put("verb", verb);
@@ -150,22 +152,28 @@ public class OpenShiftTokenAuthentication {
      * @return The verb to use or null if no verb could be determined
      */
     private String getVerb(String method) {
-
-        HTTP_METHOD httpMethod = HTTP_METHOD.valueOf(method);
-        switch (httpMethod) {
-            case GET:
-                return "list";
-            case PUT:
-                return "update";
-            case POST:
-                return "update";
-            case DELETE:
-                return "delete";
-            case PATCH:
-                return "update";
+        // valueOf will return an IllegalArgumentException if its an unknown value.
+        // default to 'list' verb in the case (which is the lowest level permission)
+        try {
+            HTTP_METHOD httpMethod = HTTP_METHOD.valueOf(method);
+            switch (httpMethod) {
+                case GET:
+                    return "list";
+                case PUT:
+                    return "update";
+                case POST:
+                    return "update";
+                case DELETE:
+                    return "delete";
+                case PATCH:
+                    return "update";
+                default:
+                    return "list";
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("Unhandled http method '" + method + "'. Checking for read access.");
+            return "list";
         }
-
-        return null;
     }
 
 }
