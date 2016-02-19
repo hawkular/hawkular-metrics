@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.clients.ptrans;
 
 import static org.hawkular.metrics.clients.ptrans.OptionsFactory.CONFIG_FILE_OPT;
@@ -34,6 +35,7 @@ import org.apache.commons.cli.PosixParser;
 import org.hawkular.metrics.clients.ptrans.log.PTransLogger;
 import org.hawkular.metrics.clients.ptrans.log.PTransLogging;
 
+import io.vertx.core.impl.FileResolver;
 import jnr.posix.POSIXFactory;
 
 /**
@@ -54,6 +56,7 @@ public class Main {
 
     private Main(String[] args) {
         this.args = args;
+        System.setProperty(FileResolver.DISABLE_CP_RESOLVING_PROP_NAME, Boolean.TRUE.toString());
         optionsFactory = new OptionsFactory();
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
