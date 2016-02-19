@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +16,19 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
 
 import java.net.URI;
+import java.util.Base64;
 import java.util.List;
 
 import org.hawkular.metrics.client.common.Batcher;
 import org.hawkular.metrics.client.common.MetricBuffer;
 import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
+import org.hawkular.metrics.clients.ptrans.ServerType;
 import org.jboss.logging.Logger;
 
 import io.vertx.core.AbstractVerticle;
@@ -54,7 +58,10 @@ public class MetricsSender extends AbstractVerticle {
     private final String postUri;
     private final CharSequence hostHeader;
 
+    private final ServerType serverType;
     private final CharSequence tenant;
+    private final CharSequence basicAuth;
+    private final CharSequence personaId;
 
     private final MetricBuffer buffer;
     private final int batchSize;
@@ -81,7 +88,27 @@ public class MetricsSender extends AbstractVerticle {
         }
         hostHeader = HttpHeaders.createOptimized(restUrl.getHost());
 
-        tenant = HttpHeaders.createOptimized(configuration.getTenant());
+        serverType = configuration.getServerType();
+        switch (serverType) {
+        case METRICS:
+            tenant = HttpHeaders.createOptimized(configuration.getTenant());
+            basicAuth = null;
+            personaId = null;
+            break;
+        case HAWKULAR:
+            tenant = null;
+            String authString = configuration.getAuthId() + ":" + configuration.getAuthSecret();
+            basicAuth = HttpHeaders.createOptimized("Basic "
+                    + Base64.getEncoder().encodeToString(authString.getBytes(UTF_8)));
+            if (configuration.getPersonaId() != null && !configuration.getPersonaId().trim().isEmpty()) {
+                personaId = HttpHeaders.createOptimized(configuration.getPersonaId().trim());
+            } else {
+                personaId = null;
+            }
+            break;
+        default:
+            throw new RuntimeException("Unsupported server type:" + configuration.getServerType());
+        }
 
         buffer = new MetricBuffer(configuration.getBufferCapacity());
         batchSize = configuration.getBatchSize();
@@ -163,7 +190,21 @@ public class MetricsSender extends AbstractVerticle {
         req.putHeader(HttpHeaders.HOST, hostHeader);
         req.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(data.length()));
         req.putHeader(HttpHeaders.CONTENT_TYPE, Constants.APPLICATION_JSON);
-        req.putHeader(Constants.TENANT_HEADER_NAME, tenant);
+
+        switch (serverType) {
+        case METRICS:
+            req.putHeader(Constants.TENANT_HEADER_NAME, tenant);
+            break;
+        case HAWKULAR:
+            req.putHeader(HttpHeaders.AUTHORIZATION, basicAuth);
+            if (personaId != null) {
+                req.putHeader(Constants.PERSONA_HEADER_NAME, personaId);
+            }
+            break;
+        default:
+            throw new RuntimeException("Unsupported server type:" + serverType);
+        }
+
         req.exceptionHandler(err -> {
             connectionsUsed--;
             log.trace("Could not send metrics", err);

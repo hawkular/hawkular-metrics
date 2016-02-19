@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.clients.ptrans.backend;
 
 import io.vertx.core.http.HttpHeaders;
@@ -27,6 +26,7 @@ public class Constants {
     public static final String METRIC_ADDRESS = "singlemetric";
 
     public static final CharSequence TENANT_HEADER_NAME = HttpHeaders.createOptimized("Hawkular-Tenant");
+    public static final CharSequence PERSONA_HEADER_NAME = HttpHeaders.createOptimized("Hawkular-Persona");
     public static final CharSequence APPLICATION_JSON = HttpHeaders.createOptimized("application/json");
 
     private Constants() {

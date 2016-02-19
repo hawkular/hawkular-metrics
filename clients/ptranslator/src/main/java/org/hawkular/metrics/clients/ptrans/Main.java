@@ -35,7 +35,6 @@ import org.apache.commons.cli.PosixParser;
 import org.hawkular.metrics.clients.ptrans.log.PTransLogger;
 import org.hawkular.metrics.clients.ptrans.log.PTransLogging;
 
-import io.vertx.core.impl.FileResolver;
 import jnr.posix.POSIXFactory;
 
 /**
@@ -56,7 +55,8 @@ public class Main {
 
     private Main(String[] args) {
         this.args = args;
-        System.setProperty(FileResolver.DISABLE_CP_RESOLVING_PROP_NAME, Boolean.TRUE.toString());
+        // Avoid creating the Vert.x cache directory
+        System.setProperty("vertx.disableFileCPResolving", Boolean.TRUE.toString());
         optionsFactory = new OptionsFactory();
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }

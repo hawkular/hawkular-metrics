@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,8 +44,26 @@ public enum ConfigurationKey {
     REST_URL("rest.url"),
     /** If present the HTTP proxy to use. */
     HTTP_PROXY("http.proxy"),
-    /** Tenant. */
+    /**
+     * Server type.
+     */
+    SERVER_TYPE("server.type"),
+    /**
+     * Tenant. Used when server type is standalone Metrics.
+     */
     TENANT("tenant"),
+    /**
+     * Authentication id. Used when server type is Hawkular.
+     */
+    AUTH_ID("auth.id"),
+    /**
+     * Authentication secret. Used when server type is Hawkular.
+     */
+    AUTH_SECRET("auth.secret"),
+    /**
+     * Hawkular Persona id. Used when server type is Hawkular.
+     */
+    PERSONA_ID("persona.id"),
     /** Capacity of the buffer where incoming metrics are queued before sending to the backend. */
     BUFFER_CAPACITY("buffer.capacity"),
     /** Size of the metric batches sent to the backend. */
