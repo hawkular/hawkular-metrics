@@ -48,10 +48,6 @@
           <groupId>${project.groupId}</groupId>
           <artifactId>hawkular-metrics-rx-java-driver</artifactId>
         </exclusion>
-        <!--<exclusion>-->
-          <!--<groupId>org.apache.commons</groupId>-->
-          <!--<artifactId>commons-math3</artifactId>-->
-        <!--</exclusion>-->
         <exclusion>
           <groupId>io.reactivex</groupId>
           <artifactId>rxjava</artifactId>
@@ -122,6 +118,7 @@
   </dependencies>
 
   <build>
+    <finalName>${project.artifactId}</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

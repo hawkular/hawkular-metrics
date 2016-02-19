@@ -1,0 +1,131 @@
+= Hawkular Metrics Data Generator
+
+== About
+This is a tool for generating Cassandra data files, i.e., SSTables, which in
+turn can be used in performance and load testing.
+
+== Build Instructions
+There are dependencies on other Hawkular Metrics components, so the easiest
+thing to do is to build from the root. The build produces an executable JAR
+which is described in the following section.
+
+== Usage
+The data generator supports a number of options, each of which has a default
+value. In its simplest form, the data generator can be run as follows,
+
+[source,bash]
+----
+java -jar hawkular-metrics-data-generator.jar
+----
+
+And the output will look something like,
+
+[noformat]
+----
+17:48:33.545 [Thread-1] WARN  org.apache.cassandra.utils.CLibrary - JNA link failure, one or more native method will be unavailable.
+
+
+Start time: 1455918510144
+End time: 1455922110144
+Total duration: 3600000 ms
+Interval: 60000
+Tenants: 100
+Metrics per tenant: 100
+Total data points: 610000
+Execution time: 4521 ms
+----
+
+TIP: The warning message from Cassandra can be ignored.
+
+After the log message from Cassandra, the data generator outputs an execution
+summary. Here is a summary of each of the items.
+
+*Start time* +
+This is the starting timestamp to use for data points. It is not the time at
+which the tool begins running.
+
+*End time* +
+This is the ending timestamp to use for data points. It is not the the time at
+which the tool finishes running.
+
+*Interval* +
+The collection or sampling interval for each metric. Conceptually this
+determines the frequency of writes for each time series. For example, if we
+have a start time of 1, and end time of 100, and an interval of 10, then each
+metric will wind up with ten data points.
+
+The same number of data points is generated for each metric currently.
+
+*Total duration* +
+The elapsed time between the start and end times.
+
+*Tenants* +
+The number of tenants to use. A simple naming scheme is used for tenants,
+`TENANT-i`, where `i` is a zero based index of the number of tenants.
+
+*Metrics per tenant* +
+The number of metrics to use. Note that this corresponds to the number of time
+series per tenant, not the number of data points. A simple naming scheme is used
+for metrics, `GAUGE-j`, where is a zero based index of the number of metrics for
+each tenant.
+
+Each Tenant currently contains the same number of metrics.
+
+*Total data points* +
+The total number of data points written.
+
+*Execution time* +
+The total time it takes for the data generator to finish its work.
+
+
+To see all of the supported options,
+
+[source,bash]
+----
+java -jar hawkular-metrics-data-generator.jar -h
+usage: java -jar hawkular-metrics-data-generator.jar [options]
+    --buffer-size <arg>          Defines how much data will be buffered
+                                 before being written out as a new
+                                 SSTable. This corresponds roughly to the
+                                 data size of the SSTable. Interpreted as
+                                 mega bytes and defaults to 128 MB.
+    --data-dir <arg>             The directory in which to store data
+                                 files. Defaults to ./data.
+    --end <arg>                  Specified using the regex pattern
+                                 (d+)(m|h|d) where m is for minutes, h is
+                                 for hours, and d is for days. The value
+                                 is substracted from "now" to determine
+                                 the end time. A value of 4h would be
+                                 interpreted as four hours ago. Defaults
+                                 to "now". Must be greater than the start
+                                 time.
+ -h,--help                       Show this message.
+    --interval <arg>             Specified using the regex pattern
+                                 (d+)(s|m|h|d) where s is for seconds, m
+                                 for minutes, h for hours, and d for days.
+                                 Used to determine the number of data
+                                 points written. Defaults to one minute.
+    --keyspace <arg>             The keyspace in which data will be
+                                 stored. Defaults to hawkular_metrics
+    --metrics-per-tenant <arg>   The number of metrics per tenant.
+                                 Defaults to 100.
+    --start <arg>                Specified using the regex pattern
+                                 (d+)(m|h|d) where m is for minutes, h is
+                                 for hours, and d is for days. The value
+                                 is subtracted from "now" to determine a
+                                 start time. A value of 4h would be
+                                 interpreted as four hours ago. Defaults
+                                 to one hour ago. Must be less than the
+                                 end time.
+    --tenants <arg>              The number of tenants. Defaults to 100.
+----
+
+== Additional Notes
+The tool currently only supports gauge metrics.
+
+Hawkular Metrics currently uses Cassandra's TTL feature for deleting data. The
+tool does not set a TTL on any of the data it inserts. This is by design. Using
+TTLs in test environments can get tricky as you often times wind up having to
+manipulate system clocks. There are plans to stop using TTL for deleting data
+(for other reasons), so it makes even less sense to invest a lot of time on
+making things with TTL'd data.
