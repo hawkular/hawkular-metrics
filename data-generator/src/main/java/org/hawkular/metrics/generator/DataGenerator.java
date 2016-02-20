@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,8 @@ import org.hawkular.metrics.core.service.TimeUUIDUtils;
 
 import com.google.common.base.Stopwatch;
 
+import ch.qos.logback.classic.Level;
+
 /**
  * @author jsanda
  */
@@ -51,15 +53,11 @@ public class DataGenerator {
 
     private File dataDir;
 
-    private int ttl;
-
     private int tenants;
 
     private int metricsPerTenant;
 
     private long interval;
-
-    private boolean useTTL;
 
     private long startTime;
 
@@ -248,6 +246,10 @@ public class DataGenerator {
     }
 
     public static void main(String[] args) throws Exception {
+        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.WARN);
+
         DataGenerator dataGenerator = new DataGenerator();
         try {
             CommandLineParser parser = new PosixParser();
