@@ -423,6 +423,7 @@
         <module>core/task-queue</module>
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
+        <module>data-generator</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
         <module>bus</module>
