@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.clients.ptrans;
 
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.AUTH_ID;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.AUTH_SECRET;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BUFFER_CAPACITY;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.COLLECTD_PORT;
@@ -24,8 +26,10 @@ import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTI
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GRAPHITE_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.HTTP_PROXY;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.PERSONA_ID;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_MAX_CONNECTIONS;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVER_TYPE;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
@@ -59,9 +63,13 @@ public class Configuration {
     private final int collectdPort;
     private final int graphitePort;
     private final String multicastIfOverride;
+    private final ServerType serverType;
     private final URI restUrl;
     private final URI httpProxy;
     private final String tenant;
+    private final String authId;
+    private final String authSecret;
+    private final String personaId;
     private final int bufferCapacity;
     private final int batchSize;
     private final int restMaxConnections;
@@ -77,9 +85,13 @@ public class Configuration {
             int collectdPort,
             int graphitePort,
             String multicastIfOverride,
+            ServerType serverType,
             URI restUrl,
             URI httpProxy,
             String tenant,
+            String authId,
+            String authSecret,
+            String personaId,
             int bufferCapacity,
             int batchSize,
             int restMaxConnections,
@@ -94,9 +106,13 @@ public class Configuration {
         this.gangliaGroup = gangliaGroup;
         this.graphitePort = graphitePort;
         this.multicastIfOverride = multicastIfOverride;
+        this.serverType = serverType;
         this.restUrl = restUrl;
         this.httpProxy = httpProxy;
         this.tenant = tenant;
+        this.authId = authId;
+        this.authSecret = authSecret;
+        this.personaId = personaId;
         this.bufferCapacity = bufferCapacity;
         this.batchSize = batchSize;
         this.restMaxConnections = restMaxConnections;
@@ -114,6 +130,7 @@ public class Configuration {
         int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
         int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
         int graphitePort = getIntProperty(properties, GRAPHITE_PORT, 2003);
+        ServerType serverType = getServerType(properties, validationMessages);
         URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
                 "http://localhost:8080/hawkular/metrics/gauges/data"));
         String proxyString = properties.getProperty(HTTP_PROXY.toString());
@@ -122,6 +139,9 @@ public class Configuration {
             httpProxy = URI.create(proxyString);
         }
         String tenant = properties.getProperty(TENANT.toString(), "default");
+        String authId = properties.getProperty(AUTH_ID.toString());
+        String authSecret = properties.getProperty(AUTH_SECRET.toString());
+        String personaId = properties.getProperty(PERSONA_ID.toString());
         int bufferCapacity = getIntProperty(properties, BUFFER_CAPACITY, 10000);
         int batchSize = getIntProperty(properties, BATCH_SIZE, 50);
         int restMaxConnections = getIntProperty(properties, REST_MAX_CONNECTIONS, 10);
@@ -135,9 +155,13 @@ public class Configuration {
                 collectdPort,
                 graphitePort,
                 multicastIfOverride,
+                serverType,
                 restUrl,
                 httpProxy,
                 tenant,
+                authId,
+                authSecret,
+                personaId,
                 bufferCapacity,
                 batchSize,
                 restMaxConnections,
@@ -169,6 +193,16 @@ public class Configuration {
             validationMessages.add("Empty services list");
         }
         return services;
+    }
+
+    private static ServerType getServerType(Properties properties, Set<String> validationMessages) {
+        String serverTypeProperty = properties.getProperty(SERVER_TYPE.toString(),
+                ServerType.METRICS.getExternalForm());
+        ServerType serverType = ServerType.findByExternalForm(serverTypeProperty);
+        if (serverType == null) {
+            validationMessages.add(String.format(Locale.ROOT, "Unknown server type %s", serverTypeProperty));
+        }
+        return serverType;
     }
 
     private static int getIntProperty(Properties properties, ConfigurationKey key, int defaultValue) {
@@ -229,6 +263,10 @@ public class Configuration {
         return multicastIfOverride;
     }
 
+    public ServerType getServerType() {
+        return serverType;
+    }
+
     public URI getRestUrl() {
         return restUrl;
     }
@@ -239,6 +277,18 @@ public class Configuration {
 
     public String getTenant() {
         return tenant;
+    }
+
+    public String getAuthId() {
+        return authId;
+    }
+
+    public String getAuthSecret() {
+        return authSecret;
+    }
+
+    public String getPersonaId() {
+        return personaId;
     }
 
     public int getBufferCapacity() {

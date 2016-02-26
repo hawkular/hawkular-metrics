@@ -123,7 +123,7 @@
     <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
     <version.commons-codec>1.10</version.commons-codec>
     <version.io.fabric8>2.2.16</version.io.fabric8>
-    <version.io.vertx.vertx-core>3.0.0</version.io.vertx.vertx-core>
+    <version.io.vertx.vertx-core>3.2.1</version.io.vertx.vertx-core>
     <version.maven-surefire-report-plugin>2.6</version.maven-surefire-report-plugin>
     <version.org.acplt.oncrpc>1.0.7</version.org.acplt.oncrpc>
     <version.org.apache.commons.commons-math3>3.4.1</version.org.apache.commons.commons-math3>
