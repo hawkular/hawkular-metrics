@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import rx.Observable;
 import rx.Scheduler;
+import rx.observable.ListenableFutureObservable;
 import rx.schedulers.Schedulers;
 
 /**
@@ -54,61 +55,61 @@ public class RxSessionImpl implements RxSession {
     @Override
     public Observable<ResultSet> execute(String query) {
         ResultSetFuture future = session.executeAsync(query);
-        return RxUtil.from(future, Schedulers.computation());
+        return ListenableFutureObservable.from(future, Schedulers.computation());
     }
 
     @Override
     public Observable<ResultSet> execute(String query, Scheduler scheduler) {
         ResultSetFuture future = session.executeAsync(query);
-        return RxUtil.from(future, scheduler);
+        return ListenableFutureObservable.from(future, scheduler);
     }
 
     @Override
     public Observable<ResultSet> execute(String query, Object... values) {
         ResultSetFuture future = session.executeAsync(query, values);
-        return RxUtil.from(future, Schedulers.computation());
+        return ListenableFutureObservable.from(future, Schedulers.computation());
     }
 
     @Override
     public Observable<ResultSet> execute(String query, Scheduler scheduler, Object... values) {
         ResultSetFuture future = session.executeAsync(query, values, scheduler);
-        return RxUtil.from(future, scheduler);
+        return ListenableFutureObservable.from(future, scheduler);
     }
 
     @Override
     public Observable<ResultSet> execute(Statement statement) {
         ResultSetFuture future = session.executeAsync(statement);
-        return RxUtil.from(future, Schedulers.computation());
+        return ListenableFutureObservable.from(future, Schedulers.computation());
     }
 
     @Override
     public Observable<ResultSet> execute(Statement statement, Scheduler scheduler) {
         ResultSetFuture future = session.executeAsync(statement);
-        return RxUtil.from(future, scheduler);
+        return ListenableFutureObservable.from(future, scheduler);
     }
 
     @Override
     public Observable<PreparedStatement> prepare(String query) {
         ListenableFuture<PreparedStatement> future = session.prepareAsync(query);
-        return RxUtil.from(future, Schedulers.computation());
+        return ListenableFutureObservable.from(future, Schedulers.computation());
     }
 
     @Override
     public Observable<PreparedStatement> prepare(String query, Scheduler scheduler) {
         ListenableFuture<PreparedStatement> future = session.prepareAsync(query);
-        return RxUtil.from(future, scheduler);
+        return ListenableFutureObservable.from(future, scheduler);
     }
 
     @Override
     public Observable<PreparedStatement> prepare(RegularStatement statement) {
         ListenableFuture<PreparedStatement> future = session.prepareAsync(statement);
-        return RxUtil.from(future, Schedulers.computation());
+        return ListenableFutureObservable.from(future, Schedulers.computation());
     }
 
     @Override
     public Observable<PreparedStatement> prepare(RegularStatement statement, Scheduler scheduler) {
         ListenableFuture<PreparedStatement> future = session.prepareAsync(statement);
-        return RxUtil.from(future, scheduler);
+        return ListenableFutureObservable.from(future, scheduler);
     }
 
     @Override
