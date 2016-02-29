@@ -59,7 +59,6 @@ import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.schema.SchemaManager;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.rx.cassandra.driver.RxUtil;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -81,6 +80,7 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func5;
+import rx.observable.ListenableFutureObservable;
 import rx.subjects.PublishSubject;
 
 /**
@@ -393,7 +393,7 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
-        Observable<ResultSet> indexUpdated = RxUtil.from(future, metricsTasks);
+        Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!resultSet.wasApplied()) {
                 subscriber.onError(new MetricAlreadyExistsException(metric));
@@ -423,7 +423,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     private Observable<ResultSet> updateRetentionsIndex(Metric<?> metric) {
         ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-        Observable<ResultSet> dataRetentionUpdated = RxUtil.from(dataRetentionFuture, metricsTasks);
+        Observable<ResultSet> dataRetentionUpdated = ListenableFutureObservable.from(dataRetentionFuture, metricsTasks);
         // TODO Shouldn't we only update dataRetentions map when the retentions index update succeeds?
         dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
 
