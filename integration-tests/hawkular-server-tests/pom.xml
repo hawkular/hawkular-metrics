@@ -144,7 +144,7 @@
                 </artifactItem>
               </artifactItems>
               <outputDirectory>
-                ${project.build.directory}/${project.artifactId}-${project.version}/modules/org/hawkular/nest/main/deployments
+                ${project.build.directory}/${project.build.finalName}/modules/system/layers/hawkular/org/hawkular/nest/main/deployments
               </outputDirectory>
             </configuration>
           </execution>
@@ -182,14 +182,14 @@
               <transformationSets>
                 <!-- standalone.xml -->
                 <transformationSet>
-                  <dir>${project.build.directory}/${project.artifactId}-${project.version}/standalone/configuration
+                  <dir>${project.build.directory}/${project.build.finalName}/standalone/configuration
                   </dir>
                   <stylesheet>src/main/resources/standalone.xsl</stylesheet>
                   <includes>
                     <include>standalone.xml</include>
                   </includes>
                   <outputDir>
-                    ${project.build.directory}/${project.artifactId}-${project.version}/standalone/configuration
+                    ${project.build.directory}/${project.build.finalName}/standalone/configuration
                   </outputDir>
                 </transformationSet>
               </transformationSets>
@@ -214,7 +214,7 @@
               </user>
             </users>
           </add-user>
-          <jboss-home>${project.build.directory}/${project.artifactId}-${project.version}</jboss-home>
+          <jboss-home>${project.build.directory}/${project.build.finalName}</jboss-home>
           <skip>${skipTests}</skip>
           <startupTimeout>240</startupTimeout>
           <port>${hawkular.management.port}</port>
@@ -227,7 +227,7 @@
             <javaOpt>-Djboss.bind.address=${hawkular.bind.address}</javaOpt>
             <javaOpt>-Djboss.socket.binding.port-offset=${hawkular.port.offset}</javaOpt>
             <javaOpt>
-              -Dkeycloak.import=${project.build.directory}/${project.artifactId}-${project.version}/standalone/configuration/hawkular-realm-for-dev.json
+              -Dkeycloak.import=${project.build.directory}/${project.build.finalName}/standalone/configuration/hawkular-realm-for-dev.json
             </javaOpt>
             <javaOpt>-Dhawkular.agent.enabled=${hawkular.agent.enabled}</javaOpt>
             <javaOpt>-Dhawkular.log=${hawkular.log}</javaOpt>
