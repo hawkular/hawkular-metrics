@@ -69,6 +69,7 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
@@ -274,8 +275,9 @@ public class MetricsServiceLifecycle {
         if (Boolean.parseBoolean(cassandraUseSSL)) {
             SSLOptions sslOptions = null;
             try {
-                sslOptions = new SSLOptions(SSLContext.getDefault(), SSLOptions
-                        .DEFAULT_SSL_CIPHER_SUITES);
+                String[] defaultCipherSuites = { "TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA" };
+                sslOptions = JdkSSLOptions.builder().withSSLContext(SSLContext.getDefault())
+                        .withCipherSuites(defaultCipherSuites).build();
                 clusterBuilder.withSSL(sslOptions);
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("SSL support is required but is not available in the JVM.", e);
