@@ -246,12 +246,6 @@
         <version>${version.org.slf4j}</version>
       </dependency>
       <dependency>
-        <groupId>io.fabric8</groupId>
-        <artifactId>fabric8-arquillian</artifactId>
-        <version>${version.io.fabric8}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-math3</artifactId>
         <version>${version.org.apache.commons.commons-math3}</version>
