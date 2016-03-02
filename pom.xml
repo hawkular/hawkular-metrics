@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>35</version>
+    <version>36</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
@@ -97,9 +97,8 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
-    <version.org.hawkular.accounts>2.0.21.Final</version.org.hawkular.accounts>
-    <version.org.hawkular.commons>0.3.5.Final</version.org.hawkular.commons>
-    <version.com.codahale.metrics>3.0.2</version.com.codahale.metrics>
+    <version.org.hawkular.accounts>2.0.22.Final</version.org.hawkular.accounts>
+    <version.org.hawkular.commons>0.4.0.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.7</version.joda-time>
     <version.logback>1.1.3</version.logback>
@@ -108,7 +107,6 @@
     <version.org.jboss.logging>3.3.0.Final</version.org.jboss.logging>
     <version.org.jboss.logging.jboss-logging-tools>2.0.1.Final</version.org.jboss.logging.jboss-logging-tools>
     <version.org.slf4j>1.7.7</version.org.slf4j>
-    <version.org.testng>6.8.8</version.org.testng>
     <version.io.reactivex.rxjava>1.0.13</version.io.reactivex.rxjava>
     <version.io.reactivex.rxjava-math>1.0.0</version.io.reactivex.rxjava-math>
     <version.io.reactivex.rxjava-guava>1.0.3</version.io.reactivex.rxjava-guava>
@@ -219,20 +217,6 @@
         <artifactId>antlr4-runtime</artifactId>
         <version>${version.org.antlr}</version>
       </dependency>
-      <dependency>
-        <groupId>com.codahale.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${version.com.codahale.metrics}</version>
-      </dependency>
-      <!-- Tests dependencies -->
-      <!-- TestNG is not Hawkular default testing tool -->
-      <!-- While needed to run legacy tests, new tests should be based upon jUnit -->
-      <!-- It can still be used when there's a good reason (compatibility with a testing framework for example) -->
-      <dependency>
-        <groupId>org.testng</groupId>
-        <artifactId>testng</artifactId>
-        <version>${version.org.testng}</version>
-      </dependency>
       <!-- Doc dependencies -->
       <dependency>
         <groupId>io.swagger</groupId>
@@ -260,12 +244,6 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
         <version>${version.org.slf4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fabric8</groupId>
-        <artifactId>fabric8-arquillian</artifactId>
-        <version>${version.io.fabric8}</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
