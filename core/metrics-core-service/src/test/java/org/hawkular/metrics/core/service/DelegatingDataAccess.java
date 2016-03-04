@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.hawkular.metrics.model.Tenant;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 
 import rx.Observable;
 
@@ -53,12 +55,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAllTenantIds() {
+    public Observable<Row> findAllTenantIds() {
         return delegate.findAllTenantIds();
     }
 
     @Override
-    public Observable<ResultSet> findTenant(String id) {
+    public Observable<Row> findTenant(String id) {
         return delegate.findTenant(id);
     }
 
@@ -68,12 +70,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> findMetric(MetricId<T> id) {
+    public <T> Observable<Row> findMetric(MetricId<T> id) {
         return delegate.findMetric(id);
     }
 
     @Override
-    public <T> Observable<ResultSet> getMetricTags(MetricId<T> id) {
+    public <T> Observable<Row> getMetricTags(MetricId<T> id) {
         return delegate.getMetricTags(id);
     }
 
@@ -98,7 +100,7 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
+    public <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
@@ -113,24 +115,24 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
+    public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
             Order order) {
         return delegate.findCounterData(id, startTime, endTime, limit, order);
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
+    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
             Order order, boolean includeWriteTime) {
         return delegate.findGaugeData(id, startTime, endTime, 0, order, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime) {
+    public Observable<Row> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime) {
         return delegate.findGaugeData(id, timestamp, includeWriteTime);
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
+    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
             int limit, Order order, boolean includeWriteTime) {
         return delegate.findAvailabilityData(id, startTime, endTime, limit, order, includeWriteTime);
     }
@@ -172,17 +174,17 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsByTagName(String tenantId, String tag) {
+    public Observable<Row> findMetricsByTagName(String tenantId, String tag) {
         return delegate.findMetricsByTagName(tenantId, tag);
     }
 
     @Override
-    public Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
+    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
         return delegate.findMetricsByTagNameValue(tenantId, tag, tvalue);
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
+    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
         return delegate.findAvailabilityData(id, timestamp);
     }
 }

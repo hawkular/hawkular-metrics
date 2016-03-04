@@ -82,7 +82,6 @@ import org.testng.annotations.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableList;
@@ -1615,10 +1614,10 @@ public class MetricsServiceITest extends MetricsITest {
 
     private void assertMetricsTagsIndexMatches(String tenantId, String tag, List<MetricsTagsIndexEntry> expected)
         throws Exception {
-        ResultSet resultSet = dataAccess.findMetricsByTagName(tenantId, tag).toBlocking().first();
+        List<Row> rows = dataAccess.findMetricsByTagName(tenantId, tag).toList().toBlocking().first();
         List<MetricsTagsIndexEntry> actual = new ArrayList<>();
 
-        for (Row row : resultSet) {
+        for (Row row : rows) {
             MetricType<?> type = MetricType.fromCode(row.getByte(0));
             MetricId<?> id = new MetricId<>(tenantId, type, row.getString(1));
             actual.add(new MetricsTagsIndexEntry(row.getString(2), id)); // Need value here.. pff.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 
@@ -39,15 +40,27 @@ public interface RxSession extends Closeable {
 
     Observable<ResultSet> execute(String query);
 
+    Observable<Row> executeAndFetch(String query);
+
     Observable<ResultSet> execute(String query, Scheduler scheduler);
+
+    Observable<Row> executeAndFetch(String query, Scheduler scheduler);
 
     Observable<ResultSet> execute(String query, Object... values);
 
+    Observable<Row> executeAndFetch(String query, Object... values);
+
     Observable<ResultSet> execute(String query, Scheduler scheduler, Object... values);
+
+    Observable<Row> executeAndFetch(String query, Scheduler scheduler, Object... values);
 
     Observable<ResultSet> execute(Statement statement);
 
+    Observable<Row> executeAndFetch(Statement statement);
+
     Observable<ResultSet> execute(Statement statement, Scheduler scheduler);
+
+    Observable<Row> executeAndFetch(Statement statement, Scheduler scheduler);
 
     Observable<PreparedStatement> prepare(String query);
 
