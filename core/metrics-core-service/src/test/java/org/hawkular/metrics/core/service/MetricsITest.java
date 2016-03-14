@@ -37,7 +37,6 @@ import org.testng.annotations.BeforeSuite;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -66,13 +65,15 @@ public class MetricsITest {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
         Cluster cluster = new Cluster.Builder()
                 .addContactPoints(nodeAddresses.split(","))
-                .withProtocolVersion(ProtocolVersion.V4)
+//                .withProtocolVersion(ProtocolVersion.V4)
                 .build();
-        session = cluster.connect(getKeyspace());
+        session = cluster.connect();
         rxSession = new RxSessionImpl(session);
 
         SchemaService schemaService = new SchemaService();
         schemaService.run(session, getKeyspace(), true, Collections.emptyList());
+
+        session.execute("USE " + getKeyspace());
     }
 
 //    public void initSession() {

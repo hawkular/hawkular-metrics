@@ -404,7 +404,9 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+<!--
         <module>core/task-queue</module>
+-->
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
         <module>data-generator</module>
@@ -431,7 +433,9 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+<!--
         <module>core/task-queue</module>
+-->
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-util</module>

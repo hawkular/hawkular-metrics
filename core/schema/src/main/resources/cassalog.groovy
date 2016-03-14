@@ -15,34 +15,70 @@
  * limitations under the License.
  */
 
-createKeyspace {
-  id "create-keyspace $keyspace"
-  name keyspace
-  author 'jsanda'
-  recreate reset
-  tags 'legacy'
-}
+// Since Hawkular Metrics 0.8.0 was shipped in OpenShift 3.1, we need to layer any changes
+// on top of that schema. For all versions, we can require a fresh schema.
+if (appVersion == '0.8.0') {
+  schemaChange {
+    version 'drop aggregation_template'
+    author 'jsanda'
+    cql "DROP TYPE aggregation_template"
+  }
 
-schemaChange {
-  id 'create-type aggregation_template'
-  author 'jsanda'
-  description 'This type is unused and can be removed in a future schema change.'
-  tags 'legacy'
-  cql """
-CREATE TYPE aggregation_template (
-    type int,
-    src text,
-    interval text,
-    fns set<text>
-)
-"""
-}
+  schemaChange {
+    version 'drop tenants_by_time'
+    author 'jsanda'
+    cql "DROP TABLE tenants_by_time"
+  }
 
-schemaChange {
-  id 'create-table tenants'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
+  schemaChange {
+    version 'drop column data.aggregates'
+    author 'jsanda'
+    cql "ALTER TABLE data DROP aggregates"
+  }
+
+  schemaChange {
+    version 'drop type aggregate_data'
+    author 'jsanda'
+    cql "DROP TYPE aggregate_data"
+  }
+
+  schemaChange {
+    version 'drop table tasks'
+    author 'jsanda'
+    cql "DROP TABLE tasks"
+  }
+
+  schemaChange {
+    version 'drop table task_queue'
+    author 'jsanda'
+    cql "DROP TABLE task_queue"
+  }
+
+  schemaChange {
+    version 'drop table leases'
+    author 'jsanda'
+    cql "DROP TABLE leases"
+  }
+
+  schemaChange {
+    version 'drop type trigger_def'
+    author 'jsanda'
+    cql "DROP TYPE trigger_def"
+  }
+} else {
+  createKeyspace {
+    version "create-keyspace $keyspace"
+    name keyspace
+    author 'jsanda'
+    recreate reset
+    tags 'legacy'
+  }
+
+  schemaChange {
+    version 'create-table tenants'
+    author 'jsanda'
+    tags 'legacy'
+    cql """
 -- The retentions map entries are {metric type, retention} key/value pairs
 -- where retention is specified in days.
 
@@ -51,43 +87,13 @@ CREATE TABLE tenants (
     retentions map<text, int>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
-}
+  }
 
-schemaChange {
-  id 'create-table tenants_by_time'
-  author 'jsanda'
-  description 'This table is unused and can be removed in a future schema change.'
-  tags 'legacy'
-  cql """
-CREATE TABLE tenants_by_time (
-    bucket timestamp,
-    tenant text,
-    PRIMARY KEY (bucket, tenant)
-) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-}
-
-schemaChange {
-  id 'create-type aggregate_data'
-  author 'jsanda'
-  description 'This type is unused and can be removed in a future schema change.'
-  tags 'legacy'
-  cql """
-CREATE TYPE aggregate_data (
-    type text,
-    value double,
-    time timeuuid,
-    src_metric text,
-    src_metric_interval text
-)
-"""
-}
-
-schemaChange {
-  id 'create-table data'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
+  schemaChange {
+    version 'create-table data'
+    author 'jsanda'
+    tags 'legacy'
+    cql """
 -- The type column identifies the type of metric. We currently only support
 -- gauge and availability. More types may be added in the future. For gauge
 -- metrics the n_value column will be set, and the availability column will not
@@ -112,18 +118,17 @@ CREATE TABLE data (
     n_value double,
     availability blob,
     l_value bigint,
-    aggregates set<frozen <aggregate_data>>,
     PRIMARY KEY ((tenant_id, type, metric, dpart), time)
 )
 WITH CLUSTERING ORDER BY (time DESC)
 """
-}
+  }
 
-schemaChange {
-  id 'create-table metrics_tags_idx'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
+  schemaChange {
+    version 'create-table metrics_tags_idx'
+    author 'jsanda'
+    tags 'legacy'
+    cql """
 CREATE TABLE metrics_tags_idx (
     tenant_id text,
     tname text,
@@ -133,13 +138,13 @@ CREATE TABLE metrics_tags_idx (
     PRIMARY KEY ((tenant_id, tname), tvalue, type, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
-}
+  }
 
-schemaChange {
-  id 'create-table metrics_idx'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
+  schemaChange {
+    version 'create-table metrics_idx'
+    author 'jsanda'
+    tags 'legacy'
+    cql """
 CREATE TABLE metrics_idx (
     tenant_id text,
     type tinyint,
@@ -149,13 +154,13 @@ CREATE TABLE metrics_idx (
     PRIMARY KEY ((tenant_id, type), metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
-}
+  }
 
-schemaChange {
-  id 'create-table retentions_idx'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
+  schemaChange {
+    version 'create-table retentions_idx'
+    author 'jsanda'
+    tags 'legacy'
+    cql """
 -- We also store tenant-level retentions in this table. They will be stored using
 -- reserved characters, e.g., \$gauge, \$availability. The retention is stored in
 -- days.
@@ -168,71 +173,6 @@ CREATE TABLE retentions_idx (
     PRIMARY KEY ((tenant_id, type), metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  }
 }
 
-schemaChange {
-  id 'create-type trigger_def'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
-CREATE TYPE trigger_def (
-    type int,
-    trigger_time bigint,
-    delay bigint,
-    interval bigint,
-    repeat_count int,
-    execution_count int
-)
-"""
-}
-
-schemaChange {
-  id 'create-table tasks'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
-CREATE TABLE tasks (
-    id uuid,
-    group_key text,
-    name text,
-    exec_order int,
-    params map<text, text>,
-    trigger frozen <trigger_def>,
-    PRIMARY KEY (id)
-)
-"""
-}
-
-schemaChange {
-  id 'create-table task_queue'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
-CREATE TABLE task_queue (
-    time_slice timestamp,
-    shard int,
-    group_key text,
-    exec_order int,
-    task_name text,
-    task_id uuid,
-    task_params map<text, text>,
-    trigger frozen <trigger_def>,
-    PRIMARY KEY ((time_slice, shard), group_key, exec_order, task_name, task_id)
-)
-"""
-}
-
-schemaChange {
-  id 'create-table leases'
-  author 'jsanda'
-  tags 'legacy'
-  cql """
-CREATE TABLE leases (
-    time_slice timestamp,
-    shard int,
-    owner text,
-    finished boolean,
-    PRIMARY KEY (time_slice, shard)
-)
-"""
-}

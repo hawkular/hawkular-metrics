@@ -16,12 +16,17 @@
  */
 package org.hawkular.metrics.schema;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
+import org.cassalog.core.CassalogBuilder;
 
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
@@ -32,10 +37,13 @@ import com.google.common.collect.ImmutableMap;
 public class SchemaService {
 
     public void run(Session session, String keyspace, boolean resetDB, List<String> tags) {
-        Cassalog cassalog = new Cassalog();
-        cassalog.setSession(session);
-        cassalog.setKeyspace(keyspace);
-        Map<String, ?> vars  = ImmutableMap.of("keyspace", keyspace, "reset", resetDB);
+        CassalogBuilder builder = new CassalogBuilder();
+        Cassalog cassalog = builder.withKeyspace(keyspace).withSession(session).build();
+        Map<String, ?> vars  = ImmutableMap.of(
+                "keyspace", keyspace,
+                "reset", resetDB,
+                "appVersion", getHawkularMetricsVersion()
+        );
         URI script = getScript();
 
         cassalog.execute(script, tags, vars);
@@ -46,6 +54,23 @@ public class SchemaService {
             return getClass().getResource("/cassalog.groovy").toURI();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to load schema change script", e);
+        }
+    }
+
+    private String getHawkularMetricsVersion() {
+        try {
+            Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
+            while (resources.hasMoreElements()) {
+                URL resource = resources.nextElement();
+                Manifest manifest = new Manifest(resource.openStream());
+                String vendorId = manifest.getMainAttributes().getValue("Implementation-Vendor-Id");
+                if (vendorId != null && vendorId.equals("org.hawkular.metrics")) {
+                    return manifest.getMainAttributes().getValue("Implementation-Version");
+                }
+            }
+            throw new RuntimeException("Unable to determine implementation version for Hawkular Metrics");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

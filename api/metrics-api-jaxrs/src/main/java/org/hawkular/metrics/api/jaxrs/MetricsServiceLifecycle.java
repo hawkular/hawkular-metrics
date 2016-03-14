@@ -18,7 +18,6 @@
 package org.hawkular.metrics.api.jaxrs;
 
 import static java.util.Collections.emptyList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -32,7 +31,6 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -48,7 +46,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
@@ -61,12 +58,8 @@ import org.hawkular.metrics.core.service.DateTimeService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
-import org.hawkular.metrics.tasks.api.AbstractTrigger;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.metrics.tasks.impl.Queries;
-import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
@@ -79,8 +72,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
 
 import rx.Subscription;
 import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -305,15 +296,15 @@ public class MetricsServiceLifecycle {
     }
 
     private void initTaskScheduler() {
-        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
-        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-            TestScheduler scheduler = Schedulers.test();
-            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
-            AbstractTrigger.now = scheduler::now;
-            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-
-        }
-        taskScheduler.start();
+//        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
+//        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+//            TestScheduler scheduler = Schedulers.test();
+//            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
+//            AbstractTrigger.now = scheduler::now;
+//            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
+//
+//        }
+//        taskScheduler.start();
     }
 
     private int getDefaultTTL() {
