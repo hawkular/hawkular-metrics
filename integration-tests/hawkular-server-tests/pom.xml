@@ -232,6 +232,7 @@
             <javaOpt>-Dhawkular.agent.enabled=${hawkular.agent.enabled}</javaOpt>
             <javaOpt>-Dhawkular.log=${hawkular.log}</javaOpt>
             <javaOpt>-Dhawkular.backend=${hawkular.backend}</javaOpt>
+            <javaOpt>-Dcassandra.resetdb=true</javaOpt>
             <!--<javaOpt>-Xdebug</javaOpt>-->
             <javaOpt>-Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n</javaOpt>
           </javaOpts>

@@ -16,7 +16,7 @@
  */
 
 // Since Hawkular Metrics 0.8.0 was shipped in OpenShift 3.1, we need to layer any changes
-// on top of that schema. For all versions, we can require a fresh schema.
+// on top of that schema.
 if (appVersion == '0.8.0') {
   schemaChange {
     version 'drop aggregation_template'
@@ -42,29 +42,29 @@ if (appVersion == '0.8.0') {
     cql "DROP TYPE aggregate_data"
   }
 
-  schemaChange {
-    version 'drop table tasks'
-    author 'jsanda'
-    cql "DROP TABLE tasks"
-  }
-
-  schemaChange {
-    version 'drop table task_queue'
-    author 'jsanda'
-    cql "DROP TABLE task_queue"
-  }
-
-  schemaChange {
-    version 'drop table leases'
-    author 'jsanda'
-    cql "DROP TABLE leases"
-  }
-
-  schemaChange {
-    version 'drop type trigger_def'
-    author 'jsanda'
-    cql "DROP TYPE trigger_def"
-  }
+//  schemaChange {
+//    version 'drop table tasks'
+//    author 'jsanda'
+//    cql "DROP TABLE tasks"
+//  }
+//
+//  schemaChange {
+//    version 'drop table task_queue'
+//    author 'jsanda'
+//    cql "DROP TABLE task_queue"
+//  }
+//
+//  schemaChange {
+//    version 'drop table leases'
+//    author 'jsanda'
+//    cql "DROP TABLE leases"
+//  }
+//
+//  schemaChange {
+//    version 'drop type trigger_def'
+//    author 'jsanda'
+//    cql "DROP TYPE trigger_def"
+//  }
 } else {
   createKeyspace {
     version "create-keyspace $keyspace"

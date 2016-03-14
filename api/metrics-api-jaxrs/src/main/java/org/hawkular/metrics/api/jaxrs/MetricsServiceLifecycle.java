@@ -31,6 +31,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -46,6 +47,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
