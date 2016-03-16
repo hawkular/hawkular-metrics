@@ -27,11 +27,11 @@
     <version>0.14.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-wildfly-standalone</artifactId>
+  <artifactId>hawkular-metrics-wildfly-embedded-cassandra</artifactId>
   <packaging>pom</packaging>
 
-  <name>Hawkular Metrics WildFly Standalone Distribution</name>
-  <description>A WildFly server that is configured to run Metrics. Cassandra must be installed separately.</description>
+  <name>Hawkular Metrics WildFly Embedded Cassandra Distribution</name>
+  <description>A WildFly server that is configured to run Metrics using an embedded instance of Cassandra</description>
 
   <properties>
     <assembly.dir>${project.build.directory}/assembly</assembly.dir>
@@ -45,6 +45,12 @@
       <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-commons-embedded-cassandra-ear</artifactId>
+      <version>0.4.0.Final</version>
+      <type>ear</type>
     </dependency>
     <dependency>
       <groupId>org.wildfly</groupId>
@@ -81,7 +87,8 @@
             <configuration>
               <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments
               </outputDirectory>
-              <includeArtifactIds>hawkular-metrics-api-jaxrs</includeArtifactIds>
+              <includeArtifactIds>hawkular-metrics-api-jaxrs,hawkular-commons-embedded-cassandra-ear
+              </includeArtifactIds>
               <overWriteIfNewer>true</overWriteIfNewer>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
