@@ -38,6 +38,7 @@
     <hawkular.agent.enabled>false</hawkular.agent.enabled>
     <hawkular.log>ERROR</hawkular.log>
     <hawkular.backend>remote</hawkular.backend>
+    <cassandra.keyspace>hawkular_server_tests</cassandra.keyspace>
     <wildfly.application.username>jmsuser</wildfly.application.username>
     <wildfly.application.password>password</wildfly.application.password>
   </properties>
@@ -199,6 +200,53 @@
       </plugin>
 
       <plugin>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hawkular-metrics-schema</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <version>${version.com.datastax.cassandra}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>prepare-schema</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <properties>
+                <property>
+                  <name>keyspace</name>
+                  <value>${cassandra.keyspace}</value>
+                </property>
+              </properties>
+              <scripts>
+                <script><![CDATA[
+                  import org.hawkular.metrics.schema.SchemaService
+                  import com.datastax.driver.core.Cluster
+
+                  cluster = new Cluster.Builder().addContactPoint('127.0.0.1').withoutJMXReporting().build()
+                  cluster.init()
+                  session = cluster.connect('system')
+
+                  schemaService = new SchemaService()
+                  schemaService.run(session, keyspace, true, [])
+                ]]></script>
+              </scripts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <groupId>org.wildfly.plugins</groupId>
         <artifactId>wildfly-maven-plugin</artifactId>
         <configuration>
@@ -232,8 +280,7 @@
             <javaOpt>-Dhawkular.agent.enabled=${hawkular.agent.enabled}</javaOpt>
             <javaOpt>-Dhawkular.log=${hawkular.log}</javaOpt>
             <javaOpt>-Dhawkular.backend=${hawkular.backend}</javaOpt>
-            <javaOpt>-Dcassandra.resetdb=true</javaOpt>
-            <!--<javaOpt>-Xdebug</javaOpt>-->
+            <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
             <javaOpt>-Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n</javaOpt>
           </javaOpts>
         </configuration>
