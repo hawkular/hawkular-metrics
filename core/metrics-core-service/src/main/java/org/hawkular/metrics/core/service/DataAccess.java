@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.hawkular.metrics.model.Tenant;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 
 import rx.Observable;
 
@@ -39,17 +41,17 @@ public interface DataAccess {
 
     Observable<ResultSet> insertTenant(Tenant tenant);
 
-    Observable<ResultSet> findAllTenantIds();
+    Observable<Row> findAllTenantIds();
 
-    Observable<ResultSet> findTenant(String id);
+    Observable<Row> findTenant(String id);
 
     <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric);
 
-    <T> Observable<ResultSet> findMetric(MetricId<T> id);
+    <T> Observable<Row> findMetric(MetricId<T> id);
 
     <T> Observable<ResultSet> addDataRetention(Metric<T> metric);
 
-    <T> Observable<ResultSet> getMetricTags(MetricId<T> id);
+    <T> Observable<Row> getMetricTags(MetricId<T> id);
 
     <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags);
 
@@ -57,23 +59,23 @@ public interface DataAccess {
 
     <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
-    <T> Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
+    <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
-    Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order);
+    Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order);
 
-    Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+    Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
             boolean includeWriteTime);
 
-    Observable<ResultSet> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime);
+    Observable<Row> findGaugeData(MetricId<Double> id, long timestamp, boolean includeWriteTime);
 
-    Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
+    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
             Order order, boolean includeWriteTime);
 
-    Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
+    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
@@ -92,7 +94,7 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags);
 
-    Observable<ResultSet> findMetricsByTagName(String tenantId, String tag);
+    Observable<Row> findMetricsByTagName(String tenantId, String tag);
 
-    Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
+    Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
 }

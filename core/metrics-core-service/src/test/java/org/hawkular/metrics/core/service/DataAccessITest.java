@@ -40,6 +40,7 @@ import org.testng.annotations.Test;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -83,7 +84,6 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertTenant(tenant2).toBlocking().lastOrDefault(null);
 
         Tenant actual = dataAccess.findTenant(tenant1.getId())
-                                  .flatMap(Observable::from)
                                   .map(Functions::getTenant)
                                   .toBlocking().single();
         assertEquals(actual, tenant1, "The tenants do not match");
@@ -112,10 +112,9 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, false);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
@@ -149,10 +148,9 @@ public class DataAccessITest extends MetricsITest {
 
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
-        Observable<ResultSet> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, false);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
@@ -179,7 +177,6 @@ public class DataAccessITest extends MetricsITest {
         List<DataPoint<AvailabilityType>> actual = dataAccess
                 .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
                         0, Order.DESC, false)
-                .flatMap(Observable::from)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),

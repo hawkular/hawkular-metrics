@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
@@ -158,7 +159,7 @@ public class MetricsServiceImpl implements MetricsService {
      * Functions used to find metric data points.
      */
     private Map<MetricType<?>, Func5<? extends MetricId<?>, Long, Long,
-            Integer, Order, Observable<ResultSet>>> dataPointFinders;
+            Integer, Order, Observable<Row>>> dataPointFinders;
 
     /**
      * Functions used to transform a row into a data point object.
@@ -215,7 +216,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         dataPointFinders = ImmutableMap
                 .<MetricType<?>, Func5<? extends MetricId<?>, Long, Long, Integer, Order,
-                Observable<ResultSet>>>builder()
+                        Observable<Row>>>builder()
                 .put(GAUGE, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Double> gaugeId = (MetricId<Double>) metricId;
@@ -363,12 +364,10 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Tenant> getTenants() {
         return dataAccess.findAllTenantIds()
-                .flatMap(Observable::from)
                 .map(row -> row.getString(0))
                 .distinct()
                 .flatMap(id ->
                                 dataAccess.findTenant(id)
-                                        .flatMap(Observable::from)
                                         .map(Functions::getTenant)
                                         .switchIfEmpty(Observable.just(new Tenant(id)))
                 );
@@ -376,7 +375,6 @@ public class MetricsServiceImpl implements MetricsService {
 
     private List<String> loadTenantIds() {
         Iterable<String> tenantIds = dataAccess.findAllTenantIds()
-                .flatMap(Observable::from)
                 .map(row -> row.getString(0))
                 .distinct()
                 .toBlocking()
@@ -433,7 +431,6 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
         return dataAccess.findMetric(id)
-                .flatMap(Observable::from)
                 .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL));
     }
 
@@ -447,11 +444,9 @@ public class MetricsServiceImpl implements MetricsService {
                         return t;
                     })
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
-                            .flatMap(Observable::from)
                             .compose(new MetricsIndexRowTransformer<>(tenantId, type, defaultTTL)));
         }
         return dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
-                .flatMap(Observable::from)
                 .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
     }
 
@@ -460,7 +455,6 @@ public class MetricsServiceImpl implements MetricsService {
         // Fetch everything from the tagsQueries
         return Observable.from(tagsQueries.entrySet())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .flatMap(Observable::from)
                         .filter(tagValueFilter(e.getValue()))
                         .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
                         .compose(new ItemsToSetTransformer<>())
@@ -519,10 +513,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id) {
-        Observable<ResultSet> metricTags = dataAccess.getMetricTags(id);
-
-        return metricTags.flatMap(Observable::from).take(1).map(row -> Optional.of(row.getMap(0, String.class, String
-                .class)))
+        return dataAccess.getMetricTags(id)
+                .take(1)
+                .map(row -> Optional.of(row.getMap(0, String.class, String.class)))
                 .defaultIfEmpty(Optional.empty());
     }
 
@@ -612,10 +605,9 @@ public class MetricsServiceImpl implements MetricsService {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         MetricType<T> metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
-        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<ResultSet>> finder = getDataPointFinder(metricType);
+        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder = getDataPointFinder(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
         return time(timer, () -> finder.call(metricId, start, end, limit, order)
-                .flatMap(Observable::from)
                 .map(mapper));
     }
 
@@ -628,10 +620,10 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Func5<MetricId<T>, Long, Long, Integer, Order, Observable<ResultSet>> getDataPointFinder(
+    private <T> Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> getDataPointFinder(
             MetricType<T> metricType) {
-        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<ResultSet>> finder;
-        finder = (Func5<MetricId<T>, Long, Long, Integer, Order, Observable<ResultSet>>) dataPointFinders
+        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder;
+        finder = (Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>>) dataPointFinders
                 .get(metricType);
         if (finder == null) {
             throw new UnsupportedOperationException(metricType.getText());
@@ -843,7 +835,6 @@ public class MetricsServiceImpl implements MetricsService {
             long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return dataAccess.findGaugeData(id, start, end, 0, Order.ASC, false)
-                .flatMap(Observable::from)
                 .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {
                     List<long[]> periods = new ArrayList<>(data.size());

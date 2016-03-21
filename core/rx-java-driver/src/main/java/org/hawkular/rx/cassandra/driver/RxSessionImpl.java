@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.rx.cassandra.driver;
 
 import com.datastax.driver.core.Cluster;
@@ -21,6 +22,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -59,9 +61,19 @@ public class RxSessionImpl implements RxSession {
     }
 
     @Override
+    public Observable<Row> executeAndFetch(String query) {
+        return execute(query).compose(new ResultSetToRowsTransformer());
+    }
+
+    @Override
     public Observable<ResultSet> execute(String query, Scheduler scheduler) {
         ResultSetFuture future = session.executeAsync(query);
         return ListenableFutureObservable.from(future, scheduler);
+    }
+
+    @Override
+    public Observable<Row> executeAndFetch(String query, Scheduler scheduler) {
+        return execute(query, scheduler).compose(new ResultSetToRowsTransformer(scheduler));
     }
 
     @Override
@@ -71,9 +83,19 @@ public class RxSessionImpl implements RxSession {
     }
 
     @Override
+    public Observable<Row> executeAndFetch(String query, Object... values) {
+        return execute(query, values).compose(new ResultSetToRowsTransformer());
+    }
+
+    @Override
     public Observable<ResultSet> execute(String query, Scheduler scheduler, Object... values) {
         ResultSetFuture future = session.executeAsync(query, values, scheduler);
         return ListenableFutureObservable.from(future, scheduler);
+    }
+
+    @Override
+    public Observable<Row> executeAndFetch(String query, Scheduler scheduler, Object... values) {
+        return execute(query, scheduler, values).compose(new ResultSetToRowsTransformer(scheduler));
     }
 
     @Override
@@ -83,9 +105,19 @@ public class RxSessionImpl implements RxSession {
     }
 
     @Override
+    public Observable<Row> executeAndFetch(Statement statement) {
+        return execute(statement).compose(new ResultSetToRowsTransformer());
+    }
+
+    @Override
     public Observable<ResultSet> execute(Statement statement, Scheduler scheduler) {
         ResultSetFuture future = session.executeAsync(statement);
         return ListenableFutureObservable.from(future, scheduler);
+    }
+
+    @Override
+    public Observable<Row> executeAndFetch(Statement statement, Scheduler scheduler) {
+        return execute(statement, scheduler).compose(new ResultSetToRowsTransformer(scheduler));
     }
 
     @Override

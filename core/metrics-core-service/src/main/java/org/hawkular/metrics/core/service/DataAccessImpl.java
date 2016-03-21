@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import static java.util.stream.Collectors.toMap;
@@ -43,6 +44,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.utils.UUIDs;
 
@@ -391,14 +393,14 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findAllTenantIds() {
-        return rxSession.execute(findAllTenantIds.bind())
-                .concatWith(rxSession.execute(findAllTenantIdsFromMetricsIdx.bind()));
+    public Observable<Row> findAllTenantIds() {
+        return rxSession.executeAndFetch(findAllTenantIds.bind())
+                .concatWith(rxSession.executeAndFetch(findAllTenantIdsFromMetricsIdx.bind()));
     }
 
     @Override
-    public Observable<ResultSet> findTenant(String id) {
-        return rxSession.execute(findTenant.bind(id));
+    public Observable<Row> findTenant(String id) {
+        return rxSession.executeAndFetch(findTenant.bind(id));
     }
 
     @Override
@@ -409,13 +411,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> findMetric(MetricId<T> id) {
-        return rxSession.execute(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    public <T> Observable<Row> findMetric(MetricId<T> id) {
+        return rxSession.executeAndFetch(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     @Override
-    public <T> Observable<ResultSet> getMetricTags(MetricId<T> id) {
-        return rxSession.execute(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    public <T> Observable<Row> getMetricTags(MetricId<T> id) {
+        return rxSession.executeAndFetch(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     // This method updates the metric tags and data retention in the data table. In the
@@ -455,8 +457,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
-        return rxSession.execute(readMetricsIndex.bind(tenantId, type.getCode()));
+    public <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
+        return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
     @Override
@@ -487,52 +489,52 @@ public class DataAccessImpl implements DataAccess {
 
 
     @Override
-    public Observable<ResultSet> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
+    public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
             Order order) {
         if (order == Order.ASC) {
             if (limit <= 0) {
                 return rxSession
-                        .execute(findCounterDataExclusiveASC.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
-                                DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                        .executeAndFetch(findCounterDataExclusiveASC.bind(id.getTenantId(), COUNTER.getCode(),
+                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
             } else {
                 return rxSession
-                        .execute(findCounterDataExclusiveWithLimitASC.bind(id.getTenantId(), COUNTER.getCode(),
+                        .executeAndFetch(findCounterDataExclusiveWithLimitASC.bind(id.getTenantId(), COUNTER.getCode(),
                                 id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
             }
         } else {
             if (limit <= 0) {
                 return rxSession
-                        .execute(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(), id.getName(),
-                                DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                        .executeAndFetch(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(),
+                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
             } else {
                 return rxSession
-                        .execute(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
+                        .executeAndFetch(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
                                 id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
             }
         }
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
+    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
             Order order, boolean includeWriteTime) {
         if (includeWriteTime) {
             if (order == Order.ASC) {
                 if (limit <= 0) {
-                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveASC.bind(id.getTenantId(),
-                            id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                    return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeExclusiveASC.bind(
+                            id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimitASC.bind(
+                    return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimitASC.bind(
                             id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime), limit));
                 }
             } else {
                 if (limit <= 0) {
-                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(id.getTenantId(),
-                            id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                    return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeExclusive.bind(
+                            id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimit.bind(
+                    return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeExclusiveWithLimit.bind(
                             id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime), limit));
                 }
@@ -540,19 +542,19 @@ public class DataAccessImpl implements DataAccess {
         } else {
             if (order == Order.ASC) {
                 if (limit <= 0) {
-                    return rxSession.execute(findGaugeDataByDateRangeExclusiveASC.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveASC.bind(id.getTenantId(),
                             GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findGaugeDataByDateRangeExclusiveWithLimitASC.bind(id.getTenantId(),
-                            GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                            limit));
+                    return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimitASC.bind(
+                            id.getTenantId(), GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                            getTimeUUID(endTime), limit));
                 }
             } else {
                 if (limit <= 0) {
-                    return rxSession.execute(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
                         GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
                             GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
                             limit));
                 }
@@ -561,39 +563,39 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findGaugeData(MetricId<Double> metricId, long timestamp, boolean includeWriteTime) {
+    public Observable<Row> findGaugeData(MetricId<Double> metricId, long timestamp, boolean includeWriteTime) {
         if (includeWriteTime) {
-            return rxSession.execute(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
+            return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
                     metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
                     UUIDs.endOf(timestamp)));
         } else {
-            return rxSession.execute(findGaugeDataByDateRangeInclusive.bind(metricId.getTenantId(),
+            return rxSession.executeAndFetch(findGaugeDataByDateRangeInclusive.bind(metricId.getTenantId(),
                     metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
                     UUIDs.endOf(timestamp)));
         }
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
+    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
             int limit, Order order, boolean includeWriteTime) {
         if (includeWriteTime) {
             if (order == Order.ASC) {
                 if (limit <= 0) {
-                    return rxSession.execute(findAvailabilitiesWithWriteTimeASC.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeASC.bind(id.getTenantId(),
                             AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findAvailabilitiesWithWriteTimeWithLimitASC.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeWithLimitASC.bind(id.getTenantId(),
                             AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime), limit));
                 }
             } else {
                 if (limit <= 0) {
-                    return rxSession.execute(findAvailabilitiesWithWriteTime.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTime.bind(id.getTenantId(),
                             AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findAvailabilitiesWithWriteTimeWithLimit.bind(id.getTenantId(),
+                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeWithLimit.bind(id.getTenantId(),
                             AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
                             getTimeUUID(endTime), limit));
                 }
@@ -601,28 +603,29 @@ public class DataAccessImpl implements DataAccess {
         } else {
             if (order == Order.ASC) {
                 if (limit <= 0) {
-                    return rxSession.execute(findAvailabilitiesASC.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                            id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+                    return rxSession.executeAndFetch(findAvailabilitiesASC.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
                 } else {
-                    return rxSession
-                            .execute(findAvailabilitiesWithLimitASC.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                                    id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+                    return rxSession.executeAndFetch(findAvailabilitiesWithLimitASC.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                            limit));
                 }
             } else {
                 if (limit <= 0) {
-                    return rxSession.execute(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                    return rxSession.executeAndFetch(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
                     id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
                 } else {
-                    return rxSession.execute(findAvailabilitiesWithLimit.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                            id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+                    return rxSession.executeAndFetch(findAvailabilitiesWithLimit.bind(id.getTenantId(),
+                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                            limit));
                 }
             }
         }
     }
 
     @Override
-    public Observable<ResultSet> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
-        return rxSession.execute(findAvailabilityByDateRangeInclusive.bind(id.getTenantId(),
+    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
+        return rxSession.executeAndFetch(findAvailabilityByDateRangeInclusive.bind(id.getTenantId(),
                 AVAILABILITY.getCode(), id.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
     }
 
@@ -681,13 +684,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> findMetricsByTagName(String tenantId, String tag) {
-        return rxSession.execute(findMetricsByTagName.bind(tenantId, tag));
+    public Observable<Row> findMetricsByTagName(String tenantId, String tag) {
+        return rxSession.executeAndFetch(findMetricsByTagName.bind(tenantId, tag));
     }
 
     @Override
-    public Observable<ResultSet> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
-        return rxSession.execute(findMetricsByTagNameValue.bind(tenantId, tag, tvalue));
+    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
+        return rxSession.executeAndFetch(findMetricsByTagNameValue.bind(tenantId, tag, tvalue));
     }
 
     @Override
