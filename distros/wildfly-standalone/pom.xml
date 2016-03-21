@@ -89,8 +89,8 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.5.4</version>
         <configuration>
           <finalName>hawkular-metrics-${project.version}</finalName>
           <appendAssemblyId>false</appendAssemblyId>
