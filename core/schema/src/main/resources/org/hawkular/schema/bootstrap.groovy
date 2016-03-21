@@ -1,3 +1,5 @@
+package org.hawkular.schema
+
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.SimpleStatement
 
@@ -84,55 +86,44 @@ if (!reset && keyspaceExists()) {
     }
   }
 } else {
-  createKeyspace {
-    version "0.0.1"
-    name keyspace
-    author 'jsanda'
-    recreate reset
+  // If the schema does not already exist, we bypass cassalog's API and create it without
+  // being versioned. This allows to use the same logic for subsequent schema changes
+  // regardless of whether we are dealing with a new install or an upgrade.
+
+  if (reset) {
+    executeCQL("DROP KEYSPACE IF EXISTS $keyspace")
   }
 
-  schemaChange {
-    version '0.0.2'
-    author 'jsanda'
-    description 'The retentions map entries are {metric type, retention} key/value pairs where retention is ' +
-        'specified in days.'
-    cql """
+  executeCQL("CREATE KEYSPACE $keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+  executeCQL("USE $keyspace")
+
+  // The retentions map entries are {metric type, retention} key/value paris where
+  // retention is specified in days
+  executeCQL("""
 CREATE TABLE tenants (
     id text PRIMARY KEY,
     retentions map<text, int>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.3'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TYPE aggregation_template (
     type int,
     src text,
     interval text,
     fns set<text>
 )
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.4'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE tenants_by_time (
   bucket timestamp,
     tenant text,
     PRIMARY KEY (bucket, tenant)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.5'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TYPE aggregate_data (
     type text,
     value double,
@@ -140,13 +131,9 @@ CREATE TYPE aggregate_data (
     src_metric text,
     src_metric_interval text
 )
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.6'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE data (
     tenant_id text,
     type tinyint,
@@ -160,13 +147,9 @@ CREATE TABLE data (
     aggregates set<frozen <aggregate_data>>,
     PRIMARY KEY ((tenant_id, type, metric, dpart), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.7'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE metrics_tags_idx (
     tenant_id text,
     tname text,
@@ -175,13 +158,9 @@ CREATE TABLE metrics_tags_idx (
     metric text,
     PRIMARY KEY ((tenant_id, tname), tvalue, type, metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.8'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE metrics_idx (
      tenant_id text,
     type tinyint,
@@ -190,13 +169,9 @@ CREATE TABLE metrics_idx (
     data_retention int,
     PRIMARY KEY ((tenant_id, type), metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.9'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE retentions_idx (
     tenant_id text,
     type tinyint,
@@ -204,13 +179,9 @@ CREATE TABLE retentions_idx (
     retention int,
     PRIMARY KEY ((tenant_id, type), metric)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.10'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TYPE trigger_def (
     type int,
     trigger_time bigint,
@@ -219,13 +190,9 @@ CREATE TYPE trigger_def (
     repeat_count int,
     execution_count int
 )
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.11'
-    author 'jsanda'
-    cql """
+  executeCQL("""
 CREATE TABLE tasks (
     id uuid,
     group_key text,
@@ -235,13 +202,9 @@ CREATE TABLE tasks (
     trigger frozen <trigger_def>,
     PRIMARY KEY (id)
 )
-"""
-  }
+""")
 
-  schemaChange {
-    version '0.0.12'
-    author 'jsanda'
-    cql """
+ executeCQL("""
 CREATE TABLE leases (
     time_slice timestamp,
     shard int,
@@ -249,6 +212,5 @@ CREATE TABLE leases (
     finished boolean,
     PRIMARY KEY (time_slice, shard)
 )
-"""
-  }
+""")
 }

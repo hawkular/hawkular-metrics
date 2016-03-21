@@ -1,3 +1,4 @@
+package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,4 +16,8 @@
  * limitations under the License.
  */
 
-include '/bootstrap.groovy'
+include '/org/hawkular/schema/bootstrap.groovy'
+
+setKeyspace keyspace
+
+include '/org/hawkular/schema/updates/schema-0.14.0.groovy'

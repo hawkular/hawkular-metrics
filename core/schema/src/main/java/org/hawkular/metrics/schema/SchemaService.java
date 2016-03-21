@@ -41,13 +41,12 @@ public class SchemaService {
                 "session", session
         );
         URI script = getScript();
-
         cassalog.execute(script, tags, vars);
     }
 
     private URI getScript() {
         try {
-            return getClass().getResource("/cassalog.groovy").toURI();
+            return getClass().getResource("/org/hawkular/schema/cassalog.groovy").toURI();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to load schema change script", e);
         }
