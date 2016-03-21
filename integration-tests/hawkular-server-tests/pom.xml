@@ -216,12 +216,12 @@
           </add-user>
           <jboss-home>${project.build.directory}/${project.build.finalName}</jboss-home>
           <skip>${skipTests}</skip>
-          <startupTimeout>240</startupTimeout>
+          <startupTimeout>360</startupTimeout>
           <port>${hawkular.management.port}</port>
           <javaOpts>
             <javaOpt>-server</javaOpt>
-            <javaOpt>-Xms64m</javaOpt>
-            <javaOpt>-Xmx1024m</javaOpt>
+            <javaOpt>-Xms128m</javaOpt>
+            <javaOpt>-Xmx1536m</javaOpt>
             <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
             <javaOpt>-Djava.awt.headless=true</javaOpt>
             <javaOpt>-Djboss.bind.address=${hawkular.bind.address}</javaOpt>
