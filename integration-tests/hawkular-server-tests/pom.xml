@@ -272,7 +272,7 @@
             <include>**/*ITest*</include>
           </includes>
 
-          <forkedProcessTimeoutInSeconds>2100</forkedProcessTimeoutInSeconds>
+          <forkedProcessTimeoutInSeconds>0</forkedProcessTimeoutInSeconds>
 
           <systemPropertyVariables>
             <hawkular.bind.address>${hawkular.bind.address}</hawkular.bind.address>
