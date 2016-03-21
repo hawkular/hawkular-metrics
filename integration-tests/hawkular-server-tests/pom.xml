@@ -221,7 +221,7 @@
           <javaOpts>
             <javaOpt>-server</javaOpt>
             <javaOpt>-Xms64m</javaOpt>
-            <javaOpt>-Xmx512m</javaOpt>
+            <javaOpt>-Xmx1024m</javaOpt>
             <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
             <javaOpt>-Djava.awt.headless=true</javaOpt>
             <javaOpt>-Djboss.bind.address=${hawkular.bind.address}</javaOpt>
@@ -233,7 +233,7 @@
             <javaOpt>-Dhawkular.log=${hawkular.log}</javaOpt>
             <javaOpt>-Dhawkular.backend=${hawkular.backend}</javaOpt>
             <!--<javaOpt>-Xdebug</javaOpt>-->
-            <javaOpt>-Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n</javaOpt>
+            <!--javaOpt>-Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n</javaOpt-->
           </javaOpts>
         </configuration>
         <executions>
