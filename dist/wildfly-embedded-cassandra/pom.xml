@@ -99,7 +99,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <finalName>hawkular-metrics-${project.version}</finalName>
+          <finalName>hawkular-metrics-ec-${project.version}</finalName>
           <appendAssemblyId>false</appendAssemblyId>
           <descriptors>
             <descriptor>${project.basedir}/src/assembly/dist.xml</descriptor>
