@@ -36,7 +36,7 @@
   <properties>
     <assembly.dir>${project.build.directory}/assembly</assembly.dir>
     <wildfly.dist.zip.root.dir>wildfly-${version.org.wildfly}</wildfly.dist.zip.root.dir>
-    <hawkular.dist.zip.root.dir>${artifactId}/hawkular-metrics-${project.version}</hawkular.dist.zip.root.dir>
+    <hawkular.dist.zip.root.dir>hawkular-metrics-ec-${project.version}</hawkular.dist.zip.root.dir>
   </properties>
 
   <dependencies>
