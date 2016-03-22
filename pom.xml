@@ -416,7 +416,7 @@
         <module>integration-tests</module>
         <module>clients</module>
         <module>containers</module>
-        <module>distros</module>
+        <module>dist</module>
       </modules>
     </profile>
     <profile>
