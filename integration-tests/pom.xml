@@ -42,7 +42,7 @@
       </activation>
       <modules>
         <module>rest-tests-jaxrs</module>
-        <module>hawkular-server-tests</module>
+        <!--module>hawkular-server-tests</module-->
         <module>load-tests</module>
       </modules>
     </profile>
