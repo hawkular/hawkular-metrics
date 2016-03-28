@@ -16,8 +16,21 @@
  */
 
 schemaChange {
-  version '0.14.1'
+  version '1.0'
   author 'jsanda'
+  tags '0.15.x'
+  cql """
+CREATE TABLE system_settings (
+    key text PRIMARY KEY,
+    value text
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
+}
+
+schemaChange {
+  version '1.1'
+  author 'jsanda'
+  tags '0.15.x'
   description 'See https://issues.jboss.org/browse/HWKMETRICS-367 for details'
   cql "ALTER TABLE data WITH gc_grace_seconds = 86400"
 }

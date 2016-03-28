@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.tasks;
 
-import static java.util.Collections.emptyList;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -57,7 +55,7 @@ public abstract class BaseITest {
         rxSession = new RxSessionImpl(session);
 
         SchemaService schemaService = new SchemaService();
-        schemaService.run(session, keyspace, true, emptyList());
+        schemaService.run(session, keyspace, true);
 
         session.execute("USE " + keyspace);
 

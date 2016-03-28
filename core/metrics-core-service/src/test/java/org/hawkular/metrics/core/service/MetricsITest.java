@@ -22,7 +22,6 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +70,7 @@ public class MetricsITest {
         rxSession = new RxSessionImpl(session);
 
         SchemaService schemaService = new SchemaService();
-        schemaService.run(session, getKeyspace(), true, Collections.emptyList());
+        schemaService.run(session, getKeyspace(), true);
 
         session.execute("USE " + getKeyspace());
     }

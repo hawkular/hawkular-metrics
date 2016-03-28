@@ -17,7 +17,6 @@
 
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -293,7 +292,7 @@ public class MetricsServiceLifecycle {
 
     private void initSchema() {
         SchemaService schemaService = new SchemaService();
-        schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb), emptyList());
+        schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb));
         session.execute("USE " + keyspace);
     }
 

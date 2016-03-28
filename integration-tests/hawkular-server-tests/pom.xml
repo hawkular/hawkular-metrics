@@ -238,7 +238,7 @@
                   session = cluster.connect('system')
 
                   schemaService = new SchemaService()
-                  schemaService.run(session, keyspace, true, [])
+                  schemaService.run(session, keyspace, true)
                 ]]></script>
               </scripts>
             </configuration>
