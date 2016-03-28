@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.schema.log;
+schemaChange {
+  version '1.0'
+  author 'jsanda'
+  tags '0.15.x'
+  cql """
+CREATE TABLE system_settings (
+    key text PRIMARY KEY,
+    value text
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
+}
 
-import org.jboss.logging.Logger;
-
-/**
- * Simplify logger lookup.
- *
- * @author Thomas Segismont
- */
-public class SchemaManagerLogging {
-
-    public static SchemaManagerLogger getSchemaManagerLogger(Class<?> clazz) {
-        return Logger.getMessageLogger(SchemaManagerLogger.class, clazz.getName());
-    }
-
-    private SchemaManagerLogging() {
-        // Utility class
-    }
+schemaChange {
+  version '1.1'
+  author 'jsanda'
+  tags '0.15.x'
+  description 'See https://issues.jboss.org/browse/HWKMETRICS-367 for details'
+  cql "ALTER TABLE data WITH gc_grace_seconds = 86400"
 }

@@ -1,5 +1,6 @@
+package org.hawkular.schema
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.hawkular.metrics.schema.SchemaManager
 
-import com.datastax.driver.core.Cluster
-import com.datastax.driver.core.Session
+include '/org/hawkular/schema/bootstrap.groovy'
 
-Cluster cluster = new Cluster.Builder()
-        .addContactPoint("127.0.0.1")
-        .withoutJMXReporting()
-        .build()
-Session session = cluster.connect()
+setKeyspace keyspace
 
-String keyspace = properties["keyspace"] ?: "hawkulartest"
-SchemaManager schemaManager = new SchemaManager(session)
-if (properties["resetdb"]) schemaManager.dropKeyspace(keyspace)
-schemaManager.createSchema(keyspace)
+include '/org/hawkular/schema/updates/schema-0.15.0.groovy'

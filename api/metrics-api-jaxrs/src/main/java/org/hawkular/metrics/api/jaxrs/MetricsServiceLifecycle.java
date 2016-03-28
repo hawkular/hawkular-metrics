@@ -17,7 +17,6 @@
 
 package org.hawkular.metrics.api.jaxrs;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -59,13 +58,9 @@ import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.DateTimeService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.schema.SchemaManager;
-import org.hawkular.metrics.tasks.api.AbstractTrigger;
+import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
-import org.hawkular.metrics.tasks.impl.Queries;
-import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
-import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
@@ -78,8 +73,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
 
 import rx.Subscription;
 import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -298,24 +291,21 @@ public class MetricsServiceLifecycle {
     }
 
     private void initSchema() {
-        SchemaManager schemaManager = new SchemaManager(session);
-        if (Boolean.parseBoolean(resetDb)) {
-            schemaManager.dropKeyspace(keyspace);
-        }
-        schemaManager.createSchema(keyspace);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb));
         session.execute("USE " + keyspace);
     }
 
     private void initTaskScheduler() {
-        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
-        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-            TestScheduler scheduler = Schedulers.test();
-            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
-            AbstractTrigger.now = scheduler::now;
-            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-
-        }
-        taskScheduler.start();
+//        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
+//        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
+//            TestScheduler scheduler = Schedulers.test();
+//            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
+//            AbstractTrigger.now = scheduler::now;
+//            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
+//
+//        }
+//        taskScheduler.start();
     }
 
     private int getDefaultTTL() {

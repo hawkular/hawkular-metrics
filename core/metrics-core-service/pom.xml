@@ -38,7 +38,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-schema-manager</artifactId>
+      <artifactId>hawkular-metrics-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -161,44 +161,6 @@
       </activation>
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.codehaus.gmavenplus</groupId>
-            <artifactId>gmavenplus-plugin</artifactId>
-            <dependencies>
-              <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${version.com.google.guava}</version>
-              </dependency>
-              <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-all</artifactId>
-                <version>${version.org.codehaus.groovy}</version>
-              </dependency>
-              <dependency>
-                <groupId>com.datastax.cassandra</groupId>
-                <artifactId>cassandra-driver-core</artifactId>
-                <version>${version.com.datastax.cassandra}</version>
-              </dependency>
-            </dependencies>
-            <executions>
-              <execution>
-                <id>install-schema</id>
-                <phase>test-compile</phase>
-                <goals>
-                  <goal>execute</goal>
-                </goals>
-                <configuration>
-                  <properties>
-                    <keyspace>${test.keyspace}</keyspace>
-                  </properties>
-                  <scripts>
-                    <script>file:///${project.basedir}/src/main/script/schema.groovy</script>
-                  </scripts>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>

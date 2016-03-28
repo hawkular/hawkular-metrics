@@ -114,8 +114,6 @@ public class MetricsServiceITest extends MetricsITest {
 
     @BeforeClass
     public void initClass() {
-        initSession();
-
         dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
@@ -126,7 +124,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.setDateTimeService(dateTimeService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
-        metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
+        metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
 
         insertGaugeDataWithTimestamp = session
@@ -149,7 +147,6 @@ public class MetricsServiceITest extends MetricsITest {
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
-        session.execute("TRUNCATE tenants_by_time");
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }

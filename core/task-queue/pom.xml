@@ -39,7 +39,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-schema-manager</artifactId>
+      <artifactId>hawkular-metrics-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
 
