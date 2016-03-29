@@ -51,7 +51,7 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         VALUE,
-        WRITE_TIME
+        TAGS
     }
 
     private enum AVAILABILITY_COLS {
@@ -76,7 +76,8 @@ public class Functions {
     public static DataPoint<Long> getCounterDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
-                row.getLong(COUNTER_COLS.VALUE.ordinal()));
+                row.getLong(COUNTER_COLS.VALUE.ordinal()),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {

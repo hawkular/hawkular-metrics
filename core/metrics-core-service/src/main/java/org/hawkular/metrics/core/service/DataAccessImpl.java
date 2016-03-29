@@ -85,6 +85,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertCounterData;
 
+    private PreparedStatement insertCounterDataWithTags;
+
     private PreparedStatement findCounterDataExclusive;
 
     private PreparedStatement findCounterDataExclusiveWithLimit;
@@ -100,10 +102,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
 
     private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimitASC;
-
-    private PreparedStatement findGaugeDataByDateRangeInclusive;
-
-    private PreparedStatement findGaugeDataWithWriteTimeByDateRangeInclusive;
 
     private PreparedStatement findAvailabilityByDateRangeInclusive;
 
@@ -221,7 +219,13 @@ public class DataAccessImpl implements DataAccess {
         insertCounterData = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
-            "SET l_value = ? " +
+            "SET l_value = ?" +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertCounterDataWithTags = session.prepare(
+            "UPDATE data " +
+            "USING TTL ? " +
+            "SET l_value = ?, tags = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         findGaugeDataByDateRangeExclusive = session.prepare(
@@ -245,33 +249,24 @@ public class DataAccessImpl implements DataAccess {
             " LIMIT ?");
 
         findCounterDataExclusive = session.prepare(
-            "SELECT time, data_retention, l_value FROM data " +
+            "SELECT time, data_retention, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
 
         findCounterDataExclusiveWithLimit = session.prepare(
-            "SELECT time, data_retention, l_value FROM data " +
+            "SELECT time, data_retention, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " LIMIT ?");
 
         findCounterDataExclusiveASC = session.prepare(
-            "SELECT time, data_retention, l_value FROM data " +
+            "SELECT time, data_retention, l_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             "ORDER BY time ASC");
 
         findCounterDataExclusiveWithLimitASC = session.prepare(
-            "SELECT time, data_retention, l_value FROM data " +
+            "SELECT time, data_retention, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " ORDER BY time ASC" +
             " LIMIT ?");
-
-        findGaugeDataByDateRangeInclusive = session.prepare(
-            "SELECT tenant_id, metric, dpart, time, data_retention, n_value " +
-            "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
-
-        findGaugeDataWithWriteTimeByDateRangeInclusive = session.prepare(
-            "SELECT time, data_retention, n_value, WRITETIME(n_value) FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
             "SELECT time, data_retention, availability, WRITETIME(availability) FROM data " +
@@ -460,8 +455,15 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
         return Observable.from(counter.getDataPoints())
-                .map(dataPoint -> bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
-                        dataPoint.getTimestamp(), ttl))
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertCounterData, counter, dataPoint.getValue(), dataPoint.getTimestamp(),
+                                ttl);
+                    } else {
+                        return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
+                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                    }
+                })
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
@@ -526,19 +528,6 @@ public class DataAccessImpl implements DataAccess {
                         GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
                         limit));
             }
-        }
-    }
-
-    @Override
-    public Observable<Row> findGaugeData(MetricId<Double> metricId, long timestamp, boolean includeWriteTime) {
-        if (includeWriteTime) {
-            return rxSession.executeAndFetch(findGaugeDataWithWriteTimeByDateRangeInclusive.bind(metricId.getTenantId(),
-                    metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
-                    UUIDs.endOf(timestamp)));
-        } else {
-            return rxSession.executeAndFetch(findGaugeDataByDateRangeInclusive.bind(metricId.getTenantId(),
-                    metricId.getType().getCode(), metricId.getName(), DPART, UUIDs.startOf(timestamp),
-                    UUIDs.endOf(timestamp)));
         }
     }
 
