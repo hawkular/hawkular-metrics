@@ -121,9 +121,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit,
-            Order order, boolean includeWriteTime) {
-        return delegate.findGaugeData(id, startTime, endTime, 0, order, includeWriteTime);
+    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order) {
+        return delegate.findGaugeData(id, startTime, endTime, 0, order);
     }
 
     @Override

@@ -34,3 +34,10 @@ schemaChange {
   description 'See https://issues.jboss.org/browse/HWKMETRICS-367 for details'
   cql "ALTER TABLE data WITH gc_grace_seconds = 86400"
 }
+
+schemaChange {
+  version '0.14.2'
+  author 'jsanda'
+  description "Add support for data point tags. See HWKMETRICS-368 for details"
+  cql "ALTER TABLE data ADD tags map<text,text>"
+}

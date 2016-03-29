@@ -18,7 +18,9 @@ package org.hawkular.metrics.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -41,6 +43,8 @@ public class DataPoint<T> {
 
     protected final T value;
 
+    protected final Map<String, String> tags;
+
     @JsonCreator(mode = Mode.PROPERTIES)
     public DataPoint(
             @JsonProperty("timestamp")
@@ -52,6 +56,23 @@ public class DataPoint<T> {
         checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
         this.value = value;
+        tags = Collections.emptyMap();
+    }
+
+    @JsonCreator(mode = Mode.PROPERTIES)
+    public DataPoint(
+            @JsonProperty("timestamp")
+            Long timestamp,
+            @JsonProperty("value")
+            T value,
+            @JsonProperty(value = "tags")
+            Map<String, String> tags
+    ) {
+        checkArgument(timestamp != null, "Data point timestamp is null");
+        checkArgument(value != null, "Data point value is null");
+        this.timestamp = timestamp;
+        this.value = value;
+        this.tags = Collections.unmodifiableMap(tags);
     }
 
     @ApiModelProperty(required = true)
@@ -64,13 +85,19 @@ public class DataPoint<T> {
         return value;
     }
 
+    @ApiModelProperty(required = false)
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DataPoint<?> dataPoint = (DataPoint<?>) o;
         return Objects.equals(timestamp, dataPoint.timestamp) &&
-                Objects.equals(value, dataPoint.value);
+                Objects.equals(value, dataPoint.value) &&
+                Objects.equals(tags, dataPoint.tags);
     }
 
     @Override
@@ -83,6 +110,7 @@ public class DataPoint<T> {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
+                .add("tags", tags)
                 .omitNullValues()
                 .toString();
     }
