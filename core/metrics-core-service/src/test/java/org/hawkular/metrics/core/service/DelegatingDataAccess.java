@@ -127,8 +127,8 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order, boolean includeWriteTime) {
-        return delegate.findAvailabilityData(id, startTime, endTime, limit, order, includeWriteTime);
+            int limit, Order order) {
+        return delegate.findAvailabilityData(id, startTime, endTime, limit, order);
     }
 
     @Override

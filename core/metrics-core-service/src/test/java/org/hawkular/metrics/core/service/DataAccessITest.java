@@ -175,7 +175,7 @@ public class DataAccessITest extends MetricsITest {
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
                 .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
-                        0, Order.DESC, false)
+                        0, Order.DESC)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),

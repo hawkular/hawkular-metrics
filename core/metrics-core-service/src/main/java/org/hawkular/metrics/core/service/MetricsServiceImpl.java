@@ -216,7 +216,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(AVAILABILITY, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, false);
+                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order);
                 })
                 .put(COUNTER, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")

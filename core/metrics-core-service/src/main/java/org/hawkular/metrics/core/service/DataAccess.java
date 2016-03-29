@@ -70,7 +70,7 @@ public interface DataAccess {
     Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
-            Order order, boolean includeWriteTime);
+            Order order);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 

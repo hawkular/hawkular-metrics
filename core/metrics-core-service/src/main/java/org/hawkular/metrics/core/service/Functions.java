@@ -58,7 +58,7 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         AVAILABILITY,
-        WRITE_TIME
+        TAGS
     }
 
     private Functions() {
@@ -83,7 +83,8 @@ public class Functions {
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
-                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())));
+                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static Tenant getTenant(Row row) {

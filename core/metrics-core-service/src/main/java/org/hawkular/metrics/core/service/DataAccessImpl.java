@@ -109,6 +109,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertAvailability;
 
+    private PreparedStatement insertAvailabilityWithTags;
+
     private PreparedStatement findAvailabilities;
 
     private PreparedStatement findAvailabilitiesWithLimit;
@@ -116,14 +118,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findAvailabilitiesASC;
 
     private PreparedStatement findAvailabilitiesWithLimitASC;
-
-    private PreparedStatement findAvailabilitiesWithWriteTime;
-
-    private PreparedStatement findAvailabilitiesWithWriteTimeWithLimit;
-
-    private PreparedStatement findAvailabilitiesWithWriteTimeASC;
-
-    private PreparedStatement findAvailabilitiesWithWriteTimeWithLimitASC;
 
     private PreparedStatement updateMetricsIndex;
 
@@ -282,51 +276,33 @@ public class DataAccessImpl implements DataAccess {
             "SET availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
 
+        insertAvailabilityWithTags = session.prepare(
+            "UPDATE data " +
+            "USING TTL ? " +
+            "SET availability = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
+
         findAvailabilities = session.prepare(
-            "SELECT time, data_retention, availability " +
+            "SELECT time, data_retention, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
 
         findAvailabilitiesWithLimit = session.prepare(
-            "SELECT time, data_retention, availability " +
+            "SELECT time, data_retention, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " LIMIT ?");
 
         findAvailabilitiesASC = session.prepare(
-            "SELECT time, data_retention, availability " +
+            "SELECT time, data_retention, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " ORDER BY time ASC");
 
         findAvailabilitiesWithLimitASC = session.prepare(
-            "SELECT time, data_retention, availability " +
+            "SELECT time, data_retention, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC" +
-            " LIMIT ?");
-
-        findAvailabilitiesWithWriteTime = session.prepare(
-            "SELECT time, data_retention, availability, WRITETIME(availability) " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
-
-        findAvailabilitiesWithWriteTimeWithLimit = session.prepare(
-            "SELECT time, data_retention, availability, WRITETIME(availability) " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-            " LIMIT ?");
-
-        findAvailabilitiesWithWriteTimeASC = session.prepare(
-            "SELECT time, data_retention, availability, WRITETIME(availability) " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-            " ORDER BY time ASC");
-
-        findAvailabilitiesWithWriteTimeWithLimitASC = session.prepare(
-            "SELECT time, data_retention, availability, WRITETIME(availability) " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
             " ORDER BY time ASC" +
             " LIMIT ?");
 
@@ -533,48 +509,24 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order, boolean includeWriteTime) {
-        if (includeWriteTime) {
-            if (order == Order.ASC) {
-                if (limit <= 0) {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeASC.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                            getTimeUUID(endTime)));
-                } else {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeWithLimitASC.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                            getTimeUUID(endTime), limit));
-                }
+            int limit, Order order) {
+        if (order == Order.ASC) {
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findAvailabilitiesASC.bind(id.getTenantId(),
+                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
             } else {
-                if (limit <= 0) {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTime.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                            getTimeUUID(endTime)));
-                } else {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithWriteTimeWithLimit.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                            getTimeUUID(endTime), limit));
-                }
+                return rxSession.executeAndFetch(findAvailabilitiesWithLimitASC.bind(id.getTenantId(),
+                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                        limit));
             }
         } else {
-            if (order == Order.ASC) {
-                if (limit <= 0) {
-                    return rxSession.executeAndFetch(findAvailabilitiesASC.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
-                } else {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithLimitASC.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                            limit));
-                }
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
+                        id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
             } else {
-                if (limit <= 0) {
-                    return rxSession.executeAndFetch(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                    id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
-                } else {
-                    return rxSession.executeAndFetch(findAvailabilitiesWithLimit.bind(id.getTenantId(),
-                            AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                            limit));
-                }
+                return rxSession.executeAndFetch(findAvailabilitiesWithLimit.bind(id.getTenantId(),
+                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                        limit));
             }
         }
     }
@@ -594,8 +546,15 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return Observable.from(metric.getDataPoints())
-                .map(dataPoint -> bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
-                        dataPoint.getTimestamp(), ttl))
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertAvailability, metric, getBytes(dataPoint), dataPoint.getTimestamp(),
+                                ttl);
+                    } else {
+                        return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
+                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                    }
+                })
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
