@@ -19,12 +19,10 @@ package org.hawkular.metrics.model;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.annotations.ApiModelProperty;
@@ -37,15 +35,16 @@ import io.swagger.annotations.ApiModelProperty;
  */
 public class DataPoint<T> {
 
-    public static final Comparator<DataPoint<?>> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
-
+    @JsonProperty(value = "timestamp")
     protected final long timestamp;
 
+    @JsonProperty("value")
     protected final T value;
 
+    @JsonProperty("tags")
     protected final Map<String, String> tags;
 
-    @JsonCreator(mode = Mode.PROPERTIES)
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public DataPoint(
             @JsonProperty("timestamp")
             Long timestamp,
@@ -59,15 +58,7 @@ public class DataPoint<T> {
         tags = Collections.emptyMap();
     }
 
-    @JsonCreator(mode = Mode.PROPERTIES)
-    public DataPoint(
-            @JsonProperty("timestamp")
-            Long timestamp,
-            @JsonProperty("value")
-            T value,
-            @JsonProperty(value = "tags")
-            Map<String, String> tags
-    ) {
+    public DataPoint(Long timestamp, T value, Map<String, String> tags) {
         checkArgument(timestamp != null, "Data point timestamp is null");
         checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
@@ -102,7 +93,7 @@ public class DataPoint<T> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, value);
+        return Objects.hash(timestamp, value, tags);
     }
 
     @Override

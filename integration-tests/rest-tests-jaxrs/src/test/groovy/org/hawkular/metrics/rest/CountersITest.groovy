@@ -1428,4 +1428,53 @@ Actual:   ${response.data}
         assertEquals(400, exception.response.status)
     }
   }
+
+  @Test
+  void addTaggedDataPoints() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(30)
+    String id = 'C1'
+
+    def response = hawkularMetrics.post(
+        path: "counters/$id/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: start.millis,
+                value: 11,
+                tags: [x: 1, y: 2]
+            ],
+            [
+                timestamp: start.plusMinutes(1).millis,
+                value: 20,
+                tags: [y: 3, z: 5]
+            ],
+            [
+                timestamp: start.plusMinutes(3).millis,
+                value: 33,
+                tags: [x: 4, z: 6]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+    response = hawkularMetrics.get(path: "counters/$id/data", headers: [(tenantHeaderName): tenantId])
+    def expectedData = [
+        [
+            timestamp: start.plusMinutes(3).millis,
+            value: 33,
+            tags: [x: '4', z: '6']
+        ],
+        [
+            timestamp: start.plusMinutes(1).millis,
+            value: 20,
+            tags: [y: '3', z: '5']
+        ],
+        [
+            timestamp: start.millis,
+            value: 11,
+            tags: [x: '1', y: '2']
+        ]
+    ]
+    assertEquals(expectedData, response.data)
+  }
 }
