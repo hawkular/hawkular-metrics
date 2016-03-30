@@ -35,13 +35,10 @@ import io.swagger.annotations.ApiModelProperty;
  */
 public class DataPoint<T> {
 
-//    @JsonProperty(value = "timestamp")
     protected final long timestamp;
 
-//    @JsonProperty("value")
     protected final T value;
 
-//    @JsonProperty("tags")
     protected final Map<String, String> tags;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
