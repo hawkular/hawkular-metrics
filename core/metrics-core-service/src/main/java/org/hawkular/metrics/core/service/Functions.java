@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,6 @@ package org.hawkular.metrics.core.service;
 
 import static java.util.stream.Collectors.toMap;
 
-import static org.joda.time.DateTime.now;
-
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +27,6 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.Tenant;
-import org.joda.time.Duration;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -47,21 +44,21 @@ public class Functions {
         TIME,
         DATA_RETENTION,
         VALUE,
-        WRITE_TIME
+        TAGS
     }
 
     private enum COUNTER_COLS {
         TIME,
         DATA_RETENTION,
         VALUE,
-        WRITE_TIME
+        TAGS
     }
 
     private enum AVAILABILITY_COLS {
         TIME,
         DATA_RETENTION,
         AVAILABILITY,
-        WRITE_TIME
+        TAGS
     }
 
     private Functions() {
@@ -72,35 +69,22 @@ public class Functions {
     public static DataPoint<Double> getGaugeDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(GAUGE_COLS.TIME.ordinal())),
-                row.getDouble(GAUGE_COLS.VALUE.ordinal()));
+                row.getDouble(GAUGE_COLS.VALUE.ordinal()),
+                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static DataPoint<Long> getCounterDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
-                row.getLong(COUNTER_COLS.VALUE.ordinal()));
-    }
-
-    public static TTLDataPoint<Double> getTTLGaugeDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<Double> dataPoint = getGaugeDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
-    }
-
-    public static TTLDataPoint<AvailabilityType> getTTLAvailabilityDataPoint(Row row, int originalTTL) {
-        long writeTime = row.getLong(GAUGE_COLS.WRITE_TIME.ordinal()) / 1000;
-        DataPoint<AvailabilityType> dataPoint = getAvailabilityDataPoint(row);
-        Duration duration = new Duration(now().minus(writeTime).getMillis());
-        int newTTL = originalTTL - duration.toStandardSeconds().getSeconds();
-        return new TTLDataPoint<>(dataPoint, newTTL);
+                row.getLong(COUNTER_COLS.VALUE.ordinal()),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
-                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())));
+                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static Tenant getTenant(Row row) {

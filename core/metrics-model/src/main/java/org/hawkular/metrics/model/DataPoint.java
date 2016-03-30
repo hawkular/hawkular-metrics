@@ -18,11 +18,11 @@ package org.hawkular.metrics.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Comparator;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.annotations.ApiModelProperty;
@@ -35,13 +35,13 @@ import io.swagger.annotations.ApiModelProperty;
  */
 public class DataPoint<T> {
 
-    public static final Comparator<DataPoint<?>> TIMESTAMP_COMPARATOR = Comparator.comparing(DataPoint::getTimestamp);
-
     protected final long timestamp;
 
     protected final T value;
 
-    @JsonCreator(mode = Mode.PROPERTIES)
+    protected final Map<String, String> tags;
+
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public DataPoint(
             @JsonProperty("timestamp")
             Long timestamp,
@@ -52,6 +52,15 @@ public class DataPoint<T> {
         checkArgument(value != null, "Data point value is null");
         this.timestamp = timestamp;
         this.value = value;
+        tags = Collections.emptyMap();
+    }
+
+    public DataPoint(Long timestamp, T value, Map<String, String> tags) {
+        checkArgument(timestamp != null, "Data point timestamp is null");
+        checkArgument(value != null, "Data point value is null");
+        this.timestamp = timestamp;
+        this.value = value;
+        this.tags = Collections.unmodifiableMap(tags);
     }
 
     @ApiModelProperty(required = true)
@@ -64,18 +73,24 @@ public class DataPoint<T> {
         return value;
     }
 
+    @ApiModelProperty(required = false)
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DataPoint<?> dataPoint = (DataPoint<?>) o;
         return Objects.equals(timestamp, dataPoint.timestamp) &&
-                Objects.equals(value, dataPoint.value);
+                Objects.equals(value, dataPoint.value) &&
+                Objects.equals(tags, dataPoint.tags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, value);
+        return Objects.hash(timestamp, value, tags);
     }
 
     @Override
@@ -83,6 +98,7 @@ public class DataPoint<T> {
         return com.google.common.base.Objects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
+                .add("tags", tags)
                 .omitNullValues()
                 .toString();
     }

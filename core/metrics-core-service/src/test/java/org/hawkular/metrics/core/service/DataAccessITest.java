@@ -112,7 +112,7 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis(), 0, Order.DESC, false);
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
@@ -148,7 +148,7 @@ public class DataAccessITest extends MetricsITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis(), 0, Order.DESC, false);
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
@@ -175,7 +175,7 @@ public class DataAccessITest extends MetricsITest {
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
                 .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
-                        0, Order.DESC, false)
+                        0, Order.DESC)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),

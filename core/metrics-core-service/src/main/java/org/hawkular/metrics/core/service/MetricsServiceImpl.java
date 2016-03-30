@@ -211,12 +211,12 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order, false);
+                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order);
                 })
                 .put(AVAILABILITY, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, false);
+                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order);
                 })
                 .put(COUNTER, (metricId, start, end, limit, order) -> {
                     @SuppressWarnings("unchecked")
@@ -825,7 +825,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start,
             long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return dataAccess.findGaugeData(id, start, end, 0, Order.ASC, false)
+        return dataAccess.findGaugeData(id, start, end, 0, Order.ASC)
                 .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {
                     List<long[]> periods = new ArrayList<>(data.size());

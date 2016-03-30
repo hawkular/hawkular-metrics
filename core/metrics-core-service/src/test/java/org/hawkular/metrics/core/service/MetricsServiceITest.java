@@ -103,9 +103,6 @@ public class MetricsServiceITest extends MetricsITest {
 
     private DataAccess dataAccess;
 
-    @SuppressWarnings("unused")
-    private PreparedStatement insertGaugeDataWithTimestamp;
-
     private PreparedStatement insertAvailabilityDateWithTimestamp;
 
     private DateTimeService dateTimeService;
@@ -126,12 +123,6 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
-
-        insertGaugeDataWithTimestamp = session
-                .prepare(
-            "INSERT INTO data (tenant_id, type, metric, dpart, time, n_value) " +
-            "VALUES (?, ?, ?, ?, ?, ?) " +
-            "USING TTL ? AND TIMESTAMP ?");
 
         insertAvailabilityDateWithTimestamp = session.prepare(
             "INSERT INTO data (tenant_id, type, metric, dpart, time, availability) " +
@@ -535,6 +526,113 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void addTaggedGaugeDataPoints() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "tagged-data-points";
+
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"), asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 1.1, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2, ImmutableMap.of("x", "2", "y", "5")),
+                new DataPoint<>(start.getMillis(), 3.4)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(metric)));
+
+        Observable<DataPoint<Double>> data = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "G1"),
+                start.getMillis(), end.getMillis(), 0, Order.ASC);
+        List<DataPoint<Double>> actual = toList(data);
+        List<DataPoint<Double>> expected = asList(
+                new DataPoint<>(start.getMillis(), 3.4),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2, ImmutableMap.of("x", "2", "y", "5")),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 1.1, ImmutableMap.of("x", "1"))
+        );
+
+        assertEquals(actual, expected, "The tagged data does not match the expected values");
+        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(metric.getMetricId(),
+                metric.getDataPoints(), 7)));
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "G1"), start.getMillis(),
+                end.getMillis(), 1, Order.ASC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.getMillis(), 3.4));
+
+        assertEquals(actual, expected, "The tagged data does not match when limiting the number of data points");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "G1"), start.getMillis(),
+                end.getMillis(), 0, Order.DESC);
+        actual = toList(data);
+        expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 1.1, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2, ImmutableMap.of("x", "2", "y", "5")),
+                new DataPoint<>(start.getMillis(), 3.4)
+        );
+
+        assertEquals(actual, expected, "The tagg data does not match when the order is DESC");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "G1"), start.getMillis(),
+                end.getMillis(), 1, Order.DESC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.plusMinutes(4).getMillis(), 1.1, ImmutableMap.of("x", "1")));
+
+        assertEquals(actual, expected, "The tagged data does not match when the order is DESC and there is a limit");
+    }
+
+    @Test
+    public void addTaggedAvailabilityDataPoints() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "tagged-availability";
+
+        Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "A1"), asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), UP, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.getMillis(), UP)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)));
+
+        Observable<DataPoint<AvailabilityType>> data = metricsService.findDataPoints(new MetricId<>(tenantId,
+                AVAILABILITY, "A1"), start.getMillis(), end.getMillis(), 0, Order.ASC);
+        List<DataPoint<AvailabilityType>> actual = toList(data);
+        List<DataPoint<AvailabilityType>> expected = asList(
+                new DataPoint<>(start.getMillis(), UP),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), UP, ImmutableMap.of("x", "1"))
+        );
+
+        assertEquals(actual, expected, "The tagged availability data points do not match");
+        assertMetricIndexMatches(tenantId, AVAILABILITY, singletonList(new Metric<>(metric.getMetricId(),
+                metric.getDataPoints(), 7)));
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, AVAILABILITY, "A1"), start.getMillis(),
+                end.getMillis(), 1, Order.ASC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.getMillis(), UP));
+
+        assertEquals(actual, expected, "The tagged availability data points do not match when there is a limit");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, AVAILABILITY, "A1"), start.getMillis(),
+                end.getMillis(), 0, Order.DESC);
+        actual = toList(data);
+        expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), UP, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.getMillis(), UP)
+        );
+
+        assertEquals(actual, expected, "The tagged availability data points do not match when the order is DESC");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, AVAILABILITY, "A1"), start.getMillis(),
+                end.getMillis(), 1, Order.DESC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.plusMinutes(4).getMillis(), UP, ImmutableMap.of("x", "1")));
+
+        assertEquals(actual, expected, "The tagged availability data points do not match when the order is DESC and " +
+                "there is a limit");
+    }
+
+    @Test
     public void addAndFetchCounterData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
@@ -563,6 +661,63 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, expected, "The counter data does not match the expected values");
         assertMetricIndexMatches(tenantId, COUNTER,
                 singletonList(new Metric<>(counter.getMetricId(), counter.getDataPoints(), 7)));
+    }
+
+    @Test
+    public void addTaggedCounterDataPoints() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "counters-tenant";
+
+        doAction(() -> metricsService.createTenant(new Tenant(tenantId)));
+
+        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "c1"), asList(
+                new DataPoint<>(start.getMillis(), 10L, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L, ImmutableMap.of("z", "5")),
+                new DataPoint<>(end.getMillis(), 45L)
+        ));
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
+
+        Observable<DataPoint<Long>> data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"),
+                start.getMillis(), end.getMillis(), 0, Order.DESC);
+        List<DataPoint<Long>> actual = toList(data);
+        List<DataPoint<Long>> expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L, ImmutableMap.of("z", "5")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.getMillis(), 10L, ImmutableMap.of("x", "1"))
+        );
+
+        assertEquals(actual, expected, "The tagged counter data does not match the expected values");
+        assertMetricIndexMatches(tenantId, COUNTER,
+                singletonList(new Metric<>(counter.getMetricId(), counter.getDataPoints(), 7)));
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"), start.getMillis(),
+                end.getMillis(), 1, Order.DESC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.plusMinutes(4).getMillis(), 25L, ImmutableMap.of("z", "5")));
+
+        assertEquals(actual, expected, "The tagged counter data does not match when there is a limit");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"), start.getMillis(),
+                end.getMillis(), 0, Order.ASC);
+        actual = toList(data);
+        expected = asList(
+                new DataPoint<>(start.getMillis(), 10L, ImmutableMap.of("x", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 15L, ImmutableMap.of("x", "2", "y", "3")),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 25L, ImmutableMap.of("z", "5"))
+        );
+
+        assertEquals(actual, expected, "The tagged counter data does not match when the order is ASC");
+
+        data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"), start.getMillis(),
+                end.getMillis(), 1, Order.ASC);
+        actual = toList(data);
+        expected = singletonList(new DataPoint<>(start.getMillis(), 10L, ImmutableMap.of("x", "1")));
+
+        assertEquals(actual, expected, "The tagged counter data does not match when the order is ASC and there is a " +
+                "limit");
     }
 
     @Test

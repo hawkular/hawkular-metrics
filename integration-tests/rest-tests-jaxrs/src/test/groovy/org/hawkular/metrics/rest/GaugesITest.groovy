@@ -248,4 +248,54 @@ class GaugesITest extends RESTTest {
     ]
     assertEquals(expectedData, response.data)
   }
+
+  @Test
+  void addTaggedDataPoints() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(30)
+    DateTime end = start.plusMinutes(10)
+    String gauge = 'G1'
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$gauge/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: start.millis,
+                value: 11.1,
+                tags: [x: 1, y: 2]
+            ],
+            [
+                timestamp: start.plusMinutes(1).millis,
+                value: 22.2,
+                tags: [y: 3, z: 5]
+            ],
+            [
+                timestamp: start.plusMinutes(3).millis,
+                value: 33.3,
+                tags: [x: 4, z: 6]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+    response = hawkularMetrics.get(path: "gauges/$gauge/data", headers: [(tenantHeaderName): tenantId])
+    def expectedData = [
+        [
+            timestamp: start.plusMinutes(3).millis,
+            value: 33.3,
+            tags: [x: '4', z: '6']
+        ],
+        [
+            timestamp: start.plusMinutes(1).millis,
+            value: 22.2,
+            tags: [y: '3', z: '5']
+        ],
+        [
+            timestamp: start.millis,
+            value: 11.1,
+            tags: [x: '1', y: '2']
+        ]
+    ]
+    assertEquals(expectedData, response.data)
+  }
 }
