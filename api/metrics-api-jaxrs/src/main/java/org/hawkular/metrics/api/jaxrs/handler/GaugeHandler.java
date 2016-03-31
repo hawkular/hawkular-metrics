@@ -321,82 +321,83 @@ public class GaugeHandler {
                 return;
             }
 
-            if (limit != null) {
-                if (order == null) {
-                    if (start == null && end != null) {
-                        order = Order.DESC;
-                    } else if (start != null && end == null) {
-                        order = Order.ASC;
-                    } else {
-                        order = Order.DESC;
+                if (limit != null) {
+                    if (order == null) {
+                        if (start == null && end != null) {
+                            order = Order.DESC;
+                        } else if (start != null && end == null) {
+                            order = Order.ASC;
+                        } else {
+                            order = Order.DESC;
+                        }
                     }
+                } else {
+                    limit = 0;
                 }
-            } else {
-                limit = 0;
+
+                if (order == null) {
+                    order = Order.DESC;
+                }
+
+                metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
+                return;
             }
 
-            if (order == null) {
-                order = Order.DESC;
-            }
-
-            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
-                    .toList()
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-
-            return;
-        }
-
-        Observable<BucketConfig> observableConfig = null;
+            Observable<BucketConfig> observableConfig = null;
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & " +
-                        "end")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
                 return;
             }
 
             if (bucketsCount == null && bucketDuration == null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed " +
-                        "results")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
                 return;
             }
 
-            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
-                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
-                long now = System.currentTimeMillis();
-                long earliest = now - dataRetention;
+                observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                    long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                    long now = System.currentTimeMillis();
+                    long earliest = now - dataRetention;
 
-                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
-                        new TimeRange(earliest, now));
+                    BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                            new TimeRange(earliest, now));
 
-                if (!bucketConfig.isValid()) {
-                    throw new RuntimeApiError(bucketConfig.getProblem());
+                    if (!bucketConfig.isValid()) {
+                        throw new RuntimeApiError(bucketConfig.getProblem());
+                    }
+
+                    return bucketConfig;
+                });
+            } else {
+                TimeRange timeRange = new TimeRange(start, end);
+                if (!timeRange.isValid()) {
+                    asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                    return;
                 }
 
-                return bucketConfig;
-            });
-        } else {
-            TimeRange timeRange = new TimeRange(start, end);
-            if (!timeRange.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-                return;
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+                if (!bucketConfig.isValid()) {
+                    asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                    return;
+                }
+
+                observableConfig = Observable.just(bucketConfig);
             }
 
-            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-            if (!bucketConfig.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-                return;
-            }
-
-            observableConfig = Observable.just(bucketConfig);
-        }
-
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+            final Percentiles lPercentiles = percentiles != null ? percentiles
+                    : new Percentiles(Collections.<Double> emptyList());
 
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
+                .flatMap((config) -> metricsService.findGaugeStats(metricId,
+                        config.getTimeRange().getStart(),
+                        config.getTimeRange().getEnd(),
+                        config.getBuckets(), lPercentiles.getPercentiles()))
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
