@@ -29,8 +29,10 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.param.BucketConfig;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -161,8 +163,11 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                        Buckets buckets, List<Double> percentiles);
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
+            List<Double> percentiles);
+
+    Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Map<String, String> tags,
+            long start, long end, List<Double> percentiles);
 
     /**
      * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed

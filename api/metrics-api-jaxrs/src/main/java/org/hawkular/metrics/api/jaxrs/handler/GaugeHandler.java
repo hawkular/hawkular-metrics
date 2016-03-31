@@ -304,106 +304,124 @@ public class GaugeHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
-            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
-            ) {
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order,
+            @ApiParam(value = "Tags") @QueryParam("tags") Tags tags
+    ) {
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 
-        if ((bucketsCount != null || bucketDuration != null) &&
-                (limit != null || order != null)) {
-            asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
-            return;
+        if ((bucketsCount != null || bucketDuration != null) && tags != null) {
+            asyncResponse.resume(badRequest(new ApiError("Bucket parameters (buckets or bucketDuration) and tags " +
+                    "cannot be used together")));
         }
 
-        if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
+        if (tags != null) {
             TimeRange timeRange = new TimeRange(start, end);
             if (!timeRange.isValid()) {
                 asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
                 return;
             }
-
-            if (limit != null) {
-                if (order == null) {
-                    if (start == null && end != null) {
-                        order = Order.DESC;
-                    } else if (start != null && end == null) {
-                        order = Order.ASC;
-                    } else {
-                        order = Order.DESC;
-                    }
+            final Percentiles lPercentiles = percentiles != null ? percentiles
+                    : new Percentiles(Collections.<Double> emptyList());
+            metricsService.findGaugeStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                    lPercentiles.getPercentiles())
+                    .map(ApiUtils::mapToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            if ((bucketsCount != null || bucketDuration != null) &&
+                    (limit != null || order != null)) {
+                asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
+                return;
+            }
+            if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
+                TimeRange timeRange = new TimeRange(start, end);
+                if (!timeRange.isValid()) {
+                    asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                    return;
                 }
+
+                if (limit != null) {
+                    if (order == null) {
+                        if (start == null && end != null) {
+                            order = Order.DESC;
+                        } else if (start != null && end == null) {
+                            order = Order.ASC;
+                        } else {
+                            order = Order.DESC;
+                        }
+                    }
+                } else {
+                    limit = 0;
+                }
+
+                if (order == null) {
+                    order = Order.DESC;
+                }
+
+                metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                        .toList()
+                        .map(ApiUtils::collectionToResponse)
+                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
+                return;
+            }
+
+            Observable<BucketConfig> observableConfig = null;
+
+            if (Boolean.TRUE.equals(fromEarliest)) {
+                if (start != null || end != null) {
+                    asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & " +
+                            "end")));
+                    return;
+                }
+
+                if (bucketsCount == null && bucketDuration == null) {
+                    asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed " +
+                            "results")));
+                    return;
+                }
+
+                observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                    long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                    long now = System.currentTimeMillis();
+                    long earliest = now - dataRetention;
+
+                    BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                            new TimeRange(earliest, now));
+
+                    if (!bucketConfig.isValid()) {
+                        throw new RuntimeApiError(bucketConfig.getProblem());
+                    }
+
+                    return bucketConfig;
+                });
             } else {
-                limit = 0;
+                TimeRange timeRange = new TimeRange(start, end);
+                if (!timeRange.isValid()) {
+                    asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                    return;
+                }
+
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+                if (!bucketConfig.isValid()) {
+                    asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                    return;
+                }
+
+                observableConfig = Observable.just(bucketConfig);
             }
 
-            if (order == null) {
-                order = Order.DESC;
-            }
+            final Percentiles lPercentiles = percentiles != null ? percentiles
+                    : new Percentiles(Collections.<Double> emptyList());
 
-            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+            observableConfig
+                    .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
+                    .flatMap(Observable::from)
+                    .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                     .toList()
                     .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-
-            return;
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
         }
-
-        Observable<BucketConfig> observableConfig = null;
-
-        if (Boolean.TRUE.equals(fromEarliest)) {
-            if (start != null || end != null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
-                return;
-            }
-
-            if (bucketsCount == null && bucketDuration == null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
-                return;
-            }
-
-            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
-                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
-                long now = System.currentTimeMillis();
-                long earliest = now - dataRetention;
-
-                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
-                        new TimeRange(earliest, now));
-
-                if (!bucketConfig.isValid()) {
-                    throw new RuntimeApiError(bucketConfig.getProblem());
-                }
-
-                return bucketConfig;
-            });
-        } else {
-            TimeRange timeRange = new TimeRange(start, end);
-            if (!timeRange.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-                return;
-            }
-
-            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-            if (!bucketConfig.isValid()) {
-                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-                return;
-            }
-
-            observableConfig = Observable.just(bucketConfig);
-        }
-
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
-
-        observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId,
-                        config.getTimeRange().getStart(),
-                        config.getTimeRange().getEnd(),
-                        config.getBuckets(), lPercentiles.getPercentiles()))
-                .flatMap(Observable::from)
-                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
     @GET

@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
+
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
+import org.apache.commons.math3.stat.descriptive.rank.Median
 import org.apache.commons.math3.stat.descriptive.rank.Min
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
 import org.hawkular.metrics.core.service.DateTimeService
@@ -27,9 +29,7 @@ import org.junit.Test
 import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.assertArrayEquals
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
+import static org.junit.Assert.*
 
 /**
  * @author Thomas Segismont
@@ -75,6 +75,12 @@ class GaugeMetricStatisticsITest extends RESTTest {
       // Both buckets and bucketDuration parameters provided
       assertEquals(400, exception.response.status)
     }
+
+    badGet(
+        path: "gauges/$metric/data",
+        query: [bucketDuration: '1d', tags: [x: '1']],
+        headers: [(tenantHeaderName): tenantId]
+    ) { exception -> assertEquals(400, exception.response.status) }
   }
 
   @Test
@@ -735,10 +741,106 @@ class GaugeMetricStatisticsITest extends RESTTest {
     }
   }
 
+  @Test
+  void findTaggedBuckets() {
+    String tenantId = nextTenantId()
+    String metric = "tagged-buckets"
+    DateTime start = now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$metric/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: start.millis,
+                value: 23.17,
+                tags: [x: '1']
+            ],
+            [
+                timestamp: start.plusMinutes(5).millis,
+                value: 14.93,
+                tags: [x: '2']
+            ],
+            [
+                timestamp: start.plusMinutes(10).millis,
+                value: 31.06,
+                tags: [x: '3']
+            ],
+            [
+                timestamp: start.plusMinutes(15).millis,
+                value: 25.55,
+                tags: [x: '1']
+            ],
+            [
+                timestamp: start.plusMinutes(20).millis,
+                value: 16.66,
+                tags: [x: '2']
+            ],
+            [
+                timestamp: start.plusMinutes(25).millis,
+                value: 34.33,
+                tags: [x: '3']
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$metric/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: start.millis, end: now().millis, tags: 'x:*']
+    )
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size())
+
+    def expectedData = [
+        'x:1': [
+            tags: [x: '1'],
+            max: 25.55,
+            min: 23.17,
+            avg: avg([23.17, 25.55]),
+            median: median(23.17, 25.55),
+            samples: 2,
+        ],
+        'x:2': [
+            tags: [x: '2'],
+            max: 16.66,
+            min: 14.93,
+            avg: avg([16.66, 14.93]),
+            median: median(16.66, 14.93),
+            samples: 2,
+        ],
+        'x:3': [
+            tags: [x: '3'],
+            max: 34.33,
+            min: 31.06,
+            avg: avg([34.33, 31.06]),
+            median: median(34.33, 31.06),
+            samples: 2,
+        ]
+    ]
+    assertTaggedBucketEquals(expectedData['x:1'], response.data['x:1'])
+    assertTaggedBucketEquals(expectedData['x:2'], response.data['x:2'])
+    assertTaggedBucketEquals(expectedData['x:3'], response.data['x:3'])
+  }
+
   private static List<Double> createSample(int sampleSize) {
     def values = new double[sampleSize];
     def random = new Random()
     Arrays.setAll(values, { i -> random.nextDouble() * 1000D })
     return values;
+  }
+
+  static double median(double... values) {
+    Median median = new Median()
+    return median.evaluate(values)
+  }
+
+  static void assertTaggedBucketEquals(def expected, def actual) {
+    assertDoubleEquals(expected.max, actual.max)
+    assertDoubleEquals(expected.min, actual.min)
+    assertDoubleEquals(expected.avg, actual.avg)
+    assertDoubleEquals(expected.median, actual.median)
+    assertEquals(expected.samples, actual.samples)
   }
 }
