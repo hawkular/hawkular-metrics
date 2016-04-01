@@ -166,6 +166,19 @@ public interface MetricsService {
     Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
             List<Double> percentiles);
 
+    /**
+     * Queries data points from a single metric and groups results using tag filter expressions that are applied
+     * against the tags of the each data point. The groups or buckets are then aggregated into "bucketed" data points
+     * that consist of various statistics.
+     *
+     * @param metricId The metric name
+     * @param tags The tag filter expressions that define the grouping.
+     * @param start The start time inclusive as a unix timestamp in milliseconds
+     * @param end The end time exclusive as a unix timestamp in millliseconds
+     * @param percentiles A list of percentiles to compute
+     * @return A map of {@link TaggedBucketPoint tagged bucket points} that are keyed by a concatenation of tags of
+     * the form tag_name:tag_value,tag_name:tag_value.
+     */
     Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Map<String, String> tags,
             long start, long end, List<Double> percentiles);
 

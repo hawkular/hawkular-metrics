@@ -824,6 +824,70 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertTaggedBucketEquals(expectedData['x:3'], response.data['x:3'])
   }
 
+  @Test
+  void findTaggedDataPointsWithMultipleTagFilters() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(2)
+    String id = 'G1'
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$id/data",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: start.millis,
+                value: 11.1,
+                tags: [x: '1', y: '1', z: '1']
+            ],
+            [
+                timestamp: start.plusMinutes(2).millis,
+                value: 13.3,
+                tags: [x: '2', y: '2', z: '2']
+            ],
+            [
+                timestamp: start.plusMinutes(4).millis,
+                value: 14.4,
+                tags: [x: '3', y: '2', z: '3']
+            ],
+            [
+                timestamp: start.plusMinutes(6).millis,
+                value: 15.5,
+                tags: [x: '1', y: '3', z: '4']
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$id/data",
+        headers: [(tenantHeaderName): tenantId],
+        query: [tags: 'x:*,y:2,z:2|3']
+    )
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size())
+
+    def expectedData = [
+        'x:2,y:2,z:2': [
+            tags: [x: '2', y: '2', z: '2'],
+            max: 13.3,
+            min: 13.3,
+            avg: 13.3,
+            median: 13.3,
+            samples: 1
+        ],
+        'x:3,y:2,z:3': [
+            tags: [x: '3', y: '2', z: '3'],
+            max: 14.4,
+            min: 14.4,
+            avg: 14.4,
+            median: 14.4,
+            samples: 1
+        ]
+    ]
+    assertTaggedBucketEquals(expectedData['x:2,y:2,z:2'], response.data['x:2,y:2,z:2'])
+    assertTaggedBucketEquals(expectedData['x:3,y:2,z:3'], response.data['x:3,y:2,z:3'])
+  }
+
   private static List<Double> createSample(int sampleSize) {
     def values = new double[sampleSize];
     def random = new Random()

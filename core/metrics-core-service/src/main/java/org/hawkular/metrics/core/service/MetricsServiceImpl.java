@@ -18,6 +18,7 @@
 package org.hawkular.metrics.core.service;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
@@ -789,17 +790,33 @@ public class MetricsServiceImpl implements MetricsService {
     private Observable<Map<String, TaggedBucketPoint>> bucketize(
             Observable<? extends DataPoint<? extends Number>> dataPoints, Map<String, String> tags,
             List<Double> percentiles) {
+
+        List<Func1<DataPoint<? extends Number>, Boolean>> tagFilters = tags.entrySet().stream().map(e -> {
+            boolean positive = (!e.getValue().startsWith("!"));
+            Pattern pattern = filterPattern(e.getValue());
+            Func1<DataPoint<? extends Number>, Boolean> filter = dataPoint ->
+                    dataPoint.getTags().containsKey(e.getKey()) &&
+                            (positive == pattern.matcher(dataPoint.getTags().get(e.getKey())).matches());
+            return filter;
+        }).collect(toList());
+
+        // TODO refactor this to be more functional and replace java 8 streams with rx operators
         return dataPoints
-                .filter(dataPoint -> dataPoint.getTags().keySet().containsAll(tags.keySet()))
+                .filter(dataPoint -> {
+                    for (Func1<DataPoint<? extends Number>, Boolean> tagFilter : tagFilters) {
+                        if (!tagFilter.call(dataPoint)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
                 .groupBy(dataPoint -> tags.entrySet().stream().collect(
                         toMap(Map.Entry::getKey, e -> dataPoint.getTags().get(e.getKey()))))
                 .flatMap(group -> group.collect(() -> new TaggedDataPointCollector(group.getKey(), percentiles),
                         TaggedDataPointCollector::increment))
                 .map(TaggedDataPointCollector::toBucketPoint)
-//                .toMap(TaggedBucketPoint::getTags);
-                .toMap(bucketPoint -> bucketPoint.getTags().entrySet().stream()
-                        .map(e -> e.getKey() + ":" + e.getValue()).collect(joining(",")));
-
+                .toMap(bucketPoint -> bucketPoint.getTags().entrySet().stream().map(e ->
+                        e.getKey() + ":" + e.getValue()).collect(joining(",")));
     }
 
     @Override

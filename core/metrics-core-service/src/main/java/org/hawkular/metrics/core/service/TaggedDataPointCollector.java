@@ -41,6 +41,7 @@ public class TaggedDataPointCollector {
     private Min min = new Min();
     private Mean average = new Mean();
     private Max max = new Max();
+    private PSquarePercentile median = new PSquarePercentile(50.0);
     private List<PSquarePercentile> percentiles;
 
     TaggedDataPointCollector(Map<String, String> tags, List<Double> percentiles) {
@@ -53,7 +54,7 @@ public class TaggedDataPointCollector {
         Number value = dataPoint.getValue();
         min.increment(value.doubleValue());
         average.increment(value.doubleValue());
-//        median.addValue(value.doubleValue());
+        median.increment(value.doubleValue());
         max.increment(value.doubleValue());
         samples++;
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
@@ -62,7 +63,7 @@ public class TaggedDataPointCollector {
     TaggedBucketPoint toBucketPoint() {
         List<Percentile> results = percentiles.stream()
                 .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList());
-        return new TaggedBucketPoint(tags, min.getResult(), average.getResult(), average.getResult(), max.getResult(),
+        return new TaggedBucketPoint(tags, min.getResult(), average.getResult(), median.getResult(), max.getResult(),
                 samples, results);
     }
 
