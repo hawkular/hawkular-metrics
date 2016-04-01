@@ -15,10 +15,8 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
-
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
-import org.apache.commons.math3.stat.descriptive.rank.Median
 import org.apache.commons.math3.stat.descriptive.rank.Min
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
 import org.hawkular.metrics.core.service.DateTimeService
@@ -30,7 +28,6 @@ import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.*
-
 /**
  * @author Thomas Segismont
  */
@@ -896,8 +893,9 @@ class GaugeMetricStatisticsITest extends RESTTest {
   }
 
   static double median(double... values) {
-    Median median = new Median()
-    return median.evaluate(values)
+    def median = new PSquarePercentile(50.0)
+    values.each { median.increment(it) }
+    return median.getResult()
   }
 
   static void assertTaggedBucketEquals(def expected, def actual) {
