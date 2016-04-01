@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,14 +42,14 @@ class ErrorsITest extends RESTTest {
 
   @Test
   void testNotFoundException() {
-    badGet(path: "gaugesssss/test/data", headers: [(tenantHeaderName): tenantId]) { exception ->
+    badGet(path: "gaugesssss/test/raw", headers: [(tenantHeaderName): tenantId]) { exception ->
       assertEquals(404, exception.response.status)
     }
   }
 
   @Test
   void testNumberFormatException() {
-    badGet(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "gauges/test/stats", headers: [(tenantHeaderName): tenantId],
         query: [buckets: 999999999999999999999999]) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -58,7 +58,7 @@ class ErrorsITest extends RESTTest {
   @Test
   void testNotAcceptableException() {
     hawkularMetrics.request(GET) { request ->
-      uri.path = "gauges/test/data"
+      uri.path = "gauges/test/raw"
       headers = [(tenantHeaderName): tenantId, Accept: TEXT]
 
       response.success = { response ->
@@ -74,7 +74,7 @@ class ErrorsITest extends RESTTest {
   @Test
   void testNotSupportedException() {
     hawkularMetrics.request(POST) { request ->
-      uri.path = "gauges/test/data"
+      uri.path = "gauges/test/raw"
       body = ""
       requestContentType = TEXT
       headers = [(tenantHeaderName): tenantId, Accept: JSON]

@@ -132,7 +132,7 @@ public class Configuration {
         int graphitePort = getIntProperty(properties, GRAPHITE_PORT, 2003);
         ServerType serverType = getServerType(properties, validationMessages);
         URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
-                "http://localhost:8080/hawkular/metrics/gauges/data"));
+                "http://localhost:8080/hawkular/metrics/gauges/raw"));
         String proxyString = properties.getProperty(HTTP_PROXY.toString());
         URI httpProxy = null;
         if (proxyString != null && !proxyString.trim().isEmpty()) {

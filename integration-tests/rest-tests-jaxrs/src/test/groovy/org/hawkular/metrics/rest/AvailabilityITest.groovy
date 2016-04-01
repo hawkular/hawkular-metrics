@@ -31,7 +31,7 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidTimeRange() {
-    badGet(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "availability/test/raw", headers: [(tenantHeaderName): tenantId],
         query: [start: 1000, end: 500]) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -39,7 +39,7 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidBucketConfig() {
-    badGet(path: "availability/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "availability/test/stats", headers: [(tenantHeaderName): tenantId],
         query: [start: 500, end: 100, buckets: '10', bucketDuration: '10ms']) { exception ->
       assertEquals("Should fail when both bucket params are specified", 400, exception.response.status)
     }
@@ -54,12 +54,12 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAddAvailabilityForMetricWithEmptyPayload() {
-    badPost(path: "availability/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "availability/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "availability/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "availability/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -67,12 +67,12 @@ class AvailabilityITest extends RESTTest {
 
   @Test
   void shouldNotAddAvailabilityDataWithEmptyPayload() {
-    badPost(path: "availability/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "availability/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "availability/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "availability/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -91,7 +91,7 @@ class AvailabilityITest extends RESTTest {
     DateTime start = now().minusMinutes(20)
     String metric = 'A1'
 
-    def response = hawkularMetrics.post(path: "availability/$metric/data", body: [
+    def response = hawkularMetrics.post(path: "availability/$metric/raw", body: [
         [timestamp: start.millis, value: "up"]], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
@@ -139,7 +139,7 @@ class AvailabilityITest extends RESTTest {
     String id = 'A1'
 
     def response = hawkularMetrics.post(
-        path: "availability/$id/data",
+        path: "availability/$id/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -160,7 +160,7 @@ class AvailabilityITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "availability/$id/data", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "availability/$id/raw", headers: [(tenantHeaderName): tenantId])
     def expectedData = [
         [
             timestamp: start.plusMinutes(3).millis,

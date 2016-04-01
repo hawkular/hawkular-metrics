@@ -124,7 +124,7 @@ public class AvailabilityHandler {
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.",
                     notes = "Does not include any metric values. ",
- response = Metric.class, responseContainer = "List")
+                    response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -220,7 +220,7 @@ public class AvailabilityHandler {
     }
 
     @POST
-    @Path("/{id}/data")
+    @Path("/{id}/raw")
     @ApiOperation(value = "Add data for a single availability metric.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -238,8 +238,19 @@ public class AvailabilityHandler {
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
+    @Deprecated
     @POST
-    @Path("/data")
+    @Path("/{id}/data")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoit.")
+    public void deprecatedAddAvailabilityForMetric(
+            @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
+            @ApiParam(value = "List of availability datapoints", required = true)
+                    List<DataPoint<AvailabilityType>> data) {
+        addAvailabilityForMetric(asyncResponse, id, data);
+    }
+
+    @POST
+    @Path("/raw")
     @ApiOperation(value = "Add metric data for multiple availability metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -259,20 +270,23 @@ public class AvailabilityHandler {
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
+    @Deprecated
+    @POST
+    @Path("/data")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoint.")
+    public void deprecatedAddAvailabilityData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of availability metrics", required = true)
+            @JsonDeserialize() List<Metric<AvailabilityType>> availabilities
+    ) {
+        addAvailabilityData(asyncResponse, availabilities);
+    }
+
+    @Deprecated
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve availability data.", notes = "When buckets or bucketDuration query parameter is " +
-            "used, the time range between start and end will be divided in buckets of equal duration, and " +
-            "availability statistics will be computed for each bucket.", response = DataPoint.class,
+    @ApiOperation(value = "Deprecated. Please use /raw or /stats endpoints.", response = DataPoint.class,
             responseContainer = "List")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
-            @ApiResponse(code = 204, message = "No availability data was found."),
-            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                    response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
-                    response = ApiError.class)
-    })
     public void findAvailabilityData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
@@ -333,5 +347,107 @@ public class AvailabilityHandler {
                 .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         }
+    }
+
+    @GET
+    @Path("/{id}/raw")
+    @ApiOperation(value = "Retrieve availability data.", response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+            @ApiResponse(code = 204, message = "No availability data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                    response = ApiError.class)
+    })
+    public void findRawAvailabilityData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Set to true to return only distinct, contiguous values")
+                @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
+    ) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
+        if (limit != null) {
+            if (order == null) {
+                if (start == null && end != null) {
+                    order = Order.DESC;
+                } else if (start != null && end == null) {
+                    order = Order.ASC;
+                } else {
+                    order = Order.DESC;
+                }
+            }
+        } else {
+            limit = 0;
+        }
+
+        if (order == null) {
+            order = Order.DESC;
+        }
+
+        metricsService
+                .findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct, limit, order)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/{id}/stats")
+    @ApiOperation(value = "Retrieve availability data.", notes = "Based on buckets or bucketDuration query parameter" +
+            ", the time range between start and end will be divided in buckets of equal duration, and " +
+            "availability statistics will be computed for each bucket.", response = DataPoint.class,
+            responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched availability data."),
+            @ApiResponse(code = 204, message = "No availability data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                    response = ApiError.class)
+    })
+    public void findStatsAvailabilityData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketDuration parameter must be used")));
+            return;
+        }
+
+        MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
+        Buckets buckets = bucketConfig.getBuckets();
+
+        metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
 }

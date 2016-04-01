@@ -88,7 +88,7 @@ class MetricsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: 'gauges/G1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'gauges/G1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -98,7 +98,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'gauges/G2/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'gauges/G2/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -108,7 +108,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'counters/C1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'counters/C1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -118,7 +118,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'counters/C2/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'counters/C2/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -129,7 +129,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'availability/A1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'availability/A1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -139,7 +139,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'availability/A2/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'availability/A2/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -181,7 +181,7 @@ class MetricsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: 'counters/GC1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'counters/GC1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -191,7 +191,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'availability/GA1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'availability/GA1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -234,7 +234,7 @@ class MetricsITest extends RESTTest {
     assertEquals(200, response.status)
 
 
-    response = hawkularMetrics.get(path: 'gauges/CG1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'gauges/CG1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -244,7 +244,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'availability/CA1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'availability/CA1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -286,7 +286,7 @@ class MetricsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: 'gauges/AG1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'gauges/AG1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -296,7 +296,7 @@ class MetricsITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: 'counters/AC1/data', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'counters/AC1/raw', headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [

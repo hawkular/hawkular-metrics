@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ public class MetricsSenderITest {
     public void setUp() throws Exception {
         tenant = getRandomTenantId();
         idGenerator = new AtomicLong(0);
-        String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/data";
+        String addGaugeDataUrl = "http://" + BASE_URI + "/gauges/raw";
 
         Properties properties = new Properties();
         properties.setProperty(ConfigurationKey.REST_URL.toString(), addGaugeDataUrl);

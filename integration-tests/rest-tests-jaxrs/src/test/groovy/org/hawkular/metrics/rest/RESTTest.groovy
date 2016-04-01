@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -132,18 +132,18 @@ ${entity}
     for (i in 0..LARGE_PAYLOAD_SIZE + 10) {
       pointGen(points, i)
     }
-    def response = hawkularMetrics.post(path: "${pathBase}/test/data", headers: [(tenantHeaderName): tenantId],
+    def response = hawkularMetrics.post(path: "${pathBase}/test/raw", headers: [(tenantHeaderName): tenantId],
         body: points)
     assertEquals(200, response.status)
   }
 
   static void invalidPointCheck(String pathBase, String tenantId, def data) {
-    badPost(path: "${pathBase}/data", headers: [(tenantHeaderName): tenantId], body: [
+    badPost(path: "${pathBase}/raw", headers: [(tenantHeaderName): tenantId], body: [
         [id: 'metric', data: data]
     ]) { exception ->
       assertEquals(400, exception.response.status)
     }
-    badPost(path: "${pathBase}/metric/data", headers: [(tenantHeaderName): tenantId], body: data) { exception ->
+    badPost(path: "${pathBase}/metric/raw", headers: [(tenantHeaderName): tenantId], body: data) { exception ->
       assertEquals(400, exception.response.status)
     }
   }
