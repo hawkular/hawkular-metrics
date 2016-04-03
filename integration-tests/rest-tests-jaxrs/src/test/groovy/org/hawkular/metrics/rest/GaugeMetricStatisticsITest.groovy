@@ -980,11 +980,4 @@ class GaugeMetricStatisticsITest extends RESTTest {
     return median.evaluate(values)
   }
 
-  static void assertTaggedBucketEquals(def expected, def actual) {
-    assertDoubleEquals(expected.max, actual.max)
-    assertDoubleEquals(expected.min, actual.min)
-    assertDoubleEquals(expected.avg, actual.avg)
-    assertDoubleEquals(expected.median, actual.median)
-    assertEquals(expected.samples, actual.samples)
-  }
 }
