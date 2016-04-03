@@ -996,7 +996,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertNumericBucketsEquals(actual.get(0), expected);
     }
 
-//    @Test
+    @Test
     public void findTaggedGaugeBucketPointsWithSimpleTagQuery() throws Exception {
         String tenantId = "tagged-bucket-points";
         DateTime start = now().minusHours(2);
@@ -1050,6 +1050,35 @@ public class MetricsServiceITest extends MetricsITest {
 
         Map<String, TaggedBucketPoint> actual = getOnNextEvents(() ->
                 metricsService.findGaugeStats(metricId, ImmutableMap.of("x", "*", "y", "2", "z", "2|3"),
+                        start.getMillis(), now().getMillis(), Collections.emptyList())).get(0);
+        assertEquals(actual.size(), 2);
+
+        TaggedDataPointCollector collector = new TaggedDataPointCollector(ImmutableMap.of("x", "2", "y", "2", "z", "2"),
+                emptyList());
+        collector.increment(metric.getDataPoints().get(1));
+        assertEquals(actual.get("x:2,y:2,z:2"), collector.toBucketPoint());
+
+        collector = new TaggedDataPointCollector(ImmutableMap.of("x", "3", "y", "2", "z", "3"), emptyList());
+        collector.increment(metric.getDataPoints().get(2));
+        assertEquals(actual.get("x:3,y:2,z:3"), collector.toBucketPoint());
+    }
+
+    @Test
+    public void findTaggedCounterBucketPointsWithMultipleTagFilters() throws Exception {
+        String tenantId = "multiple-tag-filter-counter-data-point-query";
+        DateTime start = now().minusHours(2);
+
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, "C1");
+        Metric<Long> metric = new Metric<>(metricId, asList(
+                new DataPoint<>(start.getMillis(), 11L, ImmutableMap.of("x", "1", "y", "1", "z", "1")),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 13L, ImmutableMap.of("x", "2", "y", "2", "z", "2")),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 14L, ImmutableMap.of("x", "3", "y", "2", "z", "3")),
+                new DataPoint<>(start.plusMinutes(6).getMillis(), 15L, ImmutableMap.of("x", "1", "y", "3", "z", "4"))
+        ));
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(metric)));
+
+        Map<String, TaggedBucketPoint> actual = getOnNextEvents(() ->
+                metricsService.findCounterStats(metricId, ImmutableMap.of("x", "*", "y", "2", "z", "2|3"),
                         start.getMillis(), now().getMillis(), Collections.emptyList())).get(0);
         assertEquals(actual.size(), 2);
 

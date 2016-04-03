@@ -867,6 +867,11 @@ public class MetricsServiceImpl implements MetricsService {
         return bucketize(findDataPoints(id, start, end, 0, Order.ASC), buckets, percentiles);
     }
 
+    @Override public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
+            Map<String, String> tags, long start, long end, List<Double> percentiles) {
+        return bucketize(findDataPoints(metricId, start, end, 0, Order.ASC), tags, percentiles);
+    }
+
     @Override
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start,
             long end) {
