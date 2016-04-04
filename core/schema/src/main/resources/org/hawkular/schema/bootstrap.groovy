@@ -35,33 +35,10 @@ def executeCQL(String cql) {
   return session.execute(statement)
 }
 
-def keyspaceExists() {
-  def resultSet = executeCQL("SELECT keyspace_name FROM system.schema_keyspaces WHERE keyspace_name = '$keyspace'")
-  return !resultSet.exhausted
-}
-
-def isSchemaVersioned() {
-  def resultSet = executeCQL("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '$keyspace' AND " +
-      "columnfamily_name = 'cassalog'")
-  return !resultSet.exhausted
-}
-
-def loadTables() {
-  def tables = []
-  def resultSet = executeCQL("SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = " +
-      "'$keyspace'")
-  resultSet.all.each { tables << it.getString(0) }
-}
-
-def loadTypes() {
-  def types = []
-  def resultSet = executeCQL("SELECT type_name FROM system.schema_usertypes WHERE keyspace_name = '$keyspace'")
-}
-
 // We check the reset flag here because if we are resetting the database as would be the case in a dev/test environment,
 // we don't need to worry about the state of the schema since we are dropping it.
-if (!reset && keyspaceExists()) {
-  if (isSchemaVersioned()) {
+if (!reset && keyspaceExists(keyspace)) {
+  if (isSchemaVersioned(keyspace)) {
     // nothing to do
   } else {
     // If the schema exists and is not versioned, then we want to check that it matches what we expect it to be prior
@@ -73,8 +50,8 @@ if (!reset && keyspaceExists()) {
     ]
     def expectedTypes = ['aggregation_template', 'aggregate_data', 'trigger_def', ]
 
-    def actualTables = loadTables()
-    def actualTypes = loadTypes()
+    def actualTables = getTables(keyspace)
+    def actualTypes = getUDTs(keyspace)
 
     if (actualTables != expectedTables) {
       throw new RuntimeException("The schema is in an unknown state and cannot be versioned. Expected tables to be " +
