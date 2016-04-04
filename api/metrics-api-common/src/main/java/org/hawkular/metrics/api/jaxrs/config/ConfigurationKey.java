@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,8 @@ public enum ConfigurationKey {
     CASSANDRA_USESSL("hawkular-metrics.cassandra-use-ssl", "false", "CASSANDRA_USESSL", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false),
-    DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false);
+    DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
+    DATA_GC_GRACE_SECONDS("hawkular.metrics.data.gc-grace-seconds", "86400", "DATA_GC_GRACE_SECONDS", false);
 
     private final String name;
     private final String env;
