@@ -97,7 +97,7 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
-    <version.org.cassalog>0.2.0-SNAPSHOT</version.org.cassalog>
+    <version.org.cassalog>0.1.2</version.org.cassalog>
     <version.org.hawkular.accounts>2.0.22.Final</version.org.hawkular.accounts>
     <version.org.hawkular.commons>0.4.0.Final</version.org.hawkular.commons>
     <version.com.datastax.cassandra>3.0.0</version.com.datastax.cassandra>
