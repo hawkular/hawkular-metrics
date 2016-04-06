@@ -241,7 +241,7 @@ public class AvailabilityHandler {
     @Deprecated
     @POST
     @Path("/{id}/data")
-    @ApiOperation(value = "Deprecated. Please use /raw endpoit.")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoint.")
     public void deprecatedAddAvailabilityForMetric(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of availability datapoints", required = true)

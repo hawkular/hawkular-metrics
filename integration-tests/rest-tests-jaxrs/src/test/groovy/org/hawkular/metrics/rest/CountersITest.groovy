@@ -547,7 +547,7 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/rate",
+        path: "counters/$counter/rate/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [start: 0]
     )
@@ -602,7 +602,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/rate",
+        path: "counters/$counter/rate/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [start: 0]
     )
@@ -655,7 +655,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/rate",
+        path: "counters/$counter/rate/stats",
         headers: [(tenantHeaderName): tenantId],
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
@@ -846,7 +846,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -857,7 +857,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -987,7 +987,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -998,7 +998,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1132,7 +1132,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1143,7 +1143,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1155,7 +1155,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1180,7 +1180,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1281,7 +1281,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1292,7 +1292,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1304,7 +1304,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1329,7 +1329,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
