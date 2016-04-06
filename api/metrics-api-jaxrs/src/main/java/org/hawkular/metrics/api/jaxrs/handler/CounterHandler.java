@@ -541,19 +541,32 @@ public class CounterHandler {
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
-    @Deprecated
     @GET
     @Path("/{id}/rate")
-    @ApiOperation(value = "Deprecated. Please use rate/raw or rate/stats endpoints.",
-                    response = DataPoint.class, responseContainer = "List")
+    @ApiOperation(
+            value = "Retrieve counter rate data points.", notes = "Bucket related parameters as well as percentiles " +
+            "are deprecated, please use rate/stats for bucketed results. " +
+            "When buckets or bucketDuration query parameter is " +
+            "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+            "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
+            "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
+            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
     public void findRate(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
-            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+            @Deprecated @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @Deprecated @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @Deprecated @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -586,40 +599,10 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/{id}/rate/raw")
-    @ApiOperation(value = "Retrieve counter rate data points.", response = DataPoint.class, responseContainer = "List")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
-            @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                    response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                    response = ApiError.class)
-    })
-    public void findRawRate(
-            @Suspended AsyncResponse asyncResponse,
-            @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end
-    ) {
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
-        metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
-    }
-
-    @GET
     @Path("/{id}/rate/stats")
     @ApiOperation(
-            value = "Retrieve counter rate data points.", notes = "The time range between start and end will be " +
-            "divided in buckets of equal duration, and metric " +
+            value = "Retrieve stats for counter rate data points.", notes = "The time range between start and end " +
+            "will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
             "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
