@@ -543,7 +543,7 @@ public class CounterHandler {
 
     @Deprecated
     @GET
-    @Path("/{id}/ratel")
+    @Path("/{id}/rate")
     @ApiOperation(value = "Deprecated. Please use rate/raw or rate/stats endpoints.",
                     response = DataPoint.class, responseContainer = "List")
     public void findRate(
@@ -827,7 +827,7 @@ public class CounterHandler {
 
     @Deprecated
     @GET
-    @Path("/ratel")
+    @Path("/rate")
     @ApiOperation(value = "Deprecated. Please use /rate/stats endpoint.",
                     response = NumericBucketPoint.class, responseContainer = "List")
     public void deprecatedFindCounterRateDataStats(
