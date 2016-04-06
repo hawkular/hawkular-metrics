@@ -775,7 +775,7 @@ public class MetricsServiceITest extends MetricsITest {
             switch (i) {
                 case 1:
                     builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D).setPercentiles(asList(new
-                            Percentile(0.95, 0D))).setSamples(2);
+                            Percentile(0.95, 0D))).setSamples(2).setSum(200D);
                     break;
                 case 2:
                 case 4:
@@ -783,17 +783,15 @@ public class MetricsServiceITest extends MetricsITest {
                     break;
                 case 3:
                     builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D).setPercentiles(asList(new
-                            Percentile(0.95, 400D))).setSamples(1);
+                            Percentile(0.95, 400D))).setSamples(1).setSum(400D);
                     break;
                 case 5:
                     builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D).setPercentiles(asList(new
-                            Percentile(0.95, 550D)))
-                            .setSamples(1);
+                            Percentile(0.95, 550D))).setSamples(1).setSum(550D);
                     break;
                 case 7:
                     builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D).setPercentiles(asList(new
-                            Percentile(0.95, 950D)))
-                            .setSamples(2);
+                            Percentile(0.95, 950D))).setSamples(2).setSum(1950D);
                     break;
             }
             expected.add(builder.build());
@@ -920,22 +918,22 @@ public class MetricsServiceITest extends MetricsITest {
                 case 1:
                     val = 400D;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
-                            (0.99, val))).setSamples(1);
+                            (0.99, val))).setSamples(1).setSum(val);
                     break;
                 case 3:
                     val = 100D;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
-                            (0.99, val))).setSamples(1);
+                            (0.99, val))).setSamples(1).setSum(val);
                     break;
                 case 5:
                     val = 100;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val).setPercentiles(asList(new Percentile
-                            (0.99, val))).setSamples(1);
+                            (0.99, val))).setSamples(1).setSum(val);
                 case 6:
                     break;
                 case 7:
                     builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentiles(
-                            asList(new Percentile(0.99, 100.0))).setSamples(2);
+                            asList(new Percentile(0.99, 100.0))).setSamples(2).setSum(300.0);
                 default:
                     break;
             }
@@ -1269,10 +1267,12 @@ public class MetricsServiceITest extends MetricsITest {
         PercentileWrapper expectedMedian = NumericDataPointCollector.createPercentile.apply(50.0);
         Mean expectedAverage = new Mean();
         Sum expectedSamples = new Sum();
+        Sum expectedSum = new Sum();
         combinedData.stream().forEach(arg -> {
             expectedMedian.addValue(arg.getValue().doubleValue());
             expectedAverage.increment(arg.getValue().doubleValue());
             expectedSamples.increment(1);
+            expectedSum.increment(arg.getValue().doubleValue());
         });
 
         return new NumericBucketPoint.Builder(start.getMillis(), end.getMillis())
@@ -1280,6 +1280,7 @@ public class MetricsServiceITest extends MetricsITest {
                 .setMax(expectedMax.doubleValue())
                 .setAvg(expectedAverage.getResult())
                 .setMedian(expectedMedian.getResult())
+                .setSum(expectedSum.getResult())
                 .setSamples(new Double(expectedSamples.getResult()).intValue())
                 .build();
     }
@@ -1451,6 +1452,7 @@ public class MetricsServiceITest extends MetricsITest {
             assertEquals(actual.getMax(), expected.getMax(), 0.001, msg);
             assertEquals(actual.getMedian(), expected.getMedian(), 0.001, msg);
             assertEquals(actual.getMin(), expected.getMin(), 0.001, msg);
+            assertEquals(actual.getSum(), expected.getSum(), 0.001, msg);
             assertEquals(actual.getSamples(), expected.getSamples(), 0, msg);
             for(int i = 0; i < expected.getPercentiles().size(); i++) {
                 assertEquals(expected.getPercentiles().get(i).getQuantile(), actual.getPercentiles().get(i)

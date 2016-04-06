@@ -21,6 +21,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Max
 import org.apache.commons.math3.stat.descriptive.rank.Median
 import org.apache.commons.math3.stat.descriptive.rank.Min
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
+import org.apache.commons.math3.stat.descriptive.summary.Sum
 import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.joda.time.Duration
@@ -110,53 +111,54 @@ class GaugeMetricStatisticsITest extends RESTTest {
         query: [start: start.millis, end: end.millis, buckets: 10], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    def avg0 = new Mean(), med0 = new PSquarePercentile(50.0), perc95th0 = new PSquarePercentile(95.0)
+    def avg0 = new Mean(), sum0 = new Sum(), med0 = new PSquarePercentile(50.0), perc95th0 = new PSquarePercentile(95.0)
     [12.22, 15.37].each { value ->
       avg0.increment(value)
       med0.increment(value)
+      sum0.increment(value)
       perc95th0.increment(value)
     }
 
-    def avg9 = new Mean(), med9 = new PSquarePercentile(50.0), perc95th9 = new PSquarePercentile(95.0)
+    def avg9 = new Mean(), sum9 = new Sum(), med9 = new PSquarePercentile(50.0), perc95th9 = new PSquarePercentile(95.0)
     [18.367, 19.01].each { value ->
       avg9.increment(value)
       med9.increment(value)
+      sum9.increment(value)
       perc95th9.increment(value)
     }
 
     def expectedData = [
         [
             start: buckets[0], end: buckets[0] + bucketSize, empty: false, min: 12.22,
-            avg: avg0.getResult(), median: med0.getResult(), max: 15.37,
-            samples: 2
+            avg: avg0.result, median: med0.result, max: 15.37, sum: sum0.result, samples: 2
         ], [
             start: buckets[1], end: buckets[1] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[2], end: buckets[2] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[3], end: buckets[3] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[4], end: buckets[4] + bucketSize, empty: false, min: 25.0,
-            avg  : 25.0, median: 25.0, max: 25.0, samples: 2
+            avg  : 25.0, median: 25.0, max: 25.0, samples: 2, sum: 50.0
         ],
         [
             start: buckets[5], end: buckets[5] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[6], end: buckets[6] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[7], end: buckets[7] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[8], end: buckets[8] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0
+            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
         ], [
             start: buckets[9], end: buckets[9] + bucketSize, empty: false, min: 18.367,
-            avg: avg9.getResult(), median: med9.getResult(), max: 19.01,
+            avg: avg9.result, median: med9.result, max: 19.01, sum: sum9.result,
             samples: 2
         ]
     ]
@@ -183,7 +185,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
       def sample = createSample(sampleSize)
 
       def data = [];
-      def min = new Min(), avg = new Mean(), median = new PSquarePercentile(50.0), max = new Max(),
+      def min = new Min(), avg = new Mean(), median = new PSquarePercentile(50.0), max = new Max(), sum = new Sum(),
           perc95th = new PSquarePercentile(95.0)
 
       for (int i in 0..sample.size() - 1) {
@@ -195,6 +197,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
         avg.increment(value);
         median.increment(value);
         max.increment(value);
+        sum.increment(value)
         perc95th.increment(value);
       }
 
@@ -205,10 +208,11 @@ class GaugeMetricStatisticsITest extends RESTTest {
       expectedData.add([
           start         : bucketStart.millis,
           end           : bucketStart.plus(bucketSize).millis,
-          min           : min.getResult(),
-          avg           : avg.getResult(),
-          median        : median.getResult(),
-          max           : max.getResult(),
+          min           : min.result,
+          avg           : avg.result,
+          median        : median.result,
+          max           : max.result,
+          sum           : sum.result,
           samples       : sampleSize,
           empty         : false
       ])
@@ -306,6 +310,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertDoubleEquals("The max is wrong", 44.07, bucket.max)
     assertDoubleEquals("The avg is wrong",
         avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
+    assertDoubleEquals("The sum is wrong", (37.45 + 37.609 + 39.11 + 44.07 + 41.18 + 39.55 + 40.72 + 36.94), bucket.sum)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
   }
@@ -398,6 +403,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertDoubleEquals("The min is wrong", (m1.min {it.value}).value + (m2.min {it.value}).value, bucket.min)
     assertDoubleEquals("The max is wrong", (m1.max {it.value}).value + (m2.max {it.value}).value, bucket.max)
     assertDoubleEquals("The avg is wrong", avg(m1.collect {it.value}) + avg(m2.collect {it.value}), bucket.avg)
+    assertDoubleEquals("The sum is wrong", (37.45 + 37.609 + 39.11 + 44.07 + 41.18 + 39.55 + 40.72 + 36.94), bucket.sum)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
   }
@@ -490,6 +496,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
     assertDoubleEquals("The min is wrong", (g1.min {it.value}).value + (g2.min {it.value}).value, bucket.min)
     assertDoubleEquals("The max is wrong", (g1.max {it.value}).value + (g2.max {it.value}).value, bucket.max)
+    assertDoubleEquals("The sum is wrong", 37.45 + 37.609 + 39.11 + 44.07 + 41.18 + 39.55 + 40.72 + 36.94, bucket.sum)
     assertDoubleEquals("The avg is wrong", avg(g1.collect {it.value}) + avg(g2.collect {it.value}), bucket.avg)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
@@ -577,6 +584,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertDoubleEquals("The max is wrong", 44.07, bucket.max)
     assertDoubleEquals("The avg is wrong",
         avg([37.45, 37.609, 39.11, 44.07, 41.18, 39.55, 40.72, 36.94]), bucket.avg)
+    assertDoubleEquals("The sum is wrong", 37.45 + 37.609 + 39.11 + 44.07 + 41.18 + 39.55 + 40.72 + 36.94, bucket.sum)
     assertEquals("The [empty] property is wrong", false, bucket.empty)
     assertTrue("Expected the [median] property to be set", bucket.median != null)
   }
