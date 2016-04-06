@@ -30,16 +30,18 @@ public class TaggedBucketPoint {
     private final double avg;
     private final double median;
     private final double max;
+    private final double sum;
     private int samples;
     private final List<Percentile> percentiles;
 
-    public TaggedBucketPoint(Map<String, String> tags, double min, double avg, double median, double max, int samples,
-            List<Percentile> percentiles) {
+    public TaggedBucketPoint(Map<String, String> tags, double min, double avg, double median, double max, double sum,
+            int samples, List<Percentile> percentiles) {
         this.tags = tags;
         this.min = min;
         this.avg = avg;
         this.median = median;
         this.max = max;
+        this.sum = sum;
         this.samples = samples;
         this.percentiles = percentiles;
     }
@@ -64,6 +66,10 @@ public class TaggedBucketPoint {
         return max;
     }
 
+    public double getSum() {
+        return sum;
+    }
+
     public int getSamples() {
         return samples;
     }
@@ -81,6 +87,7 @@ public class TaggedBucketPoint {
                 Objects.equals(avg, that.avg) &&
                 Objects.equals(median, that.median) &&
                 Objects.equals(max, that.max) &&
+                Objects.equals(sum, that.sum) &&
                 Objects.equals(samples, that.samples) &&
                 Objects.equals(tags, that.tags) &&
                 Objects.equals(percentiles, that.percentiles);
@@ -88,7 +95,7 @@ public class TaggedBucketPoint {
 
     @Override
     public int hashCode() {
-        return Objects.hash(tags, min, avg, median, max, samples, percentiles);
+        return Objects.hash(tags, min, avg, median, max, sum, samples, percentiles);
     }
 
     @Override public String toString() {
@@ -98,6 +105,7 @@ public class TaggedBucketPoint {
                 ", avg=" + avg +
                 ", median=" + median +
                 ", max=" + max +
+                ", sum=" + sum +
                 ", samples=" + samples +
                 ", percentiles=" + percentiles +
                 '}';

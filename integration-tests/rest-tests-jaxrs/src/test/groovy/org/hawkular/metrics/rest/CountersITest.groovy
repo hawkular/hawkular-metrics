@@ -1514,6 +1514,7 @@ Actual:   ${response.data}
             tags: [x: '2', y: '2', z: '2'],
             max: 13,
             min: 13,
+            sum: 13,
             avg: 13,
             median: 13,
             samples: 1
@@ -1522,6 +1523,7 @@ Actual:   ${response.data}
             tags: [x: '3', y: '2', z: '3'],
             max: 14,
             min: 14,
+            sum: 14,
             avg: 14,
             median: 14,
             samples: 1

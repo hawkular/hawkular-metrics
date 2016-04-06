@@ -1177,11 +1177,13 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum average = new Sum();
         final Sum median = new Sum();
         final Sum max = new Sum();
+        final Sum sum = new Sum();
         Observable.just(collectorC1, collectorC2).forEach(d -> {
             min.increment(d.getMin());
             max.increment(d.getMax());
             average.increment(d.getAvg());
             median.increment(d.getMedian());
+            sum.increment(d.getSum());
         });
         NumericBucketPoint expectedStackedRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
                 start.plusMinutes(5).getMillis())
@@ -1189,6 +1191,7 @@ public class MetricsServiceITest extends MetricsITest {
                         .setMax(max.getResult())
                         .setAvg(average.getResult())
                         .setMedian(median.getResult())
+                        .setSum(sum.getResult())
                         .setSamples(2)
                         .build();
         List<NumericBucketPoint> expectedStackedCounterStatsList = new ArrayList<NumericBucketPoint>();
@@ -1233,11 +1236,13 @@ public class MetricsServiceITest extends MetricsITest {
         final Sum counterRateMax = new Sum();
         final Sum counterRateAverage = new Sum();
         final Sum counterRateMedian = new Sum();
+        final Sum counterRateSum = new Sum();
         Observable.just(collectorC1Rate, collectorC2Rate).forEach(d -> {
             counterRateMin.increment(d.getMin());
             counterRateMax.increment(d.getMax());
             counterRateAverage.increment(d.getAvg());
             counterRateMedian.increment(d.getMedian());
+            counterRateSum.increment(d.getSum());
         });
         NumericBucketPoint expectedStackedCounterRateBucketPoint = new NumericBucketPoint.Builder(start.getMillis(),
                 start.plusMinutes(5).getMillis())
@@ -1245,6 +1250,7 @@ public class MetricsServiceITest extends MetricsITest {
                         .setMax(counterRateMax.getResult())
                         .setAvg(counterRateAverage.getResult())
                         .setMedian(counterRateMedian.getResult())
+                        .setSum(counterRateSum.getResult())
                         .setSamples(2)
                         .build();
         List<NumericBucketPoint> expectedStackedCounterRateStatsList = new ArrayList<NumericBucketPoint>();
