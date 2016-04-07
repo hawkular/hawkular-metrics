@@ -827,4 +827,39 @@ public class CounterHandler {
         findCounterDataStats(asyncResponse, start, end, bucketsCount, bucketDuration, percentiles, tags, metricNames,
                 stacked);
     }
+
+    @GET
+    @Path("/{id}/stats/tags/{tags}")
+    @ApiOperation(value = "Fetches data points and groups them into buckets based on one or more tag filters. The " +
+            "data points in each bucket are then transformed into aggregated (i.e., bucket) data points.",
+            response = DataPoint.class, responseContainer = "Map")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "Tags are invalid",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findStatsByTags(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "Tags") @PathParam("tags") Tags tags
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        final Percentiles lPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+        metricsService.findCounterStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                lPercentiles.getPercentiles())
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
 }

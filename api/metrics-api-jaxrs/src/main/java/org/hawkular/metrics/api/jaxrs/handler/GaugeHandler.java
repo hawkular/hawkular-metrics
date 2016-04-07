@@ -611,8 +611,9 @@ public class GaugeHandler {
 
     @GET
     @Path("/{id}/stats/tags/{tags}")
-    @ApiOperation(value = "Deprecated. Please use /raw or /stats endpoints.",
-            response = DataPoint.class, responseContainer = "List")
+    @ApiOperation(value = "Fetches data points and groups them into buckets based on one or more tag filters. The " +
+            "data points in each bucket are then transformed into aggregated (i.e., bucket) data points.",
+            response = DataPoint.class, responseContainer = "Map")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),

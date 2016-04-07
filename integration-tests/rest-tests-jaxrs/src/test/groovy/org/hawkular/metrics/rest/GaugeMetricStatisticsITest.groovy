@@ -826,7 +826,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     String id = 'G1'
 
     def response = hawkularMetrics.post(
-        path: "gauges/$id/data",
+        path: "gauges/$id/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [

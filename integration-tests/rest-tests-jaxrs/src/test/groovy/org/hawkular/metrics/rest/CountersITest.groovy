@@ -1465,10 +1465,10 @@ Actual:   ${response.data}
   void findTaggedDataPointsWithMultipleTagFilters() {
     String tenantId = nextTenantId()
     DateTime start = now().minusHours(2)
-    String id = 'G1'
+    String id = 'C1'
 
     def response = hawkularMetrics.post(
-        path: "gauges/$id/data",
+        path: "counters/$id/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -1496,10 +1496,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "gauges/$id/data",
-        headers: [(tenantHeaderName): tenantId],
-        query: [tags: 'x:*,y:2,z:2|3']
-    )
+        path: "counters/$id/stats/tags/x:*,y:2,z:2|3", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(2, response.data.size())
 
@@ -1525,17 +1522,4 @@ Actual:   ${response.data}
     assertTaggedBucketEquals(expectedData['x:3,y:2,z:3'], response.data['x:3,y:2,z:3'])
   }
 
-//  static double median(double... values) {
-//    def median = new PSquarePercentile(50.0)
-//    values.each { median.increment(it) }
-//    return median.getResult()
-//  }
-
-//  static void assertTaggedBucketEquals(def expected, def actual) {
-//    assertEquals(expected.max, actual.max)
-//    assertEquals(expected.min, actual.min)
-//    assertDoubleEquals(expected.avg, actual.avg)
-//    assertEquals(expected.median, actual.median)
-//    assertEquals(expected.samples, actual.samples)
-//  }
 }
