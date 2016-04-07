@@ -222,7 +222,7 @@ public class CounterHandler {
     }
 
     @POST
-    @Path("/data")
+    @Path("/raw")
     @ApiOperation(value = "Add data points for multiple counters.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
@@ -239,8 +239,19 @@ public class CounterHandler {
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
+    @Deprecated
     @POST
-    @Path("/{id}/data")
+    @Path("/data")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoint.")
+    public void deprecatedAddData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) List<Metric<Long>> counters
+    ) {
+        addData(asyncResponse, counters);
+    }
+
+    @POST
+    @Path("/{id}/raw")
     @ApiOperation(value = "Add data for a single counter.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data succeeded."),
@@ -259,20 +270,23 @@ public class CounterHandler {
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
+    @Deprecated
+    @POST
+    @Path("/{id}/data")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoint.")
+    public void deprecatedAddData(
+            @Suspended final AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "List of data points containing timestamp and value", required = true)
+                List<DataPoint<Long>> data) {
+        addData(asyncResponse, id, data);
+    }
+
+    @Deprecated
     @GET
     @Path("/{id}/data")
-    @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
-            "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
-            "statistics will be computed for each bucket.", response = DataPoint.class, responseContainer =
-            "List")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
-            @ApiResponse(code = 204, message = "No metric data was found."),
-            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
-                    response = ApiError.class),
-            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
-                    response = ApiError.class)
-    })
+    @ApiOperation(value = "Deprecated. Please use /raw or /stats endpoints",
+                    response = DataPoint.class, responseContainer = "List")
     public void findCounterData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
@@ -386,9 +400,153 @@ public class CounterHandler {
     }
 
     @GET
+    @Path("/{id}/raw")
+    @ApiOperation(value = "Retrieve counter data points.", response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findRawCounterData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
+    ) {
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        if (limit != null) {
+            if (order == null) {
+                if (start == null && end != null) {
+                    order = Order.DESC;
+                } else if (start != null && end == null) {
+                    order = Order.ASC;
+                } else {
+                    order = Order.DESC;
+                }
+            }
+        } else {
+            limit = 0;
+        }
+
+        if (order == null) {
+            order = Order.DESC;
+        }
+
+        metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @GET
+    @Path("/{id}/stats")
+    @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
+            "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
+            "statistics will be computed for each bucket.", response = DataPoint.class, responseContainer =
+            "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findStatsCounterData(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+    ) {
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+
+        if (bucketsCount == null && bucketDuration == null) {
+            asyncResponse
+                    .resume(badRequest(new ApiError("Either the buckets or bucketDuration parameter must be used")));
+            return;
+        }
+
+        Observable<BucketConfig> observableConfig = null;
+
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+                return;
+            }
+
+            if (bucketsCount == null && bucketDuration == null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
+                return;
+            }
+
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
+
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                        new TimeRange(earliest, now));
+
+                if (!bucketConfig.isValid()) {
+                    throw new RuntimeApiError(bucketConfig.getProblem());
+                }
+
+                return bucketConfig;
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
+            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+            if (!bucketConfig.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                return;
+            }
+
+            observableConfig = Observable.just(bucketConfig);
+        }
+
+        final Percentiles lPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+
+        observableConfig
+                .flatMap((config) -> metricsService.findCounterStats(metricId,
+                        config.getTimeRange().getStart(),
+                        config.getTimeRange().getEnd(),
+                        config.getBuckets(), lPercentiles.getPercentiles()))
+                .flatMap(Observable::from)
+                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+    }
+
+    @GET
     @Path("/{id}/rate")
     @ApiOperation(
-            value = "Retrieve counter rate data points.", notes = "When buckets or bucketDuration query parameter is " +
+            value = "Retrieve counter rate data points.", notes = "Bucket related parameters as well as percentiles " +
+            "are deprecated, please use rate/stats for bucketed results. " +
+            "When buckets or bucketDuration query parameter is " +
             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
@@ -406,9 +564,9 @@ public class CounterHandler {
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
-            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
-            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
-            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+            @Deprecated @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @Deprecated @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @Deprecated @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -441,7 +599,63 @@ public class CounterHandler {
     }
 
     @GET
-    @Path("/data")
+    @Path("/{id}/rate/stats")
+    @ApiOperation(
+            value = "Retrieve stats for counter rate data points.", notes = "The time range between start and end " +
+            "will be divided in buckets of equal duration, and metric " +
+            "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
+            "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
+            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findStatsRate(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+
+        if (bucketConfig.isEmpty()) {
+            asyncResponse
+                    .resume(badRequest(new ApiError("Either the buckets or bucketDuration parameter must be used")));
+            return;
+        }
+
+        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        Buckets buckets = bucketConfig.getBuckets();
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.<Double> emptyList());
+        }
+
+        metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+                percentiles.getPercentiles())
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/stats")
     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions  " +
@@ -507,8 +721,28 @@ public class CounterHandler {
         }
     }
 
+    @Deprecated
     @GET
-    @Path("/rate")
+    @Path("/data")
+    @ApiOperation(value = "Deprecated. Please use /stats endpoint.",
+            response = NumericBucketPoint.class, responseContainer = "List")
+    public void deprecatedFindCounterDataStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+        findCounterDataStats(asyncResponse, start, end,
+                bucketsCount, bucketDuration, percentiles, tags, metricNames, stacked);
+    }
+
+    @GET
+    @Path("/rate/stats")
     @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
             "filter or a list of metric names. The time range between start and end is divided into buckets of " +
             "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
@@ -572,5 +806,25 @@ public class CounterHandler {
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
+    }
+
+    @Deprecated
+    @GET
+    @Path("/rate")
+    @ApiOperation(value = "Deprecated. Please use /rate/stats endpoint.",
+                    response = NumericBucketPoint.class, responseContainer = "List")
+    public void deprecatedFindCounterRateDataStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
+                    required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+        findCounterDataStats(asyncResponse, start, end, bucketsCount, bucketDuration, percentiles, tags, metricNames,
+                stacked);
     }
 }

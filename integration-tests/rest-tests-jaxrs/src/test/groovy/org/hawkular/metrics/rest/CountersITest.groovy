@@ -34,7 +34,7 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidTimeRange() {
-    badGet(path: "counters/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "counters/test/raw", headers: [(tenantHeaderName): tenantId],
         query: [start: 1000, end: 500]) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -42,7 +42,7 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidBucketConfig() {
-    badGet(path: "counters/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "counters/test/raw", headers: [(tenantHeaderName): tenantId],
         query: [start: 500, end: 100, buckets: '10', bucketDuration: '10ms']) { exception ->
       assertEquals("Should fail when both bucket params are specified", 400, exception.response.status)
     }
@@ -57,12 +57,12 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAddDataForCounterWithEmptyPayload() {
-    badPost(path: "counters/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "counters/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "counters/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "counters/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -70,12 +70,12 @@ class CountersITest extends RESTTest {
 
   @Test
   void shouldNotAddDataWithEmptyPayload() {
-    badPost(path: "counters/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "counters/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "counters/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "counters/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -201,7 +201,7 @@ class CountersITest extends RESTTest {
     DateTime start = now().minusMinutes(5)
 
     def response = hawkularMetrics.post(
-        path: "counters/data",
+        path: "counters/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -224,7 +224,7 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter1/data",
+        path: "counters/$counter1/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [start: start.millis, end: start.plusMinutes(1).millis]
     )
@@ -236,7 +236,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter2/data",
+        path: "counters/$counter2/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [start: start.millis, end: start.plusMinutes(2).millis]
     )
@@ -255,7 +255,7 @@ class CountersITest extends RESTTest {
     DateTime start = now().minusHours(8)
 
     def response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.millis, value: 100],
@@ -267,7 +267,7 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
     )
     assertEquals(200, response.status)
@@ -285,7 +285,7 @@ class CountersITest extends RESTTest {
     DateTime start = now().minusHours(1)
 
     def response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.millis, value: 100],
@@ -300,7 +300,7 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 2]
     )
@@ -313,7 +313,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 2, order: "DESC"]
     )
@@ -326,7 +326,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, order: "ASC"]
     )
@@ -340,7 +340,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, start: start.plusMinutes(1).millis]
     )
@@ -354,7 +354,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
     )
@@ -368,7 +368,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
     )
@@ -382,7 +382,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: -1, order: "DESC"]
     )
@@ -399,7 +399,7 @@ class CountersITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: -100, order: "ASC"]
     )
@@ -423,7 +423,7 @@ class CountersITest extends RESTTest {
     DateTime start = now().minusHours(3)
 
     def response = hawkularMetrics.post(
-        path: "counters/data",
+        path: "counters/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -440,7 +440,7 @@ class CountersITest extends RESTTest {
     // First query a counter that has data but outside of the date range for which data
     // points are available
     response = hawkularMetrics.get(
-        path: "counters/$counter1/data",
+        path: "counters/$counter1/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [start: start.minusHours(5).millis, end: start.minusHours(4).millis]
     )
@@ -448,7 +448,7 @@ class CountersITest extends RESTTest {
 
     // Now query a counter that has no dat at all
     response = hawkularMetrics.get(
-        path: "counters/$counter2/data",
+        path: "counters/$counter2/raw",
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(204, response.status)
@@ -466,7 +466,7 @@ class CountersITest extends RESTTest {
     assertEquals(201, response.status)
 
     response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: 60_000 * 1.0, value: 0],
@@ -480,7 +480,7 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/data",
+        path: "counters/$counter/stats",
         headers: [(tenantHeaderName): tenantId],
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
@@ -533,7 +533,7 @@ class CountersITest extends RESTTest {
     assertEquals(201, response.status)
 
     response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: 60_000 * 1.0, value: 0],
@@ -585,7 +585,7 @@ Actual:   ${response.data}
     assertEquals(201, response.status)
 
     response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: 60_000 * 1.0, value: 1],
@@ -641,7 +641,7 @@ Actual:   ${response.data}
     assertEquals(201, response.status)
 
     response = hawkularMetrics.post(
-        path: "counters/$counter/data",
+        path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: 60_000 * 1.0, value: 0],
@@ -655,7 +655,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "counters/$counter/rate",
+        path: "counters/$counter/rate/stats",
         headers: [(tenantHeaderName): tenantId],
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
@@ -744,7 +744,7 @@ Actual:   ${response.data}
       assertEquals(201, response.status)
 
       response = hawkularMetrics.post(
-          path: "counters/$counter/data",
+          path: "counters/$counter/raw",
           headers: [(tenantHeaderName): tenantId],
           body: [
               [timestamp: 60_000 * 1.0, value: 0],
@@ -758,7 +758,7 @@ Actual:   ${response.data}
       assertEquals(200, response.status)
 
       response = hawkularMetrics.get(
-          path: "counters/$counter/data",
+          path: "counters/$counter/stats",
           headers: [(tenantHeaderName): tenantId],
           query: [start: 60_000, end: 60_000 * 8, buckets: '1', percentiles: '50.0,90.0,99.9']
       )
@@ -818,7 +818,7 @@ Actual:   ${response.data}
     ]
 
     // insert data points
-    response = hawkularMetrics.post(path: "counters/data", body: [
+    response = hawkularMetrics.post(path: "counters/raw", body: [
         [
             id: 'C1',
             data: c1
@@ -846,7 +846,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -857,7 +857,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -869,7 +869,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/data',
+        path: 'counters/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -894,7 +894,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/data',
+        path: 'counters/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -959,7 +959,7 @@ Actual:   ${response.data}
     ]
 
     // insert data points
-    response = hawkularMetrics.post(path: "counters/data", body: [
+    response = hawkularMetrics.post(path: "counters/raw", body: [
         [
             id: 'C1',
             data: c1
@@ -987,7 +987,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -998,7 +998,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1010,7 +1010,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/data',
+        path: 'counters/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1034,7 +1034,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", expectedSimpleCounterBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/data',
+        path: 'counters/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1104,7 +1104,7 @@ Actual:   ${response.data}
     ]
 
     // insert data points
-    response = hawkularMetrics.post(path: "counters/data", body: [
+    response = hawkularMetrics.post(path: "counters/raw", body: [
         [
             id: 'C1',
             data: c1
@@ -1132,7 +1132,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1143,7 +1143,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1155,7 +1155,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1180,7 +1180,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1253,7 +1253,7 @@ Actual:   ${response.data}
     ]
 
     // insert data points
-    response = hawkularMetrics.post(path: "counters/data", body: [
+    response = hawkularMetrics.post(path: "counters/raw", body: [
         [
             id: 'C1',
             data: c1
@@ -1281,7 +1281,7 @@ Actual:   ${response.data}
 
     //Get counter rates
     response = hawkularMetrics.get(
-        path: 'counters/C1/rate',
+        path: 'counters/C1/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1292,7 +1292,7 @@ Actual:   ${response.data}
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
-        path: 'counters/C2/rate',
+        path: 'counters/C2/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1304,7 +1304,7 @@ Actual:   ${response.data}
 
     //Tests start here
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1329,7 +1329,7 @@ Actual:   ${response.data}
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
 
     response = hawkularMetrics.get(
-        path: 'counters/rate',
+        path: 'counters/rate/stats',
         query: [
             start: start.millis,
             end: start.plusMinutes(4).millis,
@@ -1366,17 +1366,17 @@ Actual:   ${response.data}
     ], headers: [(tenantHeaderName): tenantId])
     assertEquals(201, response.status)
 
-    response = hawkularMetrics.post(path: "counters/$metric/data", body: [
+    response = hawkularMetrics.post(path: "counters/$metric/raw", body: [
         [timestamp: new DateTimeService().currentHour().minusHours(2).millis, value: 2]
     ], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.post(path: "counters/$metric/data", body: [
+    response = hawkularMetrics.post(path: "counters/$metric/raw", body: [
         [timestamp: new DateTimeService().currentHour().minusHours(3).millis, value: 3]
     ], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: "counters/$metric/data",
+    response = hawkularMetrics.get(path: "counters/$metric/stats",
         query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
@@ -1399,34 +1399,20 @@ Actual:   ${response.data}
     ], headers: [(tenantHeaderName): tenantId])
     assertEquals(201, response.status)
 
-    response = hawkularMetrics.get(path: "counters/$metric/data",
+    response = hawkularMetrics.get(path: "counters/$metric/stats",
       query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
 
-    badGet(path: "counters/$metric/data",
+    badGet(path: "counters/$metric/stats",
         query: [fromEarliest: "true", bucketDuration: "a"], headers: [(tenantHeaderName): tenantId]) {
         exception ->
           assertEquals(400, exception.response.status)
     }
 
-    response = hawkularMetrics.get(path: "counters/$metric/data",
+    response = hawkularMetrics.get(path: "counters/$metric/stats",
         query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
     assertEquals(204, response.status)
     assertEquals(null, response.data)
-
-    badGet(path: "counters/$metric/data",
-      query: [fromEarliest: "true"], headers: [(tenantHeaderName): tenantId]) {
-      exception ->
-        // From earliest works only with buckets
-        assertEquals(400, exception.response.status)
-    }
-
-    badGet(path: "counters/$metric/data",
-      query: [start: 0, end: Long.MAX_VALUE, fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId]) {
-      exception ->
-        // From earliest works only without start & end
-        assertEquals(400, exception.response.status)
-    }
   }
 
   @Test
@@ -1436,7 +1422,7 @@ Actual:   ${response.data}
     String id = 'C1'
 
     def response = hawkularMetrics.post(
-        path: "counters/$id/data",
+        path: "counters/$id/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -1457,7 +1443,7 @@ Actual:   ${response.data}
         ]
     )
     assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "counters/$id/data", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "counters/$id/raw", headers: [(tenantHeaderName): tenantId])
     def expectedData = [
         [
             timestamp: start.plusMinutes(3).millis,

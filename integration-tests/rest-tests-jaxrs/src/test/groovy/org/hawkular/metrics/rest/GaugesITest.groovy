@@ -30,7 +30,7 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidTimeRange() {
-    badGet(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "gauges/test/raw", headers: [(tenantHeaderName): tenantId],
         query: [start: 1000, end: 500]) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -38,7 +38,7 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAcceptInvalidBucketConfig() {
-    badGet(path: "gauges/test/data", headers: [(tenantHeaderName): tenantId],
+    badGet(path: "gauges/test/stats", headers: [(tenantHeaderName): tenantId],
         query: [start: 500, end: 100, buckets: '10', bucketDuration: '10ms']) { exception ->
       assertEquals("Should fail when both bucket params are specified", 400, exception.response.status)
     }
@@ -53,12 +53,12 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAddDataForMetricWithEmptyPayload() {
-    badPost(path: "gauges/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "gauges/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "gauges/pimpo/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "gauges/pimpo/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -66,12 +66,12 @@ class GaugesITest extends RESTTest {
 
   @Test
   void shouldNotAddGaugeDataWithEmptyPayload() {
-    badPost(path: "gauges/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "gauges/raw", headers: [(tenantHeaderName): tenantId],
         body: "" /* Empty Body */) { exception ->
       assertEquals(400, exception.response.status)
     }
 
-    badPost(path: "gauges/data", headers: [(tenantHeaderName): tenantId],
+    badPost(path: "gauges/raw", headers: [(tenantHeaderName): tenantId],
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
@@ -118,7 +118,7 @@ class GaugesITest extends RESTTest {
     DateTime start = now().minusHours(1)
 
     def response = hawkularMetrics.post(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.millis, value: 100.1],
@@ -133,7 +133,7 @@ class GaugesITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 2]
     )
@@ -146,7 +146,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 2, order: "DESC"]
     )
@@ -159,7 +159,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, order: "ASC"]
     )
@@ -173,7 +173,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, start: start.plusMinutes(1).millis]
     )
@@ -187,7 +187,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
     )
@@ -201,7 +201,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
     )
@@ -215,7 +215,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: -1, order: "DESC"]
     )
@@ -232,7 +232,7 @@ class GaugesITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         query: [limit: -100, order: "ASC"]
     )
@@ -257,7 +257,7 @@ class GaugesITest extends RESTTest {
     String gauge = 'G1'
 
     def response = hawkularMetrics.post(
-        path: "gauges/$gauge/data",
+        path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [
@@ -278,7 +278,7 @@ class GaugesITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
-    response = hawkularMetrics.get(path: "gauges/$gauge/data", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "gauges/$gauge/raw", headers: [(tenantHeaderName): tenantId])
     def expectedData = [
         [
             timestamp: start.plusMinutes(3).millis,

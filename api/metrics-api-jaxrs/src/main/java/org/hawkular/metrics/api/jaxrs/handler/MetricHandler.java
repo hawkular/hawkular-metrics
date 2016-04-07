@@ -115,7 +115,7 @@ public class MetricHandler {
     @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
- response = Metric.class, responseContainer = "List")
+                    response = Metric.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully retrieved at least one metric definition."),
             @ApiResponse(code = 204, message = "No metrics found."),
@@ -162,9 +162,9 @@ public class MetricHandler {
 
     @POST
     @Path("/data")
-    @ApiOperation(value = "Add data for multiple metrics in a single call.")
+    @ApiOperation(value = "Add data points for multiple metrics in a single call.")
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Adding data succeeded."),
+            @ApiResponse(code = 200, message = "Adding data points succeeded."),
             @ApiResponse(code = 400, message = "Missing or invalid payload.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)

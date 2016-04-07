@@ -114,7 +114,7 @@ class CORSITest extends RESTTest {
     def tenantId = nextTenantId()
 
     // First create a couple gauge metrics by only inserting data
-    def response = hawkularMetrics.post(path: "gauges/data", body: [
+    def response = hawkularMetrics.post(path: "gauges/raw", body: [
         [
             id: "m11",
             data: [

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,7 @@ abstract class FullStackITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        String restUrl = "http://" + BASE_URI + "/gauges/data";
+        String restUrl = "http://" + BASE_URI + "/gauges/raw";
         properties.setProperty(ConfigurationKey.REST_URL.toString(), restUrl);
         properties.setProperty(ConfigurationKey.TENANT.toString(), tenant);
         changePTransConfig(properties);

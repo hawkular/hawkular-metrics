@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,10 +29,10 @@ class BaseITest extends RESTTest {
         def start = end - 100
         def tenantId = 'test-tenant'
         def metric = 'foo'
-        def response = hawkularMetrics.post(path: "gauges/$metric/data", body: [[timestamp: start + 10, value: 42]], headers: [(tenantHeaderName): tenantId])
+        def response = hawkularMetrics.post(path: "gauges/$metric/raw", body: [[timestamp: start + 10, value: 42]], headers: [(tenantHeaderName): tenantId])
         assertEquals(200, response.status)
 
-        response = hawkularMetrics.get(path: "gauges/$metric/data", query: [start: start, end: end], headers: [(tenantHeaderName): tenantId])
+        response = hawkularMetrics.get(path: "gauges/$metric/raw", query: [start: start, end: end], headers: [(tenantHeaderName): tenantId])
         assertEquals(200, response.status)
 
         assertEquals(start + 10, response.data[0].timestamp)
