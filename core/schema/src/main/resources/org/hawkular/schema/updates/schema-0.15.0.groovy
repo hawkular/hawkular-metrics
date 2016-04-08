@@ -36,8 +36,9 @@ schemaChange {
 }
 
 schemaChange {
-  version '0.14.2'
+  version '1.2'
   author 'jsanda'
+  tags '0.15.x'
   description "Add support for data point tags. See HWKMETRICS-368 for details"
   cql "ALTER TABLE data ADD tags map<text,text>"
 }
