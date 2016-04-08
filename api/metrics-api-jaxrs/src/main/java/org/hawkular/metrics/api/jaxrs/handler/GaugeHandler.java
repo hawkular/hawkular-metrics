@@ -394,10 +394,7 @@ public class GaugeHandler {
                     : new Percentiles(Collections.<Double> emptyList());
 
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId,
-                        config.getTimeRange().getStart(),
-                        config.getTimeRange().getEnd(),
-                        config.getBuckets(), lPercentiles.getPercentiles()))
+                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
