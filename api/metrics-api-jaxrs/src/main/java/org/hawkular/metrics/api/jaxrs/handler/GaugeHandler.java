@@ -305,7 +305,7 @@ public class GaugeHandler {
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
-            ) {
+    ) {
 
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
 
@@ -314,7 +314,6 @@ public class GaugeHandler {
             asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
             return;
         }
-
         if (bucketsCount == null && bucketDuration == null && !Boolean.TRUE.equals(fromEarliest)) {
             TimeRange timeRange = new TimeRange(start, end);
             if (!timeRange.isValid()) {
@@ -352,12 +351,14 @@ public class GaugeHandler {
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & " +
+                        "end")));
                 return;
             }
 
             if (bucketsCount == null && bucketDuration == null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed " +
+                        "results")));
                 return;
             }
 
@@ -395,10 +396,7 @@ public class GaugeHandler {
                 : new Percentiles(Collections.<Double> emptyList());
 
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId,
-                        config.getTimeRange().getStart(),
-                        config.getTimeRange().getEnd(),
-                        config.getBuckets(), lPercentiles.getPercentiles()))
+                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
@@ -534,10 +532,7 @@ public class GaugeHandler {
                 : new Percentiles(Collections.<Double> emptyList());
 
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId,
-                        config.getTimeRange().getStart(),
-                        config.getTimeRange().getEnd(),
-                        config.getBuckets(), lPercentiles.getPercentiles()))
+                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
@@ -612,6 +607,41 @@ public class GaugeHandler {
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
+    }
+
+    @GET
+    @Path("/{id}/stats/tags/{tags}")
+    @ApiOperation(value = "Fetches data points and groups them into buckets based on one or more tag filters. The " +
+            "data points in each bucket are then transformed into aggregated (i.e., bucket) data points.",
+            response = DataPoint.class, responseContainer = "Map")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "Tags are invalid",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findStatsByTags(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "Tags") @PathParam("tags") Tags tags
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        final Percentiles lPercentiles = percentiles != null ? percentiles
+                : new Percentiles(Collections.<Double> emptyList());
+        metricsService.findGaugeStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
+                lPercentiles.getPercentiles())
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @Deprecated

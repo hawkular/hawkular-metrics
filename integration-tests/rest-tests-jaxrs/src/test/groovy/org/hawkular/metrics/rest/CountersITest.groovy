@@ -16,16 +16,13 @@
  */
 package org.hawkular.metrics.rest
 
-import static java.lang.Double.NaN
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertArrayEquals
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
+import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
-import org.hawkular.metrics.core.service.DateTimeService
 
+import static java.lang.Double.NaN
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.*
 /**
  * @author John Sanda
  */
@@ -1463,4 +1460,66 @@ Actual:   ${response.data}
     ]
     assertEquals(expectedData, response.data)
   }
+
+  @Test
+  void findTaggedDataPointsWithMultipleTagFilters() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(2)
+    String id = 'C1'
+
+    def response = hawkularMetrics.post(
+        path: "counters/$id/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: start.millis,
+                value: 11,
+                tags: [x: '1', y: '1', z: '1']
+            ],
+            [
+                timestamp: start.plusMinutes(2).millis,
+                value: 13,
+                tags: [x: '2', y: '2', z: '2']
+            ],
+            [
+                timestamp: start.plusMinutes(4).millis,
+                value: 14,
+                tags: [x: '3', y: '2', z: '3']
+            ],
+            [
+                timestamp: start.plusMinutes(6).millis,
+                value: 15,
+                tags: [x: '1', y: '3', z: '4']
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$id/stats/tags/x:*,y:2,z:2|3", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size())
+
+    def expectedData = [
+        'x:2,y:2,z:2': [
+            tags: [x: '2', y: '2', z: '2'],
+            max: 13,
+            min: 13,
+            avg: 13,
+            median: 13,
+            samples: 1
+        ],
+        'x:3,y:2,z:3': [
+            tags: [x: '3', y: '2', z: '3'],
+            max: 14,
+            min: 14,
+            avg: 14,
+            median: 14,
+            samples: 1
+        ]
+    ]
+    assertTaggedBucketEquals(expectedData['x:2,y:2,z:2'], response.data['x:2,y:2,z:2'])
+    assertTaggedBucketEquals(expectedData['x:3,y:2,z:3'], response.data['x:3,y:2,z:3'])
+  }
+
 }

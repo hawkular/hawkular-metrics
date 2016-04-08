@@ -29,8 +29,10 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.param.BucketConfig;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -161,8 +163,24 @@ public interface MetricsService {
     <T> Observable<T> findGaugeData(MetricId<Double> id, long start, long end,
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
-    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                        Buckets buckets, List<Double> percentiles);
+    Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
+            List<Double> percentiles);
+
+    /**
+     * Queries data points from a single metric and groups results using tag filter expressions that are applied
+     * against the tags of the each data point. The groups or buckets are then aggregated into "bucketed" data points
+     * that consist of various statistics.
+     *
+     * @param metricId The gauge metric name
+     * @param tags The tag filter expressions that define the grouping.
+     * @param start The start time inclusive as a unix timestamp in milliseconds
+     * @param end The end time exclusive as a unix timestamp in milliseconds
+     * @param percentiles A list of percentiles to compute
+     * @return A map of {@link TaggedBucketPoint tagged bucket points} that are keyed by a concatenation of tags of
+     * the form tag_name:tag_value,tag_name:tag_value.
+     */
+    Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Map<String, String> tags,
+            long start, long end, List<Double> percentiles);
 
     /**
      * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
@@ -220,6 +238,22 @@ public interface MetricsService {
      */
     Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets,
                                                           List<Double> percentiles);
+
+    /**
+     * Queries data points from a single metric and groups results using tag filter expressions that are applied
+     * against the tags of the each data point. The groups or buckets are then aggregated into "bucketed" data points
+     * that consist of various statistics.
+     *
+     * @param metricId The counter metric name
+     * @param tags The tag filter expressions that define the grouping.
+     * @param start The start time inclusive as a unix timestamp in milliseconds
+     * @param end The end time exclusive as a unix timestamp in milliseconds
+     * @param percentiles A list of percentiles to compute
+     * @return A map of {@link TaggedBucketPoint tagged bucket points} that are keyed by a concatenation of tags of
+     * the form tag_name:tag_value,tag_name:tag_value.
+     */
+    Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId, Map<String, String> tags,
+            long start, long end, List<Double> percentiles);
 
     /**
      * Fetches counter data points and calculates per-minute rates. Resets events are detected and values reported

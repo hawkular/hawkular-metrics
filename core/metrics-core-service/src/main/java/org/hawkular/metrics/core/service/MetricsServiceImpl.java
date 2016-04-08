@@ -17,6 +17,10 @@
 
 package org.hawkular.metrics.core.service;
 
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
@@ -55,9 +59,11 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Retention;
+import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
+import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.joda.time.Duration;
 
@@ -665,10 +671,18 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, long start, long end,
-                                                               Buckets buckets, List<Double> percentiles) {
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findDataPoints(metricId, start, end, 0, Order.DESC), buckets, percentiles);
+    public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
+                List<Double> percentiles) {
+        checkArgument(isValidTimeRange(bucketConfig.getTimeRange().getStart(), bucketConfig.getTimeRange().getEnd()),
+                "Invalid time range");
+        return bucketize(findDataPoints(metricId, bucketConfig.getTimeRange().getStart(),
+                bucketConfig.getTimeRange().getEnd(), 0, Order.DESC), bucketConfig.getBuckets(), percentiles);
+    }
+
+    @Override
+    public Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId,
+            Map<String, String> tags, long start, long end, List<Double> percentiles) {
+        return bucketize(findDataPoints(metricId, start, end, 0, Order.DESC), tags, percentiles);
     }
 
     @Override
@@ -773,6 +787,38 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
     }
 
+    private Observable<Map<String, TaggedBucketPoint>> bucketize(
+            Observable<? extends DataPoint<? extends Number>> dataPoints, Map<String, String> tags,
+            List<Double> percentiles) {
+
+        List<Func1<DataPoint<? extends Number>, Boolean>> tagFilters = tags.entrySet().stream().map(e -> {
+            boolean positive = (!e.getValue().startsWith("!"));
+            Pattern pattern = filterPattern(e.getValue());
+            Func1<DataPoint<? extends Number>, Boolean> filter = dataPoint ->
+                    dataPoint.getTags().containsKey(e.getKey()) &&
+                            (positive == pattern.matcher(dataPoint.getTags().get(e.getKey())).matches());
+            return filter;
+        }).collect(toList());
+
+        // TODO refactor this to be more functional and replace java 8 streams with rx operators
+        return dataPoints
+                .filter(dataPoint -> {
+                    for (Func1<DataPoint<? extends Number>, Boolean> tagFilter : tagFilters) {
+                        if (!tagFilter.call(dataPoint)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .groupBy(dataPoint -> tags.entrySet().stream().collect(
+                        toMap(Map.Entry::getKey, e -> dataPoint.getTags().get(e.getKey()))))
+                .flatMap(group -> group.collect(() -> new TaggedDataPointCollector(group.getKey(), percentiles),
+                        TaggedDataPointCollector::increment))
+                .map(TaggedDataPointCollector::toBucketPoint)
+                .toMap(bucketPoint -> bucketPoint.getTags().entrySet().stream().map(e ->
+                        e.getKey() + ":" + e.getValue()).collect(joining(",")));
+    }
+
     @Override
     public Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start,
             long end, boolean distinct, int limit, Order order) {
@@ -819,6 +865,11 @@ public class MetricsServiceImpl implements MetricsService {
             Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return bucketize(findDataPoints(id, start, end, 0, Order.ASC), buckets, percentiles);
+    }
+
+    @Override public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
+            Map<String, String> tags, long start, long end, List<Double> percentiles) {
+        return bucketize(findDataPoints(metricId, start, end, 0, Order.ASC), tags, percentiles);
     }
 
     @Override
