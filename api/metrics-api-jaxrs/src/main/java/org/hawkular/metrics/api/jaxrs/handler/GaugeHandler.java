@@ -351,14 +351,12 @@ public class GaugeHandler {
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & " +
-                        "end")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
                 return;
             }
 
             if (bucketsCount == null && bucketDuration == null) {
-                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed " +
-                        "results")));
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used with bucketed results")));
                 return;
             }
 
@@ -392,8 +390,8 @@ public class GaugeHandler {
             observableConfig = Observable.just(bucketConfig);
         }
 
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+            final Percentiles lPercentiles = percentiles != null ? percentiles
+                    : new Percentiles(Collections.<Double> emptyList());
 
         observableConfig
                 .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))

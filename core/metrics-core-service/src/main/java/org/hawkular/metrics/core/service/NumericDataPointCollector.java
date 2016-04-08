@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
@@ -66,6 +67,7 @@ final class NumericDataPointCollector {
     private Mean average = new Mean();
     private PercentileWrapper median = createPercentile.apply(50.0);
     private Max max = new Max();
+    private Sum sum = new Sum();
     private List<PSquarePercentile> percentiles;
 
     NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Double> percentileList) {
@@ -81,6 +83,7 @@ final class NumericDataPointCollector {
         average.increment(value.doubleValue());
         median.addValue(value.doubleValue());
         max.increment(value.doubleValue());
+        sum.increment(value.doubleValue());
         samples++;
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
@@ -93,6 +96,7 @@ final class NumericDataPointCollector {
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
+                .setSum(sum.getResult())
                 .setSamples(samples)
                 .setPercentiles(percentiles.stream()
                         .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList()))

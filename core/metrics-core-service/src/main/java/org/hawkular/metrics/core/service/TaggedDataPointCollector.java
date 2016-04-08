@@ -25,6 +25,7 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
@@ -41,6 +42,7 @@ public class TaggedDataPointCollector {
     private Min min = new Min();
     private Mean average = new Mean();
     private Max max = new Max();
+    private Sum sum = new Sum();
     private PSquarePercentile median = new PSquarePercentile(50.0);
     private List<PSquarePercentile> percentiles;
 
@@ -56,6 +58,7 @@ public class TaggedDataPointCollector {
         average.increment(value.doubleValue());
         median.increment(value.doubleValue());
         max.increment(value.doubleValue());
+        sum.increment(value.doubleValue());
         samples++;
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
@@ -64,7 +67,7 @@ public class TaggedDataPointCollector {
         List<Percentile> results = percentiles.stream()
                 .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList());
         return new TaggedBucketPoint(tags, min.getResult(), average.getResult(), median.getResult(), max.getResult(),
-                samples, results);
+                sum.getResult(), samples, results);
     }
 
 }

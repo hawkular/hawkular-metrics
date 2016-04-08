@@ -489,7 +489,7 @@ class CountersITest extends RESTTest {
       double val;
       switch (i) {
         case 1:
-          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, empty: false,
+          bucketPoint.putAll([min: 0D, avg: 100D, median: 0D, max: 200D, sum: 200D, empty: false,
           samples: 2] as Map)
           break;
         case 2:
@@ -500,15 +500,15 @@ class CountersITest extends RESTTest {
           samples: 0] as Map)
           break;
         case 3:
-          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, empty: false,
+          bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, sum: 400D, empty: false,
           samples: 1] as Map)
           break;
         case 5:
-          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, empty: false,
+          bucketPoint.putAll([min: 550D, avg: 550D, median: 550D, max: 550D, sum: 550D, empty: false,
           samples: 1] as Map)
           break;
         case 7:
-          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, empty: false,
+          bucketPoint.putAll([min: 950D, avg: 975D, median: 950D, max: 1000D, sum: 1950D, empty: false,
           samples: 2] as Map)
           break;
       }
@@ -665,22 +665,22 @@ Actual:   ${response.data}
       switch (i) {
         case 1:
           val = 400D
-          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
           break
         case 3:
           val = 100D
-          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
           break
         case 5:
           val = 100D
-          bucketPoint << [min: val, avg: val, median: val, max: val, empty: false, samples: 1]
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
           break
         case 7:
-          bucketPoint << [min: 100.0, max: 200.0, avg: 150.0, median: 100.0, empty:false,
+          bucketPoint << [min: 100.0, max: 200.0, avg: 150.0, median: 100.0, sum: 300D, empty:false,
                           samples: 2]
           break
         default:
-          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, empty: true, samples: 0]
+          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, sum: NaN, empty: true, samples: 0]
           break
       }
       expectedData.push(bucketPoint);
@@ -884,9 +884,13 @@ Actual:   ${response.data}
 
     assertEquals("The start time is wrong", start.millis, actualCounterBucketByTag.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterBucketByTag.end)
-    assertDoubleEquals("The min is wrong", (c1.min {it.value}).value + (c2.min {it.value}).value, actualCounterBucketByTag.min)
-    assertDoubleEquals("The max is wrong", (c1.max {it.value}).value + (c2.max {it.value}).value, actualCounterBucketByTag.max)
-    assertDoubleEquals("The avg is wrong", avg(c1.collect {it.value}) + avg(c2.collect {it.value}), actualCounterBucketByTag.avg)
+    assertDoubleEquals("The min is wrong", (c1.min {it.value}).value + (c2.min {it.value}).value,
+        actualCounterBucketByTag.min)
+    assertDoubleEquals("The max is wrong", (c1.max {it.value}).value + (c2.max {it.value}).value,
+        actualCounterBucketByTag.max)
+    assertDoubleEquals("The sum is wrong", (c1 + c2).sum() { it.value }, actualCounterBucketByTag.sum)
+    assertDoubleEquals("The avg is wrong", avg(c1.collect {it.value}) + avg(c2.collect {it.value}),
+        actualCounterBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterBucketByTag.median != null)
 
@@ -1026,6 +1030,7 @@ Actual:   ${response.data}
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, expectedSimpleCounterBucketByTag.end)
     assertDoubleEquals("The min is wrong", (combinedData.min {it.value}).value, expectedSimpleCounterBucketByTag.min)
     assertDoubleEquals("The max is wrong", (combinedData.max {it.value}).value, expectedSimpleCounterBucketByTag.max)
+    assertDoubleEquals("The sum is wrong", combinedData.sum() { it.value }, expectedSimpleCounterBucketByTag.sum)
     assertDoubleEquals("The avg is wrong", avg(combinedData.collect {it.value}), expectedSimpleCounterBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, expectedSimpleCounterBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", expectedSimpleCounterBucketByTag.median != null)
@@ -1049,6 +1054,7 @@ Actual:   ${response.data}
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualSimpleCounterBucketById.end)
     assertDoubleEquals("The min is wrong", (combinedData.min {it.value}).value, actualSimpleCounterBucketById.min)
     assertDoubleEquals("The max is wrong", (combinedData.max {it.value}).value, actualSimpleCounterBucketById.max)
+    assertDoubleEquals("The sum is wrong", combinedData.sum() { it.value }, expectedSimpleCounterBucketByTag.sum)
     assertDoubleEquals("The avg is wrong", avg(combinedData.collect {it.value}), actualSimpleCounterBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualSimpleCounterBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualSimpleCounterBucketById.median != null)
@@ -1172,6 +1178,7 @@ Actual:   ${response.data}
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketByTag.end)
     assertDoubleEquals("The min is wrong", (c1Rates.min + c2Rates.min), actualCounterRateBucketByTag.min)
     assertDoubleEquals("The max is wrong", (c1Rates.max + c2Rates.max), actualCounterRateBucketByTag.max)
+    assertDoubleEquals("The sum is wrong", c1Rates.sum + c2Rates.sum, actualCounterRateBucketByTag.sum)
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg), actualCounterRateBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
@@ -1198,6 +1205,7 @@ Actual:   ${response.data}
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketById.end)
     assertDoubleEquals("The min is wrong", (c1Rates.min + c2Rates.min), actualCounterRateBucketById.min)
     assertDoubleEquals("The max is wrong", (c1Rates.max + c2Rates.max), actualCounterRateBucketById.max)
+    assertDoubleEquals("The sum is wrong", c1Rates.sum + c2Rates.sum, actualCounterRateBucketById.sum)
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg), actualCounterRateBucketById.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketById.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketById.median != null)
@@ -1321,6 +1329,7 @@ Actual:   ${response.data}
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterRateBucketByTag.end)
     assertDoubleEquals("The min is wrong", Math.min(c1Rates.min, c2Rates.min), actualCounterRateBucketByTag.min)
     assertDoubleEquals("The max is wrong", Math.max(c1Rates.max, c2Rates.max), actualCounterRateBucketByTag.max)
+    assertDoubleEquals("The sum is wrong", c1Rates.sum + c2Rates.sum, actualCounterRateBucketByTag.sum)
     assertDoubleEquals("The avg is wrong", (c1Rates.avg + c2Rates.avg)/2, actualCounterRateBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterRateBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterRateBucketByTag.median != null)
@@ -1505,6 +1514,7 @@ Actual:   ${response.data}
             tags: [x: '2', y: '2', z: '2'],
             max: 13,
             min: 13,
+            sum: 13,
             avg: 13,
             median: 13,
             samples: 1
@@ -1513,6 +1523,7 @@ Actual:   ${response.data}
             tags: [x: '3', y: '2', z: '3'],
             max: 14,
             min: 14,
+            sum: 14,
             avg: 14,
             median: 14,
             samples: 1

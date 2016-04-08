@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,16 +33,18 @@ public class NumericBucketPoint extends BucketPoint {
     private final double avg;
     private final double median;
     private final double max;
+    private final double sum;
     private int samples;
     private final List<Percentile> percentiles;
 
-    private NumericBucketPoint(long start, long end, double min, double avg, double median, double max,
-                               List<Percentile> percentiles, int samples) {
+    private NumericBucketPoint(long start, long end, double min, double avg, double median, double max, double sum,
+            List<Percentile> percentiles, int samples) {
         super(start, end);
         this.min = min;
         this.avg = avg;
         this.median = median;
         this.max = max;
+        this.sum = sum;
         this.percentiles = percentiles;
         this.samples = samples;
     }
@@ -63,6 +65,10 @@ public class NumericBucketPoint extends BucketPoint {
         return max;
     }
 
+    public double getSum() {
+        return sum;
+    }
+
     public List<Percentile> getPercentiles() {
         return percentiles;
     }
@@ -73,7 +79,7 @@ public class NumericBucketPoint extends BucketPoint {
 
     @Override
     public boolean isEmpty() {
-        return samples == 0 || isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max);
+        return samples == 0 || isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(sum);
     }
 
     @Override
@@ -85,6 +91,7 @@ public class NumericBucketPoint extends BucketPoint {
                 ", avg=" + avg +
                 ", median=" + median +
                 ", max=" + max +
+                ", sum=" + sum +
                 ", percentiles=" + percentiles +
                 ", samples=" + samples +
                 ", isEmpty=" + isEmpty() +
@@ -105,6 +112,7 @@ public class NumericBucketPoint extends BucketPoint {
         private double avg = NaN;
         private double median = NaN;
         private double max = NaN;
+        private double sum = NaN;
         private List<Percentile> percentiles = new ArrayList<>();
         private int samples = 0;
 
@@ -126,6 +134,7 @@ public class NumericBucketPoint extends BucketPoint {
             this.setAvg(numericBucketPoint.getAvg());
             this.setMedian(numericBucketPoint.getMedian());
             this.setMax(numericBucketPoint.getMax());
+            this.setSum(numericBucketPoint.getSum());
         }
 
         public Builder setMin(double min) {
@@ -148,6 +157,11 @@ public class NumericBucketPoint extends BucketPoint {
             return this;
         }
 
+        public Builder setSum(double sum) {
+            this.sum = sum;
+            return this;
+        }
+
         public Builder setPercentiles(List<Percentile> percentiles) {
             this.percentiles = percentiles;
             return this;
@@ -159,7 +173,7 @@ public class NumericBucketPoint extends BucketPoint {
         }
 
         public NumericBucketPoint build() {
-            return new NumericBucketPoint(start, end, min, avg, median, max, percentiles, samples);
+            return new NumericBucketPoint(start, end, min, avg, median, max, sum, percentiles, samples);
         }
     }
 

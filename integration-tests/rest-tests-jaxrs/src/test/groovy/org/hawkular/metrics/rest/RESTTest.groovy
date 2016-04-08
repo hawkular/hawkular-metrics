@@ -169,6 +169,7 @@ Actual: ${actual}
       assertDoubleEquals(msg, expected.avg, actual.avg)
       assertDoubleEquals(msg, expected.median, actual.median)
       assertDoubleEquals(msg, expected.max, actual.max)
+      assertDoubleEquals(msg, expected.sum, actual.sum)
     }
   }
 
@@ -181,6 +182,7 @@ Actual: ${actual}
   static void assertTaggedBucketEquals(def expected, def actual) {
     assertDoubleEquals(expected.max, actual.max)
     assertDoubleEquals(expected.min, actual.min)
+    assertDoubleEquals(expected.sum, actual.sum)
     assertDoubleEquals(expected.avg, actual.avg)
     assertDoubleEquals(expected.median, actual.median)
     assertEquals(expected.samples, actual.samples)
