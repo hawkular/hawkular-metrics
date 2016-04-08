@@ -321,33 +321,33 @@ public class GaugeHandler {
                 return;
             }
 
-                if (limit != null) {
-                    if (order == null) {
-                        if (start == null && end != null) {
-                            order = Order.DESC;
-                        } else if (start != null && end == null) {
-                            order = Order.ASC;
-                        } else {
-                            order = Order.DESC;
-                        }
-                    }
-                } else {
-                    limit = 0;
-                }
-
+            if (limit != null) {
                 if (order == null) {
-                    order = Order.DESC;
+                    if (start == null && end != null) {
+                        order = Order.DESC;
+                    } else if (start != null && end == null) {
+                        order = Order.ASC;
+                    } else {
+                        order = Order.DESC;
+                    }
                 }
-
-                metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
-                        .toList()
-                        .map(ApiUtils::collectionToResponse)
-                        .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-
-                return;
+            } else {
+                limit = 0;
             }
 
-            Observable<BucketConfig> observableConfig = null;
+            if (order == null) {
+                order = Order.DESC;
+            }
+
+            metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                    .toList()
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+
+            return;
+        }
+
+        Observable<BucketConfig> observableConfig = null;
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
@@ -360,35 +360,35 @@ public class GaugeHandler {
                 return;
             }
 
-                observableConfig = metricsService.findMetric(metricId).map((metric) -> {
-                    long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
-                    long now = System.currentTimeMillis();
-                    long earliest = now - dataRetention;
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
 
-                    BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
-                            new TimeRange(earliest, now));
+                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration,
+                        new TimeRange(earliest, now));
 
-                    if (!bucketConfig.isValid()) {
-                        throw new RuntimeApiError(bucketConfig.getProblem());
-                    }
-
-                    return bucketConfig;
-                });
-            } else {
-                TimeRange timeRange = new TimeRange(start, end);
-                if (!timeRange.isValid()) {
-                    asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-                    return;
-                }
-
-                BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
                 if (!bucketConfig.isValid()) {
-                    asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-                    return;
+                    throw new RuntimeApiError(bucketConfig.getProblem());
                 }
 
-                observableConfig = Observable.just(bucketConfig);
+                return bucketConfig;
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
             }
+
+            BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+            if (!bucketConfig.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+                return;
+            }
+
+            observableConfig = Observable.just(bucketConfig);
+        }
 
             final Percentiles lPercentiles = percentiles != null ? percentiles
                     : new Percentiles(Collections.<Double> emptyList());
