@@ -63,7 +63,9 @@ public class Metric<T> {
             @JsonDeserialize(using = MetricTypeDeserializer.class)
             MetricType<T> type,
             @JsonProperty("data")
-            List<DataPoint<T>> data
+            List<DataPoint<T>> data,
+            @JsonProperty(value="tenantId", defaultValue="")
+            String tenantId
     ) {
         checkArgument(id != null, "Metric id is null");
 
@@ -71,10 +73,19 @@ public class Metric<T> {
             type = MetricType.UNDEFINED;
         }
 
-        this.id = new MetricId<T>("", type, id);
+        if (tenantId == null) {
+            tenantId = "";
+        }
+
+        this.id = new MetricId<T>(tenantId, type, id);
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.dataPoints = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
+    }
+
+    public Metric(String id, Map<String, String> tags, Integer dataRetention, MetricType<T> type,
+            List<DataPoint<T>> data) {
+        this(id, tags, dataRetention, type, data, "");
     }
 
     public Metric(MetricId<T> id) {
