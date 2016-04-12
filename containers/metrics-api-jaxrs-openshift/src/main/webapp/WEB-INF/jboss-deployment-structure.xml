@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +17,16 @@
     limitations under the License.
 
 -->
-
-<web-fragment>
-  <filter>
-    <filter-name>OpenShiftAuthFilter</filter-name>
-    <filter-class>org.hawkular.openshift.auth.OpenShiftAuthenticationFilter</filter-class>
-    <async-supported>true</async-supported>
-  </filter>
-  <filter-mapping>
-    <filter-name>OpenShiftAuthFilter</filter-name>
-    <url-pattern>/*</url-pattern>
-  </filter-mapping>
-</web-fragment>
+<jboss-deployment-structure>
+  <deployment>
+    <exclusions>
+      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
+      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
+    </exclusions>
+    <dependencies>
+      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
+      <module name="org.jboss.xnio"/>
+      <module name="org.jboss.xnio.nio"/>
+    </dependencies>
+  </deployment>
+</jboss-deployment-structure>

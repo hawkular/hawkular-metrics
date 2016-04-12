@@ -53,6 +53,7 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.DateTimeService;
@@ -62,6 +63,7 @@ import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.JdkSSLOptions;
@@ -145,6 +147,7 @@ public class MetricsServiceLifecycle {
     private volatile State state;
     private int connectionAttempts;
     private Session session;
+    private JmxReporter jmxReporter;
 
     private DataAccess dataAcces;
 
@@ -225,11 +228,10 @@ public class MetricsServiceLifecycle {
             metricsService.setDateTimeService(createDateTimeService());
             metricsService.setDefaultTTL(getDefaultTTL());
 
-            // TODO Set up a managed metric registry
-            // We want a managed registry that can be shared by the JAX-RS endpoint and the core. Then we can expose
-            // the registered metrics in various ways such as new REST endpoints, JMX, or via different
-            // com.codahale.metrics.Reporter instances.
-            metricsService.startUp(session, keyspace, false, false, new MetricRegistry());
+            MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+            jmxReporter = JmxReporter.forRegistry(metricRegistry).inDomain("hawkular.metrics").build();
+            jmxReporter.start();
+            metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
             initJobs();
 
@@ -370,6 +372,9 @@ public class MetricsServiceLifecycle {
             if (session != null) {
                 session.close();
                 session.getCluster().close();
+            }
+            if (jmxReporter != null) {
+                jmxReporter.stop();
             }
         } finally {
             state = State.STOPPED;

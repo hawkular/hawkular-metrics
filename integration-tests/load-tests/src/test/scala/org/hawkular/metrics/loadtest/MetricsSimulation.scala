@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,23 +16,31 @@
  */
 package org.hawkular.metrics.loadtest
 
-import scala.concurrent.duration._
-
 import io.gatling.core.Predef._
+import io.gatling.http.config.HttpProtocolBuilder
 import io.gatling.http.Predef._
 import io.gatling.jdbc.Predef._
+
+import java.nio.charset.StandardCharsets
+import java.util.Base64
+
+import scala.concurrent.duration._
 
 class MetricsSimulation extends Simulation {
 
   // --------------------------- Options
 
-  val baseURI = System.getProperty("baseURI", "http://localhost:8080")
+  val baseURI = System.getProperty("baseURI", "http://localhost:8080/hawkular/metrics")
+  val authType = System.getProperty("authType")
+  val user = System.getProperty("user")
+  val password = System.getProperty("password")
+  val token = System.getProperty("token")
   val tenant = System.getProperty("tenant", "default")
 
   // Number of concurrent clients (think of collectors on different machines)
-  val clients = Integer.getInteger("clients", 1)
+  val clients = Integer.getInteger("clients", 10)
   // Delay before firing up another client
-  val ramp  = java.lang.Long.getLong("ramp", 0L)
+  val ramp  = java.lang.Long.getLong("ramp", 1L)
 
   // The number of loops for each client
   val loops = Integer.getInteger("loops", 10).toInt
@@ -46,10 +54,30 @@ class MetricsSimulation extends Simulation {
 
   // ---------------------------
 
-  val httpProtocol = http
+  var httpProtocol = http
     .baseURL(baseURI)
-    .header("Hawkular-Tenant", tenant)
     .contentTypeHeader("application/json;charset=utf-8")
+
+  httpProtocol = authType match {
+      case "openshiftHtpasswd" => {
+        httpProtocol
+          .authorizationHeader("Basic " + Base64.getEncoder().encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+          .header("Hawkular-Tenant", tenant)
+      }
+      case "openshiftToken" => {
+        httpProtocol
+          .authorizationHeader("Bearer $token")
+          .header("Hawkular-Tenant", tenant)
+      }
+      case "hawkular" => {
+        httpProtocol
+          .authorizationHeader("Basic " + Base64.getEncoder().encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+      }
+      case _ => {
+        httpProtocol
+          .header("Hawkular-Tenant", tenant)
+      }
+  }
 
   val random = new util.Random
   val genReport = (m: Int, p: Int) => {
@@ -76,7 +104,7 @@ class MetricsSimulation extends Simulation {
 
   val simulation = repeat(loops, "n") {
     exec(http("Report ${n}")
-      .post("/hawkular/metrics/gauges/data")
+      .post("/gauges/data")
       .body(StringBody(session => genReport(metrics, points)))
     ).pause(interval)
   }

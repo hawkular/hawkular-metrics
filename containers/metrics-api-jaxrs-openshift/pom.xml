@@ -57,6 +57,12 @@
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
+          <archive>
+            <manifest>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+          </archive>
           <overlays>
             <overlay>
               <groupId>org.hawkular.metrics</groupId>
