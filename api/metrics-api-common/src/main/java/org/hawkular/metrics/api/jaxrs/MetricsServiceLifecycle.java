@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_K
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DATA_GC_GRACE_SECONDS;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
@@ -70,6 +71,7 @@ import org.joda.time.DateTime;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.google.common.base.Throwables;
@@ -147,6 +149,11 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(DEFAULT_TTL)
     private String defaultTTL;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DATA_GC_GRACE_SECONDS)
+    private String dataGcGraceSeconds;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -221,6 +228,7 @@ public class MetricsServiceLifecycle {
             // will change at some point though because the task scheduling service will
             // probably move to the hawkular-commons repo.
             initSchema();
+            updateGcGraceSecondsIfNecessary();
             dataAcces = new DataAccessImpl(session);
             initTaskScheduler();
 
@@ -298,6 +306,28 @@ public class MetricsServiceLifecycle {
         }
         schemaManager.createSchema(keyspace);
         session.execute("USE " + keyspace);
+    }
+
+    private void updateGcGraceSecondsIfNecessary() {
+
+        try {
+            ResultSet resultSet = session.execute("SELECT gc_grace_seconds FROM system.schema_columnfamilies " +
+                    "WHERE keyspace_name = '" + keyspace + "' AND columnfamily_name = 'data'");
+            Integer gcGraceSeconds = null;
+            int newGcGraceSeconds = Integer.parseInt(dataGcGraceSeconds);
+            if (resultSet.isExhausted()) {
+                log.warn("Could not determine gc_grace_seconds for data table");
+            } else {
+                gcGraceSeconds = resultSet.all().get(0).getInt(0);
+            }
+            if (gcGraceSeconds == null || newGcGraceSeconds != gcGraceSeconds) {
+                log.info("Updating gc_grace_seconds of data table from " + gcGraceSeconds + " to " + newGcGraceSeconds);
+                session.execute("ALTER TABLE " + keyspace + ".data WITH gc_grace_seconds = " + newGcGraceSeconds);
+            }
+        } catch (NumberFormatException e) {
+            log.warn(dataGcGraceSeconds + " is not a valid valid for " + DATA_GC_GRACE_SECONDS + ". Skipping update " +
+                "of gc_grace_seconds for data table.");
+        }
     }
 
     private void initTaskScheduler() {
