@@ -225,6 +225,12 @@ class TagsITest extends RESTTest {
                         type: it.type
                     ]], response.data)
 
+
+      // Fetch empty result
+      response = hawkularMetrics.get(path: "metrics",
+          query: [tags: "notvalid:*", type: it.type],
+          headers: [(tenantHeaderName): tenantId])
+      assertEquals(204, response.status)
     }
   }
 
@@ -260,5 +266,48 @@ class TagsITest extends RESTTest {
                         ]], lresponse.data)
         }
       }
+  }
+
+  @Test
+  void findTagValues() {
+    metricTypes.each {
+      def tenantId = nextTenantId()
+
+      // Create metric
+      def response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N1',
+          tags: ['a1': 'A/B', 'd1': 'B:A']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N2',
+          tags: ['a1': 'a', 'd1': 'B:A']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      // Fetch metrics using tags
+      response = hawkularMetrics.get(path: it.path + "/tags/d1:B%3AA",
+          headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+
+      assertEquals([
+                        d1: ['B:A']
+                    ], response.data)
+
+      response = hawkularMetrics.get(path: it.path + "/tags/a1:*,d1:B%3AA",
+          headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+
+      assertEquals([
+                        a1: ['a', 'A/B'],
+                        d1: ['B:A']
+                    ], response.data)
+
+      // Fetch empty
+      response = hawkularMetrics.get(path: it.path + "/tags/g1:*",
+          headers: [(tenantHeaderName): tenantId])
+      assertEquals(204, response.status)
+    }
   }
 }

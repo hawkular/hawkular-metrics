@@ -168,6 +168,22 @@ public class GaugeHandler {
     }
 
     @GET
+    @Path("/tags/{tags}")
+    @ApiOperation(value = "Retrieve gauge type's tag values", response = Map.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tags successfully retrieved."),
+            @ApiResponse(code = 204, message = "No matching tags were found"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tags.",
+                    response = ApiError.class)
+    })
+    public void getTags(@Suspended final AsyncResponse asyncResponse,
+                        @ApiParam("Tag query") @PathParam("tags") Tags tags) {
+        metricsService.getTagValues(tenantId, GAUGE, tags.getTags())
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @GET
     @Path("/{id}/tags")
     @ApiOperation(value = "Retrieve tags associated with the metric definition.", response = Map.class)
     @ApiResponses(value = {
