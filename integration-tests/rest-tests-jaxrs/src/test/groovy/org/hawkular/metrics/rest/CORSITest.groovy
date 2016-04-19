@@ -63,7 +63,7 @@ class CORSITest extends RESTTest {
 
   @Test
   void testOptionsWithBadOrigin() {
-    def response = hawkularMetrics.options(path: "gauges/test/data",
+    def response = hawkularMetrics.options(path: "gauges/test/raw",
         headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "OPTIONS",
             (ORIGIN): "*"
@@ -74,7 +74,7 @@ class CORSITest extends RESTTest {
     assertEquals(400, response.status)
 
     def wrongSchemeOrigin = testOrigin.replaceAll("http://", "https://")
-    response = hawkularMetrics.options(path: "gauges/test/data",
+    response = hawkularMetrics.options(path: "gauges/test/raw",
         headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "GET",
             (ORIGIN): wrongSchemeOrigin
@@ -89,7 +89,7 @@ class CORSITest extends RESTTest {
   void testOptionsWithSubdomainOrigin() {
     //construct a subdomain with "tester." as prefix
     def subDomainOrigin = testOrigin.substring(0, testOrigin.indexOf("/") + 2) + "tester." + testOrigin.substring(testOrigin.indexOf("/") + 2)
-    def response = hawkularMetrics.options(path: "gauges/test/data",
+    def response = hawkularMetrics.options(path: "gauges/test/raw",
         headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "GET",
             (ORIGIN): subDomainOrigin

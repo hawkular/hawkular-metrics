@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -91,7 +91,7 @@ class TenantITest extends RESTTest {
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
-        path: "gauges/G1/data",
+        path: "gauges/G1/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 3.14]
@@ -115,7 +115,7 @@ class TenantITest extends RESTTest {
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
-        path: 'counters/C1/data',
+        path: 'counters/C1/raw',
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 100]
@@ -139,7 +139,7 @@ class TenantITest extends RESTTest {
     DateTime start = dateTimeService.getTimeSlice(getTime(), standardMinutes(1))
 
     def response = hawkularMetrics.post(
-        path: 'availability/A1/data',
+        path: 'availability/A1/raw',
         headers: [(tenantHeaderName): tenantId],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 'up']

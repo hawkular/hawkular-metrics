@@ -32,7 +32,7 @@ class MetricsITest extends RESTTest {
     DateTime start = DateTime.now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
-        path: "metrics/data",
+        path: "metrics/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             gauges: [
@@ -156,7 +156,7 @@ class MetricsITest extends RESTTest {
     DateTime start = DateTime.now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
-        path: "metrics/data",
+        path: "metrics/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             counters: [
@@ -208,7 +208,7 @@ class MetricsITest extends RESTTest {
     DateTime start = DateTime.now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
-        path: "metrics/data",
+        path: "metrics/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             gauges: [
@@ -261,7 +261,7 @@ class MetricsITest extends RESTTest {
     DateTime start = DateTime.now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
-        path: "metrics/data",
+        path: "metrics/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
             gauges: [
@@ -311,7 +311,7 @@ class MetricsITest extends RESTTest {
   void addMixedDataInvalidRequestPayload() {
     String tenantId = nextTenantId()
 
-    badPost( path: "metrics/data",
+    badPost( path: "metrics/raw",
         body: [],
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Missing type
@@ -323,7 +323,7 @@ class MetricsITest extends RESTTest {
   void addMixedDataMissingRequestPayload() {
     String tenantId = nextTenantId()
 
-    badPost( path: "metrics/data",
+    badPost( path: "metrics/raw",
         body: "",
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Missing type
@@ -335,7 +335,7 @@ class MetricsITest extends RESTTest {
   void addMixedDataEmptyRequestPayload() {
     String tenantId = nextTenantId()
 
-    badPost( path: "metrics/data",
+    badPost( path: "metrics/raw",
         body: new HashMap(),
         headers: [(tenantHeaderName): tenantId]) { exception ->
       // Missing type
@@ -347,7 +347,7 @@ class MetricsITest extends RESTTest {
   void addMixedDataMissingData() {
     String tenantId = nextTenantId()
 
-    badPost( path: "metrics/data",
+    badPost( path: "metrics/raw",
         body: [
          gauges: [
          ],

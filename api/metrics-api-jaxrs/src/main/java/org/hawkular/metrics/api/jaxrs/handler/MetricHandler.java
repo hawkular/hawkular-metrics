@@ -160,8 +160,18 @@ public class MetricHandler {
                 });
     }
 
+    @Deprecated
     @POST
     @Path("/data")
+    @ApiOperation(value = "Deprecated. Please use /raw endpoint.")
+    public void deprecatedAddMetricsData(
+            @Suspended final AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metrics", required = true) MixedMetricsRequest metricsRequest) {
+        addMetricsData(asyncResponse, metricsRequest);
+    }
+
+    @POST
+    @Path("/raw")
     @ApiOperation(value = "Add data points for multiple metrics in a single call.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Adding data points succeeded."),
