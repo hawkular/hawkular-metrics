@@ -180,10 +180,8 @@ public class GaugeHandler {
             @PathParam("id") String id
     ) {
         metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
-                .subscribe(
-                        optional -> asyncResponse.resume(ApiUtils.valueToResponse(optional)),
-                        t ->asyncResponse.resume(ApiUtils.serverError(t))
-                );
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @PUT

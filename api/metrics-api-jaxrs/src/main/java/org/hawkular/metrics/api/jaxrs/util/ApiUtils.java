@@ -18,7 +18,6 @@ package org.hawkular.metrics.api.jaxrs.util;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -61,10 +60,6 @@ public class ApiUtils {
 
     public static Response serverError(Throwable t) {
         return serverError(t, "Failed to perform operation due to an error");
-    }
-
-    public static Response valueToResponse(Optional<?> optional) {
-        return optional.map(value -> Response.ok(value).build()).orElse(noContent());
     }
 
     public static Response noContent() {

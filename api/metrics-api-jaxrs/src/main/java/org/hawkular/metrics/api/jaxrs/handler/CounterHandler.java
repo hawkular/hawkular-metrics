@@ -22,7 +22,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 
 import java.net.URI;
@@ -185,9 +184,8 @@ public class CounterHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id) {
         metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
-                .subscribe(
-                        optional -> asyncResponse.resume(valueToResponse(optional)),
-                        t -> asyncResponse.resume(serverError(t)));
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @PUT

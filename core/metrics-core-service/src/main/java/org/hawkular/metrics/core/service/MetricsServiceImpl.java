@@ -32,10 +32,10 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -509,11 +509,11 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id) {
+    public Observable<Map<String, String>> getMetricTags(MetricId<?> id) {
         return dataAccess.getMetricTags(id)
                 .take(1)
-                .map(row -> Optional.of(row.getMap(0, String.class, String.class)))
-                .defaultIfEmpty(Optional.empty());
+                .map(row -> row.getMap(0, String.class, String.class))
+                .defaultIfEmpty(new HashMap<>());
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,
