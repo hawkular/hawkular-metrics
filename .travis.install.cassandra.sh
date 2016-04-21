@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+# Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,17 +21,23 @@ set -xe
 
 cd "${HOME}"
 
-wget -O datastax-releases "http://downloads.datastax.com/community/?C=M;O=D"
-LATEST_MICRO=`cat datastax-releases | grep -m 1 -o -E "dsc-cassandra-2\.2\.[0-9]+-bin\.tar.gz" | head -1 | cut -d '.' -f3 | cut -d '-' -f1`
+C_MAJOR="3"
+C_MINOR="5"
 
-CASSANDRA_VERSION="2.2.${LATEST_MICRO}"
-CASSANDRA_BINARY="dsc-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
+# Find the closest Apache mirror
+APACHE_MIRROR="$(curl --silent https://www.apache.org/dyn/closer.cgi?asjson=1 | grep "preferred" | sed -e 's/ *"preferred" *: *"\([^"]*\)"/\1/')"
+
+VERSIONS_PAGE="$(curl --silent ${APACHE_MIRROR}/cassandra/)"
+VERSIONS_LIST="$(echo "${VERSIONS_PAGE}" | grep -o -E "href=\"${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*/" | grep -o -E "${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*")"
+CASSANDRA_VERSION="$(echo "${VERSIONS_LIST}" | sort --version-sort --reverse | head --lines=1)"
+
+CASSANDRA_BINARY="apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
 CASSANDRA_DOWNLOADS="${HOME}/cassandra-downloads"
 
 mkdir -p ${CASSANDRA_DOWNLOADS}
 
 if [ ! -f "${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}" ]; then
-  wget -O ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY} http://downloads.datastax.com/community/${CASSANDRA_BINARY}
+  wget -O ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY} ${APACHE_MIRROR}/cassandra/${CASSANDRA_VERSION}/${CASSANDRA_BINARY}
 else
   echo 'Using cached Cassandra archive'
 fi
@@ -40,7 +46,7 @@ CASSANDRA_HOME="${HOME}/cassandra"
 rm -rf "${CASSANDRA_HOME}"
 
 tar -xzf ${CASSANDRA_DOWNLOADS}/${CASSANDRA_BINARY}
-mv ${HOME}/dsc-cassandra-${CASSANDRA_VERSION} ${CASSANDRA_HOME}
+mv ${HOME}/apache-cassandra-${CASSANDRA_VERSION} ${CASSANDRA_HOME}
 
 mkdir "${CASSANDRA_HOME}/logs"
 
