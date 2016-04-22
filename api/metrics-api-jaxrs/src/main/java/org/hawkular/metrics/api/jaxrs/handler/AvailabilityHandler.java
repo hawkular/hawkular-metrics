@@ -22,7 +22,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.valueToResponse;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 
 import java.net.URI;
@@ -181,9 +180,9 @@ public class AvailabilityHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id)).subscribe(
-                optional -> asyncResponse.resume(valueToResponse(optional)),
-                t -> asyncResponse.resume(serverError(t)));
+        metricsService.getMetricTags(new MetricId<>(tenantId, AVAILABILITY, id))
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
     @PUT

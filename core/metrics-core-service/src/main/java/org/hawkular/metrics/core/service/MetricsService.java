@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
@@ -118,7 +117,7 @@ public interface MetricsService {
     <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
             tagsQueries, Func1<Metric<T>, Boolean>... filters);
 
-    Observable<Optional<Map<String, String>>> getMetricTags(MetricId<?> id);
+    Observable<Map<String, String>> getMetricTags(MetricId<?> id);
 
     Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
