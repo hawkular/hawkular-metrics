@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@import url(http://fonts.googleapis.com/css?family=Exo+2);
-
 html {
   width: 100%;
 }
@@ -28,7 +26,7 @@ body {
   margin-left: auto;
   margin-right: auto;
   max-width: 100%;
-  width: 50em
+  width: 50em;
   padding: 1em;
   text-align: center;
 }
