@@ -27,8 +27,7 @@ C_MINOR="5"
 # Find the closest Apache mirror
 APACHE_MIRROR="$(curl --silent https://www.apache.org/dyn/closer.cgi?asjson=1 | grep "preferred" | sed -e 's/ *"preferred" *: *"\([^"]*\)"/\1/')"
 
-VERSIONS_PAGE="$(curl --silent ${APACHE_MIRROR}/cassandra/)"
-VERSIONS_LIST="$(echo "${VERSIONS_PAGE}" | grep -o -E "href=\"${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*/" | grep -o -E "${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*")"
+VERSIONS_LIST="$(curl --silent ${APACHE_MIRROR}/cassandra/ | grep -o -E "href=\"${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*/" | grep -o -E "${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*")"
 CASSANDRA_VERSION="$(echo "${VERSIONS_LIST}" | sort --version-sort --reverse | head --lines=1)"
 
 CASSANDRA_BINARY="apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
