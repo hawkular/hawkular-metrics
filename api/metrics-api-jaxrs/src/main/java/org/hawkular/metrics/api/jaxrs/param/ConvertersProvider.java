@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
+import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,7 @@ public class ConvertersProvider implements ParamConverterProvider {
         paramConverters = paramConvertersBuilder
                 .put(Duration.class, new DurationConverter())
                 .put(Tags.class, new TagsConverter())
+                .put(TagNames.class, new TagNamesConverter())
                 .put(MetricType.class, new MetricTypeConverter())
                 .put(Percentiles.class, new PercentilesConverter())
                 .build();
