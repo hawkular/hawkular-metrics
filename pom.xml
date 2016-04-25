@@ -130,7 +130,7 @@
     <version.org.apache.felix.maven-bundle-plugin>2.5.3</version.org.apache.felix.maven-bundle-plugin>
     <version.org.apache.maven.plugins.maven-jar-plugin>2.6</version.org.apache.maven.plugins.maven-jar-plugin>
     <version.org.apache.maven.plugins.maven-project-info-reports-plugin>2.7</version.org.apache.maven.plugins.maven-project-info-reports-plugin>
-    <version.org.codehaus.groovy.groovy-all>2.4.5</version.org.codehaus.groovy.groovy-all>
+    <version.org.codehaus.groovy>2.4.5</version.org.codehaus.groovy>
     <version.org.codehaus.groovy.modules.http-builder>0.7</version.org.codehaus.groovy.modules.http-builder>
     <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
@@ -233,7 +233,7 @@
       <dependency>
         <groupId>org.codehaus.groovy</groupId>
         <artifactId>groovy-all</artifactId>
-        <version>${version.org.codehaus.groovy.groovy-all}</version>
+        <version>${version.org.codehaus.groovy}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
