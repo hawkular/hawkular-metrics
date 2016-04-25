@@ -598,9 +598,16 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> deleteTags(Metric<?> metric, Map<String, String> tags) {
-        return dataAccess.deleteTags(metric, tags.keySet()).mergeWith(
-                dataAccess.deleteFromMetricsTagsIndex(metric, tags)).toList().map(r -> null);
+    public Observable<Void> deleteTags(Metric<?> metric, Set<String> tags) {
+        return getMetricTags(metric.getMetricId())
+                .map(loadedTags -> {
+                    loadedTags.keySet().retainAll(tags);
+                    return loadedTags;
+                })
+                .flatMap(tagsToDelete -> {
+                    return dataAccess.deleteTags(metric, tagsToDelete.keySet()).mergeWith(
+                            dataAccess.deleteFromMetricsTagsIndex(metric, tagsToDelete)).toList().map(r -> null);
+                });
     }
 
     @Override

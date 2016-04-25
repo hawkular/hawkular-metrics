@@ -545,7 +545,7 @@ public class MetricsServiceITest extends MetricsITest {
         metricsService.addTags(metric, additions).toBlocking().lastOrDefault
                 (null);
 
-        Map<String, String> deletions = ImmutableMap.of("a1", "1");
+        Set<String> deletions = ImmutableSet.of("a1");
         metricsService.deleteTags(metric, deletions).toBlocking()
                 .lastOrDefault(null);
 

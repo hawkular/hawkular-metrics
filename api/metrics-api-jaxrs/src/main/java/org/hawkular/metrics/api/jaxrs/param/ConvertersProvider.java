@@ -27,6 +27,7 @@ import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
+import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +46,7 @@ public class ConvertersProvider implements ParamConverterProvider {
         paramConverters = paramConvertersBuilder
                 .put(Duration.class, new DurationConverter())
                 .put(Tags.class, new TagsConverter())
+                .put(TagNames.class, new TagNamesConverter())
                 .put(MetricType.class, new MetricTypeConverter())
                 .put(Order.class, new OrderConverter())
                 .put(Percentiles.class, new PercentilesConverter())

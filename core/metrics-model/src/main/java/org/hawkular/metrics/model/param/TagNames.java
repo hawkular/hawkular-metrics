@@ -19,46 +19,40 @@ package org.hawkular.metrics.model.param;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
-import java.util.stream.Stream;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
- * Tags holder. This class is meant to be used only as a JAX−RS method parameter.
+ * Tag names holder. This class is meant to be used only as a JAX−RS method parameter.
  *
  * @author Thomas Segismont
  */
-public class Tags {
-    public static final String LIST_DELIMITER = ",";
-    public static final String TAG_DELIMITER = ":";
-
-    private final Map<String, String> tags;
+public class TagNames {
+    private final Set<String> names;
 
     /**
-     * Null or blank names or values are not permitted. Names and values can't have
-     *
-     * @param tags values as a {@link Map}
+     * Null or blank names are not permitted.
      */
-    public Tags(Map<String, String> tags) {
-        checkArgument(tags != null, "tags is null");
-        Stream<Map.Entry<String, String>> entryStream = tags.entrySet().stream();
-        checkArgument(entryStream.allMatch(Tags::isValid), "Invalid tag name or value: %s", tags);
-        this.tags = ImmutableMap.copyOf(tags);
+    public TagNames(Set<String> names) {
+        checkArgument(names != null, "names is null");
+        checkArgument(names.stream().allMatch(Tags::isValid), "Invalid tag name: %s", names);
+        this.names = ImmutableSet.copyOf(names);
     }
 
     private static boolean isValid(Map.Entry<String, String> tag) {
         return isValid(tag.getKey()) && isValid(tag.getValue());
     }
 
-    static boolean isValid(String s) {
+    private static boolean isValid(String s) {
         return s != null && !s.trim().isEmpty();
     }
 
     /**
-     * @return tag values as a {@link Map}
+     * @return tag names as a {@link Map}
      */
-    public Map<String, String> getTags() {
-        return tags;
+    public Set<String> getNames() {
+        return names;
     }
 
     @Override
@@ -69,20 +63,20 @@ public class Tags {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Tags tags1 = (Tags) o;
-        return tags.equals(tags1.tags);
+        TagNames tagNames = (TagNames) o;
+        return names.equals(tagNames.names);
 
     }
 
     @Override
     public int hashCode() {
-        return tags.hashCode();
+        return names.hashCode();
     }
 
     @Override
     public String toString() {
-        return "Tags[" +
-               "tags=" + tags +
-               ']';
+        return "TagNames{" +
+                "names=" + names +
+                '}';
     }
 }
