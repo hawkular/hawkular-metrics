@@ -33,6 +33,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -452,7 +454,7 @@ public class MetricsServiceImpl implements MetricsService {
         // Fetch everything from the tagsQueries
         return Observable.from(tagsQueries.entrySet())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .filter(tagValueFilter(e.getValue()))
+                        .filter(tagValueFilter(e.getValue(), 2))
                         .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
                         .compose(new ItemsToSetTransformer<>())
                         .reduce((s1, s2) -> {
@@ -479,16 +481,23 @@ public class MetricsServiceImpl implements MetricsService {
         return metricObservable;
     }
 
-    private Func1<Row, Boolean> tagValueFilter(String regexp) {
+    private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = filterPattern(regexp);
-        return r -> positive == p.matcher(r.getString(2)).matches(); // XNOR
+        return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = filterPattern(regexp);
         return tMetric -> positive == p.matcher(tMetric.getId()).matches();
+    }
+
+    public Func1<Row, Boolean> typeFilter(MetricType<?> type) {
+        return row -> {
+            MetricType<?> metricType = MetricType.fromCode(row.getByte(0));
+            return (type == null && metricType.isUserType()) || metricType == type;
+        };
     }
 
     /**
@@ -506,6 +515,63 @@ public class MetricsServiceImpl implements MetricsService {
             inputRegexp = inputRegexp.substring(1);
         }
         return Pattern.compile(inputRegexp); // Catch incorrect patterns..
+    }
+
+    @Override
+    public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
+                                    Map<String, String> tagsQueries) {
+
+        // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
+        return Observable.from(tagsQueries.entrySet())
+                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                        .filter(typeFilter(metricType))
+                        .filter(tagValueFilter(e.getValue(), 2))
+                        .map(row -> {
+                            Map<String, Map<String, String>> idMap = new HashMap<>();
+                            Map<String, String> valueMap = new HashMap<>();
+                            valueMap.put(e.getKey(), row.getString(2));
+
+                            idMap.put(row.getString(1), valueMap);
+                            return idMap;
+                        })
+                        .switchIfEmpty(Observable.just(new HashMap<>()))
+                        .reduce((map1, map2) -> {
+                            map1.putAll(map2);
+                            return map1;
+                        }))
+                .reduce((m1, m2) -> {
+                    // Now try to emulate set operation of cut
+                    Iterator<Map.Entry<String, Map<String, String>>> iterator = m1.entrySet().iterator();
+
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, Map<String, String>> next = iterator.next();
+                        if (!m2.containsKey(next.getKey())) {
+                            iterator.remove();
+                        } else {
+                            // Combine the entries
+                            Map<String, String> map2 = m2.get(next.getKey());
+                            map2.forEach((k, v) -> next.getValue().put(k, v));
+                        }
+                    }
+
+                    return m1;
+                })
+                .map(m -> {
+                    Map<String, Set<String>> tagValueMap = new HashMap<>();
+
+                    m.forEach((k, v) ->
+                            v.forEach((subKey, subValue) -> {
+                                if (tagValueMap.containsKey(subKey)) {
+                                    tagValueMap.get(subKey).add(subValue);
+                                } else {
+                                    Set<String> values = new HashSet<>();
+                                    values.add(subValue);
+                                    tagValueMap.put(subKey, values);
+                                }
+                            }));
+
+                    return tagValueMap;
+                });
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
@@ -116,6 +117,17 @@ public interface MetricsService {
      */
     <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
             tagsQueries, Func1<Metric<T>, Boolean>... filters);
+
+    /**
+     * Returns distinct tag values for a given tag query (using the same query format as findMetricsWithFilters).
+     *
+     * @param tenantId
+     * @param metricType If type is null, no type filtering is used (values are merged)
+     * @param tagsQueries If tagsQueries is empty, empty Observable is returned
+     * @return A map with key as the tagname and set of possible values restricted by the query
+     */
+    Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
+                                                             Map<String, String> tagsQueries);
 
     Observable<Map<String, String>> getMetricTags(MetricId<?> id);
 
