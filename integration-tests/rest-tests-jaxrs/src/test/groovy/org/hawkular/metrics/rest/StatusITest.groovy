@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package org.hawkular.metrics.rest
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotEquals
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assume.assumeTrue
 
 import org.junit.Test
 
@@ -28,17 +29,17 @@ import org.junit.Test
 class StatusITest extends RESTTest {
     @Test
     void getStatus() {
-        def response = hawkularMetrics.get(path: "status")
+        def version = System.properties.getProperty('project.version');
+        assumeTrue('This test only works in a Maven build', version != null)
 
-        def version = System.properties.getProperty("project.version");
-
+        def response = hawkularMetrics.get(path: 'status')
         assertEquals(200, response.status)
 
-        def expectedState = ["MetricsService" : "STARTED"]
+        def expectedState = ['MetricsService': 'STARTED']
 
         assertEquals(expectedState.MetricsService, response.data.MetricsService)
-        assertEquals(version, response.data["Implementation-Version"])
-        assertNotNull(response.data["Built-From-Git-SHA1"])
-        assertNotEquals("Unknown", response.data["Built-From-Git-SHA1"])
+        assertEquals(version, response.data['Implementation-Version'])
+        assertNotNull(response.data['Built-From-Git-SHA1'])
+        assertNotEquals('Unknown', response.data['Built-From-Git-SHA1'])
     }
 }
