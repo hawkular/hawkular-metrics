@@ -1,6 +1,9 @@
 = Hawkular Metrics, a storage engine for metric data
 :source-language: java
 
+// just major.minor
+:cassandra-version: 3.4
+
 ifdef::env-github[]
 [link=https://travis-ci.org/hawkular/hawkular-metrics]
 image::https://travis-ci.org/hawkular/hawkular-metrics.svg?branch=master[Build Status,70,18]
@@ -18,7 +21,7 @@ It relies on https://cassandra.apache.org/[Apache Cassandra] as a backend and is
 - a core library
 - a REST/HTTP interface
 
-IMPORTANT: Cassandra 2.2.0 or later is required. It is recommended to use the latest 2.2.x release if possible.
+IMPORTANT: Cassandra {cassandra-version} or later is required. It is recommended to use the latest {cassandra-version}.x release if possible.
 
 === The core library
 
@@ -73,15 +76,15 @@ TIP: If you only want to build the sources without a running C* cluster, you can
 For development or testing, the easiest way to setup Cassandra is to use the
 https://github.com/pcmanus/ccm[Cassandra Cluster Manager, CCM].
 
-[source,bash]
+[source,bash,subs="attributes"]
 ----
-ccm create -v 2.2.3 hawkular
+ccm create -v {cassandra-version} hawkular
 ccm populate -n 1
 ccm start
 ----
 
 These steps build and start a single node cluster of Cassandra. Note that while it is recommended to use ccm, it
-is not necessary. You just need to make sure you have a running 2.2.x cluster.
+is not necessary. You just need to make sure you have a running {cassandra-version}.x cluster.
 
 == Client tools
 
