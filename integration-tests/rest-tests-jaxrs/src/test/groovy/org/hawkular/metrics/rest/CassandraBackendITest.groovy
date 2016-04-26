@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
-import org.hawkular.metrics.model.MetricType
 import org.hawkular.metrics.core.service.DateTimeService
+import org.hawkular.metrics.model.MetricType
 import org.joda.time.DateTime
 import org.junit.Test
 
@@ -351,7 +351,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: "availability/$metric/raw", query: [distinct: "true", order: "ASC"], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "availability/$metric/raw", query: [distinct: "true", order: 'asc'], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -399,8 +399,8 @@ class CassandraBackendITest extends RESTTest {
     )
 
     response = hawkularMetrics.get(path: "availability/$metric/raw",
-      query: [limit: 3, start: start.plusMinutes(4).millis, order: "DESC"],
-      headers: [(tenantHeaderName): tenantId])
+        query: [limit: 3, start: start.plusMinutes(4).millis, order: 'desc'],
+        headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [
@@ -411,7 +411,7 @@ class CassandraBackendITest extends RESTTest {
         response.data
     )
 
-    response = hawkularMetrics.get(path: "availability/$metric/raw", query: [limit: 4, order: "ASC"], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "availability/$metric/raw", query: [limit: 4, order: 'asc'], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertEquals(
         [

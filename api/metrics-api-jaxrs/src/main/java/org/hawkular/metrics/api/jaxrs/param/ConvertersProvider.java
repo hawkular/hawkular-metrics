@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
@@ -45,15 +46,14 @@ public class ConvertersProvider implements ParamConverterProvider {
                 .put(Duration.class, new DurationConverter())
                 .put(Tags.class, new TagsConverter())
                 .put(MetricType.class, new MetricTypeConverter())
+                .put(Order.class, new OrderConverter())
                 .put(Percentiles.class, new PercentilesConverter())
                 .build();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> ParamConverter<T> getConverter(
-            Class<T> rawType, Type genericType, Annotation[] annotations
-    ) {
+    public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
         return (ParamConverter<T>) paramConverters.get(rawType);
     }
 }

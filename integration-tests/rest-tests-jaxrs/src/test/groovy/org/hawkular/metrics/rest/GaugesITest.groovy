@@ -148,7 +148,7 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 2, order: "DESC"]
+        query: [limit: 2, order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -161,7 +161,7 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 3, order: "ASC"]
+        query: [limit: 3, order: 'asc']
     )
     assertEquals(200, response.status)
 
@@ -203,7 +203,7 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
+        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -217,7 +217,7 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: -1, order: "DESC"]
+        query: [limit: -1, order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -234,7 +234,7 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: -100, order: "ASC"]
+        query: [limit: -100, order: 'asc']
     )
     assertEquals(200, response.status)
 

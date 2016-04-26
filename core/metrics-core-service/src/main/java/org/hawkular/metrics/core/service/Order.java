@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,47 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Map;
+
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedMap.Builder;
+
 /**
  * @author John Sanda
  */
 public enum Order {
+    ASC("asc"),
+    DESC("desc");
 
-    ASC,
+    private static final Map<String, Order> texts;
 
-    DESC
+    static {
+        Builder<String, Order> builder = ImmutableSortedMap.orderedBy(String.CASE_INSENSITIVE_ORDER);
+        for (Order order : values()) {
+            builder.put(order.text, order);
+        }
+        texts = builder.build();
+    }
+
+    private String text;
+
+    Order(String text) {
+        this.text = text;
+    }
+
+    public static Order fromText(String text) {
+        checkArgument(text != null, "text is null");
+        Order order = texts.get(text);
+        if (order == null) {
+            throw new IllegalArgumentException(text + " is not a recognized order");
+        }
+        return order;
+    }
+
+    @Override
+    public String toString() {
+        return text;
+    }
 }

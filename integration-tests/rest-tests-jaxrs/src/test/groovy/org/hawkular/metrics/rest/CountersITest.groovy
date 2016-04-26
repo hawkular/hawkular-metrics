@@ -16,13 +16,17 @@
  */
 package org.hawkular.metrics.rest
 
+import static java.lang.Double.NaN
+
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertArrayEquals
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
+
 import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
-import static java.lang.Double.NaN
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.*
 /**
  * @author John Sanda
  */
@@ -312,7 +316,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 2, order: "DESC"]
+        query: [limit: 2, order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -325,7 +329,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 3, order: "ASC"]
+        query: [limit: 3, order: 'asc']
     )
     assertEquals(200, response.status)
 
@@ -367,7 +371,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: "DESC"]
+        query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -381,7 +385,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: -1, order: "DESC"]
+        query: [limit: -1, order: 'desc']
     )
     assertEquals(200, response.status)
 
@@ -398,7 +402,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
-        query: [limit: -100, order: "ASC"]
+        query: [limit: -100, order: 'asc']
     )
     assertEquals(200, response.status)
 
