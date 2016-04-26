@@ -199,6 +199,30 @@
         <!-- Document generation from the Swagger annotations on the REST-API. -->
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack-apidoc-groovy</id>
+                <phase>process-resources</phase>
+                <goals>
+                  <goal>unpack</goal>
+                </goals>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.hawkular</groupId>
+                      <artifactId>hawkular-build-tools</artifactId>
+                      <version>${version.org.hawkular.hawkular-build-tools}</version>
+                      <type>jar</type>
+                      <includes>**/*.groovy</includes>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>com.github.kongchen</groupId>
             <artifactId>swagger-maven-plugin</artifactId>
             <configuration>
@@ -242,7 +266,7 @@
                 <outputFile>${project.build.directory}/generated/rest-metrics.adoc</outputFile>
               </properties>
               <scripts>
-                <script>file:///${restDocDirectory}/apidoc.groovy</script>
+                <script>file:///${project.build.directory}/dependency/hawkular-documentation/apidoc.groovy</script>
               </scripts>
             </configuration>
             <executions>
