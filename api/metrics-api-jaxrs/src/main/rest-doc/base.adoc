@@ -146,6 +146,9 @@ Limit and order only work with raw data; if used in conjunction with bucketed re
 
 Usage and default value details:
 
+* ascending order parameter value is `asc`
+* descending order parameter value is `desc`
+* parameter value matching is case-insensitive
 * default order is descending
 * no limit imposed if parameter not specified
 * limit of 0 or negative is equivalent to no limit
