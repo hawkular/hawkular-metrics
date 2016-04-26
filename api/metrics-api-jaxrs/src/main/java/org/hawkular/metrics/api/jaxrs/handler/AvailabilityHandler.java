@@ -229,7 +229,8 @@ public class AvailabilityHandler {
     public void deleteMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam("Tag list") @PathParam("tags") TagNames tags
+            @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names")
+            @PathParam("tags") TagNames tags
     ) {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, id));
         metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));

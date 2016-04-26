@@ -228,7 +228,8 @@ public class GaugeHandler {
     public void deleteMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam("Tag list") @PathParam("tags") TagNames tags
+            @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names")
+            @PathParam("tags") TagNames tags
     ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
         metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));
