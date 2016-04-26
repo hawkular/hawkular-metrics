@@ -104,6 +104,8 @@ public class AvailabilityHandler {
     public void createAvailabilityMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<AvailabilityType> metric,
+            @ApiParam(value = "Overwrite previously created metric if it exists. Defaults to false.",
+                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
         if (metric.getType() != null
@@ -116,7 +118,7 @@ public class AvailabilityHandler {
         metric = new Metric<>(
                 new MetricId<>(tenantId, AVAILABILITY, metric.getMetricId().getName()), metric.getTags(),
                 metric.getDataRetention());
-        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+        metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET

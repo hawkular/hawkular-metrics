@@ -65,8 +65,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
-        return delegate.insertMetricInMetricsIndex(metric);
+    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite) {
+        return delegate.insertMetricInMetricsIndex(metric, overwrite);
     }
 
     @Override

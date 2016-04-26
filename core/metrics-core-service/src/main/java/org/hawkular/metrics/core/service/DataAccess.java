@@ -45,7 +45,7 @@ public interface DataAccess {
 
     Observable<Row> findTenant(String id);
 
-    <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric);
+    <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite);
 
     <T> Observable<Row> findMetric(MetricId<T> id);
 
