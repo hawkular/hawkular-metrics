@@ -297,17 +297,27 @@ class TagsITest extends RESTTest {
 
       response = hawkularMetrics.get(path: it.path + "/tags/a1:*,d1:B%3AA",
           headers: [(tenantHeaderName): tenantId])
-      assertEquals(200, response.status)
 
-      assertEquals([
-                        a1: ['a', 'A/B'],
-                        d1: ['B:A']
-                    ], response.data)
+      def genericResponse = hawkularMetrics.get(path: "metrics/tags/a1:*,d1:B%3AA",
+          query: [type: it.type], headers: [(tenantHeaderName): tenantId])
+
+      def untypedResponse = hawkularMetrics.get(path: "metrics/tags/a1:*,d1:B%3AA", headers: [(tenantHeaderName):
+                                                                                                  tenantId])
+
+      [response, genericResponse, untypedResponse].each { lresponse ->
+        assertEquals(200, lresponse.status)
+        assertEquals([
+            a1: ['a', 'A/B'],
+            d1: ['B:A']
+        ], lresponse.data)
+      }
 
       // Fetch empty
       response = hawkularMetrics.get(path: it.path + "/tags/g1:*",
           headers: [(tenantHeaderName): tenantId])
       assertEquals(204, response.status)
+
+      // Find from generic endpoint
     }
   }
 }

@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
@@ -35,6 +36,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
@@ -113,6 +115,24 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/tags/{tags}")
+    @ApiOperation(value = "Retrieve gauge type's tag values", response = Map.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tags successfully retrieved."),
+            @ApiResponse(code = 204, message = "No matching tags were found"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tags.",
+                    response = ApiError.class)
+    })
+    public <T> void getTags(@Suspended final AsyncResponse asyncResponse,
+                            @ApiParam(value = "Queried metric type", allowableValues = "gauge, availability, counter")
+                            @QueryParam("type") MetricType<T> metricType,
+                            @ApiParam("Tag query") @PathParam("tags") Tags tags) {
+        metricsService.getTagValues(tenantId, metricType, tags.getTags())
+                .map(ApiUtils::mapToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @GET
     @Path("/")
     @ApiOperation(value = "Find tenant's metric definitions.", notes = "Does not include any metric values. ",
                     response = Metric.class, responseContainer = "List")
@@ -127,8 +147,7 @@ public class MetricHandler {
             @Suspended
             AsyncResponse asyncResponse,
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
-            @QueryParam("type")
-            MetricType<T> metricType,
+            @QueryParam("type") MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags")
             Tags tags,
             @ApiParam(value = "Regexp to match metricId, requires tags filtering", required = false) @QueryParam("id")
