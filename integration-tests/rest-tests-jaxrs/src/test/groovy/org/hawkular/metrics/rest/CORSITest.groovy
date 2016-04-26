@@ -27,8 +27,10 @@ import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CO
 import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
+import static org.junit.Assume.assumeTrue
 
 import org.joda.time.DateTime
+import org.junit.Before
 import org.junit.Test
 
 class CORSITest extends RESTTest {
@@ -36,6 +38,11 @@ class CORSITest extends RESTTest {
   static final String testAccessControlAllowHeaders = DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + ',' +
     System.getProperty("hawkular-metrics.test.access-control-allow-headers");
 
+  @Before
+  void assumeIsMavenBuild() {
+    def version = System.properties.getProperty('project.version');
+    assumeTrue('This test only works in a Maven build', version != null)
+  }
 
   @Test
   void testOptionsWithOrigin() {
