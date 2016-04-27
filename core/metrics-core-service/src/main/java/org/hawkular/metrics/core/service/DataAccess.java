@@ -37,7 +37,6 @@ import rx.Observable;
  * @author John Sanda
  */
 public interface DataAccess {
-    Observable<ResultSet> insertTenant(String tenantId);
 
     Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 

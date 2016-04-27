@@ -65,8 +65,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertTenantOverwrite;
 
-    private PreparedStatement insertTenantId;
-
     private PreparedStatement findAllTenantIds;
 
     private PreparedStatement findAllTenantIdsFromMetricsIdx;
@@ -150,8 +148,6 @@ public class DataAccessImpl implements DataAccess {
     }
 
     protected void initPreparedStatements() {
-        insertTenantId = session.prepare("INSERT INTO tenants (id) VALUES (?)");
-
         insertTenant = session.prepare(
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
@@ -341,10 +337,6 @@ public class DataAccessImpl implements DataAccess {
                 "SELECT tenant_id, type, metric " +
                 "FROM metrics_tags_idx " +
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
-    }
-
-    @Override public Observable<ResultSet> insertTenant(String tenantId) {
-        return rxSession.execute(insertTenantId.bind(tenantId));
     }
 
     @Override
