@@ -18,8 +18,25 @@
 package org.hawkular.openshift.auth;
 
 
+import static java.util.stream.Collectors.toSet;
+
+import static org.hawkular.openshift.auth.BasicAuthenticator.BASIC_PREFIX;
+import static org.hawkular.openshift.auth.SecurityOption.DISABLED;
+import static org.hawkular.openshift.auth.SecurityOption.HTPASSWD;
+import static org.hawkular.openshift.auth.SecurityOption.OPENSHIFT_OAUTH;
+import static org.hawkular.openshift.auth.TokenAuthenticator.BEARER_PREFIX;
+import static org.hawkular.openshift.auth.Utils.endExchange;
+
+import static io.undertow.util.Headers.AUTHORIZATION;
 import static io.undertow.util.Headers.ORIGIN;
 import static io.undertow.util.Methods.OPTIONS;
+import static io.undertow.util.StatusCodes.FORBIDDEN;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
@@ -30,26 +47,29 @@ import io.undertow.server.HttpServerExchange;
  * @author Thomas Segismont
  */
 public class OpenshiftAuthHandler implements HttpHandler {
-    private static final String OPENSHIFT_OAUTH = "openshift-oauth";
-    private static final String HTPASSWD = "htpasswd";
-    private static final String DISABLED = "disabled";
     private static final String SECURITY_OPTION_SYSPROP = "hawkular-metrics.openshift.auth-methods";
-    private static final String SECURITY_OPTION = System.getProperty(SECURITY_OPTION_SYSPROP, OPENSHIFT_OAUTH);
+    private static final Set<SecurityOption> SECURITY_OPTIONS;
+
+    static {
+        Set<SecurityOption> active = new HashSet<>();
+        String property = System.getProperty(SECURITY_OPTION_SYSPROP, OPENSHIFT_OAUTH.toString());
+        Set<String> configured = Arrays.stream(property.split(",")).map(String::trim).collect(toSet());
+        for (SecurityOption option : SecurityOption.values()) {
+            if (configured.contains(option.toString())) {
+                active.add(option);
+            }
+        }
+        SECURITY_OPTIONS = Sets.immutableEnumSet(active);
+    }
 
     private final HttpHandler containerHandler;
-    private final Authenticator authenticator;
+    private final TokenAuthenticator tokenAuthenticator;
+    private final BasicAuthenticator basicAuthenticator;
 
     public OpenshiftAuthHandler(HttpHandler containerHandler) {
         this.containerHandler = containerHandler;
-        if (SECURITY_OPTION.contains(OPENSHIFT_OAUTH)) {
-            authenticator = new TokenAuthenticator(containerHandler);
-        } else if (SECURITY_OPTION.contains(HTPASSWD)) {
-            authenticator = new BasicAuthenticator(containerHandler);
-        } else if (SECURITY_OPTION.equalsIgnoreCase(DISABLED)) {
-            authenticator = new DisabledAuthenticator(containerHandler);
-        } else {
-            throw new IllegalArgumentException("Unknown security option: " + SECURITY_OPTION);
-        }
+        tokenAuthenticator = new TokenAuthenticator(containerHandler);
+        basicAuthenticator = new BasicAuthenticator(containerHandler);
     }
 
     @Override
@@ -72,10 +92,27 @@ public class OpenshiftAuthHandler implements HttpHandler {
             return;
         }
 
-        authenticator.handleRequest(serverExchange);
+        // If it is set to be disabled, then just continue
+        if (SECURITY_OPTIONS.contains(DISABLED)) {
+            containerHandler.handleRequest(serverExchange);
+            return;
+        }
+
+        // Get the authorization header and determine how it should be handled
+        String authorizationHeader = serverExchange.getRequestHeaders().getFirst(AUTHORIZATION);
+        if (authorizationHeader == null) {
+            endExchange(serverExchange, FORBIDDEN);
+        } else if (authorizationHeader.startsWith(BEARER_PREFIX) && SECURITY_OPTIONS.contains(OPENSHIFT_OAUTH)) {
+            tokenAuthenticator.handleRequest(serverExchange);
+        } else if (authorizationHeader.startsWith(BASIC_PREFIX) && SECURITY_OPTIONS.contains(HTPASSWD)) {
+            basicAuthenticator.handleRequest(serverExchange);
+        } else {
+            endExchange(serverExchange, FORBIDDEN);
+        }
     }
 
     public void stop() {
-        authenticator.stop();
+        basicAuthenticator.stop();
+        tokenAuthenticator.stop();
     }
 }

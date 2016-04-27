@@ -45,7 +45,7 @@ import io.undertow.server.HttpServerExchange;
 class BasicAuthenticator implements Authenticator {
     private static final Logger log = Logger.getLogger(BasicAuthenticator.class);
 
-    private static final String BASIC_PREFIX = "Basic ";
+    static final String BASIC_PREFIX = "Basic ";
     private static final String HTPASSWD_FILE_SYSPROP = "hawkular-metrics.openshift.htpasswd-file";
     private static final File HTPASSWD_FILE;
 
@@ -92,11 +92,6 @@ class BasicAuthenticator implements Authenticator {
         }
 
         String authorizationHeader = serverExchange.getRequestHeaders().getFirst(AUTHORIZATION);
-        if (authorizationHeader == null || !authorizationHeader.startsWith(BASIC_PREFIX)) {
-            endExchange(serverExchange, FORBIDDEN);
-            return;
-        }
-
         String usernamePasswordEncoded = authorizationHeader.substring(BASIC_PREFIX.length());
         String usernamePassword = new String(Base64.getDecoder().decode(usernamePasswordEncoded));
 

@@ -103,7 +103,7 @@ class TokenAuthenticator implements Authenticator {
     private static final AttachmentKey<AuthContext> AUTH_CONTEXT_KEY = AttachmentKey.create(AuthContext.class);
 
     private static final HttpString HAWKULAR_TENANT = new HttpString("Hawkular-Tenant");
-    private static final String BEARER_PREFIX = "Bearer ";
+    static final String BEARER_PREFIX = "Bearer ";
     private static final String MISSING_HEADERS_MSG =
             "The '" + AUTHORIZATION + "' and '" + HAWKULAR_TENANT + "' headers are required";
 
@@ -173,7 +173,7 @@ class TokenAuthenticator implements Authenticator {
             exchange.removeAttachment(AUTH_CONTEXT_KEY);
             nextListener.proceed();
         });
-        if (context.isMissingHeaders()) {
+        if (context.isMissingTenantHeader()) {
             endExchange(serverExchange, BAD_REQUEST, MISSING_HEADERS_MSG);
             return;
         }
@@ -333,8 +333,8 @@ class TokenAuthenticator implements Authenticator {
             return context;
         }
 
-        private boolean isMissingHeaders() {
-            return tenant == null || authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX);
+        private boolean isMissingTenantHeader() {
+            return tenant == null;
         }
 
         private void clientRequestStarting() {

@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.openshift.auth;
 
-import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
-
 /**
- * An authentication strategy which allows all requests.
- *
  * @author Thomas Segismont
  */
-class DisabledAuthenticator implements Authenticator {
-    private final HttpHandler containerHandler;
+enum SecurityOption {
+    OPENSHIFT_OAUTH("openshift-oauth"),
+    HTPASSWD("htpasswd"),
+    DISABLED("disabled");
 
-    DisabledAuthenticator(HttpHandler containerHandler) {
-        this.containerHandler = containerHandler;
+    private String text;
+
+    SecurityOption(String text) {
+        this.text = text;
     }
 
     @Override
-    public void handleRequest(HttpServerExchange exchange) throws Exception {
-        containerHandler.handleRequest(exchange);
-    }
-
-    @Override
-    public void stop() {
+    public String toString() {
+        return text;
     }
 }
