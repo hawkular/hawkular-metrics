@@ -63,6 +63,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertTenant;
 
+    private PreparedStatement insertTenantOverwrite;
+
     private PreparedStatement insertTenantId;
 
     private PreparedStatement findAllTenantIds;
@@ -152,6 +154,9 @@ public class DataAccessImpl implements DataAccess {
 
         insertTenant = session.prepare(
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
+
+        insertTenantOverwrite = session.prepare(
+                "INSERT INTO tenants (id, retentions) VALUES (?, ?)");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
@@ -343,9 +348,14 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertTenant(Tenant tenant) {
+    public Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite) {
         Map<String, Integer> retentions = tenant.getRetentionSettings().entrySet().stream()
                 .collect(toMap(entry -> entry.getKey().getText(), Map.Entry::getValue));
+
+        if (overwrite) {
+            return rxSession.execute(insertTenantOverwrite.bind(tenant.getId(), retentions));
+        }
+
         return rxSession.execute(insertTenant.bind(tenant.getId(), retentions));
     }
 

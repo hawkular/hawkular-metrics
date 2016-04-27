@@ -34,7 +34,7 @@ class TenantITest extends RESTTest {
 
   @Test
   void createAndReadTest() {
-    String secondTenantId = nextTenantId()
+    def secondTenantId = nextTenantId()
 
     def response = hawkularMetrics.post(path: "tenants", body: [
         id        : tenantId,
@@ -74,6 +74,23 @@ class TenantITest extends RESTTest {
     badPost(path: 'tenants', body: [id: tenantId]) { exception ->
       assertEquals(409, exception.response.status)
     }
+
+    response = hawkularMetrics.post(path: 'tenants', query: [overwrite: true], body: [
+        id: tenantId,
+        retentions: [gauge: 145, availability: 130, counter: 113]
+    ])
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
+
+    response = hawkularMetrics.get(path: "tenants")
+    def expectedData = [
+        [
+            id        : tenantId,
+            retentions: [gauge: 145, availability: 130, counter: 113]
+        ]
+    ]
+
+    assertTrue("${expectedData} not in ${response.data}", response.data.containsAll((expectedData)))
   }
 
   @Test

@@ -39,7 +39,7 @@ import rx.Observable;
 public interface DataAccess {
     Observable<ResultSet> insertTenant(String tenantId);
 
-    Observable<ResultSet> insertTenant(Tenant tenant);
+    Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 
     Observable<Row> findAllTenantIds();
 

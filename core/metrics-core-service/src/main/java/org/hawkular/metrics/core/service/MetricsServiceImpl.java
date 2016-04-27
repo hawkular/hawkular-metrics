@@ -341,9 +341,9 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> createTenant(final Tenant tenant) {
+    public Observable<Void> createTenant(final Tenant tenant, boolean overwrite) {
         return Observable.create(subscriber -> {
-            Observable<Void> updates = dataAccess.insertTenant(tenant).flatMap(resultSet -> {
+            Observable<Void> updates = dataAccess.insertTenant(tenant, overwrite).flatMap(resultSet -> {
                 if (!resultSet.wasApplied()) {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }

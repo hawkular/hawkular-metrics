@@ -57,11 +57,12 @@ public interface MetricsService {
      *
      * @param tenant
      *            The {@link Tenant tenant} to create
+     * @param overwrite Flag to force overwrite previous tenant definition if it exists
      * @return void
      * @throws org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException
      *             tenant already exists
      */
-    Observable<Void> createTenant(Tenant tenant);
+    Observable<Void> createTenant(Tenant tenant, boolean overwrite);
 
     Observable<Tenant> getTenants();
 

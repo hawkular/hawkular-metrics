@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,12 @@ import java.net.URI;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
@@ -73,10 +75,14 @@ public class TenantsHandler {
     public void createTenant(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(required = true) TenantDefinition tenantDefinition,
+            @ApiParam(value = "Overwrite previously created tenant configuration if it exists. "
+                    + "Only data retention settings are overwriten; existing metrics and data points are unnafected. "
+                    + "Defaults to false.",
+                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
-        metricsService.createTenant(tenantDefinition.toTenant())
+        metricsService.createTenant(tenantDefinition.toTenant(), overwrite)
                 .subscribe(new TenantCreatedObserver(asyncResponse, location));
     }
 

@@ -78,9 +78,9 @@ public class DataAccessITest extends MetricsITest {
         Tenant tenant2 = new Tenant("tenant-2", ImmutableMap.of(GAUGE, 14));
 
 
-        dataAccess.insertTenant(tenant1).toBlocking().lastOrDefault(null);
+        dataAccess.insertTenant(tenant1, false).toBlocking().lastOrDefault(null);
 
-        dataAccess.insertTenant(tenant2).toBlocking().lastOrDefault(null);
+        dataAccess.insertTenant(tenant2, false).toBlocking().lastOrDefault(null);
 
         Tenant actual = dataAccess.findTenant(tenant1.getId())
                                   .map(Functions::getTenant)
@@ -90,8 +90,8 @@ public class DataAccessITest extends MetricsITest {
 
     @Test
     public void doNotAllowDuplicateTenants() throws Exception {
-        dataAccess.insertTenant(new Tenant("tenant-1")).toBlocking().lastOrDefault(null);
-        ResultSet resultSet = dataAccess.insertTenant(new Tenant("tenant-1"))
+        dataAccess.insertTenant(new Tenant("tenant-1"), false).toBlocking().lastOrDefault(null);
+        ResultSet resultSet = dataAccess.insertTenant(new Tenant("tenant-1"), false)
                                         .toBlocking()
                                         .lastOrDefault(null);
         assertFalse(resultSet.wasApplied(), "Tenants should not be overwritten");
