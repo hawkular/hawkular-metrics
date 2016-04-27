@@ -16,6 +16,12 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.assertArrayEquals
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
+
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
 import org.apache.commons.math3.stat.descriptive.rank.Min
@@ -26,9 +32,6 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.Test
 
-import static org.joda.time.DateTime.now
-import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.*
 /**
  * @author Thomas Segismont
  */
@@ -596,7 +599,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(201, response.status)
 
     // query for data
-    response = hawkularMetrics.get(
+    badGet(
         path: 'gauges/stats',
         query: [
             start: start.millis,
@@ -604,8 +607,9 @@ class GaugeMetricStatisticsITest extends RESTTest {
             buckets: 1
         ],
         headers: [(tenantHeaderName): tenantId]
-    )
-    assertEquals(400, response.status)
+    ) { exception ->
+      assertEquals(400, exception.response.status)
+    }
   }
 
   @Test
@@ -627,7 +631,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(201, response.status)
 
     // query for data
-    response = hawkularMetrics.get(
+    badGet(
         path: 'gauges/stats',
         query: [
             start: start.millis,
@@ -637,8 +641,9 @@ class GaugeMetricStatisticsITest extends RESTTest {
             metrics: ['G2']
         ],
         headers: [(tenantHeaderName): tenantId]
-    )
-    assertEquals(400, response.status)
+    ) { exception ->
+      assertEquals(400, exception.response.status)
+    }
   }
 
   @Test
@@ -658,7 +663,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(201, response.status)
 
     // query for data
-    response = hawkularMetrics.get(
+    badGet(
         path: 'gauges/stats',
         query: [
             start: start.millis,
@@ -666,8 +671,9 @@ class GaugeMetricStatisticsITest extends RESTTest {
             tags: 'type:cpu_usage,host:server1|server2'
         ],
         headers: [(tenantHeaderName): tenantId]
-    )
-    assertEquals(400, response.status)
+    ) { exception ->
+      assertEquals(400, exception.response.status)
+    }
   }
 
   @Test
@@ -697,7 +703,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(4, response.data.size)
 
-    def expectedArray = [new BigDecimal(3), new BigDecimal(2), null, null].toArray()
+    def expectedArray = [3.0, 2.0, null, null].toArray()
     assertArrayEquals(expectedArray, response.data.min.toArray())
     assertArrayEquals(expectedArray, response.data.max.toArray())
     assertArrayEquals(expectedArray, response.data.avg.toArray())

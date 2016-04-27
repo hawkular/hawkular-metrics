@@ -25,9 +25,12 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.joda.time.DateTime
 import org.junit.BeforeClass
 
-import com.google.common.base.Charsets
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 
 import groovyx.net.http.ContentType
+import groovyx.net.http.HttpResponseDecorator
+import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 
 class RESTTest {
@@ -38,27 +41,36 @@ class RESTTest {
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
   static final int LARGE_PAYLOAD_SIZE = MAX_BATCH_SIZE
   static String tenantHeaderName = "Hawkular-Tenant";
+  static ObjectMapper objectMapper = new ObjectMapper()
   static RESTClient hawkularMetrics
-  static defaultFailureHandler
 
   @BeforeClass
   static void initClient() {
+    objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
-    defaultFailureHandler = hawkularMetrics.handler.failure
-    hawkularMetrics.handler.failure = { resp ->
+    hawkularMetrics.parser['application/json'] = hawkularMetrics.parser['text/plain']
+    hawkularMetrics.handler.success = { HttpResponseDecorator resp, Reader data ->
+      if (data != null) {
+        resp.setData(objectMapper.readValue(data, Object.class))
+      }
+      resp
+    }
+    hawkularMetrics.handler.failure = { HttpResponseDecorator resp, Reader data ->
+      def text = null
+      if (data != null) {
+        text = data.text
+        resp.setData(resp.contentType.equals('application/json') ? objectMapper.readValue(text, Object.class) : text)
+      }
       def msg = "Got error response: ${resp.statusLine}"
-      if (resp.entity != null && resp.entity.contentLength != 0) {
-        def baos = new ByteArrayOutputStream()
-        resp.entity.writeTo(baos)
-        def entity = new String(baos.toByteArray(), Charsets.UTF_8)
+      if (text != null) {
         msg = """${msg}
 === Response body
-${entity}
+${text}
 ===
 """
       }
       System.err.println(msg)
-      return resp
+      throw new HttpResponseException(resp)
     }
   }
 
@@ -100,20 +112,14 @@ ${entity}
   }
 
   static def badRequest(method, args, errorHandler, forceContentTypeOnEmptyBody = false) {
-    def originalFailureHandler = hawkularMetrics.handler.failure;
-
     if (forceContentTypeOnEmptyBody && args.body == null) {
       args.headers["Content-Type"] = "application/json"
     }
-
-    hawkularMetrics.handler.failure = defaultFailureHandler;
     try {
       method(args)
       throw new AssertionError("Expected exception to be thrown")
-    } catch (e) {
+    } catch (HttpResponseException e) {
       errorHandler(e)
-    } finally {
-      hawkularMetrics.handler.failure = originalFailureHandler;
     }
   }
 
