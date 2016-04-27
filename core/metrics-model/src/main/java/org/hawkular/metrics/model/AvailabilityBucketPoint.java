@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,6 @@
 package org.hawkular.metrics.model;
 
 import static java.lang.Double.NaN;
-import static java.lang.Double.isNaN;
 
 import java.util.List;
 import java.util.Map;
@@ -28,39 +27,48 @@ import java.util.Map;
  * @author Thomas Segismont
  */
 public final class AvailabilityBucketPoint extends BucketPoint {
-    private final long downtimeDuration;
-    private final long lastDowntime;
-    private final double uptimeRatio;
-    private final long downtimeCount;
+    private final Long downtimeDuration;
+    private final Long lastDowntime;
+    private final Double uptimeRatio;
+    private final Long downtimeCount;
 
     protected AvailabilityBucketPoint(long start, long end, long downtimeDuration, long lastDowntime, double
             uptimeRatio, long downtimeCount) {
         super(start, end);
         this.downtimeDuration = downtimeDuration;
         this.lastDowntime = lastDowntime;
-        this.uptimeRatio = uptimeRatio;
+        this.uptimeRatio = getDoubleValue(uptimeRatio);
         this.downtimeCount = downtimeCount;
     }
 
-    public long getDowntimeDuration() {
+    public Long getDowntimeDuration() {
+        if (isEmpty()) {
+            return null;
+        }
         return downtimeDuration;
     }
 
-    public long getLastDowntime() {
+    public Long getLastDowntime() {
+        if (isEmpty()) {
+            return null;
+        }
         return lastDowntime;
     }
 
-    public double getUptimeRatio() {
+    public Double getUptimeRatio() {
         return uptimeRatio;
     }
 
-    public long getDowntimeCount() {
+    public Long getDowntimeCount() {
+        if (isEmpty()) {
+            return null;
+        }
         return downtimeCount;
     }
 
     @Override
     public boolean isEmpty() {
-        return isNaN(uptimeRatio);
+        return uptimeRatio == null;
     }
 
     @Override

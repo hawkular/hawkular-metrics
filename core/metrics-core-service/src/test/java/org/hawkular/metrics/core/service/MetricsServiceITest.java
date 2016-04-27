@@ -867,7 +867,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         NumericBucketPoint bucket = actual.get(0);
 
-        assertEquals(testSize, bucket.getSamples());
+        assertEquals((Integer) testSize, bucket.getSamples());
         assertEquals(percentiles.size(), bucket.getPercentiles().size());
         assertEquals(top.getResult(), bucket.getPercentiles().get(3).getValue());
     }

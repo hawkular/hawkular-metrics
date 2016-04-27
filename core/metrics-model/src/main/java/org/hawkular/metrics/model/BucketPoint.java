@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.model;
+
+import static java.lang.Double.isNaN;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +49,13 @@ public abstract class BucketPoint {
      */
     public long getEnd() {
         return end;
+    }
+
+    protected Double getDoubleValue(double value) {
+        if (isNaN(value)) {
+            return null;
+        }
+        return value;
     }
 
     /**

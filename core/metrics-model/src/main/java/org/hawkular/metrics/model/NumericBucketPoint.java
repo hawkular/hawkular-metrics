@@ -17,7 +17,6 @@
 package org.hawkular.metrics.model;
 
 import static java.lang.Double.NaN;
-import static java.lang.Double.isNaN;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,43 +28,45 @@ import java.util.Map;
  * @author Thomas Segismont
  */
 public class NumericBucketPoint extends BucketPoint {
-    private final double min;
-    private final double avg;
-    private final double median;
-    private final double max;
-    private final double sum;
-    private int samples;
+    private final Double min;
+    private final Double avg;
+    private final Double median;
+    private final Double max;
+    private final Double sum;
+    private Integer samples;
     private final List<Percentile> percentiles;
 
     private NumericBucketPoint(long start, long end, double min, double avg, double median, double max, double sum,
             List<Percentile> percentiles, int samples) {
         super(start, end);
-        this.min = min;
-        this.avg = avg;
-        this.median = median;
-        this.max = max;
-        this.sum = sum;
+        this.min = getDoubleValue(min);
+        this.avg = getDoubleValue(avg);
+        this.median = getDoubleValue(median);
+        this.max = getDoubleValue(max);
+        this.sum = getDoubleValue(sum);
         this.percentiles = percentiles;
-        this.samples = samples;
+        if (samples != 0) {
+            this.samples = samples;
+        }
     }
 
-    public double getMin() {
+    public Double getMin() {
         return min;
     }
 
-    public double getAvg() {
+    public Double getAvg() {
         return avg;
     }
 
-    public double getMedian() {
+    public Double getMedian() {
         return median;
     }
 
-    public double getMax() {
+    public Double getMax() {
         return max;
     }
 
-    public double getSum() {
+    public Double getSum() {
         return sum;
     }
 
@@ -73,13 +74,14 @@ public class NumericBucketPoint extends BucketPoint {
         return percentiles;
     }
 
-    public int getSamples() {
+    public Integer getSamples() {
         return samples;
     }
 
     @Override
     public boolean isEmpty() {
-        return samples == 0 || isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(sum);
+        return samples == null || min == null || avg == null || median == null || max == null || sum == null;
+//        return samples == null || isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(sum);
     }
 
     @Override
