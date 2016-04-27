@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.hawkular.metrics.rest
+
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.rank.Max
 import org.apache.commons.math3.stat.descriptive.rank.Min
@@ -25,7 +26,6 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.Test
 
-import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.joda.time.Seconds.seconds
 import static org.junit.Assert.*
@@ -127,30 +127,23 @@ class GaugeMetricStatisticsITest extends RESTTest {
             start: buckets[0], end: buckets[0] + bucketSize, empty: false, min: 12.22,
             avg: avg0.result, median: med0.result, max: 15.37, sum: sum0.result, samples: 2
         ], [
-            start: buckets[1], end: buckets[1] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[1], end: buckets[1] + bucketSize, empty: true
         ], [
-            start: buckets[2], end: buckets[2] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[2], end: buckets[2] + bucketSize, empty: true
         ], [
-            start: buckets[3], end: buckets[3] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[3], end: buckets[3] + bucketSize, empty: true
         ], [
             start: buckets[4], end: buckets[4] + bucketSize, empty: false, min: 25.0,
             avg  : 25.0, median: 25.0, max: 25.0, samples: 2, sum: 50.0
         ],
         [
-            start: buckets[5], end: buckets[5] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[5], end: buckets[5] + bucketSize, empty: true
         ], [
-            start: buckets[6], end: buckets[6] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[6], end: buckets[6] + bucketSize, empty: true
         ], [
-            start: buckets[7], end: buckets[7] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[7], end: buckets[7] + bucketSize, empty: true
         ], [
-            start: buckets[8], end: buckets[8] + bucketSize, empty: true, min: NaN,
-            avg  : NaN, median: NaN, max: NaN, samples: 0, sum: NaN
+            start: buckets[8], end: buckets[8] + bucketSize, empty: true
         ], [
             start: buckets[9], end: buckets[9] + bucketSize, empty: false, min: 18.367,
             avg: avg9.result, median: med9.result, max: 19.01, sum: sum9.result,
@@ -704,7 +697,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
     assertEquals(200, response.status)
     assertEquals(4, response.data.size)
 
-    def expectedArray = [new BigDecimal(3), new BigDecimal(2), 'NaN', 'NaN'].toArray()
+    def expectedArray = [new BigDecimal(3), new BigDecimal(2), null, null].toArray()
     assertArrayEquals(expectedArray, response.data.min.toArray())
     assertArrayEquals(expectedArray, response.data.max.toArray())
     assertArrayEquals(expectedArray, response.data.avg.toArray())

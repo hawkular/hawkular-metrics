@@ -16,16 +16,13 @@
  */
 package org.hawkular.metrics.rest
 
-import static java.lang.Double.NaN
-
-import static org.joda.time.Minutes.minutes
-import static org.joda.time.Seconds.seconds
-import static org.junit.Assert.assertEquals
-
 import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.Minutes.minutes
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.assertEquals
 /**
  * @author Thomas Segismont
  */
@@ -95,13 +92,11 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     def expectedData = [
         [
             start           : buckets[0], end: buckets[0] + bucketSize, empty: true,
-            downtimeDuration: 0, lastDowntime: 0, uptimeRatio: NaN, downtimeCount: 0,
         ], [
             start           : buckets[1], end: buckets[1] + bucketSize, empty: false,
             downtimeDuration: 0, lastDowntime: 0, uptimeRatio: 1.0, downtimeCount: 0,
         ], [
-            start           : buckets[2], end: buckets[2] + bucketSize, empty: true,
-            downtimeDuration: 0, lastDowntime: 0, uptimeRatio: NaN, downtimeCount: 0,
+            start           : buckets[2], end: buckets[2] + bucketSize, empty: true
         ]
     ]
 
@@ -156,9 +151,12 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
   private static void assertBucketEquals(def expected, def actual) {
     assertEquals(expected.start, actual.start)
     assertEquals(expected.end, actual.end)
-    assertEquals(expected.downtimeDuration, actual.downtimeDuration)
-    assertEquals(expected.lastDowntime, actual.lastDowntime)
-    assertDoubleEquals(expected.uptimeRatio, actual.uptimeRatio)
-    assertEquals(expected.downtimeCount, actual.downtimeCount)
+    assertEquals(expected.empty, actual.empty)
+    if (!expected.empty) {
+      assertEquals(expected.downtimeDuration, actual.downtimeDuration)
+      assertEquals(expected.lastDowntime, actual.lastDowntime)
+      assertDoubleEquals(expected.uptimeRatio, actual.uptimeRatio)
+      assertEquals(expected.downtimeCount, actual.downtimeCount)
+    }
   }
 }

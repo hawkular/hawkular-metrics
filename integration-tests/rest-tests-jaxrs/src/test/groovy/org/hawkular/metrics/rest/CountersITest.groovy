@@ -500,8 +500,7 @@ class CountersITest extends RESTTest {
         case 4:
         case 6:
           val = NaN
-          bucketPoint.putAll([min: val, avg: val, median: val, max: val, empty: true,
-          samples: 0] as Map)
+          bucketPoint.putAll([empty: true] as Map)
           break;
         case 3:
           bucketPoint.putAll([min: 400D, avg: 400D, median: 400D, max: 400D, sum: 400D, empty: false,
@@ -684,7 +683,7 @@ Actual:   ${response.data}
                           samples: 2]
           break
         default:
-          bucketPoint << [min: NaN, max: NaN, avg: NaN, median: NaN, sum: NaN, empty: true, samples: 0]
+          bucketPoint << [empty: true]
           break
       }
       expectedData.push(bucketPoint);
@@ -1392,7 +1391,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
     assertEquals(4, response.data.size)
 
-    def expectedArray = [new BigDecimal(3), new BigDecimal(2), 'NaN', 'NaN'].toArray()
+    def expectedArray = [new BigDecimal(3), new BigDecimal(2),  null, null].toArray()
     assertArrayEquals(expectedArray, response.data.min.toArray())
     assertArrayEquals(expectedArray, response.data.max.toArray())
     assertArrayEquals(expectedArray, response.data.avg.toArray())

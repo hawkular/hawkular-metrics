@@ -39,12 +39,14 @@ final class SumNumericBucketPointCollector {
     }
 
     void increment(NumericBucketPoint bucketPoint) {
-        min.increment(bucketPoint.getMin());
-        average.increment(bucketPoint.getAvg());
-        median.increment(bucketPoint.getMedian());
-        max.increment(bucketPoint.getMax());
-        sum.increment(bucketPoint.getSum());
-        samples.increment(1);
+        if (!bucketPoint.isEmpty()) {
+            min.increment(bucketPoint.getMin());
+            average.increment(bucketPoint.getAvg());
+            median.increment(bucketPoint.getMedian());
+            max.increment(bucketPoint.getMax());
+            sum.increment(bucketPoint.getSum());
+            samples.increment(1);
+        }
 
         start = bucketPoint.getStart();
         end = bucketPoint.getEnd();
