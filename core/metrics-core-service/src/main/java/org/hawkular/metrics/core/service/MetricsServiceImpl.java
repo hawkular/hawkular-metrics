@@ -930,6 +930,17 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    public Observable<DataPoint<String>> findStringData(MetricId<String> id, long start, long end, boolean distinct,
+            int limit, Order order) {
+        checkArgument(isValidTimeRange(start, end));
+        if (distinct) {
+            return findDataPoints(id, start, end, limit, order).distinctUntilChanged(DataPoint::getValue);
+        } else {
+            return findDataPoints(id, start, end, limit, order);
+        }
+    }
+
+    @Override
     public Observable<Boolean> idExists(final MetricId<?> metricId) {
         return this.findMetrics(metricId.getTenantId(), metricId.getType())
                 .filter(m -> {

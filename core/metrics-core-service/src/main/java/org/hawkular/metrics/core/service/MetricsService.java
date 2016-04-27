@@ -232,6 +232,9 @@ public interface MetricsService {
     Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
                                                                     long end, Buckets buckets);
 
+    Observable<DataPoint<String>> findStringData(MetricId<String> id, long start, long end, boolean distinct,
+            int limit, Order order);
+
     /**
      * Check if a metric has been stored in the system.
      */

@@ -1779,6 +1779,45 @@ public class MetricsServiceITest extends MetricsITest {
     }
 
     @Test
+    public void findDistinctStrings() throws Exception {
+        DateTime end = now();
+        DateTime start = end.minusMinutes(20);
+        String tenantId = "Distinct Strings";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+
+        Metric<String> metric = new Metric<>(metricId, asList(
+                new DataPoint<>(start.getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(5).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(6).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(7).getMillis(), "unknown"),
+                new DataPoint<>(start.plusMinutes(8).getMillis(), "unknown"),
+                new DataPoint<>(start.plusMinutes(9).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(10).getMillis(), "up")
+        ));
+
+        doAction(() -> metricsService.addDataPoints(STRING, Observable.just(metric)));
+
+        List<DataPoint<String>> actual = getOnNextEvents(() -> metricsService.findStringData(metricId,
+                start.getMillis(), end.getMillis(), true, 0, Order.ASC));
+        List<DataPoint<String>> expected = asList(
+                metric.getDataPoints().get(0),
+                metric.getDataPoints().get(1),
+                metric.getDataPoints().get(3),
+                metric.getDataPoints().get(4),
+                metric.getDataPoints().get(5),
+                metric.getDataPoints().get(7),
+                metric.getDataPoints().get(9),
+                metric.getDataPoints().get(10)
+        );
+
+        assertEquals(actual, expected, "The string data does not match the expected values");
+    }
+
+    @Test
     public void getPeriodsAboveThreshold() throws Exception {
         String tenantId = "test-tenant";
         DateTime start = now().minusMinutes(20);
