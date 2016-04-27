@@ -70,26 +70,24 @@ class CORSITest extends RESTTest {
 
   @Test
   void testOptionsWithBadOrigin() {
-    def response = hawkularMetrics.options(path: "gauges/test/raw",
-        headers: [
+    badOptions(path: "gauges/test/raw", headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "OPTIONS",
             (ORIGIN): "*"
-        ])
-
-    //Expected 400 because this pre-flight call that should never reach the resource router since
-    //the request origin is bad
-    assertEquals(400, response.status)
+    ]) { exception ->
+      //Expected 400 because this pre-flight call that should never reach the resource router since
+      //the request origin is bad
+      assertEquals(400, exception.response.status)
+    }
 
     def wrongSchemeOrigin = testOrigin.replaceAll("http://", "https://")
-    response = hawkularMetrics.options(path: "gauges/test/raw",
-        headers: [
+    badOptions(path: "gauges/test/raw", headers: [
             (ACCESS_CONTROL_REQUEST_METHOD): "GET",
             (ORIGIN): wrongSchemeOrigin
-        ])
-
-    //Expected 400 because this call should never reach the resource router since
-    //the request origin is bad
-    assertEquals(400, response.status)
+    ]) { exception ->
+      //Expected 400 because this call should never reach the resource router since
+      //the request origin is bad
+      assertEquals(400, exception.response.status)
+    }
   }
 
   @Test

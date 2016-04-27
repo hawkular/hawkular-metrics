@@ -111,6 +111,10 @@ ${text}
     badRequest(hawkularMetrics.&delete, args, errorHandler)
   }
 
+  static def badOptions(args, errorHandler) {
+    badRequest(hawkularMetrics.&options, args, errorHandler)
+  }
+
   static def badRequest(method, args, errorHandler, forceContentTypeOnEmptyBody = false) {
     if (forceContentTypeOnEmptyBody && args.body == null) {
       args.headers["Content-Type"] = "application/json"
