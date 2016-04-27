@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,12 @@
  */
 package org.hawkular.metrics.rest
 
-import static groovyx.net.http.ContentType.TEXT
-import static groovyx.net.http.Method.POST
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
+
+import static groovyx.net.http.ContentType.TEXT
+import static groovyx.net.http.Method.POST
 
 import org.apache.http.util.EntityUtils
 import org.joda.time.DateTime
@@ -197,7 +198,7 @@ class InfluxITest extends RESTTest {
                 columns: ['time', 'mean'],
                 name   : counterName,
                 points : [
-                    [start.plus(4000).millis, 42 as BigDecimal]
+                    [start.plus(4000).millis, 42.0]
                 ]
             ]
         ],

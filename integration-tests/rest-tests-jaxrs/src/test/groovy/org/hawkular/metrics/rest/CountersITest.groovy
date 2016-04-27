@@ -1391,7 +1391,7 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
     assertEquals(4, response.data.size)
 
-    def expectedArray = [new BigDecimal(3), new BigDecimal(2),  null, null].toArray()
+    def expectedArray = [3.0, 2.0, null, null].toArray()
     assertArrayEquals(expectedArray, response.data.min.toArray())
     assertArrayEquals(expectedArray, response.data.max.toArray())
     assertArrayEquals(expectedArray, response.data.avg.toArray())
