@@ -106,7 +106,8 @@ public class GaugeHandler {
     public void createGaugeMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<Double> metric,
-            @ApiParam(value = "Overwrite previously created metric if it exists. Defaults to false.",
+            @ApiParam(value = "Overwrite previously created metric configuration if it exists. "
+                    + "Only data retention and tags are overwriten; existing data points are unnafected. Defaults to false.",
                     required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
