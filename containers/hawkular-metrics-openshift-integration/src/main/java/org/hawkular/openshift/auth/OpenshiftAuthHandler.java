@@ -66,8 +66,8 @@ public class OpenshiftAuthHandler implements HttpHandler {
         // There are a few endpoint that should not be secured. If we secure the status endpoint when we cannot
         // tell if the container is up and it will always be marked as pending
         String path = serverExchange.getRelativePath();
-        if (path == null || path.equals("") || path.equals("/") || path.equals("/status") || path.equals
-                ("/static")) {
+        if (path == null || path.equals("") || path.equals("/") || path.equals("/status")
+                || path.startsWith("/static")) {
             containerHandler.handleRequest(serverExchange);
             return;
         }
