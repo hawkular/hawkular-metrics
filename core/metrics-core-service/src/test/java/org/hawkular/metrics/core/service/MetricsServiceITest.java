@@ -33,6 +33,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
@@ -564,6 +565,33 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+    }
+
+    @Test
+    public void addAndFetchStringData() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "string-tenant";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+
+        Metric<String> metric = new Metric<>(metricId, asList(
+                new DataPoint<>(start.getMillis(), "X"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "Y"),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "A"),
+                new DataPoint<>(end.getMillis(), "B")
+        ));
+
+        doAction(() -> metricsService.addDataPoints(STRING, Observable.just(metric)));
+        List<DataPoint<String>> actual = getOnNextEvents(() -> metricsService.findDataPoints(metricId,
+                start.getMillis(), end.getMillis(), 0, Order.DESC));
+        List<DataPoint<String>> expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "A"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "Y"),
+                new DataPoint<>(start.getMillis(), "X")
+        );
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertMetricIndexMatches(tenantId, STRING, singletonList(new Metric(metricId, DEFAULT_TTL)));
     }
 
     @Test

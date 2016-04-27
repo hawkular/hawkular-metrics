@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -211,6 +212,11 @@ public class MetricsServiceImpl implements MetricsService {
                     Metric<Double> gauge = (Metric<Double>) metric;
                     return dataAccess.insertGaugeData(gauge, ttl);
                 })
+                .put(STRING, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<String> string = (Metric<String>) metric;
+                    return dataAccess.insertStringData(string, ttl);
+                })
                 .build();
 
         dataPointFinders = ImmutableMap
@@ -231,12 +237,18 @@ public class MetricsServiceImpl implements MetricsService {
                     MetricId<Long> counterId = (MetricId<Long>) metricId;
                     return dataAccess.findCounterData(counterId, start, end, limit, order);
                 })
+                .put(STRING, (metricId, start, end, limit, order) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<String> stringId = (MetricId<String>) metricId;
+                    return dataAccess.findStringData(stringId, start, end, limit, order);
+                })
                 .build();
 
         dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> builder()
                 .put(GAUGE, Functions::getGaugeDataPoint)
                 .put(AVAILABILITY, Functions::getAvailabilityDataPoint)
                 .put(COUNTER, Functions::getCounterDataPoint)
+                .put(STRING, Functions::getStringDataPoint)
                 .build();
 
         initMetrics();
@@ -276,11 +288,13 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(AVAILABILITY, metricRegistry.meter("availability-inserts"))
                 .put(COUNTER, metricRegistry.meter("counter-inserts"))
                 .put(COUNTER_RATE, metricRegistry.meter("gauge-inserts"))
+                .put(STRING, metricRegistry.meter("string-inserts"))
                 .build();
         dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer> builder()
                 .put(GAUGE, metricRegistry.timer("gauge-read-latency"))
                 .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
                 .put(COUNTER, metricRegistry.timer("counter-read-latency"))
+                .put(STRING, metricRegistry.timer("string-read-latency"))
                 .build();
     }
 

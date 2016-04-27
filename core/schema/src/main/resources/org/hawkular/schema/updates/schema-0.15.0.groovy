@@ -42,3 +42,11 @@ schemaChange {
   description "Add support for data point tags. See HWKMETRICS-368 for details"
   cql "ALTER TABLE data ADD tags map<text,text>"
 }
+
+schemaChange {
+  version '1.3'
+  author 'jsanda'
+  tags '0.15.x'
+  description 'Add support for string metric type. See HWKMETRICS-384 for details.'
+  cql "ALTER TABLE data ADD s_value text"
+}
