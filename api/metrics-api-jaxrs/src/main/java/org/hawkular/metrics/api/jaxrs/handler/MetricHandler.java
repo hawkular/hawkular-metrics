@@ -25,6 +25,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.net.URI;
 import java.util.regex.PatternSyntaxException;
@@ -193,10 +194,13 @@ public class MetricHandler {
                 metricsRequest.getAvailabilities(), AVAILABILITY);
         Observable<Metric<Long>> counters = Functions.metricToObservable(tenantId, metricsRequest.getCounters(),
                 COUNTER);
+        Observable<Metric<String>> strings = Functions.metricToObservable(tenantId, metricsRequest.getStrings(),
+                STRING);
 
         metricsService.addDataPoints(GAUGE, gauges)
                 .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
                 .mergeWith(metricsService.addDataPoints(COUNTER, counters))
+                .mergeWith(metricsService.addDataPoints(STRING, strings))
                 .subscribe(
                         aVoid -> {
                         },
