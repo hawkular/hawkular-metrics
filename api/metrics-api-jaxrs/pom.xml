@@ -252,13 +252,6 @@
           <plugin>
             <groupId>org.codehaus.gmavenplus</groupId>
             <artifactId>gmavenplus-plugin</artifactId>
-            <dependencies>
-              <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-all</artifactId>
-                <version>${version.org.codehaus.groovy}</version>
-              </dependency>
-            </dependencies>
             <configuration>
               <properties>
                 <baseFile>${restDocDirectory}/base.adoc</baseFile>

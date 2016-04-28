@@ -122,8 +122,8 @@ class TagsITest extends RESTTest {
       assertEquals(200, response.status)
       assertEquals(['  a  1   ': '   A', a1: 'one', a2: '2', b1: 'B', 'bsq   d1': 'B   '], response.data)
 
-      // Delete a gauge metric tag
-      response = hawkularMetrics.delete(path: it.path + "/N1/tags/a2:2,b1:B", headers: [(tenantHeaderName): tenantId])
+      // Delete a gauge metric tag (list may contain plain names or name:value pairs)
+      response = hawkularMetrics.delete(path: it.path + "/N1/tags/a2,b1:B", headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       response = hawkularMetrics.get(path: it.path + "/N1/tags", headers: [(tenantHeaderName): tenantId])
       assertEquals(['  a  1   ': '   A', a1: 'one', 'bsq   d1': 'B   '], response.data)

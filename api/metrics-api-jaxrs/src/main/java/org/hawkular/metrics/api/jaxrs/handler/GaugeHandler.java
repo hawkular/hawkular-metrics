@@ -64,6 +64,7 @@ import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Percentiles;
+import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 
@@ -230,10 +231,11 @@ public class GaugeHandler {
     public void deleteMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam("Tag list") @PathParam("tags") Tags tags
+            @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names")
+            @PathParam("tags") TagNames tags
     ) {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
-        metricsService.deleteTags(metric, tags.getTags()).subscribe(new ResultSetObserver(asyncResponse));
+        metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST

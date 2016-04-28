@@ -50,7 +50,7 @@ public interface MetricsService {
      * with the same id already exists.
      * </p>
      * <p>
-     * All data is associated with a {@link org.hawkular.metrics.core.api.Tenant tenant} via the tenant id; however, the
+     * All data is associated with a {@link Tenant tenant} via the tenant id; however, the
      * foreign key like relationship is not enforced. Data can be inserted with a non-existent tenant id. More
      * importantly, data could be inserted with a tenant id that already exists.
      * </p>
@@ -59,8 +59,7 @@ public interface MetricsService {
      *            The {@link Tenant tenant} to create
      * @param overwrite Flag to force overwrite previous tenant definition if it exists
      * @return void
-     * @throws org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException
-     *             tenant already exists
+     * @throws org.hawkular.metrics.model.exception.TenantAlreadyExistsException tenant already exists
      */
     Observable<Void> createTenant(Tenant tenant, boolean overwrite);
 
@@ -135,7 +134,7 @@ public interface MetricsService {
 
     Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
-    Observable<Void> deleteTags(Metric<?> metric, Map<String, String> tags);
+    Observable<Void> deleteTags(Metric<?> metric, Set<String> tags);
 
     /**
      * Insert data points for the specified {@code metrics}.
