@@ -109,6 +109,9 @@ public class CounterHandler {
     public void createCounter(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<Long> metric,
+            @ApiParam(value = "Overwrite previously created metric configuration if it exists. "
+                    + "Only data retention and tags are overwriten; existing data points are unnafected. Defaults to false.",
+                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
         if (metric.getType() != null
@@ -121,7 +124,7 @@ public class CounterHandler {
         metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
-        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+        metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET

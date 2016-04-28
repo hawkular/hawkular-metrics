@@ -75,6 +75,7 @@ import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
@@ -152,10 +153,10 @@ public class MetricsServiceITest extends MetricsITest {
         Tenant t4 = new Tenant("t4");
 
         Observable.concat(
-                metricsService.createTenant(t1),
-                metricsService.createTenant(t2),
-                metricsService.createTenant(t3),
-                metricsService.createTenant(t4)
+                metricsService.createTenant(t1, false),
+                metricsService.createTenant(t2, false),
+                metricsService.createTenant(t3, false),
+                metricsService.createTenant(t4, false)
         ).toBlocking().lastOrDefault(null);
 
         Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
@@ -176,12 +177,32 @@ public class MetricsServiceITest extends MetricsITest {
                 new MetricId<>(t1.getId(), GAUGE, makeSafe(GAUGE.getText())), 1)));
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
                 new MetricId<>(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 1)));
+
+        t1 = new Tenant("t1", ImmutableMap.of(GAUGE, 101, AVAILABILITY, 102));
+        try {
+            metricsService.createTenant(t1, false).toBlocking().lastOrDefault(null);
+            fail("Tenant should already exist and not overwritten.");
+        } catch (TenantAlreadyExistsException e) {
+
+        }
+
+        try {
+            metricsService.createTenant(t1, true).toBlocking().lastOrDefault(null);
+        } catch (MetricAlreadyExistsException e) {
+            fail("Tenant should already exist and be overwritten.");
+        }
+
+        actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
+        assertDataRetentionsIndexMatches(t1.getId(), GAUGE, ImmutableSet.of(new Retention(
+                new MetricId<>(t1.getId(), GAUGE, makeSafe(GAUGE.getText())), 101)));
+        assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
+                new MetricId<>(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 102)));
     }
 
     @Test
     public void createMetricsIdxTenants() throws Exception {
         Metric<Double> em1 = new Metric<>(new MetricId<>("t123", GAUGE, "em1"));
-        metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
 
         Metric<Double> actual = metricsService.<Double> findMetric(em1.getMetricId())
                 .toBlocking()
@@ -194,7 +215,7 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actualTenants.size(), 1);
 
         Tenant t1 = new Tenant("t123", ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
-        metricsService.createTenant(t1).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(t1, false).toBlocking().lastOrDefault(null);
 
         actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
         assertEquals(actualTenants.size(), 1);
@@ -203,7 +224,7 @@ public class MetricsServiceITest extends MetricsITest {
     @Test
     public void createAndFindMetrics() throws Exception {
         Metric<Double> em1 = new Metric<>(new MetricId<>("t1", GAUGE, "em1"));
-        metricsService.createMetric(em1).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
         Metric<Double> actual = metricsService.<Double> findMetric(em1.getMetricId())
                 .toBlocking()
                 .lastOrDefault(null);
@@ -212,14 +233,14 @@ public class MetricsServiceITest extends MetricsITest {
         assertEquals(actual, em2, "The metric does not match the expected value");
 
         Metric<Double> m1 = new Metric<>(new MetricId<>("t1", GAUGE, "m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
-        metricsService.createMetric(m1).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m1, false).toBlocking().lastOrDefault(null);
 
         actual = metricsService.<Double> findMetric(m1.getMetricId()).toBlocking().last();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
         Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>("t1", AVAILABILITY, "m2"),
                 ImmutableMap.of("a3", "3", "a4", "3"), DEFAULT_TTL);
-        metricsService.createMetric(m2).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m2, false).toBlocking().lastOrDefault(null);
 
         // Find definitions with given tags
         Map<String, String> tagMap = new HashMap<>();
@@ -229,7 +250,7 @@ public class MetricsServiceITest extends MetricsITest {
         // Test that distinct filtering does not remove same name from different types
         Metric<Double> gm2 = new Metric<>(new MetricId<>("t1", GAUGE, "m2"),
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
-        metricsService.createMetric(gm2).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(gm2, false).toBlocking().lastOrDefault(null);
 
         Metric<AvailabilityType> actualAvail = metricsService.<AvailabilityType> findMetric(m2.getMetricId())
                 .toBlocking()
@@ -238,7 +259,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
-        metricsService.createMetric(m1).subscribe(
+        metricsService.createMetric(m1, false).subscribe(
                 nullArg -> {
                 },
                 t -> {
@@ -251,11 +272,11 @@ public class MetricsServiceITest extends MetricsITest {
                 "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
         Metric<Double> m3 = new Metric<>(new MetricId<>("t1", GAUGE, "m3"), emptyMap(), 24);
-        metricsService.createMetric(m3).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m3, false).toBlocking().lastOrDefault(null);
 
         Metric<Double> m4 = new Metric<>(new MetricId<>("t1", GAUGE, "m4"),
                 ImmutableMap.of("a1", "A", "a2", ""), null);
-        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m4, false).toBlocking().lastOrDefault(null);
 
         assertMetricIndexMatches("t1", GAUGE, asList(new Metric<>(em1.getMetricId(), 7), m1,
                 new Metric<>(gm2.getMetricId(), gm2.getTags(), 7),
@@ -314,7 +335,8 @@ public class MetricsServiceITest extends MetricsITest {
         }
 
         // Insert gauges
-        Observable.from(metricsToAdd).subscribe(m -> metricsService.createMetric(m).toBlocking().lastOrDefault(null));
+        Observable.from(metricsToAdd)
+                .subscribe(m -> metricsService.createMetric(m, false).toBlocking().lastOrDefault(null));
 
         return metricsToAdd;
     }
@@ -448,7 +470,7 @@ public class MetricsServiceITest extends MetricsITest {
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
 
         Metric<Long> counter = new Metric<>(id);
-        metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(counter, false).toBlocking().lastOrDefault(null);
 
         Metric<Long> actual = metricsService.<Long> findMetric(id).toBlocking().lastOrDefault(null);
 
@@ -464,7 +486,7 @@ public class MetricsServiceITest extends MetricsITest {
         Map<String, String> tags = ImmutableMap.of("x", "1", "y", "2");
 
         Metric<Long> counter = new Metric<>(id, tags, null);
-        metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(counter, false).toBlocking().lastOrDefault(null);
 
         Metric<Long> actual = metricsService.findMetric(id).toBlocking().lastOrDefault(null);
         Metric<Long> ec = new Metric<>(counter.getMetricId(), counter.getTags(), 7);
@@ -482,7 +504,7 @@ public class MetricsServiceITest extends MetricsITest {
         Integer retention = 100;
 
         Metric<Long> counter = new Metric<>(id, emptyMap(), retention);
-        metricsService.createMetric(counter).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(counter, false).toBlocking().lastOrDefault(null);
 
         Metric<Long> actual = metricsService.<Long> findMetric(id).toBlocking().lastOrDefault(null);
         assertEquals(actual, counter, "The counter metric does not match");
@@ -493,7 +515,8 @@ public class MetricsServiceITest extends MetricsITest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void doNotAllowCreationOfCounterRateMetric() {
-        metricsService.createMetric(new Metric<>(new MetricId<>("test", COUNTER_RATE, "counter-rate"))).toBlocking()
+        metricsService.createMetric(new Metric<>(new MetricId<>("test", COUNTER_RATE, "counter-rate")), false)
+                .toBlocking()
                 .lastOrDefault(null);
     }
 
@@ -516,7 +539,7 @@ public class MetricsServiceITest extends MetricsITest {
     public void updateMetricTags() throws Exception {
         Metric<Double> metric = new Metric<>(new MetricId<>("t1", GAUGE, "m1"),
                 ImmutableMap.of("a1", "1", "a2", "2"), DEFAULT_TTL);
-        metricsService.createMetric(metric).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(metric, false).toBlocking().lastOrDefault(null);
 
         Map<String, String> additions = ImmutableMap.of("a2", "two", "a3", "3");
         metricsService.addTags(metric, additions).toBlocking().lastOrDefault
@@ -541,7 +564,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "t1";
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), asList(
                 new DataPoint<>(start.getMillis(), 1.1),
@@ -679,7 +702,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "counters-tenant";
 
-        doAction(() -> metricsService.createTenant(new Tenant(tenantId)));
+        doAction(() -> metricsService.createTenant(new Tenant(tenantId), false));
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "c1"), asList(
                 new DataPoint<>(start.getMillis(), 10L),
@@ -710,7 +733,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "counters-tenant";
 
-        doAction(() -> metricsService.createTenant(new Tenant(tenantId)));
+        doAction(() -> metricsService.createTenant(new Tenant(tenantId), false));
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "c1"), asList(
                 new DataPoint<>(start.getMillis(), 10L, ImmutableMap.of("x", "1")),
@@ -767,7 +790,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(20);
         String tenantId = "t1";
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), asList(
                 new DataPoint<>(start.getMillis(), 10.0),
@@ -1531,9 +1554,9 @@ public class MetricsServiceITest extends MetricsITest {
     public void verifyTTLsSetOnAvailabilityData() throws Exception {
         DateTime start = now().minusMinutes(10);
 
-        metricsService.createTenant(new Tenant("t1")).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant("t1"), false).toBlocking().lastOrDefault(null);
         metricsService.createTenant(
-                new Tenant("t2", ImmutableMap.of(AVAILABILITY, 14))).toBlocking().lastOrDefault(null);
+                new Tenant("t2", ImmutableMap.of(AVAILABILITY, 14)), false).toBlocking().lastOrDefault(null);
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
@@ -1561,7 +1584,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
 
-        metricsService.createTenant(new Tenant("t3", ImmutableMap.of(AVAILABILITY, 24)))
+        metricsService.createTenant(new Tenant("t3", ImmutableMap.of(AVAILABILITY, 24)), false)
                       .toBlocking()
                       .lastOrDefault(null);
         verifyTTLDataAccess.setAvailabilityTTL(hours(24).toStandardSeconds().getSeconds());
@@ -1605,7 +1628,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), asList(
                 new DataPoint<>(start.plusSeconds(30).getMillis(), 11.2),
@@ -1623,7 +1646,7 @@ public class MetricsServiceITest extends MetricsITest {
                 new DataPoint<>(start.plusSeconds(30).getMillis(), 55.5),
                 new DataPoint<>(end.getMillis(), 66.6)
         ));
-        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m4, false).toBlocking().lastOrDefault(null);
 
         metricsService.addDataPoints(GAUGE, Observable.just(m1, m2, m3, m4)).toBlocking().lastOrDefault(null);
 
@@ -1661,7 +1684,7 @@ public class MetricsServiceITest extends MetricsITest {
         DateTime end = start.plusMinutes(8);
         String tenantId = "test-tenant";
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         Metric<AvailabilityType> m1 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"), asList(
                 new DataPoint<>(start.plusSeconds(10).getMillis(), UP),
@@ -1691,7 +1714,7 @@ public class MetricsServiceITest extends MetricsITest {
                 asList(
                 new DataPoint<>(start.plusMinutes(2).getMillis(), UP),
                 new DataPoint<>(end.plusMinutes(2).getMillis(), UP)));
-        metricsService.createMetric(m4).toBlocking().lastOrDefault(null);
+        metricsService.createMetric(m4, false).toBlocking().lastOrDefault(null);
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m4)).toBlocking().lastOrDefault(null);
 
@@ -1715,7 +1738,7 @@ public class MetricsServiceITest extends MetricsITest {
         String tenantId = "tenant1";
         MetricId<AvailabilityType> metricId = new MetricId<>("tenant1", AVAILABILITY, "A1");
 
-        metricsService.createTenant(new Tenant(tenantId)).toBlocking().lastOrDefault(null);
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         Metric<AvailabilityType> metric = new Metric<>(metricId, asList(
                 new DataPoint<>(start.getMillis(), UP),
@@ -1851,6 +1874,45 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual.size(), expected.size());
         assertTrue(actual.containsAll(expected));
+    }
+
+    @Test
+    public void createCounterMetricExists() throws Exception {
+        String tenantId = "metric-exists";
+        String name = "basic-metric";
+        int dataRetention = 20;
+        MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
+
+        Metric<Long> metric = new Metric<>(id, dataRetention);
+        metricsService.createMetric(metric, false).toBlocking().lastOrDefault(null);
+
+        Metric<Long> actual = metricsService.<Long> findMetric(id).toBlocking().last();
+
+        assertEquals(actual, new Metric<>(metric.getMetricId(), dataRetention), "The counter metric does not match");
+        assertMetricIndexMatches(tenantId, COUNTER, singletonList(new Metric<>(metric.getMetricId(), dataRetention)));
+
+        try {
+            metricsService.createMetric(metric, false).toBlocking().lastOrDefault(null);
+            fail("Metrics should already be stored and not overwritten.");
+        } catch (MetricAlreadyExistsException e) {
+
+        }
+
+        dataRetention = 100;
+        Map<String, String> tags = new HashMap<String, String>();
+        tags.put("test", "test2");
+        metric = new Metric<>(id, tags, dataRetention);
+        try {
+            metricsService.createMetric(metric, true).toBlocking().lastOrDefault(null);
+        } catch (MetricAlreadyExistsException e) {
+            fail("Metrics should already be stored and be overwritten.");
+        }
+
+        actual = metricsService.<Long> findMetric(id).toBlocking().last();
+        assertEquals(actual, new Metric<>(metric.getMetricId(), tags, dataRetention),
+                "The counter metric does not match");
+        assertMetricIndexMatches(tenantId, COUNTER,
+                singletonList(new Metric<>(metric.getMetricId(), tags, dataRetention)));
     }
 
     private <T> List<T> toList(Observable<T> observable) {

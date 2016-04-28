@@ -620,4 +620,123 @@ class CassandraBackendITest extends RESTTest {
         assertNotNull(exception.response.data['errorMsg'])
     }
   }
+
+  @Test
+  void insertMetricsWithOverwriteViaTypeEndpoint() {
+    def tenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
+
+    for (metricType in metricTypes) {
+      //create metric
+      response = hawkularMetrics.post(path: metricType.path, body: [
+          id: 'm2',
+          tags: [a: '1', b: '2'],
+          dataRetention: 24
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
+
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([
+            dataRetention: 24,
+            id: 'm2',
+            tags: [a: '1', b: '2'],
+            tenantId: tenantId,
+            type: metricType.type
+      ], response.data)
+
+      //try to create the metric again
+      badPost(path: metricType.path, body: [
+          id: 'm2',
+          tags: [a: '1', b: '2'],
+          dataRetention: 24
+      ], headers: [(tenantHeaderName): tenantId]) { exception ->
+        assertEquals(409, exception.response.status)
+      }
+
+      //try to create the metric again but with overwrite
+      response = hawkularMetrics.post(path: metricType.path, query: [overwrite: true], body: [
+          id: 'm2',
+          tags: [c: '3', d: '4'],
+          dataRetention: 55
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
+
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([
+            dataRetention: 55,
+            id: 'm2',
+            tags: [c: '3', d: '4'],
+            tenantId: tenantId,
+            type: metricType.type
+      ], response.data)
+    }
+  }
+
+  @Test
+  void insertMetricsWithOverwriteViaMetricsEndpoint() {
+    def tenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
+    assertEquals(201, response.status)
+    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
+
+    for (metricType in metricTypes) {
+      //create metric
+      response = hawkularMetrics.post(path: 'metrics', body: [
+          id: 'm2',
+          tags: [a: '1', b: '2'],
+          dataRetention: 24,
+          type: metricType.type
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
+
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([
+            dataRetention: 24,
+            id: 'm2',
+            tags: [a: '1', b: '2'],
+            tenantId: tenantId,
+            type: metricType.type
+      ], response.data)
+
+      //try to create the metric again
+      badPost(path: 'metrics', body: [
+          id: 'm2',
+          tags: [a: '1', b: '2'],
+          dataRetention: 24,
+          type: metricType.type
+      ], headers: [(tenantHeaderName): tenantId])  { exception ->
+        assertEquals(409, exception.response.status)
+      }
+
+      //try to create the metric again but with overwrite
+      response = hawkularMetrics.post(path: 'metrics', query: [overwrite: true], body: [
+          id: 'm2',
+          tags: [c: '3', d: '4'],
+          dataRetention: 55,
+          type: metricType.type
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
+
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertEquals([
+            dataRetention: 55,
+            id: 'm2',
+            tags: [c: '3', d: '4'],
+            tenantId: tenantId,
+            type: metricType.type
+      ], response.data)
+    }
+  }
 }

@@ -31,6 +31,7 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -100,6 +101,8 @@ public class MetricHandler {
     public <T> void createMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<T> metric,
+            @ApiParam(value = "Overwrite previously created metric if it exists. Defaults to false.",
+                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
         if (metric.getType() == null || !metric.getType().isUserType()) {
@@ -109,7 +112,7 @@ public class MetricHandler {
         metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
-        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+        metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET

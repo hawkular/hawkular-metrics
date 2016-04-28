@@ -63,7 +63,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertTenant;
 
-    private PreparedStatement insertTenantId;
+    private PreparedStatement insertTenantOverwrite;
 
     private PreparedStatement findAllTenantIds;
 
@@ -72,6 +72,8 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findTenant;
 
     private PreparedStatement insertIntoMetricsIndex;
+
+    private PreparedStatement insertIntoMetricsIndexOverwrite;
 
     private PreparedStatement findMetric;
 
@@ -146,10 +148,11 @@ public class DataAccessImpl implements DataAccess {
     }
 
     protected void initPreparedStatements() {
-        insertTenantId = session.prepare("INSERT INTO tenants (id) VALUES (?)");
-
         insertTenant = session.prepare(
             "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
+
+        insertTenantOverwrite = session.prepare(
+                "INSERT INTO tenants (id, retentions) VALUES (?, ?)");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
@@ -179,6 +182,10 @@ public class DataAccessImpl implements DataAccess {
             "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
+
+        insertIntoMetricsIndexOverwrite = session.prepare(
+            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
+            "VALUES (?, ?, ?, ?, ?) ");
 
         updateMetricsIndex = session.prepare(
             "INSERT INTO metrics_idx (tenant_id, type, metric) VALUES (?, ?, ?)");
@@ -332,14 +339,15 @@ public class DataAccessImpl implements DataAccess {
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
     }
 
-    @Override public Observable<ResultSet> insertTenant(String tenantId) {
-        return rxSession.execute(insertTenantId.bind(tenantId));
-    }
-
     @Override
-    public Observable<ResultSet> insertTenant(Tenant tenant) {
+    public Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite) {
         Map<String, Integer> retentions = tenant.getRetentionSettings().entrySet().stream()
                 .collect(toMap(entry -> entry.getKey().getText(), Map.Entry::getValue));
+
+        if (overwrite) {
+            return rxSession.execute(insertTenantOverwrite.bind(tenant.getId(), retentions));
+        }
+
         return rxSession.execute(insertTenant.bind(tenant.getId(), retentions));
     }
 
@@ -355,8 +363,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
+    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite) {
         MetricId<T> metricId = metric.getMetricId();
+
+        if (overwrite) {
+            return session.executeAsync(
+                    insertIntoMetricsIndexOverwrite.bind(metricId.getTenantId(), metricId.getType().getCode(),
+                            metricId.getName(), metric.getDataRetention(), metric.getTags()));
+        }
+
         return session.executeAsync(insertIntoMetricsIndex.bind(metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getName(), metric.getDataRetention(), metric.getTags()));
     }

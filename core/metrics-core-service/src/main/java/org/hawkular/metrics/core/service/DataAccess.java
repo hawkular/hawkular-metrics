@@ -37,15 +37,14 @@ import rx.Observable;
  * @author John Sanda
  */
 public interface DataAccess {
-    Observable<ResultSet> insertTenant(String tenantId);
 
-    Observable<ResultSet> insertTenant(Tenant tenant);
+    Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 
     Observable<Row> findAllTenantIds();
 
     Observable<Row> findTenant(String id);
 
-    <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric);
+    <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite);
 
     <T> Observable<Row> findMetric(MetricId<T> id);
 

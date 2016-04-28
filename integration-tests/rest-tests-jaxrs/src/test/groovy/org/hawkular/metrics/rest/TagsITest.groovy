@@ -27,12 +27,6 @@ import org.junit.Test
  */
 class TagsITest extends RESTTest {
 
-  static metricTypes =  [
-    ["path": "gauges", "type": "gauge"],
-    ["path": "availability", "type": "availability"],
-    ["path": "counters", "type": "counter"]
-  ];
-
   @Test
   void shouldNotAcceptMissingOrInvalidTags() {
     metricTypes.each {

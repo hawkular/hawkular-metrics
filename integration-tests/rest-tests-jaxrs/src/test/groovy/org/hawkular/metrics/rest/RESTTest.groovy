@@ -44,6 +44,12 @@ class RESTTest {
   static ObjectMapper objectMapper = new ObjectMapper()
   static RESTClient hawkularMetrics
 
+  static metricTypes =  [
+    ["path": "gauges", "type": "gauge"],
+    ["path": "availability", "type": "availability"],
+    ["path": "counters", "type": "counter"]
+  ];
+
   @BeforeClass
   static void initClient() {
     objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);

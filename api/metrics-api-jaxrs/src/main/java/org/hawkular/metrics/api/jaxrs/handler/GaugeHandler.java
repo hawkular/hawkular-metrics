@@ -106,6 +106,9 @@ public class GaugeHandler {
     public void createGaugeMetric(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<Double> metric,
+            @ApiParam(value = "Overwrite previously created metric configuration if it exists. "
+                    + "Only data retention and tags are overwriten; existing data points are unnafected. Defaults to false.",
+                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
         if (metric.getType() != null
@@ -117,7 +120,7 @@ public class GaugeHandler {
         metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
-        metricsService.createMetric(metric).subscribe(new MetricCreatedObserver(asyncResponse, location));
+        metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
     }
 
     @GET

@@ -341,9 +341,9 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> createTenant(final Tenant tenant) {
+    public Observable<Void> createTenant(final Tenant tenant, boolean overwrite) {
         return Observable.create(subscriber -> {
-            Observable<Void> updates = dataAccess.insertTenant(tenant).flatMap(resultSet -> {
+            Observable<Void> updates = dataAccess.insertTenant(tenant, overwrite).flatMap(resultSet -> {
                 if (!resultSet.wasApplied()) {
                     throw new TenantAlreadyExistsException(tenant.getId());
                 }
@@ -382,19 +382,18 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Void> createMetric(Metric<?> metric) {
+    public Observable<Void> createMetric(Metric<?> metric, boolean overwrite) {
         MetricType<?> metricType = metric.getMetricId().getType();
         if (!metricType.isUserType()) {
             throw new IllegalArgumentException(metric + " cannot be created. " + metricType + " metrics are " +
                     "internally generated metrics and cannot be created by clients.");
         }
 
-        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric);
+        ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
-            if (!resultSet.wasApplied()) {
+            if (!overwrite && !resultSet.wasApplied()) {
                 subscriber.onError(new MetricAlreadyExistsException(metric));
-
             } else {
                 // TODO Need error handling if either of the following updates fail
                 // If adding tags/retention fails, then we want to report the error to the

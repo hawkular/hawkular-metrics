@@ -118,11 +118,11 @@ public class RatesITest extends MetricsITest {
         Metric<Long> c2 = new Metric<>(new MetricId<>(tenant, COUNTER, "C2"));
         Metric<Long> c3 = new Metric<>(new MetricId<>(tenant, COUNTER, "C3"));
 
-        doAction(() -> metricsService.createTenant(new Tenant(tenant)));
+        doAction(() -> metricsService.createTenant(new Tenant(tenant), false));
 
-        doAction(() -> metricsService.createMetric(c1));
-        doAction(() -> metricsService.createMetric(c2));
-        doAction(() -> metricsService.createMetric(c3));
+        doAction(() -> metricsService.createMetric(c1, false));
+        doAction(() -> metricsService.createMetric(c2, false));
+        doAction(() -> metricsService.createMetric(c3, false));
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.from(asList(
                 new Metric<>(c1.getMetricId(), asList(new DataPoint<>(start.getMillis(), 10L),

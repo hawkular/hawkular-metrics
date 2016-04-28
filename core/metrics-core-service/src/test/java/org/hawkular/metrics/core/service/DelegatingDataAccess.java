@@ -45,13 +45,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> insertTenant(String tenantId) {
-        return delegate.insertTenant(tenantId);
-    }
-
-    @Override
-    public Observable<ResultSet> insertTenant(Tenant tenant) {
-        return delegate.insertTenant(tenant);
+    public Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite) {
+        return delegate.insertTenant(tenant, overwrite);
     }
 
     @Override
@@ -65,8 +60,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric) {
-        return delegate.insertMetricInMetricsIndex(metric);
+    public <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite) {
+        return delegate.insertMetricInMetricsIndex(metric, overwrite);
     }
 
     @Override

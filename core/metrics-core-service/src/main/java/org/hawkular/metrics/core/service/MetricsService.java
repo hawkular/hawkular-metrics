@@ -57,11 +57,12 @@ public interface MetricsService {
      *
      * @param tenant
      *            The {@link Tenant tenant} to create
+     * @param overwrite Flag to force overwrite previous tenant definition if it exists
      * @return void
      * @throws org.hawkular.metrics.core.api.exception.TenantAlreadyExistsException
      *             tenant already exists
      */
-    Observable<Void> createTenant(Tenant tenant);
+    Observable<Void> createTenant(Tenant tenant, boolean overwrite);
 
     Observable<Tenant> getTenants();
 
@@ -84,13 +85,14 @@ public interface MetricsService {
      * </p>
      *
      * @param metric The metric to create
+     * @param overwrite Flag to force overwrite previous metric definition if it exists
      *
      * @return This method only has side effects and does not return any data. As such,
      * {@link rx.Observer#onNext(Object) onNext} is not called. {@link rx.Observer#onCompleted()}  onCompleted}
      * is called when the operation completes successfully, and {@link rx.Observer#onError(Throwable)}  onError}
      * is called when it fails.
      */
-    Observable<Void> createMetric(Metric<?> metric);
+    Observable<Void> createMetric(Metric<?> metric, boolean overwrite);
 
     <T> Observable<Metric<T>> findMetric(MetricId<T> id);
 
