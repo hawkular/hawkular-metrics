@@ -629,51 +629,52 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    metricTypes.each {
+    for (metricType in metricTypes) {
       //create metric
-      response = hawkularMetrics.post(path: it.path, body: [
+      response = hawkularMetrics.post(path: metricType.path, body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
-      assertEquals("http://$baseURI/${it.path}/m2".toString(), response.getFirstHeader('location').value)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
 
-      response = hawkularMetrics.get(path: "${it.path}/m2", headers: [(tenantHeaderName): tenantId])
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertEquals([
             dataRetention: 24,
             id: 'm2',
             tags: [a: '1', b: '2'],
             tenantId: tenantId,
-            type: it.type
+            type: metricType.type
       ], response.data)
 
       //try to create the metric again
-      response = hawkularMetrics.post(path: it.path, body: [
+      badPost(path: metricType.path, body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24
-      ], headers: [(tenantHeaderName): tenantId])
-      assertEquals(409, response.status)
+      ], headers: [(tenantHeaderName): tenantId]) { exception ->
+        assertEquals(409, exception.response.status)
+      }
 
       //try to create the metric again but with overwrite
-      response = hawkularMetrics.post(path: it.path, query: [overwrite: true], body: [
+      response = hawkularMetrics.post(path: metricType.path, query: [overwrite: true], body: [
           id: 'm2',
           tags: [c: '3', d: '4'],
           dataRetention: 55
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
-      assertEquals("http://$baseURI/${it.path}/m2".toString(), response.getFirstHeader('location').value)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
 
-      response = hawkularMetrics.get(path: "${it.path}/m2", headers: [(tenantHeaderName): tenantId])
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertEquals([
             dataRetention: 55,
             id: 'm2',
             tags: [c: '3', d: '4'],
             tenantId: tenantId,
-            type: it.type
+            type: metricType.type
       ], response.data)
     }
   }
@@ -686,54 +687,55 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    metricTypes.each {
+    for (metricType in metricTypes) {
       //create metric
       response = hawkularMetrics.post(path: 'metrics', body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24,
-          type: it.type
+          type: metricType.type
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
-      assertEquals("http://$baseURI/${it.path}/m2".toString(), response.getFirstHeader('location').value)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
 
-      response = hawkularMetrics.get(path: "${it.path}/m2", headers: [(tenantHeaderName): tenantId])
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertEquals([
             dataRetention: 24,
             id: 'm2',
             tags: [a: '1', b: '2'],
             tenantId: tenantId,
-            type: it.type
+            type: metricType.type
       ], response.data)
 
       //try to create the metric again
-      response = hawkularMetrics.post(path: 'metrics', body: [
+      badPost(path: 'metrics', body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24,
-          type: it.type
-      ], headers: [(tenantHeaderName): tenantId])
-      assertEquals(409, response.status)
+          type: metricType.type
+      ], headers: [(tenantHeaderName): tenantId])  { exception ->
+        assertEquals(409, exception.response.status)
+      }
 
       //try to create the metric again but with overwrite
       response = hawkularMetrics.post(path: 'metrics', query: [overwrite: true], body: [
           id: 'm2',
           tags: [c: '3', d: '4'],
           dataRetention: 55,
-          type: it.type
+          type: metricType.type
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
-      assertEquals("http://$baseURI/${it.path}/m2".toString(), response.getFirstHeader('location').value)
+      assertEquals("http://$baseURI/${metricType.path}/m2".toString(), response.getFirstHeader('location').value)
 
-      response = hawkularMetrics.get(path: "${it.path}/m2", headers: [(tenantHeaderName): tenantId])
+      response = hawkularMetrics.get(path: "${metricType.path}/m2", headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertEquals([
             dataRetention: 55,
             id: 'm2',
             tags: [c: '3', d: '4'],
             tenantId: tenantId,
-            type: it.type
+            type: metricType.type
       ], response.data)
     }
   }
