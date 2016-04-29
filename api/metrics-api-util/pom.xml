@@ -36,16 +36,19 @@
 
   <dependencies>
     <dependency>
+      <!-- Just to pull dropwizard metrics-core in the right version -->
+      <groupId>com.datastax.cassandra</groupId>
+      <artifactId>cassandra-driver-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-model</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.reactivex</groupId>
       <artifactId>rxjava</artifactId>
     </dependency>
-
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>

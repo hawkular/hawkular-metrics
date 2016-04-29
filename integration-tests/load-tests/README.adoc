@@ -14,8 +14,6 @@ The simulation consists in sending metrics reports from a configurable number of
 reports periodically). On top of the number of clients, many aspects of the simulation are configurable:
 number of loops, interval, number of metrics per report, ... etc.
 
-See the scenario file for the list of options.
-
 == Running
 
  mvn gatling:execute -Dxxx=y ...
@@ -23,4 +21,50 @@ See the scenario file for the list of options.
 Each scenario option can be set with a system property.
 
 The scenario assumes a Metrics server is running somewhere and does not start one.
-By default, it tries to connect to `http://localhost:8080`.
+
+== Options
+
+[cols="30,70a", options="header"]
+|===
+
+|Name
+|Description
+
+|baseURI
+|Base location of the Hawkular Metrics service. Defaults to `\http://localhost:8080/hawkular/metrics`
+
+|authType
+|Authentication type. Possible values include `openshiftHtpasswd`, `openshiftToken` and `hawkular`.
+Authentication is disabled when unset.
+
+|user
+|Authentication username. Must be set when `authType` is set to `openshiftHtpasswd` or `hawkular`.
+
+|password
+|Authentication password. Must be set when `authType` is set to `openshiftHtpasswd` or `hawkular`.
+
+|token
+|Authentication token. Must be set when `authType` is set to `openshiftToken`.
+
+|tenant
+|Defaults to `default`. Ignored if `authType` is `hawkular`.
+
+|clients
+|Number of concurrent clients (agent/collector/feed). Defaults to `10`.
+
+|ramp
+|Delay (in seconds) before firing up another client. Defaults to `1`.
+
+|loops
+|The number of loops for each simulated client. Defaults to `10`.
+
+|interval
+|Interval (in seconds) between metrics reports. Defaults to `1`.
+
+|metrics
+|Number of metrics in the JSON report. Defaults to `10`.
+
+|points
+|Number of data points for a metric. Defaults to `1`.
+
+|===
