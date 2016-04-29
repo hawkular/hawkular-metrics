@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -339,22 +340,11 @@ public class AvailabilityHandler {
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
-            if (limit != null) {
-                if (order == null) {
-                    if (start == null && end != null) {
-                        order = Order.DESC;
-                    } else if (start != null && end == null) {
-                        order = Order.ASC;
-                    } else {
-                        order = Order.DESC;
-                    }
-                }
-            } else {
+            if (limit == null) {
                 limit = 0;
             }
-
             if (order == null) {
-                order = Order.DESC;
+                order = Order.defaultValue(limit, start, end);
             }
 
             metricsService
@@ -398,22 +388,12 @@ public class AvailabilityHandler {
         }
 
         MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, id);
-        if (limit != null) {
-            if (order == null) {
-                if (start == null && end != null) {
-                    order = Order.DESC;
-                } else if (start != null && end == null) {
-                    order = Order.ASC;
-                } else {
-                    order = Order.DESC;
-                }
-            }
-        } else {
+
+        if (limit == null) {
             limit = 0;
         }
-
         if (order == null) {
-            order = Order.DESC;
+            order = Order.defaultValue(limit, start, end);
         }
 
         metricsService

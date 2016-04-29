@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -335,22 +336,11 @@ public class CounterHandler {
                 return;
             }
 
-            if (limit != null) {
-                if (order == null) {
-                    if (start == null && end != null) {
-                        order = Order.DESC;
-                    } else if (start != null && end == null) {
-                        order = Order.ASC;
-                    } else {
-                        order = Order.DESC;
-                    }
-                }
-            } else {
+            if (limit == null) {
                 limit = 0;
             }
-
             if (order == null) {
-                order = Order.DESC;
+                order = Order.defaultValue(limit, start, end);
             }
 
             metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
@@ -446,22 +436,11 @@ public class CounterHandler {
             return;
         }
 
-        if (limit != null) {
-            if (order == null) {
-                if (start == null && end != null) {
-                    order = Order.DESC;
-                } else if (start != null && end == null) {
-                    order = Order.ASC;
-                } else {
-                    order = Order.DESC;
-                }
-            }
-        } else {
+        if (limit == null) {
             limit = 0;
         }
-
         if (order == null) {
-            order = Order.DESC;
+            order = Order.defaultValue(limit, start, end);
         }
 
         metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
@@ -584,10 +563,18 @@ public class CounterHandler {
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order,
             @Deprecated @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @Deprecated @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @Deprecated @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
+        if ((bucketsCount != null || bucketDuration != null) &&
+                (limit != null || order != null)) {
+            asyncResponse.resume(badRequest(new ApiError("Limit and order cannot be used with bucketed results")));
+            return;
+        }
+
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
@@ -602,7 +589,15 @@ public class CounterHandler {
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
-            metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd())
+
+            if (limit == null) {
+                limit = 0;
+            }
+            if (order == null) {
+                order = Order.defaultValue(limit, start, end);
+            }
+
+            metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
                     .toList()
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));

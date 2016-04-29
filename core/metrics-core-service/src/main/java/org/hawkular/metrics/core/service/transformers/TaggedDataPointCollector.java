@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+
+package org.hawkular.metrics.core.service.transformers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,13 +47,13 @@ public class TaggedDataPointCollector {
     private PSquarePercentile median = new PSquarePercentile(50.0);
     private List<PSquarePercentile> percentiles;
 
-    TaggedDataPointCollector(Map<String, String> tags, List<Double> percentiles) {
+    public TaggedDataPointCollector(Map<String, String> tags, List<Double> percentiles) {
         this.tags = tags;
         this.percentiles = new ArrayList<>();
         percentiles.stream().forEach(d -> this.percentiles.add(new PSquarePercentile(d)));
     }
 
-    void increment(DataPoint<? extends Number> dataPoint) {
+    public void increment(DataPoint<? extends Number> dataPoint) {
         Number value = dataPoint.getValue();
         min.increment(value.doubleValue());
         average.increment(value.doubleValue());
@@ -63,7 +64,7 @@ public class TaggedDataPointCollector {
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
 
-    TaggedBucketPoint toBucketPoint() {
+    public TaggedBucketPoint toBucketPoint() {
         List<Percentile> results = percentiles.stream()
                 .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList());
         return new TaggedBucketPoint(tags, min.getResult(), average.getResult(), median.getResult(), max.getResult(),

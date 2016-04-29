@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import static java.util.Arrays.asList;
@@ -143,11 +144,11 @@ public class RatesITest extends MetricsITest {
         subscriber.assertTerminalEvent();
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(() -> metricsService.findRateData(c1.getMetricId(),
-                start.getMillis(), start.plusMinutes(1).getMillis()));
+                start.getMillis(), start.plusMinutes(1).getMillis(), 0, Order.ASC));
         List<DataPoint<Double>> c2Rate = getOnNextEvents(() -> metricsService.findRateData(c2.getMetricId(),
-                start.getMillis(), start.plusMinutes(1).getMillis()));
+                start.getMillis(), start.plusMinutes(1).getMillis(), 0, Order.ASC));
         List<DataPoint<Double>> c3Rate = getOnNextEvents(() -> metricsService.findRateData(c3.getMetricId(),
-                start.getMillis(), start.plusMinutes(1).getMillis()));
+                start.getMillis(), start.plusMinutes(1).getMillis(), 0, Order.ASC));
 
         assertEquals(c1Rate, singletonList(new DataPoint<>(start.getMillis(), calculateRate(25, start,
                 start.plusMinutes(1)))));
