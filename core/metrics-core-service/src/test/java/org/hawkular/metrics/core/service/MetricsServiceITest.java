@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hawkular.metrics.core.service.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
@@ -102,6 +103,8 @@ public class MetricsServiceITest extends MetricsITest {
 
     private static final int DEFAULT_TTL = 7;    // 7 days
 
+    private static final int MAX_STRING_LENGTH = 100;
+
     private MetricsServiceImpl metricsService;
 
     private DataAccess dataAccess;
@@ -118,6 +121,9 @@ public class MetricsServiceITest extends MetricsITest {
         dateTimeService = new DateTimeService();
 
         defaultCreatePercentile = NumericDataPointCollector.createPercentile;
+
+        session.execute("INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.string-size', '" +
+                MAX_STRING_LENGTH + "')");
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
@@ -592,6 +598,31 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches(tenantId, STRING, singletonList(new Metric(metricId, DEFAULT_TTL)));
+    }
+
+    @Test
+    public void doNotAllowStringsThatExceedMaxLength() throws Exception {
+        char[] chars = new char[MAX_STRING_LENGTH + 1];
+        Arrays.fill(chars, 'X');
+        String string = new String(chars);
+        String tenantId = "string-tenant";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+        Metric<String> metric = new Metric<>(metricId, singletonList(new DataPoint<>(12345L, string)));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+
+        metricsService.addDataPoints(STRING, Observable.just(metric)).subscribe(
+                aVoid -> latch.countDown(),
+                t -> {
+                    exceptionRef.set(t);
+                    latch.countDown();
+                }
+        );
+        latch.await(10, SECONDS);
+
+        assertNotNull(exceptionRef.get());
+        assertTrue(exceptionRef.get() instanceof IllegalArgumentException);
     }
 
     @Test

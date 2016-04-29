@@ -473,9 +473,14 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl) {
+    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> {
+                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
+                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
+                            " characters");
+                    }
+
                     if (dataPoint.getTags().isEmpty()) {
                         return bindDataPoint(insertStringData, metric, dataPoint.getValue(), dataPoint.getTimestamp(),
                                 ttl);

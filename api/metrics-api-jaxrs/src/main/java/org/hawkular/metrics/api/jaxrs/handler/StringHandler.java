@@ -64,7 +64,7 @@ import rx.Observable;
 @Path("/strings")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(tags = "String")
+@Api(tags = "String", description = "Experimental")
 public class StringHandler {
 
     @Inject

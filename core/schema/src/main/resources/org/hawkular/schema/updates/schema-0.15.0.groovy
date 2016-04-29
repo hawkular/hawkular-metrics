@@ -50,3 +50,11 @@ schemaChange {
   description 'Add support for string metric type. See HWKMETRICS-384 for details.'
   cql "ALTER TABLE data ADD s_value text"
 }
+
+schemaChange {
+  version '1.4'
+  author 'jsanda'
+  tags '0.15.x'
+  description 'Add a default size limit for string data points.'
+  cql "INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.string-size', '2048')"
+}

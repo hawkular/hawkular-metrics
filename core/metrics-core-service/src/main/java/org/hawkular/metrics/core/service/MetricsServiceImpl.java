@@ -176,6 +176,8 @@ public class MetricsServiceImpl implements MetricsService {
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
+    private int maxStringSize;
+
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
     }
@@ -215,7 +217,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<String> string = (Metric<String>) metric;
-                    return dataAccess.insertStringData(string, ttl);
+                    return dataAccess.insertStringData(string, ttl, maxStringSize);
                 })
                 .build();
 
@@ -251,6 +253,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
+        initStringSize(session);
         initMetrics();
     }
 
@@ -296,6 +299,16 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(COUNTER, metricRegistry.timer("counter-read-latency"))
                 .put(STRING, metricRegistry.timer("string-read-latency"))
                 .build();
+    }
+
+    private void initStringSize(Session session) {
+        ResultSet resultSet = session.execute(
+                "SELECT value FROM system_settings WHERE key = 'org.hawkular.metrics.string-size'");
+        if (resultSet.isExhausted()) {
+            maxStringSize = -1;  // no size limit
+        } else {
+            maxStringSize = Integer.parseInt(resultSet.one().getString(0));
+        }
     }
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {

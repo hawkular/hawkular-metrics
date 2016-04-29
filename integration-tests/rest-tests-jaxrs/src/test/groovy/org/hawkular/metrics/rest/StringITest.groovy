@@ -21,7 +21,6 @@ import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
-
 /**
  * @author jsanda
  */
@@ -61,6 +60,21 @@ class StringITest extends RESTTest {
         body: [] /* Empty List */) { exception ->
       assertEquals(400, exception.response.status)
     }
+  }
+
+  @Test
+  void shouldNotAllowStringThatExceedsMaxLength() {
+    badPost(
+        path: 'strings/MyString/raw',
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                timestamp: now().millis,
+                value: "X".padRight(3000)
+            ]
+        ], { exception -> assertEquals(400, exception.response.status) }
+    )
+
   }
 
   @Test

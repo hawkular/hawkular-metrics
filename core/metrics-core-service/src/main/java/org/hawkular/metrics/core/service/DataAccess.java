@@ -63,7 +63,7 @@ public interface DataAccess {
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
-    Observable<Integer> insertStringData(Metric<String> metric, int ttl);
+    Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 

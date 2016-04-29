@@ -125,8 +125,8 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findGaugeData(id, startTime, endTime, 0, order);
     }
 
-    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl) {
-        return delegate.insertStringData(metric, ttl);
+    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
+        return delegate.insertStringData(metric, ttl, maxSize);
     }
 
     @Override
