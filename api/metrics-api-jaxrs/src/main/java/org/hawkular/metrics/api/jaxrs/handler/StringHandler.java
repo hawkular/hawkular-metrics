@@ -64,8 +64,8 @@ import rx.Observable;
 @Path("/strings")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@Api(tags = "String", description = "This resource is experimental and changes may made to it in subsequent releases "
-        + "that are not backwards compatible.")
+@Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
+        "releases that are not backwards compatible.")
 public class StringHandler {
 
     @Inject
