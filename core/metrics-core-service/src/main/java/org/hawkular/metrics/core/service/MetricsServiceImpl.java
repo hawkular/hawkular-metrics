@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -175,6 +176,8 @@ public class MetricsServiceImpl implements MetricsService {
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
+    private int maxStringSize;
+
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
     }
@@ -211,6 +214,11 @@ public class MetricsServiceImpl implements MetricsService {
                     Metric<Double> gauge = (Metric<Double>) metric;
                     return dataAccess.insertGaugeData(gauge, ttl);
                 })
+                .put(STRING, (metric, ttl) -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<String> string = (Metric<String>) metric;
+                    return dataAccess.insertStringData(string, ttl, maxStringSize);
+                })
                 .build();
 
         dataPointFinders = ImmutableMap
@@ -231,14 +239,21 @@ public class MetricsServiceImpl implements MetricsService {
                     MetricId<Long> counterId = (MetricId<Long>) metricId;
                     return dataAccess.findCounterData(counterId, start, end, limit, order);
                 })
+                .put(STRING, (metricId, start, end, limit, order) -> {
+                    @SuppressWarnings("unchecked")
+                    MetricId<String> stringId = (MetricId<String>) metricId;
+                    return dataAccess.findStringData(stringId, start, end, limit, order);
+                })
                 .build();
 
         dataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> builder()
                 .put(GAUGE, Functions::getGaugeDataPoint)
                 .put(AVAILABILITY, Functions::getAvailabilityDataPoint)
                 .put(COUNTER, Functions::getCounterDataPoint)
+                .put(STRING, Functions::getStringDataPoint)
                 .build();
 
+        initStringSize(session);
         initMetrics();
     }
 
@@ -276,12 +291,24 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(AVAILABILITY, metricRegistry.meter("availability-inserts"))
                 .put(COUNTER, metricRegistry.meter("counter-inserts"))
                 .put(COUNTER_RATE, metricRegistry.meter("gauge-inserts"))
+                .put(STRING, metricRegistry.meter("string-inserts"))
                 .build();
         dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer> builder()
                 .put(GAUGE, metricRegistry.timer("gauge-read-latency"))
                 .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
                 .put(COUNTER, metricRegistry.timer("counter-read-latency"))
+                .put(STRING, metricRegistry.timer("string-read-latency"))
                 .build();
+    }
+
+    private void initStringSize(Session session) {
+        ResultSet resultSet = session.execute(
+                "SELECT value FROM system_settings WHERE key = 'org.hawkular.metrics.string-size'");
+        if (resultSet.isExhausted()) {
+            maxStringSize = -1;  // no size limit
+        } else {
+            maxStringSize = Integer.parseInt(resultSet.one().getString(0));
+        }
     }
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
@@ -919,6 +946,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(AvailabilityDataPointCollector::toBucketPoint)
                 .toMap(AvailabilityBucketPoint::getStart)
                 .map(pointMap -> AvailabilityBucketPoint.toList(pointMap, buckets));
+    }
+
+    @Override
+    public Observable<DataPoint<String>> findStringData(MetricId<String> id, long start, long end, boolean distinct,
+            int limit, Order order) {
+        checkArgument(isValidTimeRange(start, end));
+        if (distinct) {
+            return findDataPoints(id, start, end, limit, order).distinctUntilChanged(DataPoint::getValue);
+        } else {
+            return findDataPoints(id, start, end, limit, order);
+        }
     }
 
     @Override

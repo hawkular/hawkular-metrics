@@ -61,6 +61,13 @@ public class Functions {
         TAGS
     }
 
+    private enum STRING_COLS {
+        TIME,
+        DATA_RETENTION,
+        VALUE,
+        TAGS
+    }
+
     private Functions() {
     }
 
@@ -78,6 +85,13 @@ public class Functions {
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
                 row.getLong(COUNTER_COLS.VALUE.ordinal()),
                 row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
+    public static DataPoint<String> getStringDataPoint(Row row) {
+        return new DataPoint<>(
+                UUIDs.unixTimestamp(row.getUUID(STRING_COLS.TIME.ordinal())),
+                row.getString(STRING_COLS.VALUE.ordinal()),
+                row.getMap(STRING_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@ public final class MetricType<T> {
     public static final MetricType<AvailabilityType> AVAILABILITY = new MetricType<>((byte) 1, "availability", true);
     public static final MetricType<Long> COUNTER = new MetricType<>((byte) 2, "counter", true);
     public static final MetricType<Double> COUNTER_RATE = new MetricType<>((byte) 3, "counter_rate", false);
+    public static final MetricType<String> STRING = new MetricType<>((byte) 4, "string", true);
 
     @SuppressWarnings("rawtypes")
     public static final MetricType UNDEFINED = new MetricType((byte) 127, "undefined", false);

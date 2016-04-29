@@ -23,6 +23,7 @@ import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -89,6 +90,10 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertCounterDataWithTags;
 
+    private PreparedStatement insertStringData;
+
+    private PreparedStatement insertStringDataWithTags;
+
     private PreparedStatement findCounterDataExclusive;
 
     private PreparedStatement findCounterDataExclusiveWithLimit;
@@ -104,6 +109,14 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
 
     private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimitASC;
+
+    private PreparedStatement findStringDataByDateRangeExclusive;
+
+    private PreparedStatement findStringDataByDateRangeExclusiveWithLimit;
+
+    private PreparedStatement findStringDataByDateRangeExclusiveASC;
+
+    private PreparedStatement findStringDataByDateRangeExclusiveWithLimitASC;
 
     private PreparedStatement findAvailabilityByDateRangeInclusive;
 
@@ -217,6 +230,18 @@ public class DataAccessImpl implements DataAccess {
             "SET n_value = ?, tags = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
+        insertStringData = session.prepare(
+            "UPDATE data " +
+            "USING TTL ? " +
+            "SET s_value = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
+
+        insertStringDataWithTags = session.prepare(
+              "UPDATE data " +
+              "USING TTL ? " +
+              "SET s_value = ?, tags = ? " +
+              "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
         insertCounterData = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
@@ -248,6 +273,26 @@ public class DataAccessImpl implements DataAccess {
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC" +
             " LIMIT ?");
+
+        findStringDataByDateRangeExclusive = session.prepare(
+            "SELECT time, data_retention, s_value, tags FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findStringDataByDateRangeExclusiveWithLimit = session.prepare(
+            "SELECT time, data_retention, s_value, tags FROM data " +
+            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+            " LIMIT ?");
+
+        findStringDataByDateRangeExclusiveASC = session.prepare(
+            "SELECT time, data_retention, s_value, tags FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+            " AND time < ? ORDER BY time ASC");
+
+        findStringDataByDateRangeExclusiveWithLimitASC = session.prepare(
+            "SELECT time, data_retention, s_value, tags FROM data" +
+             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+             " AND time < ? ORDER BY time ASC" +
+             " LIMIT ?");
 
         findCounterDataExclusive = session.prepare(
             "SELECT time, data_retention, l_value, tags FROM data " +
@@ -443,6 +488,26 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
+    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
+        return Observable.from(metric.getDataPoints())
+                .map(dataPoint -> {
+                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
+                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
+                            " characters");
+                    }
+
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertStringData, metric, dataPoint.getValue(), dataPoint.getTimestamp(),
+                                ttl);
+                    } else {
+                        return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
+                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                    }
+                })
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
         return Observable.from(counter.getDataPoints())
@@ -517,6 +582,29 @@ public class DataAccessImpl implements DataAccess {
             } else {
                 return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
                         GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                        limit));
+            }
+        }
+    }
+
+    @Override
+    public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order) {
+        if (order == Order.ASC) {
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findStringDataByDateRangeExclusiveASC.bind(id.getTenantId(),
+                        STRING.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            } else {
+                return rxSession.executeAndFetch(findStringDataByDateRangeExclusiveWithLimitASC.bind(
+                        id.getTenantId(), GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                        getTimeUUID(endTime), limit));
+            }
+        } else {
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findStringDataByDateRangeExclusive.bind(id.getTenantId(),
+                        STRING.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
+            } else {
+                return rxSession.executeAndFetch(findStringDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
+                        STRING.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
                         limit));
             }
         }

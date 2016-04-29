@@ -83,6 +83,22 @@ class MetricsITest extends RESTTest {
                         [timestamp: start.plusMinutes(1).millis, value: "up"]
                     ]
                 ]
+            ],
+            strings: [
+                [
+                    id: 'S1',
+                    data: [
+                        [timestamp: start.millis, value: 'server accepting writes'],
+                        [timestamp: start.plusMinutes(1).millis, value: 'server accepting reads']
+                    ]
+                ],
+                [
+                    id: 'S2',
+                    data: [
+                        [timestamp: start.millis, value: 'entering maintenance mode'],
+                        [timestamp: start.plusMinutes(1).millis, value: 'rebuilding index']
+                    ]
+                ]
             ]
         ]
     )
@@ -145,6 +161,26 @@ class MetricsITest extends RESTTest {
         [
             [timestamp: start.plusMinutes(1).millis, value: "up"],
             [timestamp: start.millis, value: "up"]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: 'strings/S1/raw', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: "server accepting reads"],
+            [timestamp: start.millis, value: "server accepting writes"]
+        ],
+        response.data
+    )
+
+    response = hawkularMetrics.get(path: 'strings/S2/raw', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(
+        [
+            [timestamp: start.plusMinutes(1).millis, value: "rebuilding index"],
+            [timestamp: start.millis, value: "entering maintenance mode"]
         ],
         response.data
     )

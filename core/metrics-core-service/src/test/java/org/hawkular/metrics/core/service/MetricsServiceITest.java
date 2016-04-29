@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hawkular.metrics.core.service.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
@@ -33,6 +34,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Days.days;
 import static org.joda.time.Hours.hours;
@@ -102,6 +104,8 @@ public class MetricsServiceITest extends MetricsITest {
 
     private static final int DEFAULT_TTL = 7;    // 7 days
 
+    private static final int MAX_STRING_LENGTH = 100;
+
     private MetricsServiceImpl metricsService;
 
     private DataAccess dataAccess;
@@ -118,6 +122,9 @@ public class MetricsServiceITest extends MetricsITest {
         dateTimeService = new DateTimeService();
 
         defaultCreatePercentile = NumericDataPointCollector.createPercentile;
+
+        session.execute("INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.string-size', '" +
+                MAX_STRING_LENGTH + "')");
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
@@ -587,6 +594,58 @@ public class MetricsServiceITest extends MetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+    }
+
+    @Test
+    public void addAndFetchStringData() throws Exception {
+        DateTime start = now().minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "string-tenant";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+
+        Metric<String> metric = new Metric<>(metricId, asList(
+                new DataPoint<>(start.getMillis(), "X"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "Y"),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "A"),
+                new DataPoint<>(end.getMillis(), "B")
+        ));
+
+        doAction(() -> metricsService.addDataPoints(STRING, Observable.just(metric)));
+        List<DataPoint<String>> actual = getOnNextEvents(() -> metricsService.findDataPoints(metricId,
+                start.getMillis(), end.getMillis(), 0, Order.DESC));
+        List<DataPoint<String>> expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "A"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "Y"),
+                new DataPoint<>(start.getMillis(), "X")
+        );
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertMetricIndexMatches(tenantId, STRING, singletonList(new Metric(metricId, DEFAULT_TTL)));
+    }
+
+    @Test
+    public void doNotAllowStringsThatExceedMaxLength() throws Exception {
+        char[] chars = new char[MAX_STRING_LENGTH + 1];
+        Arrays.fill(chars, 'X');
+        String string = new String(chars);
+        String tenantId = "string-tenant";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+        Metric<String> metric = new Metric<>(metricId, singletonList(new DataPoint<>(12345L, string)));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+
+        metricsService.addDataPoints(STRING, Observable.just(metric)).subscribe(
+                aVoid -> latch.countDown(),
+                t -> {
+                    exceptionRef.set(t);
+                    latch.countDown();
+                }
+        );
+        latch.await(10, SECONDS);
+
+        assertNotNull(exceptionRef.get());
+        assertTrue(exceptionRef.get() instanceof IllegalArgumentException);
     }
 
     @Test
@@ -1771,6 +1830,45 @@ public class MetricsServiceITest extends MetricsITest {
         );
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
+    }
+
+    @Test
+    public void findDistinctStrings() throws Exception {
+        DateTime end = now();
+        DateTime start = end.minusMinutes(20);
+        String tenantId = "Distinct Strings";
+        MetricId<String> metricId = new MetricId<>(tenantId, STRING, "S1");
+
+        Metric<String> metric = new Metric<>(metricId, asList(
+                new DataPoint<>(start.getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(1).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(3).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(5).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(6).getMillis(), "up"),
+                new DataPoint<>(start.plusMinutes(7).getMillis(), "unknown"),
+                new DataPoint<>(start.plusMinutes(8).getMillis(), "unknown"),
+                new DataPoint<>(start.plusMinutes(9).getMillis(), "down"),
+                new DataPoint<>(start.plusMinutes(10).getMillis(), "up")
+        ));
+
+        doAction(() -> metricsService.addDataPoints(STRING, Observable.just(metric)));
+
+        List<DataPoint<String>> actual = getOnNextEvents(() -> metricsService.findStringData(metricId,
+                start.getMillis(), end.getMillis(), true, 0, Order.ASC));
+        List<DataPoint<String>> expected = asList(
+                metric.getDataPoints().get(0),
+                metric.getDataPoints().get(1),
+                metric.getDataPoints().get(3),
+                metric.getDataPoints().get(4),
+                metric.getDataPoints().get(5),
+                metric.getDataPoints().get(7),
+                metric.getDataPoints().get(9),
+                metric.getDataPoints().get(10)
+        );
+
+        assertEquals(actual, expected, "The string data does not match the expected values");
     }
 
     @Test

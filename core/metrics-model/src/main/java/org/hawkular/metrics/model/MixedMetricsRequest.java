@@ -37,6 +37,7 @@ public class MixedMetricsRequest {
     private final List<Metric<Double>> gauges;
     private final List<Metric<AvailabilityType>> availabilities;
     private final List<Metric<Long>> counters;
+    private final List<Metric<String>> strings;
 
     @JsonCreator(mode = Mode.PROPERTIES)
     public MixedMetricsRequest(
@@ -45,11 +46,14 @@ public class MixedMetricsRequest {
             @JsonProperty("availabilities")
             List<Metric<AvailabilityType>> availabilities,
             @JsonProperty("counters")
-            List<Metric<Long>> counters
+            List<Metric<Long>> counters,
+            @JsonProperty("strings")
+            List<Metric<String>> strings
     ) {
         this.gauges = gauges == null ? emptyList() : unmodifiableList(gauges);
         this.availabilities = availabilities == null ? emptyList() : unmodifiableList(availabilities);
         this.counters = counters == null ? emptyList() : unmodifiableList(counters);
+        this.strings = strings == null ? emptyList() : unmodifiableList(strings);
     }
 
     public List<Metric<Double>> getGauges() {
@@ -64,12 +68,16 @@ public class MixedMetricsRequest {
         return counters;
     }
 
+    public List<Metric<String>> getStrings() {
+        return strings;
+    }
+
     /**
      * @return true if this instance has no data point (of any type)
      */
     @JsonIgnore
     public boolean isEmpty() {
-        return gauges.isEmpty() && availabilities.isEmpty() && counters.isEmpty();
+        return gauges.isEmpty() && availabilities.isEmpty() && counters.isEmpty() && strings.isEmpty();
     }
 
     @Override
@@ -78,6 +86,7 @@ public class MixedMetricsRequest {
                 .add("gauges", gauges)
                 .add("availabilities", availabilities)
                 .add("counters", counters)
+                .add("strings", strings)
                 .omitNullValues()
                 .toString();
     }
