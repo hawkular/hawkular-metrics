@@ -27,6 +27,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_N
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -141,6 +142,11 @@ public class MetricsServiceLifecycle {
     private String defaultTTL;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(DISABLE_METRICS_JMX)
+    private String disableMetricsJmxReporting;
+
+    @Inject
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
@@ -229,8 +235,10 @@ public class MetricsServiceLifecycle {
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            jmxReporter = JmxReporter.forRegistry(metricRegistry).inDomain("hawkular.metrics").build();
-            jmxReporter.start();
+            if (!Boolean.parseBoolean(disableMetricsJmxReporting)) {
+                jmxReporter = JmxReporter.forRegistry(metricRegistry).inDomain("hawkular.metrics").build();
+                jmxReporter.start();
+            }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
             initJobs();
@@ -277,6 +285,10 @@ public class MetricsServiceLifecycle {
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException("SSL support is required but is not available in the JVM.", e);
             }
+        }
+
+        if (Boolean.parseBoolean(disableMetricsJmxReporting)) {
+            clusterBuilder.withoutJMXReporting();
         }
 
         Cluster cluster = clusterBuilder.build();
