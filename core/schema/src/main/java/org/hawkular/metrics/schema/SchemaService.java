@@ -59,8 +59,8 @@ public class SchemaService {
         URI script = getScript();
         cassalog.execute(script, tags, vars);
 
-        session.execute("INSERT INTO " + keyspace + ".system_settings (key, value) VALUES " +
-                "('hawkular.metrics.version', '" + getNewHawkularMetricsVersion() + "')");
+        session.execute("INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES " +
+                "('org.hawkular.metrics', 'version', '" + getNewHawkularMetricsVersion() + "')");
     }
 
     private URI getScript() {
@@ -79,8 +79,8 @@ public class SchemaService {
     }
 
     private String getCurrentHawkularMetricsVersion(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT value FROM " + keyspace + ".system_settings WHERE " +
-                "key = 'hawkular.metrics.version'");
+        Statement statement = new SimpleStatement("SELECT value FROM " + keyspace + ".sys_config WHERE " +
+                "name = 'org.hawkular.metrics.version'");
         ResultSet resultSet = session.execute(statement);
         if (resultSet.isExhausted()) {
             return null;

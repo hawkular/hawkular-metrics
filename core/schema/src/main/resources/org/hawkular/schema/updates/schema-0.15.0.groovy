@@ -20,9 +20,11 @@ schemaChange {
   author 'jsanda'
   tags '0.15.x'
   cql """
-CREATE TABLE system_settings (
-    key text PRIMARY KEY,
-    value text
+CREATE TABLE sys_config (
+    config_id text,
+    name text,
+    value text,
+    PRIMARY KEY (config_id, name)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
 }

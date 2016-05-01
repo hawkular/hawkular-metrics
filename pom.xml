@@ -389,6 +389,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/configuration-service</module>
         <module>core/task-queue</module>
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
@@ -416,6 +417,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/configuration-service</module>
         <module>core/task-queue</module>
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
