@@ -58,5 +58,5 @@ schemaChange {
   author 'jsanda'
   tags '0.15.x'
   description 'Add a default size limit for string data points.'
-  cql "INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.string-size', '2048')"
+  cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'string-size', '2048')"
 }

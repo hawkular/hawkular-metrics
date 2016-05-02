@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.system;
+package org.hawkular.metrics.sysconfig;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
@@ -39,6 +39,9 @@ public class ConfigurationService {
 
     private PreparedStatement updateConfiguration;
 
+    // TODO make async
+    // I could have just as easily passed the session as a constructor arg. I am doing it in the init method because
+    // eventually I would like service initialization async.
     public void init(RxSession session) {
         this.session = session;
         findConfiguration = session.getSession().prepare("SELECT name, value FROM sys_config WHERE config_id = ?");

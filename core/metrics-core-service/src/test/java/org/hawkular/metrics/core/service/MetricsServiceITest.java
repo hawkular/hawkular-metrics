@@ -78,6 +78,7 @@ import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
@@ -104,7 +105,7 @@ public class MetricsServiceITest extends MetricsITest {
 
     private static final int DEFAULT_TTL = 7;    // 7 days
 
-    private static final int MAX_STRING_LENGTH = 100;
+    private static final int MAX_STRING_LENGTH = 2048;
 
     private MetricsServiceImpl metricsService;
 
@@ -121,15 +122,16 @@ public class MetricsServiceITest extends MetricsITest {
         dataAccess = new DataAccessImpl(session);
         dateTimeService = new DateTimeService();
 
-        defaultCreatePercentile = NumericDataPointCollector.createPercentile;
+        ConfigurationService configurationService = new ConfigurationService() ;
+        configurationService.init(rxSession);
 
-        session.execute("INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.string-size', '" +
-                MAX_STRING_LENGTH + "')");
+        defaultCreatePercentile = NumericDataPointCollector.createPercentile;
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.setDateTimeService(dateTimeService);
+        metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 

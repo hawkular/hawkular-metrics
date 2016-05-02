@@ -237,7 +237,7 @@ public interface MetricsService {
             int limit, Order order);
 
     /**
-     * Check if a metric has been stored in the system.
+     * Check if a metric has been stored in the sysconfig.
      */
     Observable<Boolean> idExists(MetricId<?> metric);
 

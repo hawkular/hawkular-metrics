@@ -61,8 +61,10 @@ import org.hawkular.metrics.core.service.DateTimeService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -228,10 +230,14 @@ public class MetricsServiceLifecycle {
             dataAcces = new DataAccessImpl(session);
             initTaskScheduler();
 
+            ConfigurationService configurationService = new ConfigurationService();
+            configurationService.init(new RxSessionImpl(session));
+
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
             metricsService.setDateTimeService(createDateTimeService());
+            metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();

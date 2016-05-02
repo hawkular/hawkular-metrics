@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.system;
+package org.hawkular.metrics.sysconfig;
 
 import java.util.Collections;
 import java.util.Map;
@@ -43,6 +43,10 @@ public class Configuration {
 
     public String get(String name) {
         return properties.get(name);
+    }
+
+    public String get(String name, String defaultValue) {
+        return properties.getOrDefault(name, defaultValue);
     }
 
     public void set(String name, String value) {

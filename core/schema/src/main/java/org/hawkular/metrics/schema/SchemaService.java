@@ -53,7 +53,7 @@ public class SchemaService {
         );
         // TODO Add logic to determine the version tags we need to pass
         // For now, I am just hard coding the version tag, but a more robust solution would be
-        // to calculate the tags using the current version stored in the system_settings table
+        // to calculate the tags using the current version stored in the sys_config table
         // and the new version which we can extract from any of our JAR manifest files.
         List<String> tags = singletonList("0.15.x");
         URI script = getScript();
@@ -72,7 +72,7 @@ public class SchemaService {
     }
 
     private boolean systemSettingsTableExists(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT * FROM system.schema_columnfamilies WHERE " +
+        Statement statement = new SimpleStatement("SELECT * FROM sysconfig.schema_columnfamilies WHERE " +
                 "keyspace_name = '" + keyspace + "' AND columnfamily_name = 'system_settings'");
         ResultSet resultSet = session.execute(statement);
         return !resultSet.isExhausted();
