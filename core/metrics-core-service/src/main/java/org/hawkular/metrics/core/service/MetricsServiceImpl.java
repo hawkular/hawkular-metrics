@@ -67,6 +67,8 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.sysconfig.Configuration;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.joda.time.Duration;
 
@@ -98,7 +100,7 @@ import rx.subjects.PublishSubject;
 public class MetricsServiceImpl implements MetricsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
-    public static final String SYSTEM_TENANT_ID = makeSafe("system");
+    public static final String SYSTEM_TENANT_ID = makeSafe("sysconfig");
 
     private static class DataRetentionKey {
         private final MetricId<?> metricId;
@@ -145,6 +147,8 @@ public class MetricsServiceImpl implements MetricsService {
     private TaskScheduler taskScheduler;
 
     private DateTimeService dateTimeService;
+
+    private ConfigurationService configurationService;
 
     private MetricRegistry metricRegistry;
 
@@ -302,12 +306,12 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private void initStringSize(Session session) {
-        ResultSet resultSet = session.execute(
-                "SELECT value FROM system_settings WHERE key = 'org.hawkular.metrics.string-size'");
-        if (resultSet.isExhausted()) {
+        Configuration configuration = configurationService.load("org.hawkular.metrics").toBlocking()
+                .lastOrDefault(null);
+        if (configuration == null) {
             maxStringSize = -1;  // no size limit
         } else {
-            maxStringSize = Integer.parseInt(resultSet.one().getString(0));
+            maxStringSize = Integer.parseInt(configuration.get("string-size", "2048"));
         }
     }
 
@@ -361,6 +365,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setDateTimeService(DateTimeService dateTimeService) {
         this.dateTimeService = dateTimeService;
+    }
+
+    public void setConfigurationService(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
