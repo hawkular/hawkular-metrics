@@ -18,9 +18,6 @@ package org.hawkular.metrics.sysconfig;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.hawkular.rx.cassandra.driver.RxSession;
 
 import com.datastax.driver.core.BatchStatement;
@@ -51,15 +48,7 @@ public class ConfigurationService {
 
     public Observable<Configuration> load(String id) {
         return session.executeAndFetch(findConfiguration.bind(id))
-                .map(row -> {
-                    Map<String, String> map = new HashMap<>();
-                    map.put(row.getString(0), row.getString(1));
-                    return map;
-                })
-                .reduce((m1, m2) -> {
-                    m2.putAll(m1);
-                    return m2;
-                })
+                .toMap(row -> row.getString(0), row -> row.getString(1))
                 .map(map -> new Configuration(id, map));
     }
 
