@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,10 +14,25 @@ package org.hawkular.schema
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.hawkular.metrics.scheduler.api;
 
-include '/org/hawkular/schema/bootstrap.groovy'
+import java.util.Map;
 
-setKeyspace keyspace
+import rx.Completable;
+import rx.Single;
+import rx.functions.Func1;
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
+/**
+ * @author jsanda
+ */
+public interface Scheduler {
+
+    Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger);
+
+    void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory);
+
+    void start();
+
+    void shutdown();
+
+}

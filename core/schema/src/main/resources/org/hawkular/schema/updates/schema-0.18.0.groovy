@@ -16,47 +16,65 @@
  */
 
 schemaChange {
-  version '1.0'
+  version '2.0'
   author 'jsanda'
-  tags '0.15.x'
+  tags '0.18.x'
   cql """
-CREATE TABLE sys_config (
-    config_id text,
-    name text,
+CREATE TABLE locks (
+    name text PRIMARY KEY,
     value text,
-    PRIMARY KEY (config_id, name)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
 }
 
 schemaChange {
-  version '1.1'
+  version '2.1'
   author 'jsanda'
-  tags '0.15.x'
-  description 'See https://issues.jboss.org/browse/HWKMETRICS-367 for details'
-  cql "ALTER TABLE data WITH gc_grace_seconds = 86400"
+  tags '0.18.x'
+  cql """
+CREATE TABLE jobs (
+    id uuid PRIMARY KEY,
+    type text,
+    name text,
+    params map<text, text>,
+    trigger frozen <trigger_def>
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
 }
 
 schemaChange {
-  version '1.2'
+  version '2.2'
   author 'jsanda'
-  tags '0.15.x'
-  description "Add support for data point tags. See HWKMETRICS-368 for details"
-  cql "ALTER TABLE data ADD tags map<text,text>"
+  tags '0.18.x'
+  cql """
+CREATE TABLE scheduled_jobs_idx (
+    time_slice timestamp,
+    job_id uuid,
+    PRIMARY KEY (time_slice, job_id)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
 }
 
 schemaChange {
-  version '1.3'
+  version '2.3'
   author 'jsanda'
-  tags '0.15.x'
-  description 'Add support for string metric type. See HWKMETRICS-384 for details.'
-  cql "ALTER TABLE data ADD s_value text"
+  tags '0.18.x'
+  cql """
+CREATE TABLE finished_jobs_idx (
+    time_slice timestamp,
+    job_id uuid,
+    PRIMARY KEY (time_slice, job_id)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
 }
 
 schemaChange {
-  version '1.4'
+  version '2.4'
   author 'jsanda'
-  tags '0.15.x'
-  description 'Add a default size limit for string data points.'
-  cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'string-size', '2048')"
+  tags '0.18.x'
+  cql """
+CREATE TABLE active_time_slices (
+    time_slice timestamp PRIMARY KEY
+) WITH compaction = { 'class' : 'LeveledCompactionStrategy' }
+"""
 }
