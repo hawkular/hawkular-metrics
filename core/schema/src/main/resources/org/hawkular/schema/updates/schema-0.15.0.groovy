@@ -60,8 +60,9 @@ schemaChange {
   description 'Add a default size limit for string data points.'
   cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'string-size', '2048')"
 }
+
 schemaChange {
-  version '1.3'
+  version '1.5'
   author 'jsanda'
   tags '0.15.x'
   cql """
@@ -74,7 +75,7 @@ CREATE TABLE locks (
 }
 
 schemaChange {
-  version '1.4'
+  version '1.6'
   author 'jsanda'
   tags '0.15.x'
   cql """
@@ -89,7 +90,7 @@ CREATE TABLE jobs (
 }
 
 schemaChange {
-  version '1.4'
+  version '1.7'
   author 'jsanda'
   tags '0.15.x'
   cql """

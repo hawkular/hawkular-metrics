@@ -56,6 +56,18 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-configuration-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-job-scheduler</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-task-queue</artifactId>
       <version>${project.version}</version>
     </dependency>

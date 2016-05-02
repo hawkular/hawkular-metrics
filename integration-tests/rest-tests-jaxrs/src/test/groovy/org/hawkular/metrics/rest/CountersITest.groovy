@@ -29,7 +29,10 @@ import org.junit.Test
 
 import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
-import static org.junit.Assert.*
+import static org.junit.Assert.assertArrayEquals
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
+
 /**
  * @author John Sanda
  */

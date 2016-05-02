@@ -29,6 +29,8 @@ import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.hawkular.metrics.schema.SchemaService;
+import org.hawkular.metrics.sysconfig.Configuration;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
@@ -53,11 +55,9 @@ public class JobSchedulingTest {
 
     protected static RxSession rxSession;
 
+    protected static ConfigurationService configurationService;
+
     protected static SchedulerImpl jobScheduler;
-
-    private static PreparedStatement findActiveQueue;
-
-    private static PreparedStatement insertActiveQueue;
 
     private static PreparedStatement findJob;
 
@@ -73,14 +73,12 @@ public class JobSchedulingTest {
 
         session.execute("USE " + keyspace);
 
-        jobScheduler = new SchedulerImpl(rxSession);
+        configurationService = new ConfigurationService();
+        configurationService.init(rxSession);
 
-        findActiveQueue = session.prepare(
-                "SELECT value FROM system_settings WHERE key = 'org.hawkular.metrics.scheduler.active-queue'")
-                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-        insertActiveQueue = session.prepare(
-                "INSERT INTO system_settings (key, value) VALUES ('org.hawkular.metrics.scheduler.active-queue', ?)")
-                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        jobScheduler = new SchedulerImpl(rxSession);
+        jobScheduler.setConfigurationService(configurationService);
+
         findJob = session.prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
@@ -102,15 +100,16 @@ public class JobSchedulingTest {
     }
 
     protected static void setActiveQueue(DateTime dateTime) {
-        session.execute(insertActiveQueue.bind(Long.toString(dateTime.getMillis())));
+        configurationService.save("org.hawkular.metrics.scheduler", "active-queue", Long.toString(dateTime.getMillis()))
+                .toBlocking().lastOrDefault(null);
     }
 
     protected static Date findActiveQueue() {
-        ResultSet resultSet = session.execute(findActiveQueue.bind());
-        if (resultSet.isExhausted()) {
+        Configuration config = configurationService.load("org.hawkular.metrics.scheduler").toBlocking().last();
+        if (config.get("active-queue") == null) {
             fail("The [org.hawkular.metrics.scheduler.active-queue] system setting should be set!");
         }
-        return resultSet.all().get(0).getTimestamp(0);
+        return new Date(Long.parseLong(config.get("active-queue")));
     }
 
     protected static void assertJobEquals(JobDetails expected) {

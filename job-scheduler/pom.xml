@@ -47,6 +47,12 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-configuration-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-rx-java-driver</artifactId>
       <version>${project.version}</version>
     </dependency>

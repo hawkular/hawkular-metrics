@@ -31,9 +31,9 @@ import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.UDTValue;
@@ -61,13 +61,13 @@ public class SchedulerImpl implements Scheduler {
 
     private RxSession session;
 
-    private PreparedStatement findActiveTimeSlice;
-
     private PreparedStatement insertJob;
 
     private PreparedStatement insertJobInQueue;
 
     private LockManager lockManager;
+
+    private ConfigurationService configurationService;
 
     private String name;
 
@@ -83,9 +83,6 @@ public class SchedulerImpl implements Scheduler {
 
         lockManager = new LockManager(session);
 
-        findActiveTimeSlice = session.getSession().prepare("SELECT value FROM system_settings WHERE key = ?")
-                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-
         insertJob = session.getSession().prepare(
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
 
@@ -97,6 +94,10 @@ public class SchedulerImpl implements Scheduler {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void setConfigurationService(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
     }
 
     @Override
@@ -154,10 +155,8 @@ public class SchedulerImpl implements Scheduler {
 
     private Observable<Date> findActiveTimeSlice() {
         // TODO We shouldn't ever get an empty result set but need to handle it to be safe
-        return session.execute(findActiveTimeSlice.bind("org.hawkular.metrics.scheduler.active-queue"))
-                .flatMap(Observable::from)
-                .take(1)
-                .map(row -> new Date(Long.parseLong(row.getString(0))));
+        return configurationService.load("org.hawkular.metrics.scheduler")
+                .map(config -> new Date(Long.parseLong(config.get("active-queue"))));
     }
 
     static UDTValue getTriggerValue(RxSession session, Trigger trigger) {

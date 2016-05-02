@@ -21,6 +21,7 @@ import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 import org.hawkular.rx.cassandra.driver.RxSession;
 
 import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 
 import rx.Observable;
@@ -41,9 +42,11 @@ public class ConfigurationService {
     // eventually I would like service initialization async.
     public void init(RxSession session) {
         this.session = session;
-        findConfiguration = session.getSession().prepare("SELECT name, value FROM sys_config WHERE config_id = ?");
+        findConfiguration = session.getSession().prepare("SELECT name, value FROM sys_config WHERE config_id = ?")
+                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         updateConfiguration = session.getSession().prepare(
-                "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)");
+                "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)")
+                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
     public Observable<Configuration> load(String id) {
@@ -57,6 +60,11 @@ public class ConfigurationService {
                 .map(entry -> updateConfiguration.bind(configuration.getId(), entry.getKey(), entry.getValue()))
                 .collect(() -> new BatchStatement(UNLOGGED), BatchStatement::add)
                 .flatMap(batch -> session.execute(batch).map(resultSet -> null));
+    }
+
+    public Observable<Void> save(String configId, String name, String value) {
+        return session.execute(updateConfiguration.bind(configId, name, value))
+                .flatMap(resultSet -> null);
     }
 
 }
