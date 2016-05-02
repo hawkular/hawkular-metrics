@@ -60,3 +60,44 @@ schemaChange {
   description 'Add a default size limit for string data points.'
   cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'string-size', '2048')"
 }
+schemaChange {
+  version '1.3'
+  author 'jsanda'
+  tags '0.15.x'
+  cql """
+CREATE TABLE locks (
+    name text PRIMARY KEY,
+    owner text,
+    owners list<text>
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
+}
+
+schemaChange {
+  version '1.4'
+  author 'jsanda'
+  tags '0.15.x'
+  cql """
+CREATE TABLE jobs (
+    id uuid PRIMARY KEY,
+    type text,
+    name text,
+    params map<text, text>,
+    trigger frozen <trigger_def>
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
+}
+
+schemaChange {
+  version '1.4'
+  author 'jsanda'
+  tags '0.15.x'
+  cql """
+CREATE TABLE jobs_status (
+    time_slice timestamp,
+    job_id uuid,
+    status text,
+    PRIMARY KEY (time_slice, job_id)
+) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
+"""
+}

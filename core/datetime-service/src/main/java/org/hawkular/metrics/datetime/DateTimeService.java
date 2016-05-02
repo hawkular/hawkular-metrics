@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.datetime;
 
 import java.util.function.Supplier;
 
@@ -29,13 +29,21 @@ import org.joda.time.Period;
  */
 public class DateTimeService {
 
-    public Supplier<DateTime> now = DateTime::now;
+    public static Supplier<DateTime> now = DateTime::now;
+
+    /**
+     * @return A DateTime object rounded down to the start of the current minute. For example if the current time is
+     * 17:21:09, then 17:21:00 is returned.
+     */
+    public static DateTime currentMinute() {
+        return getTimeSlice(now.get(), Duration.standardMinutes(1));
+    }
 
     /**
      * @return A DateTime object rounded down to the start of the current hour. For example, if the current time is
      * 17:21:09, then 17:00:00 is returned.
      */
-    public DateTime currentHour() {
+    public static DateTime currentHour() {
         return getTimeSlice(now.get(), Hours.ONE.toStandardDuration());
     }
 
@@ -45,7 +53,7 @@ public class DateTimeService {
      *
      * @return A DateTime object rounded down to the start of the current 24 hour time slice.
      */
-    public DateTime current24HourTimeSlice() {
+    public static DateTime current24HourTimeSlice() {
         return get24HourTimeSlice(currentHour());
     }
 
@@ -56,15 +64,15 @@ public class DateTimeService {
      * @return A DateTime rounded down to the start of the 24 hour time slice in which the time parameter falls.
      * @see #current24HourTimeSlice()
      */
-    public DateTime get24HourTimeSlice(DateTime time) {
+    public static DateTime get24HourTimeSlice(DateTime time) {
         return getTimeSlice(time, Days.ONE.toStandardDuration());
     }
 
-    public long getTimeSlice(long time, Duration duration) {
+    public static long getTimeSlice(long time, Duration duration) {
         return getTimeSlice(new DateTime(time), duration).getMillis();
     }
 
-    public DateTime getTimeSlice(DateTime dt, Duration duration) {
+    public static DateTime getTimeSlice(DateTime dt, Duration duration) {
         Period p = duration.toPeriod();
 
         if (p.getYears() != 0) {
