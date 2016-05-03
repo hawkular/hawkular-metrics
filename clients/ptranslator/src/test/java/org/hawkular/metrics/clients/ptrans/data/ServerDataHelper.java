@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -64,6 +65,9 @@ public class ServerDataHelper {
         urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
         urlConnection.connect();
         int responseCode = urlConnection.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_NO_CONTENT) {
+            return Collections.emptyList();
+        }
         if (responseCode != HttpURLConnection.HTTP_OK) {
             String msg = "Could not get metrics list from server: %s, %d";
             fail(String.format(Locale.ROOT, msg, findGaugeMetricsUrl, responseCode));
