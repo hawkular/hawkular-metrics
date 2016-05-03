@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.clients.ptrans.data;
 
 import static java.util.stream.Collectors.toList;
@@ -82,6 +83,10 @@ public class ServerDataHelper {
             urlConnection.setRequestProperty(String.valueOf(TENANT_HEADER_NAME), tenant);
             urlConnection.connect();
             responseCode = urlConnection.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_NO_CONTENT) {
+                continue;
+            }
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 fail("Could not load metric data from server: " + responseCode);
             }
