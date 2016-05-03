@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.clients.ptrans.backend;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -72,7 +73,6 @@ public class MetricsSenderITest {
         CountDownLatch latch = new CountDownLatch(1);
         vertx.deployVerticle(new MetricsSender(configuration), handler -> latch.countDown());
         latch.await();
-
     }
 
     @Test
@@ -101,12 +101,14 @@ public class MetricsSenderITest {
         }
 
         ServerDataHelper dataHelper = new ServerDataHelper(tenant);
-        List<Point> serverData;
-        do {
+        List<Point> serverData = null;
+        for (int i = 0; i < 10; i++) {
             Thread.sleep(1000);
             serverData = dataHelper.getServerData();
+            if (serverData.size() == expectedData.size()) {
+                break;
+            }
         }
-        while (serverData.size() != expectedData.size());
 
         Collections.sort(expectedData, Point.POINT_COMPARATOR);
         Collections.sort(serverData, Point.POINT_COMPARATOR);
