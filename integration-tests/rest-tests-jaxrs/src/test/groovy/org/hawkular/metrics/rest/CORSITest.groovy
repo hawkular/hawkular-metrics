@@ -141,13 +141,10 @@ class CORSITest extends RESTTest {
     response = hawkularMetrics.get(path: "metrics", query: [type: "gauge"], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge"],
-            [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge"],
-        ],
-        response.data
-    )
+    assertEquals([
+        [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge", minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge", minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+    ], (response.data as List).sort({ m1, m2 -> m1.id.compareTo(m2.id) }))
 
     //Send a CORS pre-flight request and make sure it returns no data
     response = hawkularMetrics.options(path: "metrics",
@@ -182,13 +179,10 @@ class CORSITest extends RESTTest {
     responseHeaders += "==== Response Headers = End ====\n"
 
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge"],
-            [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge"],
-        ],
-        response.data
-    )
+    assertEquals([
+        [dataRetention: 7, tenantId: tenantId, id: "m11", type: "gauge", minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [dataRetention: 7, tenantId: tenantId, id: "m12", type: "gauge", minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+    ], (response.data as List).sort({ m1, m2 -> m1.id.compareTo(m2.id) }))
     assertEquals(responseHeaders, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS, response.headers[ACCESS_CONTROL_ALLOW_METHODS].value)
     assertEquals(responseHeaders, testAccessControlAllowHeaders, response.headers[ACCESS_CONTROL_ALLOW_HEADERS].value)
     assertEquals(responseHeaders, testOrigin, response.headers[ACCESS_CONTROL_ALLOW_ORIGIN].value)
