@@ -50,6 +50,8 @@ public class Metric<T> {
     private final Map<String, String> tags;
     private final Integer dataRetention;
     private final List<DataPoint<T>> dataPoints;
+    private final Long minTimestamp;
+    private final Long maxTimestamp;
 
     @SuppressWarnings("unchecked")
     @JsonCreator(mode = Mode.PROPERTIES)
@@ -82,6 +84,7 @@ public class Metric<T> {
         this.tags = tags == null ? emptyMap() : unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.dataPoints = data == null || data.isEmpty() ? emptyList() : unmodifiableList(data);
+        this.minTimestamp = this.maxTimestamp = null;
     }
 
     public Metric(String id, Map<String, String> tags, Integer dataRetention, MetricType<T> type,
@@ -117,6 +120,23 @@ public class Metric<T> {
         this.tags = unmodifiableMap(tags);
         this.dataRetention = dataRetention;
         this.dataPoints = unmodifiableList(dataPoints);
+        this.minTimestamp = this.maxTimestamp = null;
+    }
+
+    /**
+     * Creates a new instance by copying the specified one, except the min and max timestamp fields.
+     *
+     * @param other        the instance to copy
+     * @param minTimestamp the new value for min timestamp
+     * @param maxTimestamp the new value for max timestamp
+     */
+    public Metric(Metric<T> other, long minTimestamp, long maxTimestamp) {
+        this.id = other.id;
+        this.tags = other.tags;
+        this.dataRetention = other.dataRetention;
+        this.dataPoints = other.dataPoints;
+        this.minTimestamp = minTimestamp;
+        this.maxTimestamp = maxTimestamp;
     }
 
     public String getId() {
@@ -153,6 +173,18 @@ public class Metric<T> {
     @JsonSerialize(include = Inclusion.NON_EMPTY)
     public List<DataPoint<T>> getDataPoints() {
         return dataPoints;
+    }
+
+    @ApiModelProperty("Timestamp of the metric's oldest data point")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    public Long getMinTimestamp() {
+        return minTimestamp;
+    }
+
+    @ApiModelProperty("Timestamp of the metric's most recent data point")
+    @JsonSerialize(include = Inclusion.NON_EMPTY)
+    public Long getMaxTimestamp() {
+        return maxTimestamp;
     }
 
     @Override

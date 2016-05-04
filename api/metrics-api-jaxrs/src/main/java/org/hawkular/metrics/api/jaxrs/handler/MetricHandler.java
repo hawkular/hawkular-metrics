@@ -48,6 +48,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
@@ -162,6 +163,7 @@ public class MetricHandler {
             return;
         }
 
+        @SuppressWarnings("unchecked")
         Func1<Metric<T>, Boolean>[] metricFuncs = ObjectArrays.newArray(Func1.class, 0);
         if(!Strings.isNullOrEmpty(id)) {
             metricFuncs = ObjectArrays.concat(metricFuncs, metricsService.idFilter(id));
@@ -172,6 +174,7 @@ public class MetricHandler {
                 : metricsService.findMetricsWithFilters(tenantId, metricType, tags.getTags(), metricFuncs);
 
         metricObservable
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

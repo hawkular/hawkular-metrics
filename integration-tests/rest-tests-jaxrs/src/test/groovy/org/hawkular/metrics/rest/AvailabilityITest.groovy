@@ -18,6 +18,7 @@ package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 
 import org.hawkular.metrics.model.AvailabilityType
 import org.joda.time.DateTime
@@ -179,5 +180,55 @@ class AvailabilityITest extends RESTTest {
         ]
     ]
     assertEquals(expectedData, response.data)
+  }
+
+  @Test
+  void minMaxTimestamps() {
+    def tenantId = nextTenantId()
+    def metricId = 'minmaxtest'
+
+    def response = hawkularMetrics.post(path: 'availability', headers: [(tenantHeaderName): tenantId], body: [
+        id: metricId
+    ])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertFalse("Metric should not have the minTimestamp attribute: ${response.data}", response.data.containsKey('minTimestamp'))
+    assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
+
+    response = hawkularMetrics.post(path: "availability/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
+        [timestamp: 3, value: 'up']
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.minTimestamp)
+    assertEquals(3, response.data.maxTimestamp)
+
+    response = hawkularMetrics.post(path: "availability/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
+        [timestamp: 1, value: 'down'],
+        [timestamp: 2, value: 'up'],
+        [timestamp: 4, value: 'down'],
+    ])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(1, response.data.minTimestamp)
+    assertEquals(4, response.data.maxTimestamp)
+
+    response = hawkularMetrics.get(path: "availability", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    def metric = (response.data as List).find { it.id.equals(metricId) }
+    assertEquals(1, metric.minTimestamp)
+    assertEquals(4, metric.maxTimestamp)
+
+    response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    metric = (response.data as List).find { it.id.equals(metricId) }
+    assertEquals(1, metric.minTimestamp)
+    assertEquals(4, metric.maxTimestamp)
   }
 }

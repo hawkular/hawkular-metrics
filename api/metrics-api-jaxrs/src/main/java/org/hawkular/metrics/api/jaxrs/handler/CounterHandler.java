@@ -51,6 +51,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
@@ -150,6 +151,7 @@ public class CounterHandler {
                 : metricsService.findMetricsWithFilters(tenantId, COUNTER, tags.getTags());
 
         metricObservable
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -172,14 +174,15 @@ public class CounterHandler {
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
         metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
-                .map(metricDef -> Response.ok(metricDef).build())
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
+                .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Retrieve gauge type's tag values", response = Map.class)
+    @ApiOperation(value = "Retrieve counter type's tag values", response = Map.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Tags successfully retrieved."),
             @ApiResponse(code = 204, message = "No matching tags were found"),
