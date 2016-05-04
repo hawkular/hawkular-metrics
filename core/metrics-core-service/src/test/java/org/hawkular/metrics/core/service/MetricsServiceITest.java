@@ -65,6 +65,8 @@ import java.util.stream.Stream;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
+import org.hawkular.metrics.core.service.transformers.TaggedDataPointCollector;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -971,14 +973,27 @@ public class MetricsServiceITest extends MetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
-                0, now().getMillis()));
+        List<DataPoint<Double>> actual = getOnNextEvents(() -> {
+            // Test order ASC with 4 points limit
+            return metricsService.findRateData(counter.getMetricId(), 0, now().getMillis(), 4, Order.ASC);
+        });
         List<DataPoint<Double>> expected = asList(
                 new DataPoint<>((long) (60_000 * 1.5), 400D),
                 new DataPoint<>((long) (60_000 * 3.5), 100D),
                 new DataPoint<>((long) (60_000 * 5.0), 100D),
+                new DataPoint<>((long) (60_000 * 7.0), 200D)
+        );
+
+        assertEquals(actual, expected, "The rates do not match");
+
+        actual = getOnNextEvents(() -> {
+            // Test descending order with 3 points limit
+            return metricsService.findRateData(counter.getMetricId(), 0, now().getMillis(), 3, Order.DESC);
+        });
+        expected = asList(
+                new DataPoint<>((long) (60_000 * 7.5), 100D),
                 new DataPoint<>((long) (60_000 * 7.0), 200D),
-                new DataPoint<>((long) (60_000 * 7.5), 100D)
+                new DataPoint<>((long) (60_000 * 5.0), 100D)
         );
 
         assertEquals(actual, expected, "The rates do not match");
@@ -1002,7 +1017,7 @@ public class MetricsServiceITest extends MetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
-                0, now().getMillis()));
+                0, now().getMillis(), 0, Order.ASC));
         List<DataPoint<Double>> expected = asList(
                 new DataPoint<>((long) (60_000 * 1.5), 2D),
                 new DataPoint<>((long) (60_000 * 3.5), 0.5),
@@ -1258,11 +1273,11 @@ public class MetricsServiceITest extends MetricsITest {
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(
                 () -> metricsService.findRateData(c1.getMetricId(),
-                        start.getMillis(), start.plusMinutes(5).getMillis()));
+                        start.getMillis(), start.plusMinutes(5).getMillis(), 0, Order.ASC));
 
         List<DataPoint<Double>> c2Rate = getOnNextEvents(
                 () -> metricsService.findRateData(c2.getMetricId(),
-                        start.getMillis(), start.plusMinutes(5).getMillis()));
+                        start.getMillis(), start.plusMinutes(5).getMillis(), 0, Order.ASC));
 
         //Test simple counter stats
         List<List<NumericBucketPoint>> actualCounterStatsByTag = getOnNextEvents(
@@ -1606,7 +1621,7 @@ public class MetricsServiceITest extends MetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
-                start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis()));
+                start.plusMinutes(3).getMillis(), start.plusMinutes(5).getMillis(), 0, Order.ASC));
 
         assertEquals(actual.size(), 0, "The rates do not match");
     }

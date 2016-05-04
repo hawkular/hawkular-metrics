@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -53,6 +54,18 @@ public enum Order {
             throw new IllegalArgumentException(text + " is not a recognized order");
         }
         return order;
+    }
+
+    /**
+     * Determines a default value based on API parameters.
+     *
+     * @param limit maximum of rows returned
+     * @param start time range start
+     * @param end   time range end
+     * @return {@link #ASC} if limit is positive, start is not null and end is null; {@link #DESC} otherwise
+     */
+    public static Order defaultValue(int limit, Long start, Long end) {
+        return limit > 0 && start != null && end == null ? ASC : DESC;
     }
 
     @Override

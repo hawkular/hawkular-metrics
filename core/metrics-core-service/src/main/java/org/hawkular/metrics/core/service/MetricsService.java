@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service;
 
 import java.util.List;
@@ -274,14 +275,16 @@ public interface MetricsService {
      * Fetches counter data points and calculates per-minute rates. Resets events are detected and values reported
      * after a reset are filtered out before doing calculations in order to avoid inaccurate rates.
      *
-     * @param id This is the id of the counter metric
+     * @param id    This is the id of the counter metric
      * @param start The start time which is inclusive
-     * @param end The end time which is exclusive
+     * @param end   The end time which is exclusive
+     * @param limit      limit the number of data points
+     * @param order      the sort order for the results
      *
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
      * the most recent data is emitted first.
      */
-    Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end);
+    Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end, int limit, Order order);
 
     /**
      * Computes stats on a counter rate.

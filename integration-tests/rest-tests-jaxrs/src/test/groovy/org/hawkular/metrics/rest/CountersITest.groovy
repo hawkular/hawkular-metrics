@@ -549,7 +549,7 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 0]
+        query: [start: 0, order: 'asc']
     )
     assertEquals(200, response.status)
 
@@ -604,7 +604,7 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: "counters/$counter/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 0]
+        query: [start: 0, order: 'asc']
     )
     assertEquals(200, response.status)
 

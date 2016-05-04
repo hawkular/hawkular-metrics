@@ -17,10 +17,6 @@
 
 package org.hawkular.metrics.core.service;
 
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
@@ -51,6 +47,8 @@ import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
+import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
+import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -67,6 +65,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.TaskScheduler;
@@ -81,6 +80,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -517,13 +517,13 @@ public class MetricsServiceImpl implements MetricsService {
 
     private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
         boolean positive = (!regexp.startsWith("!"));
-        Pattern p = filterPattern(regexp);
+        Pattern p = PatternUtil.filterPattern(regexp);
         return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
         boolean positive = (!regexp.startsWith("!"));
-        Pattern p = filterPattern(regexp);
+        Pattern p = PatternUtil.filterPattern(regexp);
         return tMetric -> positive == p.matcher(tMetric.getId()).matches();
     }
 
@@ -532,23 +532,6 @@ public class MetricsServiceImpl implements MetricsService {
             MetricType<?> metricType = MetricType.fromCode(row.getByte(0));
             return (type == null && metricType.isUserType()) || metricType == type;
         };
-    }
-
-    /**
-     * Allow special cases to Pattern matching, such as "*" -> ".*" and ! indicating the match shouldn't
-     * happen. The first ! indicates the rest of the pattern should not match.
-     *
-     * @param inputRegexp Regexp given by the user
-     *
-     * @return Pattern modified to allow special cases in the query language
-     */
-    private Pattern filterPattern(String inputRegexp) {
-        if (inputRegexp.equals("*")) {
-            inputRegexp = ".*";
-        } else if (inputRegexp.startsWith("!")) {
-            inputRegexp = inputRegexp.substring(1);
-        }
-        return Pattern.compile(inputRegexp); // Catch incorrect patterns..
     }
 
     @Override
@@ -745,10 +728,14 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end) {
+    public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end, int limit, Order order) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return this.findDataPoints(id, start, end, 0, Order.ASC)
+        // We can't set the limit here, because some pairs can be discarded (counter resets)
+        // But since the loading is reactive, we're not going to fetch more pages than needed (see #take at the end)
+        Observable<DataPoint<Double>> dataPoints = this.findDataPoints(id, start, end, 0, order)
                 .buffer(2, 1) // emit previous/next pairs
+                // adapt pair to the order of traversal
+                .map(l -> order == Order.ASC ? l : Lists.reverse(l))
                 // The first filter condition drops the last buffer and the second condition checks for resets
                 .filter(l -> l.size() == 2 && l.get(1).getValue() >= l.get(0).getValue())
                 .map(l -> {
@@ -760,13 +747,15 @@ public class MetricsServiceImpl implements MetricsService {
                     double rate = 60_000D * value_diff / time_diff;
                     return new DataPoint<>(timestamp, rate);
                 });
+        return limit <= 0 ? dataPoints : dataPoints.take(limit);
     }
 
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
                                                               Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findRateData(id, start, end), buckets, percentiles);
+        return findRateData(id, start, end, 0, Order.ASC)
+                .compose(new NumericBucketPointTransformer(buckets, percentiles));
     }
 
     @SuppressWarnings("unchecked")
@@ -780,16 +769,17 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
                 List<Double> percentiles) {
-        checkArgument(isValidTimeRange(bucketConfig.getTimeRange().getStart(), bucketConfig.getTimeRange().getEnd()),
-                "Invalid time range");
-        return bucketize(findDataPoints(metricId, bucketConfig.getTimeRange().getStart(),
-                bucketConfig.getTimeRange().getEnd(), 0, Order.DESC), bucketConfig.getBuckets(), percentiles);
+        TimeRange timeRange = bucketConfig.getTimeRange();
+        checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
+        return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
+                .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
     }
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId,
             Map<String, String> tags, long start, long end, List<Double> percentiles) {
-        return bucketize(findDataPoints(metricId, start, end, 0, Order.DESC), tags, percentiles);
+        return findDataPoints(metricId, start, end, 0, Order.DESC)
+                .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
 
     @Override
@@ -801,25 +791,26 @@ public class MetricsServiceImpl implements MetricsService {
 
         if (!stacked) {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
-                return bucketize(findMetricsWithFilters(tenantId, metricType, tagFilters)
-                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)), buckets,
-                        percentiles);
+                return findMetricsWithFilters(tenantId, metricType, tagFilters)
+                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
-                return bucketize(findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
-                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end)),
-                        buckets, percentiles);
+                return findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
+                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC))
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
 
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = findMetricsWithFilters(tenantId, metricType, tagFilters)
-                        .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC),
-                                buckets, percentiles)
+                        .map(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                 .flatMap(Observable::from));
             } else {
                 individualStats = findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
-                        .map(metric -> bucketize(findRateData(metric.getMetricId(), start, end), buckets, percentiles)
+                        .map(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
+                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                 .flatMap(Observable::from));
             }
 
@@ -842,17 +833,19 @@ public class MetricsServiceImpl implements MetricsService {
 
         if (!stacked) {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
-                return bucketize(Observable.from(metrics)
+                return Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)), buckets,
-                        percentiles);
+                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
-                return bucketize(Observable.from(metrics)
+                return Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
-                        .flatMap(metric -> findRateData(
-                                new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
-                                end)),
-                        buckets, percentiles);
+                        .flatMap(metric -> {
+                            MetricId<Long> metricId =
+                                    new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName());
+                            return findRateData(metricId, start, end, 0, Order.ASC);
+                        })
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
@@ -860,16 +853,19 @@ public class MetricsServiceImpl implements MetricsService {
             if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .map(metric -> bucketize(findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC),
-                                buckets, percentiles)
+                        .map(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
                         .flatMap(Observable::from));
             } else {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
-                        .map(metric -> bucketize(findRateData(
-                                new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName()), start,
-                                end), buckets, percentiles)
-                                .flatMap(Observable::from));
+                        .map(metric -> {
+                            MetricId<Long> metricId =
+                                    new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName());
+                            return findRateData(metricId, start, end, 0, Order.ASC)
+                                    .compose(new NumericBucketPointTransformer(buckets, percentiles))
+                                    .flatMap(Observable::from);
+                        });
             }
 
             return Observable.merge(individualStats)
@@ -880,50 +876,6 @@ public class MetricsServiceImpl implements MetricsService {
                     .toMap(NumericBucketPoint::getStart)
                     .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
         }
-    }
-
-    private Observable<List<NumericBucketPoint>> bucketize(Observable<? extends DataPoint<? extends Number>> dataPoints,
-                                                           Buckets buckets, List<Double> percentiles) {
-        return dataPoints
-                .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
-                .flatMap(group -> group.collect(()
-                                -> new NumericDataPointCollector(buckets, group.getKey(), percentiles),
-                        NumericDataPointCollector::increment))
-                .map(NumericDataPointCollector::toBucketPoint)
-                .toMap(NumericBucketPoint::getStart)
-                .map(pointMap -> NumericBucketPoint.toList(pointMap, buckets));
-    }
-
-    private Observable<Map<String, TaggedBucketPoint>> bucketize(
-            Observable<? extends DataPoint<? extends Number>> dataPoints, Map<String, String> tags,
-            List<Double> percentiles) {
-
-        List<Func1<DataPoint<? extends Number>, Boolean>> tagFilters = tags.entrySet().stream().map(e -> {
-            boolean positive = (!e.getValue().startsWith("!"));
-            Pattern pattern = filterPattern(e.getValue());
-            Func1<DataPoint<? extends Number>, Boolean> filter = dataPoint ->
-                    dataPoint.getTags().containsKey(e.getKey()) &&
-                            (positive == pattern.matcher(dataPoint.getTags().get(e.getKey())).matches());
-            return filter;
-        }).collect(toList());
-
-        // TODO refactor this to be more functional and replace java 8 streams with rx operators
-        return dataPoints
-                .filter(dataPoint -> {
-                    for (Func1<DataPoint<? extends Number>, Boolean> tagFilter : tagFilters) {
-                        if (!tagFilter.call(dataPoint)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                })
-                .groupBy(dataPoint -> tags.entrySet().stream().collect(
-                        toMap(Map.Entry::getKey, e -> dataPoint.getTags().get(e.getKey()))))
-                .flatMap(group -> group.collect(() -> new TaggedDataPointCollector(group.getKey(), percentiles),
-                        TaggedDataPointCollector::increment))
-                .map(TaggedDataPointCollector::toBucketPoint)
-                .toMap(bucketPoint -> bucketPoint.getTags().entrySet().stream().map(e ->
-                        e.getKey() + ":" + e.getValue()).collect(joining(",")));
     }
 
     @Override
@@ -982,12 +934,15 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end,
             Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return bucketize(findDataPoints(id, start, end, 0, Order.ASC), buckets, percentiles);
+        return findDataPoints(id, start, end, 0, Order.ASC)
+                .compose(new NumericBucketPointTransformer(buckets, percentiles));
     }
 
-    @Override public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
+    @Override
+    public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
             Map<String, String> tags, long start, long end, List<Double> percentiles) {
-        return bucketize(findDataPoints(metricId, start, end, 0, Order.ASC), tags, percentiles);
+        return findDataPoints(metricId, start, end, 0, Order.ASC)
+                .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
 
     @Override

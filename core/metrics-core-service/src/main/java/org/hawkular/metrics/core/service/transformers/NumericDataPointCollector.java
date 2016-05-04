@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+
+package org.hawkular.metrics.core.service.transformers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
@@ -36,12 +38,12 @@ import org.hawkular.metrics.model.Percentile;
  *
  * @author Thomas Segismont
  */
-final class NumericDataPointCollector {
+public final class NumericDataPointCollector {
 
     /**
      * This is a test hook. See {@link Percentile} for details.
      */
-    static Function<Double, PercentileWrapper> createPercentile = p -> new PercentileWrapper() {
+    public static Function<Double, PercentileWrapper> createPercentile = p -> new PercentileWrapper() {
 
         PSquarePercentile percentile = new PSquarePercentile(p);
 
@@ -70,14 +72,14 @@ final class NumericDataPointCollector {
     private Sum sum = new Sum();
     private List<PSquarePercentile> percentiles;
 
-    NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Double> percentileList) {
+    public NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Double> percentileList) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
         this.percentiles = new ArrayList<>();
         percentileList.stream().forEach(d -> percentiles.add(new PSquarePercentile(d)));
     }
 
-    void increment(DataPoint<? extends Number> dataPoint) {
+    public void increment(DataPoint<? extends Number> dataPoint) {
         Number value = dataPoint.getValue();
         min.increment(value.doubleValue());
         average.increment(value.doubleValue());
@@ -88,7 +90,7 @@ final class NumericDataPointCollector {
         percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
     }
 
-    NumericBucketPoint toBucketPoint() {
+    public NumericBucketPoint toBucketPoint() {
         long from = buckets.getBucketStart(bucketIndex);
         long to = from + buckets.getStep();
         return new NumericBucketPoint.Builder(from, to)
