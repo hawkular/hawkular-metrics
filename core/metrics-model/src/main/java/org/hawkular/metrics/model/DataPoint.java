@@ -24,6 +24,7 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.MoreObjects;
 
 import io.swagger.annotations.ApiModelProperty;
 
@@ -95,7 +96,7 @@ public class DataPoint<T> {
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("timestamp", timestamp)
                 .add("value", value)
                 .add("tags", tags)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,8 @@ package org.hawkular.metrics.core.service;
 import java.util.Objects;
 
 import org.hawkular.metrics.model.DataPoint;
+
+import com.google.common.base.MoreObjects;
 
 /**
  * Data points are purged using Cassandra's Time To Live, i.e., TTL, feature. There are scenarios such as tagging
@@ -71,7 +73,7 @@ public class TTLDataPoint<T> {
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("dataPoint", dataPoint)
                 .add("ttl", ttl)
                 .toString();

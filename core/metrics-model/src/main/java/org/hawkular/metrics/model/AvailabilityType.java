@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@ package org.hawkular.metrics.model;
 
 import java.nio.ByteBuffer;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 /**
  * @author John Sanda
@@ -52,7 +52,7 @@ public enum AvailabilityType {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("code", code).add("text", text).toString();
+        return MoreObjects.toStringHelper(this).add("code", code).add("text", text).toString();
     }
 
     public static AvailabilityType fromString(String s) {

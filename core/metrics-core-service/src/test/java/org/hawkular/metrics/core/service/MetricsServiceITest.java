@@ -92,6 +92,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -2079,7 +2080,7 @@ public class MetricsServiceITest extends MetricsITest {
 
         @Override
         public String toString() {
-            return com.google.common.base.Objects.toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("tagValue", tagValue)
                 .add("id", id)
                 .toString();

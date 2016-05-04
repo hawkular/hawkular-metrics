@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 /**
  * A JAX-RS parameter object used to build time ranges from query params.
@@ -67,7 +67,7 @@ public class TimeRange {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("start", start)
                 .add("end", end)
                 .add("valid", valid)

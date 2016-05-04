@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
+import com.google.common.base.MoreObjects;
 
 import io.swagger.annotations.ApiModelProperty;
 
@@ -171,7 +172,7 @@ public class Metric<T> {
 
     @Override
     public String toString() {
-        return com.google.common.base.Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                 .add("id", id)
                 .add("tags", tags)
                 .add("dataRetention", dataRetention)
