@@ -272,10 +272,11 @@ public interface MetricsService {
             long start, long end, List<Double> percentiles);
 
     /**
-     * Fetches counter data points and calculates per-minute rates. Resets events are detected and values reported
-     * after a reset are filtered out before doing calculations in order to avoid inaccurate rates.
+     * Fetches gauge or counter data points and calculates per-minute rates.
+     * For {@link MetricType#COUNTER}, reset events are detected and values reported after a reset are filtered out
+     * before doing calculations in order to avoid inaccurate rates.
      *
-     * @param id    This is the id of the counter metric
+     * @param id    This is the id of the metric
      * @param start The start time which is inclusive
      * @param end   The end time which is exclusive
      * @param limit      limit the number of data points
@@ -284,20 +285,21 @@ public interface MetricsService {
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
      * the most recent data is emitted first.
      */
-    Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end, int limit, Order order);
+    Observable<DataPoint<Double>> findRateData(MetricId<? extends Number> id, long start, long end, int limit,
+                                               Order order);
 
     /**
-     * Computes stats on a counter rate.
+     * Computes stats on a counter or gauge rate.
      *
-     * @param id      counter metric id
+     * @param id      metric id
      * @param start   start time, inclusive
      * @param end     end time, exclusive
      * @param buckets bucket configuration
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end, Buckets buckets,
-                                                       List<Double> percentiles);
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
+                                                       Buckets buckets, List<Double> percentiles);
 
     /**
      * <p>

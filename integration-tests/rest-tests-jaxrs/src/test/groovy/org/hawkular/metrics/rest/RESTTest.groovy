@@ -191,7 +191,7 @@ Actual: ${actual}
 
   static double avg(List values) {
     Mean mean = new Mean()
-    values.each { mean.increment(it) }
+    values.each { mean.increment(it as double) }
     return mean.result
   }
 
@@ -202,5 +202,10 @@ Actual: ${actual}
     assertDoubleEquals(expected.avg, actual.avg)
     assertDoubleEquals(expected.median, actual.median)
     assertEquals(expected.samples, actual.samples)
+  }
+
+  static void assertRateEquals(String msg, def expected, def actual) {
+    assertEquals(msg, expected.timestamp, actual.timestamp)
+    assertDoubleEquals(msg, expected.value, actual.value)
   }
 }

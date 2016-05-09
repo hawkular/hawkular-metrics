@@ -693,11 +693,6 @@ Actual:   ${response.data}
     assertNumericBucketsEquals(expectedData, response.data ?: [])
   }
 
-  static void assertRateEquals(String msg, def expected, def actual) {
-    assertEquals(msg, expected.timestamp, actual.timestamp)
-    assertDoubleEquals(msg, expected.value, actual.value)
-  }
-
   @Test
   void shouldStoreLargePayload() {
     checkLargePayload("counters", tenantId, { points, i -> points.push([timestamp: i, value: i]) })
