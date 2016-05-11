@@ -51,6 +51,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
@@ -146,6 +147,7 @@ public class GaugeHandler {
                 : metricsService.findMetricsWithFilters(tenantId, GAUGE, tags.getTags());
 
         metricObservable
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -167,7 +169,8 @@ public class GaugeHandler {
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
         metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
-                .map(metricDef -> Response.ok(metricDef).build())
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
+                .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }

@@ -497,14 +497,11 @@ class CassandraBackendITest extends RESTTest {
     response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            [dataRetention: 7, tenantId: tenantId, id: 'm11', type: 'gauge'],
-            [dataRetention: 7, tenantId: tenantId, id: 'm12', type: 'gauge'],
-            [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32, type: 'gauge']
-        ],
-        response.data
-    )
+    assertEquals([
+        [dataRetention: 7, tenantId: tenantId, id: 'm11', type: 'gauge', minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [dataRetention: 7, tenantId: tenantId, id: 'm12', type: 'gauge', minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [tenantId: tenantId, id: 'm13', tags: [a1: 'A', B1: 'B'], dataRetention: 32, type: 'gauge']
+    ], (response.data as List).sort({ m1, m2 -> m1.id.compareTo(m2.id) }))
 
     // Create a couple availability metrics by only inserting data
     response = hawkularMetrics.post(path: "availability/raw", body: [
@@ -537,14 +534,11 @@ class CassandraBackendITest extends RESTTest {
     response = hawkularMetrics.get(path: "metrics", query: [type: 'availability'], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
-    assertEquals(
-        [
-            [dataRetention: 7, tenantId: tenantId, id: 'm14', type: 'availability'],
-            [dataRetention: 7, tenantId: tenantId, id: 'm15', type: 'availability'],
-            [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7, type: 'availability']
-        ],
-        response.data
-    )
+    assertEquals([
+        [dataRetention: 7, tenantId: tenantId, id: 'm14', type: 'availability', minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [dataRetention: 7, tenantId: tenantId, id: 'm15', type: 'availability', minTimestamp: start.millis, maxTimestamp: start.plusMinutes(1).millis],
+        [tenantId: tenantId, id: 'm16', tags: [a10: '10', a11: '11'], dataRetention: 7, type: 'availability']
+    ], (response.data as List).sort({ m1, m2 -> m1.id.compareTo(m2.id) }))
 
     // Explicitly create metrics with payload type
     response = hawkularMetrics.post(path: "metrics", body: [

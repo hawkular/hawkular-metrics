@@ -50,6 +50,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
@@ -145,6 +146,7 @@ public class AvailabilityHandler {
                 : metricsService.findMetricsWithFilters(tenantId, AVAILABILITY, tags.getTags());
 
         metricObservable
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
@@ -165,9 +167,9 @@ public class AvailabilityHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
     public void getAvailabilityMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-
         metricsService.findMetric(new MetricId<>(tenantId, AVAILABILITY, id))
-                .map(metricDef -> Response.ok(metricDef).build())
+                .compose(new MinMaxTimestampTransformer<>(metricsService))
+                .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(noContent()))
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
