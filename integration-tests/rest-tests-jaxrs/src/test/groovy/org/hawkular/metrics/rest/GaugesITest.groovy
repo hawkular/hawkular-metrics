@@ -349,4 +349,118 @@ class GaugesITest extends RESTTest {
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
   }
+
+  @Test
+  void findRate() {
+    String gauge = "G1"
+
+    // Create the tenant
+    def response = hawkularMetrics.post(
+        path: "tenants",
+        body: [id: tenantId]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 321.8],
+            [timestamp: 60_000 * 1.5, value: 475.3],
+            [timestamp: 60_000 * 3.5, value: 125.1],
+            [timestamp: 60_000 * 5.0, value: 123.6],
+            [timestamp: 60_000 * 7.0, value: 468.8],
+            [timestamp: 60_000 * 7.5, value: 568.1],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/rate",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 0, order: 'asc']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: (60_000 * 1.5).toLong(), value: 307.0],
+        [timestamp: (60_000 * 3.5).toLong(), value: -175.1],
+        [timestamp: (60_000 * 5.0).toLong(), value: -1.0],
+        [timestamp: (60_000 * 7.0).toLong(), value: 172.6],
+        [timestamp: (60_000 * 7.5).toLong(), value: 198.6],
+    ]
+
+    def actualData = response.data ?: []
+
+    def msg = """
+Expected: ${expectedData}
+Actual:   ${response.data}
+"""
+    assertEquals(msg, expectedData.size(), actualData.size())
+    for (i in 0..actualData.size() - 1) {
+      assertRateEquals(msg, expectedData[i], actualData[i])
+    }
+  }
+
+  @Test
+  void findRateStats() {
+    String gauge = "G1"
+
+    // Create the tenant
+    def response = hawkularMetrics.post(
+        path: "tenants",
+        body: [id: tenantId]
+    )
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 321.8],
+            [timestamp: 60_000 * 1.5, value: 475.3],
+            [timestamp: 60_000 * 3.5, value: 125.1],
+            [timestamp: 60_000 * 5.0, value: 123.6],
+            [timestamp: 60_000 * 7.0, value: 468.8],
+            [timestamp: 60_000 * 7.5, value: 568.1],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/rate/stats",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = []
+    (1..7).each { i ->
+      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      double val
+      switch (i) {
+        case 1:
+          val = 307.0
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
+          break
+        case 3:
+          val = -175.1
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
+          break
+        case 5:
+          val = -1.0
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val, empty: false, samples: 1]
+          break
+        case 7:
+          bucketPoint << [min: 172.6, max: 198.6, avg: 185.6, median: 172.6, sum: 371.2, empty: false, samples: 2]
+          break
+        default:
+          bucketPoint << [empty: true]
+          break
+      }
+      expectedData.push(bucketPoint);
+    }
+
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
 }

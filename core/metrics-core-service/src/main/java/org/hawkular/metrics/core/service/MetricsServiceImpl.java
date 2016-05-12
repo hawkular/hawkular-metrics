@@ -23,6 +23,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
@@ -728,21 +729,26 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<DataPoint<Double>> findRateData(MetricId<Long> id, long start, long end, int limit, Order order) {
+    public Observable<DataPoint<Double>> findRateData(MetricId<? extends Number> id, long start, long end, int limit,
+                                                      Order order) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        checkArgument(id.getType() == COUNTER || id.getType() == GAUGE, "Unsupported metric type: %s", id.getType());
         // We can't set the limit here, because some pairs can be discarded (counter resets)
         // But since the loading is reactive, we're not going to fetch more pages than needed (see #take at the end)
         Observable<DataPoint<Double>> dataPoints = this.findDataPoints(id, start, end, 0, order)
                 .buffer(2, 1) // emit previous/next pairs
                 // adapt pair to the order of traversal
                 .map(l -> order == Order.ASC ? l : Lists.reverse(l))
-                // The first filter condition drops the last buffer and the second condition checks for resets
-                .filter(l -> l.size() == 2 && l.get(1).getValue() >= l.get(0).getValue())
+                // Drop the last buffer
+                .filter(l -> l.size() == 2)
+                // Filter out counter resets
+                .filter(l -> id.getType() != COUNTER
+                        || l.get(1).getValue().longValue() >= l.get(0).getValue().longValue())
                 .map(l -> {
-                    DataPoint<Long> point1 = l.get(0);
-                    DataPoint<Long> point2 = l.get(1);
+                    DataPoint<? extends Number> point1 = l.get(0);
+                    DataPoint<? extends Number> point2 = l.get(1);
                     long timestamp = point2.getTimestamp();
-                    long value_diff = point2.getValue() - point1.getValue();
+                    double value_diff = point2.getValue().doubleValue() - point1.getValue().doubleValue();
                     double time_diff = point2.getTimestamp() - point1.getTimestamp();
                     double rate = 60_000D * value_diff / time_diff;
                     return new DataPoint<>(timestamp, rate);
@@ -751,7 +757,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<Long> id, long start, long end,
+    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
                                                               Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findRateData(id, start, end, 0, Order.ASC)
@@ -788,30 +794,37 @@ public class MetricsServiceImpl implements MetricsService {
             List<Double> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
+                || metricType == COUNTER || metricType == COUNTER_RATE, "Invalid metric type: %s", metricType);
 
         if (!stacked) {
-            if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
+            if (COUNTER == metricType || GAUGE == metricType) {
                 return findMetricsWithFilters(tenantId, metricType, tagFilters)
                         .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
-                return findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
+                MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
+                return findMetricsWithFilters(tenantId, mtype, tagFilters)
                         .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
-
-            if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
+            if (COUNTER == metricType || GAUGE == metricType) {
                 individualStats = findMetricsWithFilters(tenantId, metricType, tagFilters)
-                        .map(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
-                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
-                                .flatMap(Observable::from));
+                        .map(metric -> {
+                            return findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                                    .compose(new NumericBucketPointTransformer(buckets, percentiles))
+                                    .flatMap(Observable::from);
+                        });
             } else {
-                individualStats = findMetricsWithFilters(tenantId, MetricType.COUNTER, tagFilters)
-                        .map(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
-                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
-                                .flatMap(Observable::from));
+                MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
+                individualStats = findMetricsWithFilters(tenantId, mtype, tagFilters)
+                        .map(metric -> {
+                            return findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
+                                    .compose(new NumericBucketPointTransformer(buckets, percentiles))
+                                    .flatMap(Observable::from);
+                        });
             }
 
             return Observable.merge(individualStats)
@@ -830,39 +843,38 @@ public class MetricsServiceImpl implements MetricsService {
             List<Double> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
+                || metricType == COUNTER || metricType == COUNTER_RATE, "Invalid metric type: %s", metricType);
 
         if (!stacked) {
-            if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
+            if (COUNTER == metricType || GAUGE == metricType) {
                 return Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
                         .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
+                MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 return Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
-                        .flatMap(metric -> {
-                            MetricId<Long> metricId =
-                                    new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName());
-                            return findRateData(metricId, start, end, 0, Order.ASC);
-                        })
+                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
+                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
-
-            if (MetricType.COUNTER.equals(metricType) || MetricType.GAUGE.equals(metricType)) {
+            if (COUNTER == metricType || GAUGE == metricType) {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .map(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
-                                .compose(new NumericBucketPointTransformer(buckets, percentiles))
-                        .flatMap(Observable::from));
-            } else {
-                individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, MetricType.COUNTER, metricName)))
                         .map(metric -> {
-                            MetricId<Long> metricId =
-                                    new MetricId<>(tenantId, MetricType.COUNTER, metric.getMetricId().getName());
-                            return findRateData(metricId, start, end, 0, Order.ASC)
+                            return findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                                    .compose(new NumericBucketPointTransformer(buckets, percentiles))
+                                    .flatMap(Observable::from);
+                        });
+            } else {
+                MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
+                individualStats = Observable.from(metrics)
+                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
+                        .map(metric -> {
+                            return findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });

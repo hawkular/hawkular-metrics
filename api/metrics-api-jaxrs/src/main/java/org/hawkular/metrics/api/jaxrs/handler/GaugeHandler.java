@@ -23,6 +23,8 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
+import static org.hawkular.metrics.model.MetricType.UNDEFINED;
 
 import java.net.URI;
 import java.util.Collections;
@@ -57,10 +59,10 @@ import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
@@ -110,15 +112,13 @@ public class GaugeHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(required = true) Metric<Double> metric,
             @ApiParam(value = "Overwrite previously created metric configuration if it exists. "
-                    + "Only data retention and tags are overwriten; existing data points are unnafected. Defaults to false.",
-                    required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
+                    + "Only data retention and tags are overwriten; existing data points are unnafected. "
+                    + "Defaults to false."
+            ) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
-        if (metric.getType() != null
-                && MetricType.UNDEFINED != metric.getType()
-                && MetricType.GAUGE != metric.getType()) {
-            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + MetricType
-                    .GAUGE.getText())));
+        if (metric.getType() != null && UNDEFINED != metric.getType() && GAUGE != metric.getType()) {
+            asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + GAUGE.getText())));
         }
         metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
@@ -140,7 +140,7 @@ public class GaugeHandler {
     })
     public void findGaugeMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
 
         Observable<Metric<Double>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(tenantId, GAUGE)
@@ -359,7 +359,7 @@ public class GaugeHandler {
             return;
         }
 
-        Observable<BucketConfig> observableConfig = null;
+        Observable<BucketConfig> observableConfig;
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
@@ -402,11 +402,11 @@ public class GaugeHandler {
             observableConfig = Observable.just(bucketConfig);
         }
 
-            final Percentiles lPercentiles = percentiles != null ? percentiles
-                    : new Percentiles(Collections.<Double> emptyList());
-
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
+                .flatMap((config) -> {
+                    List<Double> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
+                    return metricsService.findGaugeStats(metricId, config, perc);
+                })
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
@@ -488,7 +488,7 @@ public class GaugeHandler {
             return;
         }
 
-        Observable<BucketConfig> observableConfig = null;
+        Observable<BucketConfig> observableConfig;
 
         if (Boolean.TRUE.equals(fromEarliest)) {
             if (start != null || end != null) {
@@ -527,11 +527,11 @@ public class GaugeHandler {
             observableConfig = Observable.just(bucketConfig);
         }
 
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
-
         observableConfig
-                .flatMap((config) -> metricsService.findGaugeStats(metricId, config, lPercentiles.getPercentiles()))
+                .flatMap((config) -> {
+                    List<Double> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
+                    return metricsService.findGaugeStats(metricId, config, perc);
+                })
                 .flatMap(Observable::from)
                 .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
                 .toList()
@@ -562,10 +562,10 @@ public class GaugeHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
-                    required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
+            @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -592,16 +592,16 @@ public class GaugeHandler {
         }
 
         if(percentiles == null) {
-            percentiles = new Percentiles(Collections.<Double>emptyList());
+            percentiles = new Percentiles(Collections.emptyList());
         }
 
         if (metricNames.isEmpty()) {
-            metricsService.findNumericStats(tenantId, MetricType.GAUGE, tags.getTags(), timeRange.getStart(),
+            metricsService.findNumericStats(tenantId, GAUGE, tags.getTags(), timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
-            metricsService.findNumericStats(tenantId, MetricType.GAUGE, metricNames, timeRange.getStart(),
+            metricsService.findNumericStats(tenantId, GAUGE, metricNames, timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -635,10 +635,11 @@ public class GaugeHandler {
             return;
         }
         MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
-        final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.emptyList());
+        }
         metricsService.findGaugeStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
-                lPercentiles.getPercentiles())
+                percentiles.getPercentiles())
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -655,10 +656,10 @@ public class GaugeHandler {
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
-            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
-                    required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
+            @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
         findStats(asyncResponse, start, end, bucketsCount, bucketDuration, percentiles, tags, metricNames, stacked);
     }
@@ -675,8 +676,8 @@ public class GaugeHandler {
     public void findPeriods(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours", required = false) @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now", required = false) @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
             @ApiParam(value = "A threshold against which values are compared", required = true)
             @QueryParam("threshold") double threshold,
             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
@@ -723,6 +724,166 @@ public class GaugeHandler {
         } else {
             MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        }
+    }
+
+    @GET
+    @Path("/{id}/rate")
+    @ApiOperation(value = "Retrieve gauge rate data points.", response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "Time range is invalid.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findRate(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+
+        if (limit == null) {
+            limit = 0;
+        }
+        if (order == null) {
+            order = Order.defaultValue(limit, start, end);
+        }
+
+        metricsService.findRateData(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/{id}/rate/stats")
+    @ApiOperation(
+            value = "Retrieve stats for gauge rate data points.", notes = "The time range between start and end " +
+            "will be divided in buckets of equal duration, and metric statistics will be computed for each bucket.",
+            response = DataPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "buckets or bucketDuration parameter is invalid, or both are used.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void findStatsRate(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("id") String id,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
+    ) {
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+
+        if (bucketConfig.isEmpty()) {
+            asyncResponse
+                    .resume(badRequest(new ApiError("Either the buckets or bucketDuration parameter must be used")));
+            return;
+        }
+
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        Buckets buckets = bucketConfig.getBuckets();
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.emptyList());
+        }
+
+        metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
+                percentiles.getPercentiles())
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/rate/stats")
+    @ApiOperation(value = "Fetches data points from one or more metrics that are determined using either a tags " +
+            "filter or a list of metric names. The time range between start and end is divided into buckets of " +
+            "equal size (i.e., duration) using either the buckets or bucketDuration parameter. Functions are " +
+            "applied to the data points in each bucket to produce statistics or aggregated metrics.",
+            response = NumericBucketPoint.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "No metric data was found."),
+            @ApiResponse(code = 400, message = "The tags parameter is required. Either the buckets or the " +
+                    "bucketDuration parameter is required but not both.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)})
+    public void findRateDataStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
+            @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
+            @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketsDuration parameter must be used")));
+            return;
+        }
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+        if (metricNames.isEmpty() && (tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metricNames.isEmpty() && !(tags == null || tags.getTags().isEmpty())) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        if (percentiles == null) {
+            percentiles = new Percentiles(Collections.emptyList());
+        }
+
+        if (metricNames.isEmpty()) {
+            metricsService.findNumericStats(tenantId, GAUGE_RATE, tags.getTags(), timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            metricsService.findNumericStats(tenantId, GAUGE_RATE, metricNames, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }

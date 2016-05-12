@@ -35,12 +35,20 @@ public final class MetricType<T> {
     public static final MetricType<Long> COUNTER = new MetricType<>((byte) 2, "counter", true);
     public static final MetricType<Double> COUNTER_RATE = new MetricType<>((byte) 3, "counter_rate", false);
     public static final MetricType<String> STRING = new MetricType<>((byte) 4, "string", true);
+    public static final MetricType<Double> GAUGE_RATE = new MetricType<>((byte) 5, "gauge_rate", false);
 
     @SuppressWarnings("rawtypes")
     public static final MetricType UNDEFINED = new MetricType((byte) 127, "undefined", false);
     // If you add a new type: don't forget to update the "all" and "userTypes" sets
 
-    private static final Set<MetricType<?>> all = ImmutableSet.of(GAUGE, AVAILABILITY, COUNTER, COUNTER_RATE);
+    private static final Set<MetricType<?>> all = new ImmutableSet.Builder<MetricType<?>>()
+            .add(GAUGE)
+            .add(AVAILABILITY)
+            .add(COUNTER)
+            .add(COUNTER_RATE)
+            .add(STRING)
+            .add(GAUGE_RATE)
+            .build();
 
     private static final Set<MetricType<?>> userTypes;
     private static final Map<Byte, MetricType<?>> codes;
