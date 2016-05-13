@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-integration-tests</artifactId>
-    <version>0.14.0-SNAPSHOT</version>
+    <version>0.16.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>hawkular-server-tests</artifactId>
@@ -85,30 +85,10 @@
     </dependency>
 
     <dependency>
-      <groupId>org.hawkular.accounts</groupId>
-      <artifactId>hawkular-accounts-feature-pack</artifactId>
-      <version>${version.org.hawkular.accounts}</version>
-      <type>pom</type>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>org.hawkular.accounts</groupId>
-      <artifactId>hawkular-accounts-feature-pack</artifactId>
-      <version>${version.org.hawkular.accounts}</version>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-nest-feature-pack</artifactId>
+      <version>${version.org.hawkular.commons}</version>
       <type>zip</type>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
   </dependencies>
 
