@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;

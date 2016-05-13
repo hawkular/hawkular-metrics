@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.service.Aggregate;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;

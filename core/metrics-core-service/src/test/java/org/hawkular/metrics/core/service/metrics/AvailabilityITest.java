@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -35,6 +35,8 @@ import static org.testng.Assert.assertEquals;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.hawkular.metrics.core.service.DelegatingDataAccess;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -166,8 +168,6 @@ public class AvailabilityITest extends BaseMetricsITest {
 
         VerifyTTLDataAccess verifyTTLDataAccess = new VerifyTTLDataAccess(dataAccess);
 
-        metricsService.unloadDataRetentions();
-        metricsService.loadDataRetentions();
         metricsService.setDataAccess(verifyTTLDataAccess);
         metricsService.setDataAccess(verifyTTLDataAccess);
 
@@ -201,7 +201,6 @@ public class AvailabilityITest extends BaseMetricsITest {
 
     private void addAvailabilityDataInThePast(Metric<AvailabilityType> metric, final Duration duration)
             throws Exception {
-        DataAccess originalDataAccess = metricsService.getDataAccess();
         try {
             metricsService.setDataAccess(new DelegatingDataAccess(dataAccess) {
                 @Override
@@ -220,7 +219,7 @@ public class AvailabilityITest extends BaseMetricsITest {
             });
             metricsService.addDataPoints(AVAILABILITY, Observable.just(metric));
         } finally {
-            metricsService.setDataAccess(originalDataAccess);
+            metricsService.setDataAccess(dataAccess);
         }
     }
 

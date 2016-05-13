@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static org.testng.Assert.assertEquals;
 
@@ -27,6 +27,14 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.service.BaseITest;
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.DataAccessImpl;
+import org.hawkular.metrics.core.service.DataRetentionsMapper;
+import org.hawkular.metrics.core.service.DelegatingDataAccess;
+import org.hawkular.metrics.core.service.FakeTaskScheduler;
+import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -88,7 +96,6 @@ public abstract class BaseMetricsITest extends BaseITest {
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
         session.execute("TRUNCATE leases");
-        session.execute("TRUNCATE task_queue");
 
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
@@ -226,7 +233,6 @@ public abstract class BaseMetricsITest extends BaseITest {
         assertEquals(actual, expected, "The data retentions are wrong");
     }
 
-    @SuppressWarnings("unused")
     protected static class VerifyTTLDataAccess extends DelegatingDataAccess {
 
         private int gaugeTTL;

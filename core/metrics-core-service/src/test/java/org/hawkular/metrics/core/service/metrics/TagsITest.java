@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -41,6 +41,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.core.service.transformers.TaggedDataPointCollector;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -161,18 +162,18 @@ public class TagsITest extends BaseMetricsITest {
     public void tagValueSearch() throws Exception {
         String tenantId = "t1tag";
 
-        List<Metric<?>> metricsToAdd = createTagMetrics(tenantId);
+        createTagMetrics(tenantId);
 
         // Test only tags value fetching
         Map<String, Set<String>> tagMap = metricsService
-                .<Double> getTagValues(tenantId, null, ImmutableMap.of("hostname", "*"))
+                .getTagValues(tenantId, null, ImmutableMap.of("hostname", "*"))
                 .toBlocking()
                 .lastOrDefault(null);
 
         Set<String> hostnameSet = tagMap.get("hostname");
         assertEquals(hostnameSet.size(), 4, "There should have been 4 hostname tag values");
 
-        tagMap = metricsService.<Double> getTagValues(tenantId, null, ImmutableMap.of("a1", "*", "a2", "*"))
+        tagMap = metricsService.getTagValues(tenantId, null, ImmutableMap.of("a1", "*", "a2", "*"))
                 .toBlocking()
                 .lastOrDefault(null);
 
