@@ -51,7 +51,7 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
 
-public class AvailabilityITest extends MetricsServiceITest {
+public class AvailabilityITest extends BaseMetricsITest {
 
     protected PreparedStatement insertAvailabilityDateWithTimestamp;
 

@@ -40,7 +40,7 @@ import org.testng.annotations.Test;
 
 import rx.Observable;
 
-public class StringITest extends MetricsServiceITest {
+public class StringITest extends BaseMetricsITest {
 
     private static final int MAX_STRING_LENGTH = 2048;
 

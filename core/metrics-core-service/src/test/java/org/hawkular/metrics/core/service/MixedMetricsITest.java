@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
 
-public class MixedMetricsITest extends MetricsServiceITest {
+public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createTenants() throws Exception {

@@ -43,10 +43,7 @@ import org.hawkular.metrics.tasks.impl.Queries;
 import org.hawkular.metrics.tasks.impl.TaskSchedulerImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.codahale.metrics.MetricRegistry;
 
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -57,9 +54,7 @@ import rx.schedulers.TestScheduler;
  * This class tests counter rates indirectly by running the task scheduler with a virtual
  * clock. {@link GenerateRateITest} tests directly without running a task scheduler.
  */
-public class RatesITest extends MetricsServiceITest {
-
-    private MetricsServiceImpl metricsService;
+public class RatesITest extends BaseMetricsITest {
 
     private TaskSchedulerImpl taskScheduler;
 
@@ -83,29 +78,11 @@ public class RatesITest extends MetricsServiceITest {
 
         AbstractTrigger.now = tickScheduler::now;
 
-        metricsService = new MetricsServiceImpl();
-        metricsService.setTaskScheduler(taskScheduler);
-        metricsService.setDataAccess(new DataAccessImpl(session));
-
-        String keyspace = "hawkulartest";
-        System.setProperty("keyspace", keyspace);
-
         finishedTimeSlices = taskScheduler.getFinishedTimeSlices();
         taskScheduler.start();
 
         GenerateRate generateRate = new GenerateRate(metricsService);
         taskScheduler.subscribe(generateRate);
-
-        metricsService.startUp(session, keyspace, false, new MetricRegistry());
-    }
-
-    @BeforeMethod
-    public void initMethod() {
-        session.execute("TRUNCATE tenants");
-        session.execute("TRUNCATE metrics_idx");
-        session.execute("TRUNCATE data");
-        session.execute("TRUNCATE leases");
-        session.execute("TRUNCATE task_queue");
     }
 
     @Test

@@ -52,7 +52,7 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-public class GaugeITest extends MetricsServiceITest {
+public class GaugeITest extends BaseMetricsITest {
 
     @Test
     public void addAndFetchGaugeData() throws Exception {
@@ -326,7 +326,7 @@ public class GaugeITest extends MetricsServiceITest {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T> List<DataPoint<T>> getDataPointList(String name, DateTime start) {
+    private <T> List<DataPoint<T>> getDataPointList(String name, DateTime start) {
         switch (name) {
             case "M1":
                 return asList(

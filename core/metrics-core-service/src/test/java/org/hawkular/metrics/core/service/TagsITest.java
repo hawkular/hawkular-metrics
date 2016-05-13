@@ -62,7 +62,7 @@ import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
 
-public class TagsITest extends MetricsServiceITest {
+public class TagsITest extends BaseMetricsITest {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test

@@ -48,7 +48,6 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
-import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
@@ -60,7 +59,7 @@ import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
 
-public class CounterITest extends MetricsServiceITest {
+public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createBasicCounterMetric() throws Exception {
@@ -218,123 +217,6 @@ public class CounterITest extends MetricsServiceITest {
         assertEquals((Integer) testSize, bucket.getSamples());
         assertEquals(percentiles.size(), bucket.getPercentiles().size());
         assertEquals(top.getResult(), bucket.getPercentiles().get(3).getValue());
-    }
-
-    @Test
-    public void findRates() {
-        String tenantId = "counter-rate-test";
-
-        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>((long) (60_000 * 1.0), 0L),
-                new DataPoint<>((long) (60_000 * 1.5), 200L),
-                new DataPoint<>((long) (60_000 * 3.5), 400L),
-                new DataPoint<>((long) (60_000 * 5.0), 550L),
-                new DataPoint<>((long) (60_000 * 7.0), 950L),
-                new DataPoint<>((long) (60_000 * 7.5), 1000L)));
-
-        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
-
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> {
-            // Test order ASC with 4 points limit
-            return metricsService.findRateData(counter.getMetricId(), 0, now().getMillis(), 4, Order.ASC);
-        });
-        List<DataPoint<Double>> expected = asList(
-                new DataPoint<>((long) (60_000 * 1.5), 400D),
-                new DataPoint<>((long) (60_000 * 3.5), 100D),
-                new DataPoint<>((long) (60_000 * 5.0), 100D),
-                new DataPoint<>((long) (60_000 * 7.0), 200D));
-
-        assertEquals(actual, expected, "The rates do not match");
-
-        actual = getOnNextEvents(() -> {
-            // Test descending order with 3 points limit
-            return metricsService.findRateData(counter.getMetricId(), 0, now().getMillis(), 3, Order.DESC);
-        });
-        expected = asList(
-                new DataPoint<>((long) (60_000 * 7.5), 100D),
-                new DataPoint<>((long) (60_000 * 7.0), 200D),
-                new DataPoint<>((long) (60_000 * 5.0), 100D));
-
-        assertEquals(actual, expected, "The rates do not match");
-    }
-
-    @Test
-    public void findRatesWhenTherAreCounterResets() {
-        String tenantId = "counter-reset-test";
-
-        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>((long) (60_000 * 1.0), 1L),
-                new DataPoint<>((long) (60_000 * 1.5), 2L),
-                new DataPoint<>((long) (60_000 * 3.5), 3L),
-                new DataPoint<>((long) (60_000 * 5.0), 1L),
-                new DataPoint<>((long) (60_000 * 7.0), 2L),
-                new DataPoint<>((long) (60_000 * 7.5), 3L),
-                new DataPoint<>((long) (60_000 * 8.0), 1L),
-                new DataPoint<>((long) (60_000 * 8.5), 2L),
-                new DataPoint<>((long) (60_000 * 9.0), 3L)));
-        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
-
-        List<DataPoint<Double>> actual = getOnNextEvents(() -> metricsService.findRateData(counter.getMetricId(),
-                0, now().getMillis(), 0, Order.ASC));
-        List<DataPoint<Double>> expected = asList(
-                new DataPoint<>((long) (60_000 * 1.5), 2D),
-                new DataPoint<>((long) (60_000 * 3.5), 0.5),
-                new DataPoint<>((long) (60_000 * 7.0), 0.5),
-                new DataPoint<>((long) (60_000 * 7.5), 2D),
-                new DataPoint<>((long) (60_000 * 8.5), 2D),
-                new DataPoint<>((long) (60_000 * 9.0), 2D));
-
-        assertEquals(actual, expected, "The rates do not match");
-    }
-
-    @Test
-    public void findRateStats() {
-        String tenantId = "counter-rate-stats-test";
-
-        Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>((long) (60_000 * 1.0), 0L),
-                new DataPoint<>((long) (60_000 * 1.5), 200L),
-                new DataPoint<>((long) (60_000 * 3.5), 400L),
-                new DataPoint<>((long) (60_000 * 5.0), 550L),
-                new DataPoint<>((long) (60_000 * 7.0), 950L),
-                new DataPoint<>((long) (60_000 * 7.5), 1000L)));
-
-        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
-
-        List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getMetricId(),
-                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                asList(99.0)).toBlocking().single();
-        List<NumericBucketPoint> expected = new ArrayList<>();
-        for (int i = 1; i < 8; i++) {
-            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
-            double val;
-            switch (i) {
-                case 1:
-                    val = 400D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
-                    break;
-                case 3:
-                    val = 100D;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
-                    break;
-                case 5:
-                    val = 100;
-                    builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
-                case 6:
-                    break;
-                case 7:
-                    builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentiles(
-                            asList(new Percentile(0.99, 100.0))).setSamples(2).setSum(300.0);
-                default:
-                    break;
-            }
-            expected.add(builder.build());
-        }
-
-        assertNumericBucketsEquals(actual, expected);
     }
 
     @Test

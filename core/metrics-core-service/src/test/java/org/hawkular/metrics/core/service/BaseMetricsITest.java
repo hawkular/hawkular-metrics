@@ -53,7 +53,7 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-public abstract class MetricsServiceITest extends BaseITest {
+public abstract class BaseMetricsITest extends BaseITest {
 
     protected static final int DEFAULT_TTL = 7; //days
 
@@ -87,6 +87,9 @@ public abstract class MetricsServiceITest extends BaseITest {
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
+        session.execute("TRUNCATE leases");
+        session.execute("TRUNCATE task_queue");
+
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }
