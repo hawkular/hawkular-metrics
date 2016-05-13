@@ -47,7 +47,7 @@ import rx.Observable;
  * This class tests counter rates by directly calling {@link GenerateRate}. There is no
  * task scheduler running for these tests.
  */
-public class GenerateRateITest extends MetricsITest {
+public class GenerateRateITest extends MetricsServiceITest {
     private MetricsServiceImpl metricsService;
 
     private DateTimeService dateTimeService;
@@ -60,7 +60,6 @@ public class GenerateRateITest extends MetricsITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setTaskScheduler(new FakeTaskScheduler());
-        metricsService.setDateTimeService(dateTimeService);
 
         metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
     }
