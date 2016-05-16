@@ -216,7 +216,8 @@ public class DataAccessImpl implements DataAccess {
         readMetricsIndex = session.prepare(
             "SELECT metric, tags, data_retention " +
             "FROM metrics_idx " +
-            "WHERE tenant_id = ? AND type = ?");
+            "WHERE tenant_id = ? AND type = ? " +
+            "ORDER BY metric ASC");
 
         insertGaugeData = session.prepare(
             "UPDATE data " +
