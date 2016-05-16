@@ -254,9 +254,6 @@
             <javaOpt>-Djava.awt.headless=true</javaOpt>
             <javaOpt>-Djboss.bind.address=${hawkular.bind.address}</javaOpt>
             <javaOpt>-Djboss.socket.binding.port-offset=${hawkular.port.offset}</javaOpt>
-            <javaOpt>
-              -Dkeycloak.import=${project.build.directory}/${project.build.finalName}/standalone/configuration/hawkular-realm-for-dev.json
-            </javaOpt>
             <javaOpt>-Dhawkular.agent.enabled=${hawkular.agent.enabled}</javaOpt>
             <javaOpt>-Dhawkular.log=${hawkular.log}</javaOpt>
             <javaOpt>-Dhawkular.backend=${hawkular.backend}</javaOpt>
