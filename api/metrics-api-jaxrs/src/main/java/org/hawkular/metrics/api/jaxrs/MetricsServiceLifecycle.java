@@ -57,7 +57,6 @@ import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
-import org.hawkular.metrics.core.service.DateTimeService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
@@ -236,7 +235,6 @@ public class MetricsServiceLifecycle {
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setTaskScheduler(taskScheduler);
-            metricsService.setDateTimeService(createDateTimeService());
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
@@ -345,10 +343,6 @@ public class MetricsServiceLifecycle {
 //                .subscribe(generateRates));
 //      jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
 //                .subscribe(createTenants));
-    }
-
-    private DateTimeService createDateTimeService() {
-        return new DateTimeService();
     }
 
     /**

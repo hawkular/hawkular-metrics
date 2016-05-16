@@ -67,7 +67,7 @@ public class StringITest extends BaseMetricsITest {
                 new DataPoint<>(start.getMillis(), "X"));
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches(tenantId, STRING, singletonList(new Metric(metricId, DEFAULT_TTL)));
+        assertMetricIndexMatches(tenantId, STRING, singletonList(new Metric<>(metricId, DEFAULT_TTL)));
     }
 
     @Test
