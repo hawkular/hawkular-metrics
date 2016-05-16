@@ -21,11 +21,6 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
          version="3.1">
 
-  <context-param>
-    <param-name>org.keycloak.secretstore.enabled</param-name>
-    <param-value>true</param-value>
-  </context-param>
-
   <servlet>
     <servlet-name>staticContent</servlet-name>
     <servlet-class>io.undertow.servlet.handlers.DefaultServlet</servlet-class>
@@ -39,5 +34,27 @@
     <servlet-name>staticContent</servlet-name>
     <url-pattern>/static/*</url-pattern>
   </servlet-mapping>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>REST endpoints</web-resource-name>
+      <url-pattern>/*</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>*</role-name>
+    </auth-constraint>
+  </security-constraint>
+
+  <login-config>
+    <auth-method>BASIC</auth-method>
+    <realm-name>ApplicationRealm</realm-name>
+  </login-config>
+
+  <security-role>
+    <role-name>read-write</role-name>
+  </security-role>
+  <security-role>
+    <role-name>read-only</role-name>
+  </security-role>
 
 </web-app>
