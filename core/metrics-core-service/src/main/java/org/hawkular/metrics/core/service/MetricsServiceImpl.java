@@ -147,8 +147,6 @@ public class MetricsServiceImpl implements MetricsService {
     @SuppressWarnings("unused")
     private TaskScheduler taskScheduler;
 
-    private DateTimeService dateTimeService;
-
     private ConfigurationService configurationService;
 
     private MetricRegistry metricRegistry;
@@ -362,10 +360,6 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setTaskScheduler(TaskScheduler taskScheduler) {
         this.taskScheduler = taskScheduler;
-    }
-
-    public void setDateTimeService(DateTimeService dateTimeService) {
-        this.dateTimeService = dateTimeService;
     }
 
     public void setConfigurationService(ConfigurationService configurationService) {

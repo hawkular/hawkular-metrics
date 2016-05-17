@@ -38,6 +38,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -47,7 +48,7 @@ import rx.observers.TestSubscriber;
 /**
  * @author John Sanda
  */
-public class MetricsITest {
+public abstract class BaseITest {
 
     private static final long FUTURE_TIMEOUT = 3;
 
@@ -74,21 +75,6 @@ public class MetricsITest {
 
         session.execute("USE " + getKeyspace());
     }
-
-//    public void initSession() {
-//        String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
-//        Cluster cluster = new Cluster.Builder()
-//            .addContactPoints(nodeAddresses.split(","))
-//            // Due to JAVA-500 and JAVA-509 we need to explicitly set the protocol to V3.
-//            // These bugs are fixed upstream and will be in version 2.1.3 of the driver.
-//            .withProtocolVersion(ProtocolVersion.V4)
-//            .build();
-//        session = cluster.connect(getKeyspace());
-//        rxSession = new RxSessionImpl(session);
-//
-////        truncateMetrics = session.prepare("TRUNCATE metrics");
-////        truncateCounters = session.prepare("TRUNCATE counters");
-//    }
 
     protected void resetDB() {
         session.execute(truncateMetrics.bind());
@@ -159,4 +145,16 @@ public class MetricsITest {
         assertEquals(resultSets.size(), 1, msg + ": Failed to obtain result set");
         assertTrue(resultSets.get(0).isExhausted(), msg);
     }
+
+    protected <T> List<T> toList(Observable<T> observable) {
+        return ImmutableList.copyOf(observable.toBlocking().toIterable());
+    }
+
+    protected void assertArrayEquals(long[] actual, long[] expected, String msg) {
+        assertEquals(actual.length, expected.length, msg + ": The array lengths are not the same.");
+        for (int i = 0; i < expected.length; ++i) {
+            assertEquals(actual[i], expected[i], msg + ": The elements at index " + i + " do not match.");
+        }
+    }
+
 }

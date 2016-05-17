@@ -147,6 +147,8 @@ class CountersITest extends RESTTest {
 
   @Test
   void createAndFindCounters() {
+    def tenantId = nextTenantId()
+
     String counter1 = "C1"
     String counter2 = "C2"
 
@@ -192,6 +194,8 @@ class CountersITest extends RESTTest {
             dataRetention: 7
         ]
     ]
+
+    assertEquals(2, response.data.size())
     assertEquals(expectedData, response.data)
   }
 

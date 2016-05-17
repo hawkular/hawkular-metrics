@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.metrics;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
 
 import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.joda.time.Duration.standardMinutes;
+import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 
+import org.hawkular.metrics.core.service.GenerateRate;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
@@ -34,11 +36,8 @@ import org.hawkular.metrics.tasks.api.SingleExecutionTrigger;
 import org.hawkular.metrics.tasks.api.Trigger;
 import org.hawkular.metrics.tasks.impl.Task2Impl;
 import org.joda.time.DateTime;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
@@ -47,33 +46,11 @@ import rx.Observable;
  * This class tests counter rates by directly calling {@link GenerateRate}. There is no
  * task scheduler running for these tests.
  */
-public class GenerateRateITest extends MetricsITest {
-    private MetricsServiceImpl metricsService;
-
-    private DateTimeService dateTimeService;
-
-    @BeforeClass
-    public void initClass() {
-        DataAccess dataAccess = new DataAccessImpl(session);
-        dateTimeService = new DateTimeService();
-
-        metricsService = new MetricsServiceImpl();
-        metricsService.setDataAccess(dataAccess);
-        metricsService.setTaskScheduler(new FakeTaskScheduler());
-        metricsService.setDateTimeService(dateTimeService);
-
-        metricsService.startUp(session, getKeyspace(), false, new MetricRegistry());
-    }
-
-    @BeforeMethod
-    public void initMethod() {
-        session.execute("TRUNCATE metrics_idx");
-        session.execute("TRUNCATE data");
-    }
+public class GenerateRateITest extends BaseMetricsITest {
 
     @Test
     public void generateRates() {
-        DateTime start = dateTimeService.getTimeSlice(DateTime.now(), standardMinutes(1)).minusMinutes(5);
+        DateTime start = now().minusMinutes(5);
         String tenant = "rates-test";
 
         Metric<Long> c1 = new Metric<>(new MetricId<>(tenant, COUNTER, "C1"));

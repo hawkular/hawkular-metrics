@@ -49,7 +49,7 @@ import rx.Observable;
 /**
  * @author John Sanda
  */
-public class DataAccessITest extends MetricsITest {
+public class DataAccessITest extends BaseITest {
 
     private static int DEFAULT_TTL = 600;
 
