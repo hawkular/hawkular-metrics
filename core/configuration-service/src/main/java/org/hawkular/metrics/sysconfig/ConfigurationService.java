@@ -25,6 +25,7 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 
 import rx.Observable;
+import rx.Scheduler;
 
 /**
  * @author jsanda
@@ -55,6 +56,12 @@ public class ConfigurationService {
                 .map(map -> new Configuration(id, map));
     }
 
+    public Observable<Configuration> load(String id, Scheduler scheduler) {
+        return session.executeAndFetch(findConfiguration.bind(id), scheduler)
+                .toMap(row -> row.getString(0), row -> row.getString(1))
+                .map(map -> new Configuration(id, map));
+    }
+
     public Observable<Void> save(Configuration configuration) {
         return Observable.from(configuration.getProperties().entrySet())
                 .map(entry -> updateConfiguration.bind(configuration.getId(), entry.getKey(), entry.getValue()))
@@ -64,7 +71,7 @@ public class ConfigurationService {
 
     public Observable<Void> save(String configId, String name, String value) {
         return session.execute(updateConfiguration.bind(configId, name, value))
-                .flatMap(resultSet -> null);
+                .map(resultSet -> null);
     }
 
 }

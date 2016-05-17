@@ -24,6 +24,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 
 import rx.Observable;
+import rx.Scheduler;
 
 /**
  * @author jsanda
@@ -48,16 +49,20 @@ public class LockManager {
                 "UPDATE locks SET owners = owners - ? WHERE name = ? IF owner = NULL");
     }
 
-    public Observable<Boolean> acquireExclusiveShared(String name, String value) {
-        return session.execute(updateExclusiveLock.bind(value, name)).map(ResultSet::wasApplied);
+    public Observable<Boolean> acquireExclusiveShared(String owner, String name) {
+        return session.execute(updateExclusiveLock.bind(owner, name)).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> acquireSharedLock(String name, String value, int timeout) {
-        return session.execute(updateSharedLock.bind(timeout, singletonList(value), name)).map(ResultSet::wasApplied);
+    public Observable<Boolean> acquireExclusiveShared(String owner, String name, Scheduler scheuduler) {
+        return session.execute(updateExclusiveLock.bind(owner, name), scheuduler).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> releaseSharedLock(String name, String value) {
-        return session.execute(releaseSharedLock.bind(singletonList(value), name)).map(ResultSet::wasApplied);
+    public Observable<Boolean> acquireSharedLock(String owner, String value, int timeout) {
+        return session.execute(updateSharedLock.bind(timeout, singletonList(value), owner)).map(ResultSet::wasApplied);
+    }
+
+    public Observable<Boolean> releaseSharedLock(String owner, String value) {
+        return session.execute(releaseSharedLock.bind(singletonList(value), owner)).map(ResultSet::wasApplied);
     }
 
 }

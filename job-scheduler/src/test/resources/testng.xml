@@ -1,0 +1,13 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="Hawkular Metrics Job Scheduler Test Suite">
+  <test name="job scheduling">
+    <classes>
+      <class name="org.hawkular.metrics.scheduler.impl.JobSchedulingTest"/>
+    </classes>
+  </test>
+  <test name="job execution">
+    <classes>
+      <class name="org.hawkular.metrics.scheduler.impl.JobExecutionTest"/>
+    </classes>
+  </test>
+</suite>

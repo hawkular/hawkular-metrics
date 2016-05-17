@@ -45,7 +45,8 @@ public class DeleteMetric implements Func1<JobDetails, Observable<Void>> {
                 "DELETE FROM metrics_idx WHERE tenant_id = ? AND type = ? AND metric = ?");
     }
 
-    @Override public Observable<Void> call(JobDetails jobDetails) {
+    @Override
+    public Observable<Void> call(JobDetails jobDetails) {
         return Observable.create(subscriber -> {
             String tenantId = jobDetails.getParameters().get("tenantId");
             MetricType<?> type = MetricType.fromTextCode(jobDetails.getParameters().get("metricType"));
