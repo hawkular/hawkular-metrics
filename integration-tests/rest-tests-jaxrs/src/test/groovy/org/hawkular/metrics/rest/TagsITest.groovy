@@ -236,7 +236,7 @@ class TagsITest extends RESTTest {
         // Create metric
         def response = hawkularMetrics.post(path: it.path, body: [
             id  : 'N1',
-            tags: ['a1': 'A/B', 'd1': 'B:A']
+            tags: ['a1': 'A/B', 'd1': 'B:A', 'c1': 'C,D']
         ], headers: [(tenantHeaderName): tenantId])
         assertEquals(201, response.status)
 
@@ -249,12 +249,16 @@ class TagsITest extends RESTTest {
             query: [tags: "a1:A%2FB"],
             headers: [(tenantHeaderName): tenantId])
 
-        [response, alternateResponse].each {  lresponse ->
+        def commaResponse = hawkularMetrics.get(path: it.path,
+            query: [tags: "c1:C%2CD"],
+            headers: [(tenantHeaderName): tenantId])
+
+        [response, alternateResponse, commaResponse].each {  lresponse ->
           assertEquals(200, lresponse.status)
           assertEquals([[
                             tenantId: tenantId,
                             id      : 'N1',
-                            tags    : ['a1': 'A/B', 'd1': 'B:A'],
+                            tags    : ['a1': 'A/B', 'd1': 'B:A', 'c1': 'C,D'],
                             type: it.type,
                             dataRetention: 7
                         ]], lresponse.data)
