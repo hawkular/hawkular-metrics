@@ -75,11 +75,6 @@
       <artifactId>hawkular-metrics-bus</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.hawkular.accounts</groupId>
-      <artifactId>hawkular-accounts-api</artifactId>
-      <version>${version.org.hawkular.accounts}</version>
-    </dependency>
     <!-- Overlay -->
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -141,7 +136,6 @@
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <excludes>
-                <exclude>**/TenantFilter.class</exclude>
                 <exclude>**/CorsRequestFilter.class</exclude>
                 <exclude>**/CorsResponseFilter.class</exclude>
                 <exclude>**/OriginValidation.class</exclude>

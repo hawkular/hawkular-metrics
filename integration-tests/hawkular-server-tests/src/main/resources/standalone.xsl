@@ -27,29 +27,9 @@
 
   <!-- will indicate if this is a "dev" build or "production" build -->
   <xsl:param name="kettle.build.type"/>
-  <xsl:param name="uuid.hawkular.accounts.backend"/>
 
   <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes" xalan:indent-amount="4" standalone="no"/>
   <xsl:strip-space elements="*"/>
-
-  <!-- //*[local-name()='secure-deployment'] is an xPath's 1.0 way of saying of xPath's 2.0 prefix-less selector //*:secure-deployment  -->
-  <xsl:template match="//*[*[local-name()='secure-deployment']]">
-    <xsl:copy>
-      <xsl:apply-templates select="@*|node()"/>
-      <secure-deployment name="hawkular-metrics-component.war">
-        <realm>hawkular</realm>
-        <resource>hawkular-accounts-backend</resource>
-        <use-resource-role-mappings>true</use-resource-role-mappings>
-        <enable-cors>true</enable-cors>
-        <enable-basic-auth>true</enable-basic-auth>
-        <!-- copy the secret value from the previous available secure-deployment -->
-        <credential name="secret">
-          <xsl:value-of
-              select="*[local-name()='secure-deployment']/*[local-name()='credential' and @name='secret']/text()"/>
-        </credential>
-      </secure-deployment>
-    </xsl:copy>
-  </xsl:template>
 
   <xsl:template match="//*[local-name()='subsystem']/*[local-name()='server' and @name='default']">
     <xsl:copy>
