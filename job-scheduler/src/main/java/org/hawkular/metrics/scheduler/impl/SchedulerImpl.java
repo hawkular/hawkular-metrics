@@ -31,11 +31,11 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -75,7 +75,7 @@ public class SchedulerImpl implements Scheduler {
 
     private rx.Scheduler tickScheduler;
 
-    private ThreadPoolExecutor queueExecutor;
+    private ExecutorService queueExecutor;
 
     private rx.Scheduler queueScheduler;
 
@@ -114,9 +114,7 @@ public class SchedulerImpl implements Scheduler {
         jobCreators = new HashMap<>();
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
-//        queueExecutor = Executors.newSingleThreadExecutor(
-//                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
-        queueExecutor = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
+        queueExecutor = Executors.newSingleThreadExecutor(
                 new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         tickScheduler = Schedulers.from(tickExecutor);
         queueScheduler = Schedulers.from(queueExecutor);
@@ -170,8 +168,9 @@ public class SchedulerImpl implements Scheduler {
 
     public Observable<JobDetails> scheduleJob(String type, String name, Map<String, String> parameter,
             Trigger trigger) {
-        String lock = "org.hawkular.metrics.scheduler.queue." + trigger.getTriggerTime();
-        return lockManager.acquireSharedLock(getLockOwner(), lock, 30)
+        String lockName = "org.hawkular.metrics.scheduler.queue." + trigger.getTriggerTime();
+        String permit = getLockOwner();
+        return lockManager.acquirePermit(lockName, permit, 30)
                 .map(acquired -> {
                     if (acquired) {
                         UUID jobId = UUID.randomUUID();
@@ -189,7 +188,7 @@ public class SchedulerImpl implements Scheduler {
                 }))
                 .flatMap(this::insertIntoJobsTable)
                 .flatMap(this::addJobToQueue)
-                .flatMap(details -> lockManager.releaseSharedLock(lock, name)
+                .flatMap(details -> lockManager.releasePermit(lockName, permit)
                         .map(released -> {
                             if (released) {
                                 return details;
@@ -203,9 +202,16 @@ public class SchedulerImpl implements Scheduler {
         running = true;
         NavigableSet<Date> activeTimeSlices = new ConcurrentSkipListSet<>();
         Set<UUID> activeJobs = new ConcurrentSkipListSet<>();
+        Map<String, String> jobLocks = new ConcurrentHashMap<>();
         doOnTick(() -> {
+            // TODO handle scenario in which job scheduler has fallen behind
+            // The job scheduler could fall behind due to being overloaded with too much work or due to being offline
+            // for some time. If the active time slice is behind the current time (as determined by the system clock),
+            // say by an hour or so, then the task should catch up and execute everything up to the current time slice.
+
             Date timeSlice;
             if (activeTimeSlices.isEmpty()) {
+                // TODO handle null
                 timeSlice = findActiveTimeSlice().toBlocking().lastOrDefault(null);
             } else {
                 Date latestActiveTimeSlice = activeTimeSlices.last();
@@ -218,26 +224,37 @@ public class SchedulerImpl implements Scheduler {
             logger.debug("Currently active time slices are [" + activeTimeSlices + "]");
 
             Set<UUID> scheduledJobs = findScheduledJobsSync(timeSlice);
-            getJobsToExecuteBlocking(timeSlice, scheduledJobs, activeJobs)
+            getJobsToExecuteBlocking(timeSlice, scheduledJobs, activeJobs, jobLocks)
                     .flatMap(jobDetails -> Observable.just(jobDetails).subscribeOn(Schedulers.computation()))
+                    .flatMap(jobDetails -> {
+                        Func1<JobDetails, Observable<Void>> factory = jobCreators.get(jobDetails.getJobType());
+                        return factory.call(jobDetails)
+                                .doOnNext(aVoid -> logger.debug("Executed " + jobDetails))
+                                .flatMap(aVoid ->
+                                        session.execute(updateJobToFinished.bind(timeSlice, jobDetails.getJobId()))
+                                                .flatMap(resultSet -> {
+                                                    Trigger nextTrigger = jobDetails.getTrigger().nextTrigger();
+                                                    if (nextTrigger == null) {
+                                                        return Observable.just(jobDetails);
+                                                    }
+                                                    JobDetails newJob = new JobDetails(jobDetails.getJobId(),
+                                                            jobDetails.getJobType(), jobDetails.getJobName(),
+                                                            jobDetails.getParameters(), nextTrigger);
+                                                    logger.debug("Scheduling " + newJob + " for next execution");
+                                                    Observable<JobDetails> added = addJobToQueue(newJob);
+                                                    Observable<JobDetails> updated = insertIntoJobsTable(newJob);
+                                                    return Observable.merge(added, updated)
+                                                            .map(newDetails -> jobDetails);
+                                                }));
+                    })
                     .subscribe(
-                            jobDetails -> {
-                                Func1<JobDetails, Observable<Void>> factory = jobCreators.get(jobDetails.getJobType());
-                                Observable<Void> job = factory.call(jobDetails);
-                                job.subscribe(
-                                        aVoid -> {},
-                                        t -> logger.warn("There was an error executing " + jobDetails),
-                                        () -> {
-                                            logger.debug("Finished executing " + jobDetails);
-                                            logger.debug("Updating " + jobDetails + " to finished");
-                                            session.execute(updateJobToFinished.bind(timeSlice, jobDetails.getJobId()))
-                                                    .subscribe(
-                                                            resultSet -> logger.debug(jobDetails + " is finished"),
-                                                            t -> logger.warn("Failed to set " + jobDetails +
-                                                                    " to finished")
-                                                    );
-                                        }
-                                );
+                            details -> {
+                                activeJobs.remove(details.getJobId());
+                                String jobLock = "org.hawkular.metrics.scheduler.job." + details.getJobId();
+                                String lockValue = jobLocks.remove(jobLock);
+                                boolean released = lockManager.releaseLock(jobLock, lockValue).toBlocking()
+                                        .firstOrDefault(false);
+                                logger.debug("Released job lock [" + jobLock + "]? " + released);
                             },
                             t -> logger.warn("Job execution for [" + timeSlice + "] failed", t),
                             () -> {
@@ -258,6 +275,9 @@ public class SchedulerImpl implements Scheduler {
                                                 timeSlice)).map(resultSet -> (Void) null);
                                         return Observable.merge(activeTimeSliceUpdated, deleteScheduled,
                                                 deleteFinished);
+                                    } else {
+                                        logger.debug("Scheduled = " + scheduled.toBlocking().first());
+                                        logger.debug("Finished = " + finished.toBlocking().first());
                                     }
                                     return Observable.empty();
                                 }).subscribe(
@@ -269,13 +289,16 @@ public class SchedulerImpl implements Scheduler {
                                         () -> {
                                             logger.debug("Post job execution clean up done for [" + timeSlice + "]");
                                             activeTimeSlices.remove(timeSlice);
+                                            logger.debug("Active time slice = " +
+                                                    findActiveTimeSlice().toBlocking().lastOrDefault(null));
                                             finishedTimeSlices.ifPresent(subject -> subject.onNext(timeSlice));
                                             if (!running) {
                                                 logger.debug("Done!");
                                             }
                                         }
                                 );
-                            });
+                            }
+                    );
         });
     }
 
@@ -284,11 +307,12 @@ public class SchedulerImpl implements Scheduler {
     }
 
     private Observable<JobDetails> getJobsToExecuteBlocking(Date timeSlice, Set<UUID> scheduledJobs,
-            Set<UUID> activeJobs) {
+            Set<UUID> activeJobs, Map<String, String> jobLocks) {
         return Observable.create(subscriber -> {
             String lockName = "org.hawkular.metrics.scheduler.queue." + timeSlice.getTime();
+
             logger.debug("Acquiring queue lock [" + lockName + "] for " + timeSlice);
-            TimeSliceLock lock = lockManager.acquireExclusiveShared(getLockOwner(), lockName).map(acquired -> {
+            TimeSliceLock lock = lockManager.acquireLock(lockName, "locked", 300).map(acquired -> {
                 logger.debug("Acquired lock for [" + timeSlice + "]? " + acquired);
                 return new TimeSliceLock(timeSlice, getLockOwner(), acquired);
             }).toBlocking().lastOrDefault(null);
@@ -303,13 +327,14 @@ public class SchedulerImpl implements Scheduler {
                     remainingJobs.stream().limit(2).filter(jobId -> !activeJobs.contains(jobId)).forEach(jobId -> {
                         String jobLock = "org.hawkular.metrics.scheduler.job." + jobId;
                         activeJobs.add(jobId);
-                        boolean acquired = lockManager.acquireExclusiveShared(getLockOwner(), jobLock).toBlocking()
+                        boolean acquired = lockManager.acquireLock(jobLock, getLockOwner(), 3600).toBlocking()
                                 .first();
                         logger.debug("Acquired job lock for job [" + jobId + "]? " + acquired);
                         if (acquired) {
-//                            JobDetails jobDetails = findJob(jobId).toBlocking().first();
+                            // TODO handle null
                             JobDetails jobDetails = findJob(jobId).toBlocking().firstOrDefault(null);
                             logger.debug("Acquired job execution lock for " + jobDetails);
+                            jobLocks.put(jobLock, getLockOwner());
                             subscriber.onNext(jobDetails);
                             logger.debug("Emitted job " + jobDetails);
                         } else {
@@ -405,23 +430,11 @@ public class SchedulerImpl implements Scheduler {
                 .map(config -> new Date(Long.parseLong(config.get("active-queue"))));
     }
 
-    private Observable<Date> findActiveTimeSlice(rx.Scheduler scheduler) {
-        // TODO We shouldn't ever get an empty result set but need to handle it to be safe
-        return configurationService.load("org.hawkular.metrics.scheduler", scheduler)
-                .map(config -> new Date(Long.parseLong(config.get("active-queue"))))
-                .doOnNext(timeSlice -> logger.debug("Next time slice [" + timeSlice + "]"));
-    }
-
     private Observable<JobDetails> findJob(UUID jobId) {
         return session.executeAndFetch(findJob.bind(jobId))
                 .map(row -> new JobDetails(jobId, row.getString(0), row.getString(1),
                         row.getMap(2, String.class, String.class), getTrigger(row.getUDTValue(3))))
                 .doOnError(t -> logger.warn("Failed to fetch job [" + jobId + "]", t));
-
-//        return session.execute(findJob.bind(jobId))
-//                .flatMap(Observable::from)
-//                .map(row -> new JobDetails(jobId, row.getString(0), row.getString(1),
-//                        row.getMap(2, String.class, String.class), getTrigger(row.getUDTValue(3))));
     }
 
     private String getLockOwner() {
@@ -500,31 +513,6 @@ public class SchedulerImpl implements Scheduler {
 
         public Date getTimeSlice() {
             return timeSlice;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public boolean isAcquired() {
-            return acquired;
-        }
-    }
-
-    private static class JobLock {
-
-        private UUID jobId;
-        private String name;
-        private boolean acquired;
-
-        public JobLock(UUID jobId, String name, boolean acquired) {
-            this.jobId = jobId;
-            this.name = name;
-            this.acquired = acquired;
-        }
-
-        public UUID getJobId() {
-            return jobId;
         }
 
         public String getName() {

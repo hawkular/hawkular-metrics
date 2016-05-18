@@ -24,45 +24,65 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 
 import rx.Observable;
-import rx.Scheduler;
 
 /**
  * @author jsanda
  */
-public class LockManager {
+class LockManager {
 
     private RxSession session;
 
-    private PreparedStatement updateExclusiveLock;
+    private PreparedStatement lockPermits;
 
-    private PreparedStatement updateSharedLock;
+    private PreparedStatement unlockPermits;
 
-    private PreparedStatement releaseSharedLock;
+    private PreparedStatement acquireLock;
+
+    private PreparedStatement releaseLock;
+
+    private PreparedStatement acquirePermit;
+
+    private PreparedStatement releasePermit;
+
 
     public LockManager(RxSession session) {
         this.session = session;
-        updateExclusiveLock = session.getSession().prepare(
-                "UPDATE locks SET owner = ? WHERE name = ? IF owners = NULL");
-        updateSharedLock = session.getSession().prepare(
-                "UPDATE locks USING TTL ? SET owners = owners + ? WHERE name = ? IF owner = NULL");
-        releaseSharedLock = session.getSession().prepare(
-                "UPDATE locks SET owners = owners - ? WHERE name = ? IF owner = NULL");
+        lockPermits = session.getSession().prepare(
+                "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF permits = NULL");
+        unlockPermits = session.getSession().prepare(
+                "UPDATE locks SET value = NULL WHERE name = ? IF value = ?");
+        acquireLock = session.getSession().prepare(
+                "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value = NULL");
+        releaseLock = session.getSession().prepare(
+                "UPDATE locks SET value = NULL WHERE name = ? IF value = ?");
+        acquirePermit = session.getSession().prepare(
+                "UPDATE locks USING TTL ? SET permits = permits + ? WHERE name = ? IF value = NULL");
+        releasePermit = session.getSession().prepare(
+                "UPDATE locks SET permits = permits - ? WHERE name = ? IF value = NULL");
     }
 
-    public Observable<Boolean> acquireExclusiveShared(String owner, String name) {
-        return session.execute(updateExclusiveLock.bind(owner, name)).map(ResultSet::wasApplied);
+    public Observable<Boolean> acquireLock(String name, String value, int timeout) {
+        return session.execute(acquireLock.bind(timeout, value, name)).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> acquireExclusiveShared(String owner, String name, Scheduler scheuduler) {
-        return session.execute(updateExclusiveLock.bind(owner, name), scheuduler).map(ResultSet::wasApplied);
+    public Observable<Boolean> releaseLock(String name, String value) {
+        return session.execute(releaseLock.bind(name, value)).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> acquireSharedLock(String owner, String value, int timeout) {
-        return session.execute(updateSharedLock.bind(timeout, singletonList(value), owner)).map(ResultSet::wasApplied);
+    public Observable<Boolean> acquirePermit(String name, String value, int timeout) {
+        return session.execute(acquirePermit.bind(timeout, singletonList(value), name)).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> releaseSharedLock(String owner, String value) {
-        return session.execute(releaseSharedLock.bind(singletonList(value), owner)).map(ResultSet::wasApplied);
+    public Observable<Boolean> releasePermit(String name, String value) {
+        return session.execute(releasePermit.bind(singletonList(value), name)).map(ResultSet::wasApplied);
+    }
+
+    public Observable<Boolean> lockPermits(String name, String value, int timeout) {
+        return session.execute(lockPermits.bind(timeout, value, name)).map(ResultSet::wasApplied);
+    }
+
+    public Observable<Boolean> unlockPermits(String name, String value) {
+        return session.execute(unlockPermits.bind(name, value)).map(ResultSet::wasApplied);
     }
 
 }

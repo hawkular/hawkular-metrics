@@ -22,8 +22,8 @@ schemaChange {
   cql """
 CREATE TABLE locks (
     name text PRIMARY KEY,
-    owner text,
-    owners list<text>
+    value text,
+    permits list<text>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
 }
