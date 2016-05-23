@@ -243,8 +243,10 @@ public class SchedulerImpl implements Scheduler {
                                                     logger.debug("Scheduling " + newJob + " for next execution");
                                                     Observable<JobDetails> added = addJobToQueue(newJob);
                                                     Observable<JobDetails> updated = insertIntoJobsTable(newJob);
-                                                    return Observable.merge(added, updated)
-                                                            .map(newDetails -> jobDetails);
+
+                                                    return added.mergeWith(updated).takeLast(1)
+                                                            .map(details -> jobDetails);
+
                                                 }));
                     })
                     .subscribe(
@@ -252,6 +254,7 @@ public class SchedulerImpl implements Scheduler {
                                 activeJobs.remove(details.getJobId());
                                 String jobLock = "org.hawkular.metrics.scheduler.job." + details.getJobId();
                                 String lockValue = jobLocks.remove(jobLock);
+                                logger.debug("Releasing lock [name=" + jobLock + ", value=" + lockValue + "]");
                                 boolean released = lockManager.releaseLock(jobLock, lockValue).toBlocking()
                                         .firstOrDefault(false);
                                 logger.debug("Released job lock [" + jobLock + "]? " + released);
@@ -303,7 +306,30 @@ public class SchedulerImpl implements Scheduler {
     }
 
     public void shutdown() {
-        running = false;
+        try {
+            running = false;
+            tickExecutor.shutdown();
+            tickExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            queueExecutor.shutdown();
+            queueExecutor.awaitTermination(30, TimeUnit.SECONDS);
+
+            logger.info("Shutdown complete");
+        } catch (InterruptedException e) {
+            logger.warn("Interrupted during shutdown", e);
+        }
+    }
+
+    void reset(rx.Scheduler tickScheduler) {
+        logger.debug("Starting reset");
+        shutdown();
+        jobCreators = new HashMap<>();
+//        tickExecutor = Executors.newScheduledThreadPool(1,
+//                new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
+        queueExecutor = Executors.newSingleThreadExecutor(
+                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
+//        tickScheduler = Schedulers.from(tickExecutor);
+        this.tickScheduler = tickScheduler;
+        queueScheduler = Schedulers.from(queueExecutor);
     }
 
     private Observable<JobDetails> getJobsToExecuteBlocking(Date timeSlice, Set<UUID> scheduledJobs,
