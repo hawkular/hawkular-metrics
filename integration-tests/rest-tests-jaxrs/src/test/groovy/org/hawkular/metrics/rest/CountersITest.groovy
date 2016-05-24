@@ -913,6 +913,115 @@ Actual:   ${response.data}
   }
 
   @Test
+  void findStackedStatsForMultipleCountersAsymmetricData() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C1',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C2',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'C3',
+        tags: ['type': 'counter_cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    Random rand = new Random()
+    def randomList = []
+    (1..10).each {
+      randomList << rand.nextInt(100)
+    }
+    randomList.sort()
+
+    def c1 = [
+      [timestamp: start.millis, value: 510 + randomList[0]],
+      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+    ]
+    def c2 = [
+      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[5]],
+      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[6]],
+      [timestamp: start.plusMinutes(5).millis, value: 390 + randomList[7]]
+    ]
+
+    // insert data points
+    response = hawkularMetrics.post(path: "counters/raw", body: [
+        [
+            id: 'C1',
+            data: c1
+        ],
+        [
+            id: 'C2',
+            data: c2
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: start.millis, value: 5712],
+                [timestamp: start.plusMinutes(1).millis, value: 5773],
+                [timestamp: start.plusMinutes(2).millis, value: 5949],
+                [timestamp: start.plusMinutes(3).millis, value: 5979],
+                [timestamp: start.plusMinutes(4).millis, value: 6548]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    //Tests start here
+    response = hawkularMetrics.get(
+        path: 'counters/stats',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            tags: 'type:counter_cpu_usage,host:server1|server2',
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals("Expected to get back five buckets", 5, response.data.size())
+
+    def actualCounterBucketsByTag = response.data
+
+    assertStackedDataPointBucket(actualCounterBucketsByTag[0], start.millis, start.plusMinutes(1).millis, c1[0])
+    assertStackedDataPointBucket(actualCounterBucketsByTag[1], start.plusMinutes(1).millis, start.plusMinutes(2).millis, c1[1], c2[0])
+    assertStackedDataPointBucket(actualCounterBucketsByTag[2], start.plusMinutes(2).millis, start.plusMinutes(3).millis, c1[2])
+    assertStackedDataPointBucket(actualCounterBucketsByTag[3], start.plusMinutes(3).millis, start.plusMinutes(4).millis, c1[3], c2[1])
+    assertStackedDataPointBucket(actualCounterBucketsByTag[4], start.plusMinutes(4).millis, start.plusMinutes(5).millis)
+
+    response = hawkularMetrics.get(
+        path: 'counters/stats',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            metrics: ['C1', 'C2'],
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    def actualCounterBucketsById = response.data
+
+    assertEquals("Expected to get back five buckets", 5, response.data.size())
+    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualCounterBucketsById, actualCounterBucketsByTag)
+  }
+
+  @Test
   void findSimpleStatsForMultipleCounters() {
     String tenantId = nextTenantId()
     DateTime start = now().minusMinutes(10)
