@@ -18,6 +18,8 @@ package org.hawkular.metrics.rest
 
 import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
+
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -207,5 +209,34 @@ Actual: ${actual}
   static void assertRateEquals(String msg, def expected, def actual) {
     assertEquals(msg, expected.timestamp, actual.timestamp)
     assertDoubleEquals(msg, expected.value, actual.value)
+  }
+
+  static void assertStackedDataPointBucket(actualBucket, start, end, Object... dataPoints) {
+    def min = 0
+    def max = 0
+    def avg = 0
+    def sum = 0
+    def empty = true
+    def samples = null
+
+    if (dataPoints.size() > 0) {
+      min = dataPoints.sum {it.value}
+      max = dataPoints.sum {it.value}
+      avg = dataPoints.sum {it.value}
+      sum = dataPoints.sum {it.value}
+      empty = false
+      samples = dataPoints.size()
+    }
+
+    assertEquals(start, actualBucket.start)
+    assertEquals(end, actualBucket.end)
+
+    assertDoubleEquals(min, actualBucket.min)
+    assertDoubleEquals(max, actualBucket.max)
+    assertDoubleEquals(avg, actualBucket.avg)
+    assertDoubleEquals(sum, actualBucket.sum)
+    assertEquals(empty, actualBucket.empty)
+    assertEquals(samples, actualBucket.samples)
+    assertTrue("Expected the [median] property to be set", actualBucket.median != null)
   }
 }

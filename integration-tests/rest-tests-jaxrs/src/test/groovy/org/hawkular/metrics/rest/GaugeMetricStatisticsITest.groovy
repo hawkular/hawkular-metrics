@@ -400,6 +400,112 @@ class GaugeMetricStatisticsITest extends RESTTest {
   }
 
   @Test
+  void findDataForMultipleMetricsByTagsSumDownsampleAsymmetricData() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusMinutes(10)
+
+    // Create some metrics
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G1',
+        tags: ['type': 'cpu_usage', 'host': 'server1', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G2',
+        tags: ['type': 'cpu_usage', 'host': 'server2', 'env': 'dev']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'G3',
+        tags: ['type': 'cpu_usage', 'host': 'server3', 'env': 'stage']
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    def m1 = [
+      [timestamp: start.millis, value: 37.45],
+      [timestamp: start.plusMinutes(1).millis, value: 37.609],
+      [timestamp: start.plusMinutes(2).millis, value: 39.11],
+      [timestamp: start.plusMinutes(3).millis, value: 44.07],
+    ]
+    def m2 = [
+      [timestamp: start.plusMinutes(1).millis, value: 39.55],
+      [timestamp: start.plusMinutes(3).millis, value: 36.94],
+      [timestamp: start.plusMinutes(5).millis, value: 37.64]
+    ]
+
+    // insert data points
+    response = hawkularMetrics.post(path: "gauges/raw", body: [
+        [
+            id: 'G1',
+            data: m1
+        ],
+        [
+            id: 'G2',
+            data: m2
+        ],
+        [
+            id: 'G3',
+            data: [
+                [timestamp: start.millis, value: 57.12],
+                [timestamp: start.plusMinutes(1).millis, value: 57.73],
+                [timestamp: start.plusMinutes(2).millis, value: 55.49],
+                [timestamp: start.plusMinutes(3).millis, value: 49.19],
+                [timestamp: start.plusMinutes(4).millis, value: 35.48]
+            ]
+        ]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/stats',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            tags: 'type:cpu_usage,host:server1|server2',
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals("Expected to get back 5 buckets", 5, response.data.size())
+
+    def actualBucketsByTag = response.data
+
+    assertStackedDataPointBucket(actualBucketsByTag[0], start.millis, start.plusMinutes(1).millis, m1[0])
+    assertStackedDataPointBucket(actualBucketsByTag[1], start.plusMinutes(1).millis, start.plusMinutes(2).millis, m1[1], m2[0])
+    assertStackedDataPointBucket(actualBucketsByTag[2], start.plusMinutes(2).millis, start.plusMinutes(3).millis, m1[2])
+    assertStackedDataPointBucket(actualBucketsByTag[3], start.plusMinutes(3).millis, start.plusMinutes(4).millis, m1[3], m2[1])
+    assertStackedDataPointBucket(actualBucketsByTag[4], start.plusMinutes(4).millis, start.plusMinutes(5).millis)
+
+    // query for data
+    response = hawkularMetrics.get(
+        path: 'gauges/stats',
+        query: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            metrics: ['G1', 'G2'],
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals("Expected to get back 5 buckets", 5, response.data.size())
+
+    def actualBucketsById = response.data
+
+    assertEquals("Expected to get back five buckets", 5, response.data.size())
+    assertEquals("Stacked stats when queried by tag are different than when queried by id", actualBucketsById, actualBucketsByTag)
+
+  }
+
+  @Test
   void findDataForMultipleMetricsByMetricNamesSumDownsample() {
     String tenantId = nextTenantId()
     DateTime start = now().minusMinutes(10)
