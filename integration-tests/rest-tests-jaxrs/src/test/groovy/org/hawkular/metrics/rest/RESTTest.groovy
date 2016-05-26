@@ -49,7 +49,8 @@ class RESTTest {
   static metricTypes =  [
     ["path": "gauges", "type": "gauge"],
     ["path": "availability", "type": "availability"],
-    ["path": "counters", "type": "counter"]
+    ["path": "counters", "type": "counter"],
+    ["path": "strings", "type": "string"]
   ];
 
   @BeforeClass
