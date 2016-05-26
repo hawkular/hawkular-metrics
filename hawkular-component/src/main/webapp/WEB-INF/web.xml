@@ -37,6 +37,15 @@
 
   <security-constraint>
     <web-resource-collection>
+      <web-resource-name>Unsecured endpoints</web-resource-name>
+      <url-pattern>/status</url-pattern>
+      <url-pattern>/static/*</url-pattern>
+      <url-pattern>/</url-pattern>
+    </web-resource-collection>
+  </security-constraint>
+
+  <security-constraint>
+    <web-resource-collection>
       <web-resource-name>REST endpoints</web-resource-name>
       <url-pattern>/*</url-pattern>
     </web-resource-collection>
