@@ -237,6 +237,7 @@ public class DataGenerator {
         return options;
     }
 
+    @SuppressWarnings("unchecked")
     public Options getHelpOptions() {
         Options helpOptions = new Options();
         for (Option option : (Collection<Option>) options.getOptions()) {

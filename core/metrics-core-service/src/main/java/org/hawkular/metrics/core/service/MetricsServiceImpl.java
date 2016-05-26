@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1012,35 +1011,4 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
-
-    private static class TenantBucket {
-        String tenant;
-        long bucket;
-
-        public TenantBucket(String tenant, long bucket) {
-            this.tenant = tenant;
-            this.bucket = bucket;
-        }
-
-        public String getTenant() {
-            return tenant;
-        }
-
-        public long getBucket() {
-            return bucket;
-        }
-
-        @Override public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TenantBucket that = (TenantBucket) o;
-            return Objects.equals(bucket, that.bucket) &&
-                    Objects.equals(tenant, that.tenant);
-        }
-
-        @Override public int hashCode() {
-            return Objects.hash(tenant, bucket);
-        }
-    }
-
 }

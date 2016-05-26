@@ -179,15 +179,11 @@ public class AvailabilityITest extends BaseMetricsITest {
 
         addAvailabilityDataInThePast(m1, days(2).toStandardDuration());
 
-        verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(DEFAULT_TTL - days(2).toStandardSeconds().getSeconds());
-
         verifyTTLDataAccess.setAvailabilityTTL(days(14).toStandardSeconds().getSeconds());
         Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>("t2", AVAILABILITY, "m2"),
                 singletonList(new DataPoint<>(start.plusMinutes(5).getMillis(), UP)));
 
         addAvailabilityDataInThePast(m2, days(5).toStandardDuration());
-
-        verifyTTLDataAccess.availabilityTagTLLLessThanEqualTo(days(14).minus(5).toStandardSeconds().getSeconds());
 
         metricsService.createTenant(new Tenant("t3", ImmutableMap.of(AVAILABILITY, 24)), false)
                 .toBlocking()

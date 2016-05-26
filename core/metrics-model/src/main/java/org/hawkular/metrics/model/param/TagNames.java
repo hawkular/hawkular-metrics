@@ -40,6 +40,7 @@ public class TagNames {
         this.names = ImmutableSet.copyOf(names);
     }
 
+    @SuppressWarnings("unused")
     private static boolean isValid(Map.Entry<String, String> tag) {
         return isValid(tag.getKey()) && isValid(tag.getValue());
     }
