@@ -46,5 +46,11 @@
         <module>load-tests</module>
       </modules>
     </profile>
+    <profile>
+      <id>benchmark</id>
+      <modules>
+        <module>jmh-benchmark</module>
+      </modules>
+    </profile>
   </profiles>
 </project>
