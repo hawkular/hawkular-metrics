@@ -35,6 +35,8 @@ public class MetricTypeTextConverter {
             return "counters";
         } else if(mt == MetricType.AVAILABILITY) {
             return mt.getText();
+        } else if (mt == MetricType.STRING) {
+            return "strings";
         } else {
             throw new RuntimeException("Unsupported type " + mt.getText());
         }

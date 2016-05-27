@@ -16,10 +16,12 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
+import org.joda.time.DateTime
 import org.junit.Test
 
 /**
@@ -316,6 +318,64 @@ class TagsITest extends RESTTest {
       assertEquals(204, response.status)
 
       // Find from generic endpoint
+    }
+  }
+
+  @Test
+  void addTaggedDataPoints() {
+    def dataValues = [:]
+    dataValues['counter'] = [1, 99, 2]
+    dataValues['gauge'] = [1.1, 2.2, 33.3]
+    dataValues['availability'] = ["up", "down", "unknown"]
+    dataValues['string'] = ["Test String 1", "String Test 2", "3 String Test"]
+
+    metricTypes.each {
+      String tenantId = nextTenantId()
+      DateTime start = now().minusMinutes(30)
+      DateTime end = start.plusMinutes(10)
+      String metricId = 'G1'
+
+      def response = hawkularMetrics.post(
+          path: it.path + "/" + metricId + "/raw",
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              [
+                  timestamp: start.millis,
+                  value: dataValues[it.type][0],
+                  tags: [x: 1, y: 2]
+              ],
+              [
+                  timestamp: start.plusMinutes(1).millis,
+                  value: dataValues[it.type][1],
+                  tags: [y: 3, z: 5]
+              ],
+              [
+                  timestamp: start.plusMinutes(3).millis,
+                  value: dataValues[it.type][2],
+                  tags: [x: 4, z: 6]
+              ]
+          ]
+      )
+      assertEquals(200, response.status)
+      response = hawkularMetrics.get(path: it.path + "/" + metricId + "/raw", headers: [(tenantHeaderName): tenantId])
+      def expectedData = [
+          [
+              timestamp: start.plusMinutes(3).millis,
+              value: dataValues[it.type][2],
+              tags: [x: '4', z: '6']
+          ],
+          [
+              timestamp: start.plusMinutes(1).millis,
+              value: dataValues[it.type][1],
+              tags: [y: '3', z: '5']
+          ],
+          [
+              timestamp: start.millis,
+              value: dataValues[it.type][0],
+              tags: [x: '1', y: '2']
+          ]
+      ]
+      assertEquals(expectedData, response.data)
     }
   }
 }
