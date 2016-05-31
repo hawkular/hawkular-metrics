@@ -71,6 +71,7 @@ public class SchemaService {
         }
     }
 
+    @SuppressWarnings("unused")
     private boolean systemSettingsTableExists(Session session, String keyspace) {
         Statement statement = new SimpleStatement("SELECT * FROM sysconfig.schema_columnfamilies WHERE " +
                 "keyspace_name = '" + keyspace + "' AND columnfamily_name = 'system_settings'");
@@ -78,6 +79,7 @@ public class SchemaService {
         return !resultSet.isExhausted();
     }
 
+    @SuppressWarnings("unused")
     private String getCurrentHawkularMetricsVersion(Session session, String keyspace) {
         Statement statement = new SimpleStatement("SELECT value FROM " + keyspace + ".sys_config WHERE " +
                 "name = 'org.hawkular.metrics.version'");

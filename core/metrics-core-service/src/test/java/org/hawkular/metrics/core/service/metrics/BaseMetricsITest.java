@@ -237,34 +237,20 @@ public abstract class BaseMetricsITest extends BaseITest {
 
         private int gaugeTTL;
 
-        private int gaugeTagTTL;
-
         private int availabilityTTL;
-
-        private int availabilityTagTTL;
 
         public VerifyTTLDataAccess(DataAccess instance) {
             super(instance);
             gaugeTTL = DEFAULT_TTL;
-            gaugeTagTTL = DEFAULT_TTL;
             availabilityTTL = DEFAULT_TTL;
-            availabilityTagTTL = DEFAULT_TTL;
         }
 
         public void setGaugeTTL(int expectedTTL) {
             this.gaugeTTL = expectedTTL;
         }
 
-        public void gaugeTagTTLLessThanEqualTo(int gaugeTagTTL) {
-            this.gaugeTagTTL = gaugeTagTTL;
-        }
-
         public void setAvailabilityTTL(int availabilityTTL) {
             this.availabilityTTL = availabilityTTL;
-        }
-
-        public void availabilityTagTLLLessThanEqualTo(int availabilityTagTTL) {
-            this.availabilityTagTTL = availabilityTagTTL;
         }
 
         @Override
