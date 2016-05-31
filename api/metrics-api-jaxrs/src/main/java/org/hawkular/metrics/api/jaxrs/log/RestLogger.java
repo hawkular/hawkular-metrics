@@ -81,4 +81,8 @@ public interface RestLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 200011, value = "Invalid value [%s] for default TTL. Will use a default of %s days")
     void warnInvalidDefaultTTL(String ttl, String defaultTTL);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200012, value = "Invalid Cassandra Driver read timeout %s, not a number. Will use the default of %d ms.")
+    void warnInvalidDriverReadTimeout(String found, int defaultValue);
 }

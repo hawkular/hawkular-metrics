@@ -34,6 +34,7 @@ public enum ConfigurationKey {
     CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),
     CASSANDRA_RESETDB("cassandra.resetdb", null, null, true),
     CASSANDRA_USESSL("hawkular-metrics.cassandra-use-ssl", "false", "CASSANDRA_USESSL", false),
+    CASSANDRA_DRIVER_READ_TIMEOUT_MS("cassandra.driver.read-timeout-ms", "12000", "CASSANDRA_DRIVER_READ_TIMEOUT_MS", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
