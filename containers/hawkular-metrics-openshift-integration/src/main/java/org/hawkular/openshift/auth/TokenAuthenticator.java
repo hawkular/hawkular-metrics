@@ -84,6 +84,7 @@ import io.undertow.client.ClientExchange;
 import io.undertow.client.ClientRequest;
 import io.undertow.client.UndertowClient;
 import io.undertow.connector.ByteBufferPool;
+import io.undertow.protocols.ssl.UndertowXnioSsl;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.XnioByteBufferPool;
@@ -745,7 +746,7 @@ class TokenAuthenticator implements Authenticator {
             undertowClient = UndertowClient.getInstance();
             Xnio xnio = Xnio.getInstance(Undertow.class.getClassLoader());
             try {
-                ssl = xnio.getSslProvider(OptionMap.EMPTY);
+                ssl = new UndertowXnioSsl(xnio, OptionMap.EMPTY);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
