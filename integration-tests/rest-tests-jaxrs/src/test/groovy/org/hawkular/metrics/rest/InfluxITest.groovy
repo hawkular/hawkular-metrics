@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.hawkular.metrics.rest
 
 import static org.joda.time.DateTime.now
@@ -29,7 +31,9 @@ import org.junit.Test
 
 /**
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 class InfluxITest extends RESTTest {
   def tenantId = nextTenantId()
   def gaugeName = '_gauge.test'

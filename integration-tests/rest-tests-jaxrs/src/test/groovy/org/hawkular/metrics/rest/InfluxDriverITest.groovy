@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.hawkular.metrics.rest
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS
@@ -33,7 +35,10 @@ import org.junit.Test
 /**
  * @author Jeeva Kandasamy
  * @author Thomas Segismont
+ *
+ * @deprecated as of 0.17
  */
+@Deprecated
 class InfluxDriverITest extends RESTTest {
   static InfluxDB influxDB = InfluxDBFactory.connect("http://" + baseURI + "/", "hawkular", "hawkular")
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,9 @@ import com.google.common.collect.ImmutableMap;
  * Provides {@link ParamConverterProvider} instances for Influx endpoint.
  *
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 @Provider
 public class ConvertersProvider implements ParamConverterProvider {
     private final ImmutableMap<Class<?>, ParamConverter<?>> paramConverters;

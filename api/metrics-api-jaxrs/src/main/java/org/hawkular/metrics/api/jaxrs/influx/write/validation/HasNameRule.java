@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.influx.write.validation;
 
 import org.hawkular.metrics.api.jaxrs.influx.InfluxObject;
 
 /**
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 public class HasNameRule implements InfluxObjectValidationRule {
     @Override
     public void checkInfluxObject(InfluxObject influxObject) throws InvalidObjectException {

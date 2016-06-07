@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,9 @@ import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 
 /**
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 public class ListSeriesDefinitionsParser extends InfluxQueryBaseListener {
     private RegularExpression regularExpression;
 
