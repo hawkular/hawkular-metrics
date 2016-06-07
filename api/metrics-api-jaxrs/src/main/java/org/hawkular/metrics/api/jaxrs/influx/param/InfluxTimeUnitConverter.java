@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,9 @@ import org.hawkular.metrics.api.jaxrs.influx.InfluxTimeUnit;
  * A JAX-RS {@link ParamConverter} for {@link InfluxTimeUnit} parameters.
  *
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 public class InfluxTimeUnitConverter implements ParamConverter<InfluxTimeUnit> {
 
     @Override

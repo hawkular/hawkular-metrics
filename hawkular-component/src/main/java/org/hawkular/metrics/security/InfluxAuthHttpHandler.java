@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -21,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Base64;
 import java.util.Deque;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,16 +33,18 @@ import io.undertow.util.HttpString;
 
 /**
  * An Undertow handler to help with Influx authentication on Hawkular servers.
- *
+ * <p>
  * Code was initially created in a generic way by Juca and is here adapted to fit the very specifix Influx endpoint
  * needs.
  *
  * @author Juraci Paixão Kröhling
  * @author Thomas Segismont
+ * @deprecated as of 0.17
  */
+@Deprecated
 public class InfluxAuthHttpHandler implements HttpHandler {
     private static final Pattern INFLUX_URI_PATTERN = Pattern.compile("^/hawkular/metrics/db/(.+)/series$");
-    private static final HttpString PERSONA_HEADER = HttpString.tryFromString("Hawkular-Persona");
+    private static final HttpString TENANT_HEADER = HttpString.tryFromString("Hawkular-Tenant");
     private static final String USERNAME_PARAM_NAME = "u";
     private static final String PASSWORD_PARAM_NAME = "p";
 
@@ -68,15 +70,7 @@ public class InfluxAuthHttpHandler implements HttpHandler {
         HeaderMap requestHeaders = httpServerExchange.getRequestHeaders();
 
         String databaseName = matcher.group(1);
-        try {
-            UUID.fromString(databaseName);
-        } catch (IllegalArgumentException e) {
-            httpServerExchange.setStatusCode(400);
-            httpServerExchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
-            httpServerExchange.getResponseSender().send("Database name is not a valid identifier.", UTF_8);
-            return;
-        }
-        requestHeaders.put(PERSONA_HEADER, databaseName);
+        requestHeaders.put(TENANT_HEADER, databaseName);
 
         Map<String, Deque<String>> requestParameters = httpServerExchange.getQueryParameters();
         Deque<String> usernameParamValues = requestParameters.get(USERNAME_PARAM_NAME);

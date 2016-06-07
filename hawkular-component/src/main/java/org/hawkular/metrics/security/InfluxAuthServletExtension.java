@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.security;
 
 import javax.servlet.ServletContext;
@@ -23,7 +24,9 @@ import io.undertow.servlet.api.DeploymentInfo;
 
 /**
  * @author Juraci Paixão Kröhling
+ * @deprecated as of 0.17
  */
+@Deprecated
 public class InfluxAuthServletExtension implements ServletExtension {
 
     @Override

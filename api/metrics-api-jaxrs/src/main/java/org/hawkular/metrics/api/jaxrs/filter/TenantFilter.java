@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.filter;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
@@ -53,6 +54,7 @@ public class TenantFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
+        // TODO: remove /db when Influx endpoint is removed
         if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
             || path.equals(BaseHandler.PATH)) {
             // Tenants, Influx and status handlers do not check the tenant header

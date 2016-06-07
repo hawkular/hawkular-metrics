@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.api.jaxrs.influx;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -104,7 +105,9 @@ import rx.Observer;
  * Some support for InfluxDB clients like Grafana.
  *
  * @author Heiko W. Rupp
+ * @deprecated as of 0.17
  */
+@Deprecated
 @Path("/db/{tenantId}/series")
 @Produces(APPLICATION_JSON)
 @ApplicationScoped
