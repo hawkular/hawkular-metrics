@@ -135,11 +135,6 @@
             <overlay>
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
-              <excludes>
-                <exclude>**/CorsRequestFilter.class</exclude>
-                <exclude>**/CorsResponseFilter.class</exclude>
-                <exclude>**/OriginValidation.class</exclude>
-              </excludes>
             </overlay>
           </overlays>
         </configuration>
