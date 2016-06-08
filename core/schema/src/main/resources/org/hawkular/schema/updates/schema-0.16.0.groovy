@@ -48,10 +48,9 @@ schemaChange {
   author 'jsanda'
   tags '0.16.x'
   cql """
-CREATE TABLE jobs_status (
+CREATE TABLE scheduled_jobs_idx (
     time_slice timestamp,
     job_id uuid,
-    status text,
     PRIMARY KEY (time_slice, job_id)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
@@ -62,7 +61,7 @@ schemaChange {
   author 'jsanda'
   tags '0.16.x'
   cql """
-CREATE TABLE finished_jobs_time_idx (
+CREATE TABLE finished_jobs_idx (
     time_slice timestamp,
     job_id uuid,
     PRIMARY KEY (time_slice, job_id)

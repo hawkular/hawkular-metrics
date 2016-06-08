@@ -19,16 +19,20 @@ package org.hawkular.metrics.scheduler.impl;
 import static java.util.Collections.singletonList;
 
 import org.hawkular.rx.cassandra.driver.RxSession;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 
 import rx.Observable;
+import rx.Scheduler;
 
 /**
  * @author jsanda
  */
 class LockManager {
+
+    private static Logger logger = Logger.getLogger(LockManager.class);
 
     private RxSession session;
 
@@ -65,7 +69,12 @@ class LockManager {
         return session.execute(acquireLock.bind(timeout, value, name)).map(ResultSet::wasApplied);
     }
 
+    public Observable<Boolean> acquireLock(String name, String value, int timeout, Scheduler scheduler) {
+        return session.execute(acquireLock.bind(timeout, value, name), scheduler).map(ResultSet::wasApplied);
+    }
+
     public Observable<Boolean> releaseLock(String name, String value) {
+        logger.debug("Releasing lock {name=" + name + ", value=" + value + "}");
         return session.execute(releaseLock.bind(name, value)).map(ResultSet::wasApplied);
     }
 

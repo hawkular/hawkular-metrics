@@ -39,8 +39,13 @@
     </encoder>
   </appender>
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="stdout"/>
     <appender-ref ref="file"/>
   </root>
+
+  <logger name="org.hawkular" level="debug" additivity="false">
+    <appender-ref ref="file"/>
+    <appender-ref ref="stdout"/>
+  </logger>
 </configuration>

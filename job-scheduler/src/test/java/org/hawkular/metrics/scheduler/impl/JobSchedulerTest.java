@@ -61,8 +61,10 @@ public class JobSchedulerTest {
         session = cluster.connect("system");
         rxSession = new RxSessionImpl(session);
 
+        boolean resetdb = Boolean.valueOf(System.getProperty("resetdb", "true"));
+
         SchemaService schemaService = new SchemaService();
-        schemaService.run(session, keyspace, true);
+        schemaService.run(session, keyspace, resetdb);
 
         session.execute("USE " + keyspace);
 
@@ -74,16 +76,16 @@ public class JobSchedulerTest {
 
         findJob = session.prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-        findScheduledJobs = session.prepare("SELECT job_id FROM jobs_status WHERE time_slice = ?");
-        findFinishedJobs = session.prepare("SELECT job_id FROM finished_jobs_time_idx WHERE time_slice = ?");
+        findScheduledJobs = session.prepare("SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
+        findFinishedJobs = session.prepare("SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
     }
 
     @BeforeTest
     public static void resetSchema() {
         session.execute("TRUNCATE jobs");
-        session.execute("TRUNCATE finished_jobs_time_idx");
+        session.execute("TRUNCATE finished_jobs_idx");
         session.execute("TRUNCATE locks");
-        session.execute("TRUNCATE jobs_status");
+        session.execute("TRUNCATE scheduled_jobs_idx");
     }
 
     protected static DateTime getActiveQueue() {

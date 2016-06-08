@@ -18,6 +18,7 @@ package org.hawkular.metrics.scheduler.api;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -63,7 +64,25 @@ public class JobDetails {
         return trigger;
     }
 
-    @Override public String toString() {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JobDetails that = (JobDetails) o;
+        return Objects.equals(jobId, that.jobId) &&
+                Objects.equals(jobType, that.jobType) &&
+                Objects.equals(jobName, that.jobName) &&
+                Objects.equals(parameters, that.parameters) &&
+                Objects.equals(trigger, that.trigger);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(jobId, jobType, jobName, parameters, trigger);
+    }
+
+    @Override
+    public String toString() {
         return "JobDetails{" +
                 "jobId=" + jobId +
                 ", jobType='" + jobType + '\'' +

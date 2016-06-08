@@ -74,4 +74,8 @@ public class ConfigurationService {
                 .map(resultSet -> null);
     }
 
+    public Observable<Void> save(String configId, String name, String value, Scheduler scheduler) {
+        return session.execute(updateConfiguration.bind(configId, name, value), scheduler).map(resultSet -> null);
+    }
+
 }

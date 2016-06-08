@@ -103,6 +103,9 @@
           <suiteXmlFiles>
             <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
           </suiteXmlFiles>
+          <systemPropertyVariables>
+            <resetdb>true</resetdb>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
     </plugins>
