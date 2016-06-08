@@ -21,15 +21,14 @@ import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.rx.cassandra.driver.RxSession;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 
-import rx.Observable;
+import rx.Completable;
 import rx.functions.Func1;
 
 /**
  * @author jsanda
  */
-public class DeleteMetric implements Func1<JobDetails, Observable<Void>> {
+public class DeleteMetric implements Func1<JobDetails, Completable> {
 
     private RxSession session;
 
@@ -45,21 +44,20 @@ public class DeleteMetric implements Func1<JobDetails, Observable<Void>> {
                 "DELETE FROM metrics_idx WHERE tenant_id = ? AND type = ? AND metric = ?");
     }
 
-    @Override
-    public Observable<Void> call(JobDetails jobDetails) {
-        return Observable.create(subscriber -> {
-            String tenantId = jobDetails.getParameters().get("tenantId");
-            MetricType<?> type = MetricType.fromTextCode(jobDetails.getParameters().get("metricType"));
-            String metricName = jobDetails.getParameters().get("metricName");
+    private Completable deleteData(String tenantId, MetricType<?> type, String metricName) {
+        return session.execute(deleteData.bind(tenantId, type.getCode(), metricName)).toCompletable();
+    }
 
-            Observable<ResultSet> dataDeleted = session.execute(deleteData.bind(tenantId, type.getCode(), metricName));
-            Observable<ResultSet> indexUpdated = session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode(),
-                    metricName));
-            dataDeleted.mergeWith(indexUpdated).subscribe(
-                    resultSet -> {},
-                    subscriber::onError,
-                    subscriber::onCompleted
-            );
-        });
+    private Completable deleteFromMetricsIndex(String tenantId, MetricType<?> type, String metricName) {
+        return session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode(), metricName)).toCompletable();
+    }
+
+    @Override
+    public Completable call(JobDetails jobDetails) {
+        String tenantId = jobDetails.getParameters().get("tenantId");
+        MetricType<?> type = MetricType.fromTextCode(jobDetails.getParameters().get("metricType"));
+        String metricName = jobDetails.getParameters().get("metricName");
+
+        return deleteData(tenantId, type, metricName).mergeWith(deleteFromMetricsIndex(tenantId, type, metricName));
     }
 }

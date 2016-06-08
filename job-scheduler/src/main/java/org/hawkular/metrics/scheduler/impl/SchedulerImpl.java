@@ -59,7 +59,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Action0;
-import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -71,9 +70,7 @@ public class SchedulerImpl implements Scheduler {
 
     private static Logger logger = Logger.getLogger(SchedulerImpl.class);
 
-    private Map<String, Func1<JobDetails, Observable<Void>>> jobCreators;
-
-    private Map<String, Func1<String, Action1<JobDetails>>> jobMap;
+    private Map<String, Func1<JobDetails, Completable>> jobFactories;
 
     private ScheduledExecutorService tickExecutor;
 
@@ -113,14 +110,16 @@ public class SchedulerImpl implements Scheduler {
 
     private boolean running;
 
+    /**
+     * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
+     */
     private Optional<PublishSubject<Date>> finishedTimeSlices;
 
     private Optional<PublishSubject<JobDetails>> jobFinished;
 
     public SchedulerImpl(RxSession session) {
         this.session = session;
-        jobCreators = new HashMap<>();
-        jobMap = new HashMap<>();
+        jobFactories = new HashMap<>();
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
         queueExecutor = Executors.newSingleThreadExecutor(
@@ -161,17 +160,24 @@ public class SchedulerImpl implements Scheduler {
     }
 
     /**
-     * Test hook
+     * Test hook to allow control of when ticks are emitted.
      */
     void setTickScheduler(rx.Scheduler scheduler) {
         tickScheduler = scheduler;
     }
 
+    /**
+     * Test hook to broadcast when the job scheduler has finished all work for a time slice. This includes not only
+     * executing jobs that are scheduled for a particular time slice but also post-job execution clean up.
+     */
     void setTimeSlicesSubject(PublishSubject<Date> timeSlicesSubject) {
         finishedTimeSlices = Optional.of(timeSlicesSubject);
     }
 
-    void setJobFinished(PublishSubject<JobDetails> subject) {
+    /**
+     * Test hook to broadcast when jobs finish executing.
+     */
+    void setJobFinishedSubject(PublishSubject<JobDetails> subject) {
         jobFinished = Optional.of(subject);
     }
 
@@ -180,12 +186,8 @@ public class SchedulerImpl implements Scheduler {
     }
 
     @Override
-    public void registerJobCreator(String jobType, Func1<JobDetails, Observable<Void>> jobCreator) {
-        jobCreators.put(jobType, jobCreator);
-    }
-
-    public void registerJob(String jobType, Func1<String, Action1<JobDetails>> jobCreator) {
-        jobMap.put(jobType, jobCreator);
+    public void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory) {
+        jobFactories.put(jobType, factory);
     }
 
     public Observable<JobDetails> scheduleJob(String type, String name, Map<String, String> parameter,
@@ -247,19 +249,27 @@ public class SchedulerImpl implements Scheduler {
                     .observeOn(Schedulers.computation())
                     .map(details -> {
                         logger.debug("Starting execution for " + details);
-                        Func1<String, Action1<JobDetails>> jobFactory = jobMap.get(details.getJobType());
-                        Action1<JobDetails> job = jobFactory.call(details.getJobType());
+                        Func1<JobDetails, Completable> jobFactory = jobFactories.get(details.getJobType());
+                        Completable job = jobFactory.call(details);
 
-                        return Completable.concat(
-                                Completable.fromAction(() -> {
-                                    logger.debug("Preparing to execute " + details);
-                                    job.call(details);
-                                }),
+                        logger.debug("Preparing to execute " + details);
+                        return Completable.merge(
+                                job,
                                 setJobFinished(timeSlice, details),
                                 rescheduleJob(details),
                                 deactivateJob(activeJobs, jobLocks, details),
                                 Completable.fromAction(() -> jobFinished.ifPresent(subject -> subject.onNext(details)))
                         ).subscribeOn(Schedulers.io());
+
+//                        return Completable.concat(
+//                                Completable.fromAction(() -> {
+//                                    job.call(details);
+//                                }),
+//                                setJobFinished(timeSlice, details),
+//                                rescheduleJob(details),
+//                                deactivateJob(activeJobs, jobLocks, details),
+//                                Completable.fromAction(() -> jobFinished.ifPresent(subject -> subject.onNext(details)))
+//                        ).subscribeOn(Schedulers.io());
                     })
                     .doOnNext(c -> logger.debug("Started job execution"))
                     // We need to use the version of reduce that take an initial value versus the version that only
@@ -389,8 +399,7 @@ public class SchedulerImpl implements Scheduler {
     void reset(rx.Scheduler tickScheduler) {
         logger.debug("Starting reset");
         shutdown();
-        jobCreators = new HashMap<>();
-        jobMap = new HashMap<>();
+        jobFactories = new HashMap<>();
         queueExecutor = Executors.newSingleThreadExecutor(
                 new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         this.tickScheduler = tickScheduler;

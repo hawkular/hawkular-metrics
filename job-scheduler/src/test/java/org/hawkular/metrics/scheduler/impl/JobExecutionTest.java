@@ -57,6 +57,7 @@ import com.datastax.driver.core.ResultSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action1;
@@ -112,7 +113,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         jobScheduler.setTickScheduler(tickScheduler);
         jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
-        jobScheduler.setJobFinished(jobFinished);
+        jobScheduler.setJobFinishedSubject(jobFinished);
     }
 
     @BeforeMethod(alwaysRun = true)
@@ -192,10 +193,10 @@ public class JobExecutionTest extends JobSchedulerTest {
         JobDetails jobDetails = new JobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
         AtomicInteger executionCountRef = new AtomicInteger();
 
-        jobScheduler.registerJob(jobDetails.getJobType(), type -> details -> {
+        jobScheduler.registerJobFactory(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             executionCountRef.incrementAndGet();
-        });
+        }));
 
         scheduleJob(jobDetails);
         setActiveQueue(timeSlice);
@@ -244,12 +245,12 @@ public class JobExecutionTest extends JobSchedulerTest {
             session.execute(updateJobQueue.bind(timeSlice.toDate(), details.getJobId()));
         }
 
-        jobScheduler.registerJob(jobType, type -> details -> {
+        jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             Integer count = executionCounts.get(details.getJobName());
             executionCounts.put(details.getJobName(), ++count);
             logger.debug("Execution Counts = " + executionCounts);
-        });
+        }));
 
         setActiveQueue(timeSlice);
         tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
@@ -282,7 +283,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch job1Running = new CountDownLatch(1);
         CountDownLatch job2Finished = new CountDownLatch(1);
 
-        jobScheduler.registerJob(job1.getJobType(), type -> details -> {
+        jobScheduler.registerJobFactory(job1.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 logger.debug("First time slice finished!");
                 // This is to let the test know that this job has started executing and the clock can be advanced
@@ -296,12 +297,13 @@ public class JobExecutionTest extends JobSchedulerTest {
             } catch (InterruptedException e) {
                 logger.info(details + " was interrupted", e);
             }
-        });
+        }));
 
         JobDetails job2 = new JobDetails(randomUUID(), "Test Type", "Test Job", emptyMap(),
                 new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.plusMinutes(1).getMillis()).build());
 
-        jobScheduler.registerJob(job2.getJobType(), type -> details -> logger.debug("Executing " + details));
+        jobScheduler.registerJobFactory(job2.getJobType(), details -> Completable.fromAction(() ->
+                logger.debug("Executing " + details)));
 
         scheduleJob(job1);
         scheduleJob(job2);
@@ -330,7 +332,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         job1Finished.countDown();
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        assertEquals(getActiveQueue(), timeSlice.plusMinutes(1));
+        assertTrue(getActiveQueue().isAfter(timeSlice), "Expected active-queue to be later than " +
+                timeSlice.toLocalDate());
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getScheduledJobs(timeSlice.plusMinutes(1)), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
@@ -350,7 +353,9 @@ public class JobExecutionTest extends JobSchedulerTest {
         JobDetails jobDetails = new JobDetails(randomUUID(), "Repeat Test", "Repeat Test", emptyMap(), trigger);
         TestJob job = new TestJob();
 
-        jobScheduler.registerJob(jobDetails.getJobType(), type -> job);
+        jobScheduler.registerJobFactory(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
+            job.call(details);
+        }));
 
         scheduleJob(jobDetails);
         setActiveQueue(timeSlice);
@@ -403,11 +408,11 @@ public class JobExecutionTest extends JobSchedulerTest {
             scheduleJob(details);
         }
 
-        jobScheduler.registerJob(jobType, type -> details -> {
+        jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             List<DateTime> executionTimes = executions.get(details.getJobName());
             executionTimes.add(currentMinute());
-        });
+        }));
 
         setActiveQueue(timeSlice);
 
@@ -482,7 +487,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             shortJobExecutions.offer(new TestLatch(1, timeSlice.plusMinutes(i).toDate()));
         }
 
-        jobScheduler.registerJob(longJob.getJobType(), jobType -> details -> {
+        jobScheduler.registerJobFactory(longJob.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 longJobExecutionCount.incrementAndGet();
                 logger.debug("LONG wait...");
@@ -492,9 +497,9 @@ public class JobExecutionTest extends JobSchedulerTest {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        });
+        }));
 
-        jobScheduler.registerJob(shortJob.getJobType(), jobType -> details -> {
+        jobScheduler.registerJobFactory(shortJob.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 shortJobExecutionTimes.add(new Date(details.getTrigger().getTriggerTime()));
                 logger.debug("Executing " + details + " " + shortJobExecutionTimes.size() + " times");
@@ -504,8 +509,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             } finally {
                 logger.debug("[SHORT] finished!");
             }
-        });
-
+        }));
 
         onJobFinished(details -> {
             if (details.getJobType().equals(shortJob.getJobType())) {

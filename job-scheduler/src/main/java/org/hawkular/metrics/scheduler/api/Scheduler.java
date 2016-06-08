@@ -16,7 +16,7 @@
  */
 package org.hawkular.metrics.scheduler.api;
 
-import rx.Observable;
+import rx.Completable;
 import rx.functions.Func1;
 
 /**
@@ -24,6 +24,6 @@ import rx.functions.Func1;
  */
 public interface Scheduler {
 
-    void registerJobCreator(String jobType, Func1<JobDetails, Observable<Void>> jobCreator);
+    void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory);
 
 }
