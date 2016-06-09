@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.jaxrs.filter.tenant.TenantRequired;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiOperation;
 @Path(StatusHandler.PATH)
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@TenantRequired(false)
 public class StatusHandler {
     public static final String PATH = "/status";
 
