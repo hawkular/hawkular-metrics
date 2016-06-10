@@ -65,6 +65,11 @@
       <artifactId>hawkular-metrics-core-service</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-tenant-jaxrs-filter</artifactId>
+      <version>${version.org.hawkular.commons}</version>
+    </dependency>
 
     <!-- Wildfly provided -->
     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->

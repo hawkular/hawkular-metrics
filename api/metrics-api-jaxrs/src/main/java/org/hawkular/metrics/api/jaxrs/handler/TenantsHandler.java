@@ -36,6 +36,7 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.jaxrs.filter.tenant.TenantRequired;
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
@@ -54,6 +55,7 @@ import io.swagger.annotations.ApiResponses;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Tenant")
+@TenantRequired(false)
 public class TenantsHandler {
 
     @Inject

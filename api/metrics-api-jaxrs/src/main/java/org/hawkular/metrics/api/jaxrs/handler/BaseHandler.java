@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.jaxrs.filter.tenant.TenantRequired;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiOperation;
  * @author Matt Wringe
  */
 @Path(BaseHandler.PATH)
+@TenantRequired(false)
 public class BaseHandler {
     public static final String PATH = "/";
 

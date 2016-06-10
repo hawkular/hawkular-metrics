@@ -196,7 +196,8 @@ class CountersITest extends RESTTest {
     ]
 
     assertEquals(2, response.data.size())
-    assertEquals(expectedData, response.data)
+    assertTrue(response.data.contains(expectedData[0]))
+    assertTrue(response.data.contains(expectedData[1]))
   }
 
   @Test

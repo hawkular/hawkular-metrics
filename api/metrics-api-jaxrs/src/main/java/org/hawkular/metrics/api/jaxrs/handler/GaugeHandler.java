@@ -19,9 +19,9 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+import static org.hawkular.metrics.api.jaxrs.util.Headers.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.UNDEFINED;

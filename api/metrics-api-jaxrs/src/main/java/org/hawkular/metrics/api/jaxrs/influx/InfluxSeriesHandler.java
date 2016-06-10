@@ -59,6 +59,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+import org.hawkular.jaxrs.filter.tenant.TenantRequired;
 import org.hawkular.metrics.api.jaxrs.influx.query.InfluxQueryParseTreeWalker;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser;
 import org.hawkular.metrics.api.jaxrs.influx.query.parse.InfluxQueryParser.ListSeriesContext;
@@ -111,6 +112,7 @@ import rx.Observer;
 @Path("/db/{tenantId}/series")
 @Produces(APPLICATION_JSON)
 @ApplicationScoped
+@TenantRequired(false)
 public class InfluxSeriesHandler {
     private static final Logger log = Logger.getLogger(InfluxSeriesHandler.class);
 

@@ -26,6 +26,7 @@ public class Headers {
     public static final String ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age";
     public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
     public static final String ORIGIN = "Origin";
+    public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
     //Default CORS Values
     public static final String DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
