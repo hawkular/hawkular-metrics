@@ -95,6 +95,7 @@
 
   <properties>
     <test.keyspace>hawkulartest</test.keyspace>
+    <cassandra.driver.read-timeout-ms>12000</cassandra.driver.read-timeout-ms> <!-- used to run the tests -->
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
     <version.org.cassalog>0.1.2</version.org.cassalog>

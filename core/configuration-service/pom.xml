@@ -82,4 +82,20 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemProperties>
+            <nodes>${nodes}</nodes>
+            <cassandra.driver.read-timeout-ms>${cassandra.driver.read-timeout-ms}</cassandra.driver.read-timeout-ms>
+          </systemProperties>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>

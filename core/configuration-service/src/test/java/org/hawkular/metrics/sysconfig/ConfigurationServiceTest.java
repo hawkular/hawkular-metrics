@@ -35,6 +35,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
@@ -51,7 +52,14 @@ public class ConfigurationServiceTest {
 
     @BeforeClass
     public void initClass() {
-        Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
+        String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
+        int cassandraDriverReadTimeout =
+                Integer.parseInt(System.getProperty("cassandra.driver.read-timeout-ms", "12000"));
+
+        Cluster cluster = new Cluster.Builder()
+                .addContactPoints(nodeAddresses.split(","))
+                .withSocketOptions(new SocketOptions().setReadTimeoutMillis(cassandraDriverReadTimeout))
+                .build();
         session = cluster.connect();
 
         SchemaService schemaService = new SchemaService();

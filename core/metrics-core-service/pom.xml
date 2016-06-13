@@ -190,6 +190,7 @@
               <systemPropertyVariables>
                 <keyspace>${test.keyspace}</keyspace>
                 <nodes>${nodes}</nodes>
+                <cassandra.driver.read-timeout-ms>${cassandra.driver.read-timeout-ms}</cassandra.driver.read-timeout-ms>
               </systemPropertyVariables>
             </configuration>
             <executions>

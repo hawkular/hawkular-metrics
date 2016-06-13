@@ -38,6 +38,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -63,9 +64,12 @@ public abstract class BaseITest {
     @BeforeSuite
     public static void initSuite() {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
+        int cassandraDriverReadTimeout =
+                Integer.parseInt(System.getProperty("cassandra.driver.read-timeout-ms", "12000"));
         Cluster cluster = new Cluster.Builder()
                 .addContactPoints(nodeAddresses.split(","))
 //                .withProtocolVersion(ProtocolVersion.V4)
+                .withSocketOptions(new SocketOptions().setReadTimeoutMillis(cassandraDriverReadTimeout))
                 .build();
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
