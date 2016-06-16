@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
 import org.joda.time.DateTime
 import org.junit.Test
 
@@ -414,7 +413,7 @@ Actual:   ${response.data}
   }
 
   @Test
-  void fetchMultipleGauges() {
+  void fetchRawDataFromMultipleGauges() {
     String tenantId = nextTenantId()
     DateTime start = DateTime.now().minusHours(2)
 
@@ -453,8 +452,6 @@ Actual:   ${response.data}
         body: [ids: ['G1', 'G2', 'G3']]
     )
     assertEquals(200, response.status)
-    def json = JsonOutput.toJson(response.data)
-    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
 
     assertEquals(3, response.data.size)
 
@@ -484,7 +481,7 @@ Actual:   ${response.data}
   }
 
   @Test
-  void fetchMultipleGaugesWithQueryParams() {
+  void fetchMRawDataFromMultipleGaugesWithQueryParams() {
     String tenantId = nextTenantId()
     DateTime start = DateTime.now().minusHours(4)
 
@@ -539,10 +536,32 @@ Actual:   ${response.data}
     )
 
     assertEquals(200, response.status)
-    def json = JsonOutput.toJson(response.data)
-    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
 
     assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 2.22],
+            [timestamp: start.plusHours(2).millis, value: 5.34]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G2',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 2.63],
+            [timestamp: start.plusHours(2).millis, value: 3.62]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G3',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 3.33],
+            [timestamp: start.plusHours(2).millis, value: 4.44]
+        ]
+    ]))
   }
 
 }

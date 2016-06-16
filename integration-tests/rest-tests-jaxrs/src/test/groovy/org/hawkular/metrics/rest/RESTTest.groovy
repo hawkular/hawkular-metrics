@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.rest
 
+import groovy.json.JsonOutput
+
 import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
@@ -239,5 +241,14 @@ Actual: ${actual}
     assertEquals(empty, actualBucket.empty)
     assertEquals(samples, actualBucket.samples)
     assertTrue("Expected the [median] property to be set", actualBucket.median != null)
+  }
+
+  /**
+   * Useful for debugging
+   */
+  static void printJson(data) {
+    def json = JsonOutput.toJson(data)
+    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
+
   }
 }

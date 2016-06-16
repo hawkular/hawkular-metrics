@@ -343,7 +343,7 @@ public class GaugeHandler {
             JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
             CountDownLatch latch = new CountDownLatch(1);
             logger.debug("Subscribing to data points");
-            dataPoints.subscribe(new NamedDataPointObserver(generator, latch, GAUGE));
+            dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, GAUGE));
 
             try {
                 latch.await();

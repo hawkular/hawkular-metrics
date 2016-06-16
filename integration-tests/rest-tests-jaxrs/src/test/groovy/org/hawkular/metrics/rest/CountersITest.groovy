@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.rest
 
+import groovy.json.JsonOutput
+
 import static java.lang.Double.NaN
 
 import static org.joda.time.DateTime.now
@@ -1697,4 +1699,156 @@ Actual:   ${response.data}
     assertEquals(4, metric.maxTimestamp)
 
   }
+
+  @Test
+  void fetchRawDataFromMultipleCounters() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "counters/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'C1',
+                data: [
+                    [timestamp: start.millis, value: 12],
+                    [timestamp: start.plusMinutes(1).millis, value: 17]
+                ]
+            ],
+            [
+                id: 'C2',
+                data: [
+                    [timestamp: start.millis, value: 21],
+                    [timestamp: start.plusMinutes(1).millis, value: 33]
+                ]
+            ],
+            [
+                id: 'C3',
+                data: [
+                    [timestamp: start.millis, value: 55],
+                    [timestamp: start.plusMinutes(1).millis, value: 58]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['C1', 'C2', 'C3']]
+    )
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'C1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 17],
+            [timestamp: start.millis, value: 12]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'C2',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 33],
+            [timestamp: start.millis, value: 21]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'C3',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 58],
+            [timestamp: start.millis, value: 55]
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchMRawDataFromMultipleCountersWithQueryParams() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "counters/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'C1',
+                data: [
+                    [timestamp: start.millis, value: 12],
+                    [timestamp: start.plusHours(1).millis, value: 17],
+                    [timestamp: start.plusHours(2).millis, value: 19],
+                    [timestamp: start.plusHours(3).millis, value: 26],
+                    [timestamp: start.plusHours(4).millis, value: 37]
+                ]
+            ],
+            [
+                id: 'C2',
+                data: [
+                    [timestamp: start.millis, value: 41],
+                    [timestamp: start.plusHours(1).millis, value: 49],
+                    [timestamp: start.plusHours(2).millis, value: 64],
+                    [timestamp: start.plusHours(3).millis, value: 71],
+                    [timestamp: start.plusHours(4).millis, value: 95]
+                ]
+            ],
+            [
+                id: 'C3',
+                data: [
+                    [timestamp: start.millis, value: 28],
+                    [timestamp: start.plusHours(1).millis, value: 35],
+                    [timestamp: start.plusHours(2).millis, value: 42],
+                    [timestamp: start.plusHours(3).millis, value: 49],
+                    [timestamp: start.plusHours(4).millis, value: 59]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['C1', 'C2', 'C3'],
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'C1',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 26],
+            [timestamp: start.plusHours(2).millis, value: 19]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'C2',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 71],
+            [timestamp: start.plusHours(2).millis, value: 64]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'C3',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 49],
+            [timestamp: start.plusHours(2).millis, value: 42]
+        ]
+    ]))
+  }
+
 }
