@@ -16,17 +16,21 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static java.util.stream.Collectors.toList;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.MetricType.UNDEFINED;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.PatternSyntaxException;
 
 import javax.inject.Inject;
@@ -45,9 +49,12 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
@@ -58,10 +65,14 @@ import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.swagger.annotations.Api;
@@ -70,6 +81,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -83,6 +95,9 @@ public class StringHandler {
 
     @Inject
     private MetricsService metricsService;
+
+    @Inject
+    private ObjectMapper mapper;
 
     @HeaderParam(TENANT_HEADER_NAME)
     private String tenantId;
@@ -261,6 +276,48 @@ public class StringHandler {
                 STRING);
         Observable<Void> observable = metricsService.addDataPoints(STRING, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
+    }
+
+    @POST
+    @Path("/raw/query")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics")
+    public Response findRawData(QueryRequest query) {
+        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+
+        int limit;
+        if (query.getLimit() == null) {
+            limit = 0;
+        } else {
+            limit = query.getLimit();
+        }
+        Order order;
+        if (query.getOrder() == null) {
+            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
+        } else {
+            order = Order.fromText(query.getOrder());
+        }
+
+        List<MetricId<String>> metricIds = query.getIds().stream().map(id -> new MetricId<>(tenantId, STRING, id))
+                .collect(toList());
+        Observable<NamedDataPoint<String>> dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
+                timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+
+        StreamingOutput stream = output -> {
+            JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
+            CountDownLatch latch = new CountDownLatch(1);
+            dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, STRING));
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        };
+
+        return Response.ok(stream).build();
     }
 
     @GET

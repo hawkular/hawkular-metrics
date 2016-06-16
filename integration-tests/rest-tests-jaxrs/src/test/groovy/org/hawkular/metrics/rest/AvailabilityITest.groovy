@@ -16,7 +16,6 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
 import org.hawkular.metrics.model.AvailabilityType
 import org.joda.time.DateTime
 import org.junit.Test
@@ -355,9 +354,6 @@ class AvailabilityITest extends RESTTest {
     )
 
     assertEquals(200, response.status)
-    def json = JsonOutput.toJson(response.data)
-    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
-
     assertEquals(3, response.data.size)
 
     assertTrue(response.data.contains([
