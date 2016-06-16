@@ -16,43 +16,20 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
+import javax.inject.Inject;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.model.AvailabilityType;
-import org.hawkular.metrics.model.MetricType;
-import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeDeserializer;
-import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeSerializer;
-import org.hawkular.metrics.model.fasterxml.jackson.MetricTypeDeserializer;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 
 /**
  * @author Stefan Negrea
  */
 @Provider
 public class JacksonConfig implements ContextResolver<ObjectMapper> {
-    private final ObjectMapper mapper;
 
-    public JacksonConfig() {
-        mapper = new ObjectMapper();
-        mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-        mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-        mapper.setSerializationInclusion(Include.NON_EMPTY);
-        mapper.setSerializationInclusion(Include.NON_NULL);
-        mapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, false);
-        mapper.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
-
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(AvailabilityType.class, new AvailabilityTypeDeserializer());
-        module.addDeserializer(MetricType.class, new MetricTypeDeserializer());
-        module.addSerializer(AvailabilityType.class, new AvailabilityTypeSerializer());
-        mapper.registerModule(module);
-    }
+    @Inject
+    private ObjectMapper mapper;
 
     @Override
     public ObjectMapper getContext(Class<?> type) {

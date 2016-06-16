@@ -16,13 +16,12 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-
+import groovy.json.JsonOutput
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.*
 /**
  * @author Thomas Segismont
  */
@@ -413,4 +412,137 @@ Actual:   ${response.data}
 
     assertNumericBucketsEquals(expectedData, response.data ?: [])
   }
+
+  @Test
+  void fetchMultipleGauges() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'G1',
+                data: [
+                    [timestamp: start.millis, value: 1.23],
+                    [timestamp: start.plusMinutes(1).millis, value: 3.45]
+                ]
+            ],
+            [
+                id: 'G2',
+                data: [
+                    [timestamp: start.millis, value: 1.45],
+                    [timestamp: start.plusMinutes(1).millis, value: 2.36]
+                ]
+            ],
+            [
+                id: 'G3',
+                data: [
+                    [timestamp: start.millis, value: 4.45],
+                    [timestamp: start.plusMinutes(1).millis, value: 5.55]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['G1', 'G2', 'G3']]
+    )
+    assertEquals(200, response.status)
+    def json = JsonOutput.toJson(response.data)
+    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 3.45],
+            [timestamp: start.millis, value: 1.23]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G2',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 2.36],
+            [timestamp: start.millis, value: 1.45]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G3',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 5.55],
+            [timestamp: start.millis, value: 4.45]
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchMultipleGaugesWithQueryParams() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'G1',
+                data: [
+                    [timestamp: start.millis, value: 1.23],
+                    [timestamp: start.plusHours(1).millis, value: 3.45],
+                    [timestamp: start.plusHours(2).millis, value: 5.34],
+                    [timestamp: start.plusHours(3).millis, value: 2.22],
+                    [timestamp: start.plusHours(4).millis, value: 5.22]
+                ]
+            ],
+            [
+                id: 'G2',
+                data: [
+                    [timestamp: start.millis, value: 1.45],
+                    [timestamp: start.plusHours(1).millis, value: 2.36],
+                    [timestamp: start.plusHours(2).millis, value: 3.62],
+                    [timestamp: start.plusHours(3).millis, value: 2.63],
+                    [timestamp: start.plusHours(4).millis, value: 3.99]
+                ]
+            ],
+            [
+                id: 'G3',
+                data: [
+                    [timestamp: start.millis, value: 4.45],
+                    [timestamp: start.plusHours(1).millis, value: 5.55],
+                    [timestamp: start.plusHours(2).millis, value: 4.44],
+                    [timestamp: start.plusHours(3).millis, value: 3.33],
+                    [timestamp: start.plusHours(4).millis, value: 3.77]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['G1', 'G2', 'G3'],
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    def json = JsonOutput.toJson(response.data)
+    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
+
+    assertEquals(3, response.data.size)
+  }
+
 }
