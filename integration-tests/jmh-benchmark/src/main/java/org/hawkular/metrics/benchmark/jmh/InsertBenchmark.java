@@ -31,6 +31,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OperationsPerInvocation;
@@ -84,7 +85,7 @@ public class InsertBenchmark {
         }
     }
 
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class GaugeMetricCreator {
 
         @Param({"100000"}) // 1M caused some GC issues and unstable test results
@@ -93,53 +94,51 @@ public class InsertBenchmark {
         @Param({"1", "10"})
         public int datapointsPerMetric;
 
-        private Observable<Metric<Double>> metricObservable;
+        private List<Metric<Double>> metricList;
 
-        @Setup
+        @Setup(Level.Trial)
         public void setup() {
             size = size*datapointsPerMetric;
             final long timestamp = System.currentTimeMillis();
 
-            metricObservable = Observable.create(s -> {
-                for (int i = 0; i < size; i += datapointsPerMetric) {
-                    List<DataPoint<Double>> points = new ArrayList<>();
-                    for (int j = 0; j < datapointsPerMetric; j++) {
-                        points.add(new DataPoint<>(timestamp + i, (double) j));
-                    }
-                    Metric<Double> metric =
-                            new Metric<>(new MetricId<>("b", GAUGE, "insert.metrics.test." + i), points);
-                    s.onNext(metric);
+            List<Metric<Double>> metrics = new ArrayList<>(size);
+
+            for (int i = 0; i < size; i += datapointsPerMetric) {
+                List<DataPoint<Double>> points = new ArrayList<>();
+                for (int j = 0; j < datapointsPerMetric; j++) {
+                    points.add(new DataPoint<>(timestamp + i, (double) j));
                 }
-                s.onCompleted();
-            });
+                Metric<Double> metric =
+                        new Metric<>(new MetricId<>("b", GAUGE, "insert.metrics.test." + i), points);
+                metrics.add(metric);
+            }
+
+            this.metricList = metrics;
         }
 
         public Observable<Metric<Double>> getMetricObservable() {
-            return metricObservable;
+            return Observable.from(metricList);
         }
     }
 
     // Equivalent to REST-tests for inserting size-amount of metrics in one call
-    @Benchmark
-    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+//    @Benchmark
+//    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
     public void insertBenchmark(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
-        GenericSubscriber<Void> insertSubscriber = new GenericSubscriber<>(Long.MAX_VALUE, bh);
-        bh.consume(insertSubscriber);
-
         bh.consume(service.getMetricsService().addDataPoints(GAUGE, creator.getMetricObservable())
                 .toBlocking().lastOrDefault(null));
     }
 
     // Equivalent of REST-test for inserting for single-metric id one call
     @Benchmark
-//    @Warmup(batchSize = 50000, iterations = 5)
-//    @Measurement(batchSize = 50000, iterations = 5)
-//    @BenchmarkMode(Mode.SingleShotTime)
     @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+//    @Fork(jvmArgsAppend =
+//            {"-XX:+UnlockCommercialFeatures",
+//                    "-XX:+FlightRecorder",
+//                    "-XX:StartFlightRecording=duration=60s,filename=./profiling-data.jfr,name=profile,settings=profile",
+//                    "-XX:FlightRecorderOptions=settings=/usr/lib/jvm/java-8-oracle/jre/lib/jfr/profile.jfc,samplethreads=true"
+//            })
     public void insertBenchmarkSingle(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
-        GenericSubscriber<Void> insertSubscriber = new GenericSubscriber<>(Long.MAX_VALUE, bh);
-        bh.consume(insertSubscriber);
-
         bh.consume(creator.getMetricObservable()
                 .flatMap(m -> service.getMetricsService().addDataPoints(GAUGE, Observable.just(m)))
                 .toBlocking().lastOrDefault(null));
