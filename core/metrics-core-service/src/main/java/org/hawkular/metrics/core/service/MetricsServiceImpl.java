@@ -649,17 +649,15 @@ public class MetricsServiceImpl implements MetricsService {
 
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
-                .flatMap(metric -> {
-                    return inserter.call(metric, getTTL(metric.getMetricId())).doOnNext(i -> {
-                        insertedDataPointEvents.onNext(metric);
-                    });
-                }).doOnNext(meter::mark);
+                .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                        .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                .doOnNext(meter::mark);
 
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
-        return Observable.concat(updates, indexUpdates)
-                .takeLast(1)
-                .map(count -> null);
+
+        return updates.mergeWith(indexUpdates)
+                .map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
