@@ -355,6 +355,49 @@ public class GaugeHandler {
         return Response.ok(stream).build();
     }
 
+    @POST
+    @Path("/rate/query")
+    @ApiOperation(value = "Fetch rate data points for multiple metrics")
+    public Response findRateData(QueryRequest query) {
+        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+        if (!timeRange.isValid()) {
+            return badRequest(new ApiError(timeRange.getProblem()));
+        }
+
+        int limit;
+        if (query.getLimit() == null) {
+            limit = 0;
+        } else {
+            limit = query.getLimit();
+        }
+        Order order;
+        if (query.getOrder() == null) {
+            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
+        } else {
+            order = Order.fromText(query.getOrder());
+        }
+
+        List<MetricId<? extends Number>> metricIds = query.getIds().stream().map(id -> new MetricId<>(tenantId, GAUGE,
+                id)).collect(toList());
+        Observable<NamedDataPoint<Double>> dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
+                timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+
+        StreamingOutput stream = output -> {
+            JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
+            CountDownLatch latch = new CountDownLatch(1);
+            logger.debug("Subscribing to data points");
+            dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, GAUGE));
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        };
+
+        return Response.ok(stream).build();
+    }
+
     @Deprecated
     @POST
     @Path("/data")

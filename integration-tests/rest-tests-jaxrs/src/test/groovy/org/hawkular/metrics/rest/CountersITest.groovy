@@ -16,20 +16,13 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
-
-import static java.lang.Double.NaN
-
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertArrayEquals
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertTrue
-
 import org.hawkular.metrics.core.service.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static java.lang.Double.NaN
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.*
 /**
  * @author John Sanda
  */
@@ -1849,6 +1842,102 @@ Actual:   ${response.data}
             [timestamp: start.plusHours(2).millis, value: 42]
         ]
     ]))
+  }
+
+  @Test
+  void fetchRatesFromMultipleMetrics() {
+    String tenantId = nextTenantId()
+    def dataPoints = [
+        [
+            id: 'C1',
+            data: [
+                [timestamp: 60_000, value: 12],
+                [timestamp: 60_000 * 1.5, value: 34],
+                [timestamp: 60_000 * 2, value: 53],
+                [timestamp: 60_000 * 2.5, value: 72],
+                [timestamp: 60_000 * 3, value: 102]
+            ]
+        ],
+        [
+            id: 'C2',
+            data: [
+                [timestamp: 60_000, value: 14],
+                [timestamp: 60_000 * 1.5, value: 26],
+                [timestamp: 60_000 * 2, value: 51],
+                [timestamp: 60_000 * 2.5, value: 88],
+                [timestamp: 60_000 * 3, value: 109]
+            ]
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: 60_000, value: 43],
+                [timestamp: 60_000 * 1.5, value: 48],
+                [timestamp: 60_000 * 2, value: 73],
+                [timestamp: 60_000 * 2.5, value: 89],
+                [timestamp: 60_000 * 3, value: 99]
+            ]
+        ]
+    ]
+
+    def response = hawkularMetrics.post(
+        path: "counters/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: dataPoints
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/rate/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['C1', 'C2', 'C3'],
+            start: 60_000 * 1.5,
+            end: 60_000 * 3,
+            limit: 2,
+            order: 'asc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size())
+
+    assertListOfGaugesContains(response.data, [
+        id: 'C1',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
+        ]
+    ])
+
+    assertListOfGaugesContains(response.data, [
+        id: 'C2',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
+        ]
+    ])
+
+    assertListOfGaugesContains(response.data, [
+        id: 'C3',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
+        ]
+    ])
+  }
+
+  static void assertListOfGaugesContains(data, expected) {
+    def actual = data.find { it.id == expected.id }
+    printJson(actual)
+    assertNotNull(actual)
+    assertEquals(expected.id, actual.id)
+    assertEquals(expected.data.size(), actual.data.size())
+    expected.data.eachWithIndex { expectedDataPoint, index ->
+      def actualDataPoint = actual.data[index]
+      assertEquals(expectedDataPoint.timestamp as Long, actualDataPoint.timestamp as Long)
+      assertDoubleEquals(expectedDataPoint.value, actualDataPoint.value)
+    }
   }
 
 }

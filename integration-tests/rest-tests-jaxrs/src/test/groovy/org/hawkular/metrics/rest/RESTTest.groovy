@@ -200,6 +200,12 @@ Actual: ${actual}
     return mean.result
   }
 
+  static double rate(Map dataPointX, Map dataPointY) {
+    double valueDiff = (dataPointY.value - dataPointX.value) as Double
+    long timeDiff = (dataPointY.timestamp - dataPointX.timestamp) as Long
+    return 60_000 * valueDiff / timeDiff
+  }
+
   static void assertTaggedBucketEquals(def expected, def actual) {
     assertDoubleEquals(expected.max, actual.max)
     assertDoubleEquals(expected.min, actual.min)

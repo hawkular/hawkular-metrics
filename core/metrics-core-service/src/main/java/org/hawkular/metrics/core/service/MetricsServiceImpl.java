@@ -757,6 +757,12 @@ public class MetricsServiceImpl implements MetricsService {
         return limit <= 0 ? dataPoints : dataPoints.take(limit);
     }
 
+    public Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start,
+            long end, int limit, Order order) {
+        return Observable.from(ids).concatMap(id -> findRateData(id, start, end, limit, order)
+                .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
+    }
+
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
                                                               Buckets buckets, List<Double> percentiles) {

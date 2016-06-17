@@ -292,6 +292,9 @@ public interface MetricsService {
     Observable<DataPoint<Double>> findRateData(MetricId<? extends Number> id, long start, long end, int limit,
                                                Order order);
 
+    Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start, long end,
+            int limit, Order order);
+
     /**
      * Computes stats on a counter or gauge rate.
      *
