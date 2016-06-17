@@ -27,7 +27,6 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
-import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.net.URI;
 import java.util.Collections;
