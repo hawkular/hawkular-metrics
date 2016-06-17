@@ -191,9 +191,22 @@ class CountersITest extends RESTTest {
     ]
 
     assertEquals(2, response.data.size())
-    expectedData.each { d ->
-      assertTrue(response.data.contains(d))
-    }
+    assertTrue(response.data.contains([
+      tenantId: tenantId,
+        id: counter1,
+        type: 'counter',
+        dataRetention: 7
+    ]))
+    assertTrue(response.data.contains([
+        tenantId: tenantId,
+        id: counter2,
+        tags: [
+            tag1: 'one',
+            tag2: 'two'
+        ],
+        type: 'counter',
+        dataRetention: 7
+    ]))
   }
 
   @Test
