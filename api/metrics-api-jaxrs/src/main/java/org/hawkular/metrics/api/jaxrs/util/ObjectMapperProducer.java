@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 /**
  * @author jsanda
  */
+
 @ApplicationScoped
 public class ObjectMapperProducer {
 

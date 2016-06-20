@@ -128,17 +128,19 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
             }
             currentMetric = dataPoint.getName();
         } catch (IOException e) {
-                log.warn("Streaming data to client failed", e);
+            throw new RuntimeException("Streaming data to client failed", e);
         }
     }
 
     @Override
     public void onError(Throwable e) {
         try {
-                log.warn("Fetching data failed", e);
+            log.warn("Fetching data failed", e);
             generator.close();
         } catch (IOException e1) {
                 log.error("Failed to close " + generator.getClass().getName());
+        } finally {
+            latch.countDown();
         }
     }
 
@@ -149,9 +151,11 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
             generator.writeEndObject();
             generator.writeEndArray();
             generator.close();
-                latch.countDown();
+            latch.countDown();
         } catch (IOException e) {
                 log.warn("Error while finishing streaming data", e);
+        } finally {
+            latch.countDown();
         }
     }
 }

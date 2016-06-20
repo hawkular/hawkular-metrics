@@ -90,16 +90,7 @@ import rx.schedulers.Schedulers;
 @Produces(APPLICATION_JSON)
 @Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
         "releases that are not backwards compatible.")
-public class StringHandler {
-
-    @Inject
-    private MetricsService metricsService;
-
-    @Inject
-    private ObjectMapper mapper;
-
-    @HeaderParam(TENANT_HEADER_NAME)
-    private String tenantId;
+public class StringHandler extends MetricsServiceHandler {
 
     @POST
     @Path("/")
@@ -280,43 +271,17 @@ public class StringHandler {
     @POST
     @Path("/raw/query")
     @ApiOperation(value = "Fetch raw data points for multiple metrics")
-    public Response findRawData(QueryRequest query) {
-        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
-        if (!timeRange.isValid()) {
-            return badRequest(new ApiError(timeRange.getProblem()));
-        }
-
-        int limit;
-        if (query.getLimit() == null) {
-            limit = 0;
-        } else {
-            limit = query.getLimit();
-        }
-        Order order;
-        if (query.getOrder() == null) {
-            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
-        } else {
-            order = Order.fromText(query.getOrder());
-        }
-
-        List<MetricId<String>> metricIds = query.getIds().stream().map(id -> new MetricId<>(tenantId, STRING, id))
-                .collect(toList());
-        Observable<NamedDataPoint<String>> dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
-                timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
-
-        StreamingOutput stream = output -> {
-            JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
-            CountDownLatch latch = new CountDownLatch(1);
-            dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, STRING));
-
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        };
-
-        return Response.ok(stream).build();
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
+            @ApiResponse(code = 400, message = "No metric ids are specified",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public Response findRawData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
+            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
+            QueryRequest query) {
+        return findRawDataPointsForMetrics(query, STRING);
     }
 
     @GET
