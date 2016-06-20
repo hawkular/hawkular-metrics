@@ -17,30 +17,23 @@
 
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.stream.Collectors.toList;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.regex.PatternSyntaxException;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -51,17 +44,14 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
-import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Buckets;
@@ -69,7 +59,6 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
-import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
@@ -79,17 +68,12 @@ import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author Stefan Negrea
