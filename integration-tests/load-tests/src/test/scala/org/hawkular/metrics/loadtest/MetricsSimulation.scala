@@ -16,15 +16,12 @@
  */
 package org.hawkular.metrics.loadtest
 
-import io.gatling.core.Predef._
-import io.gatling.http.config.HttpProtocolBuilder
-import io.gatling.http.Predef._
-import io.gatling.jdbc.Predef._
-
 import java.nio.charset.StandardCharsets
 import java.util.Base64
+import java.util.Base64.Encoder
 
-import scala.concurrent.duration._
+import io.gatling.core.Predef._
+import io.gatling.http.Predef._
 
 class MetricsSimulation extends Simulation {
 
@@ -58,25 +55,23 @@ class MetricsSimulation extends Simulation {
     .baseURL(baseURI)
     .contentTypeHeader("application/json;charset=utf-8")
 
+  val encoder: Encoder = Base64.getEncoder
+
   httpProtocol = authType match {
-      case "openshiftHtpasswd" => {
+    case "openshiftHtpasswd" =>
         httpProtocol
-          .authorizationHeader("Basic " + Base64.getEncoder().encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+          .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
           .header("Hawkular-Tenant", tenant)
-      }
-      case "openshiftToken" => {
+    case "openshiftToken" =>
         httpProtocol
           .authorizationHeader("Bearer $token")
           .header("Hawkular-Tenant", tenant)
-      }
-      case "hawkular" => {
+    case "hawkular" =>
         httpProtocol
-          .authorizationHeader("Basic " + Base64.getEncoder().encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
-      }
-      case _ => {
+          .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+    case _ =>
         httpProtocol
           .header("Hawkular-Tenant", tenant)
-      }
   }
 
   val random = new util.Random
@@ -104,7 +99,7 @@ class MetricsSimulation extends Simulation {
 
   val simulation = repeat(loops, "n") {
     exec(http("Report ${n}")
-      .post("/gauges/data")
+      .post("/gauges/raw")
       .body(StringBody(session => genReport(metrics, points)))
     ).pause(interval)
   }
