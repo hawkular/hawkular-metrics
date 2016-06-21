@@ -81,4 +81,12 @@ public interface RestLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 200011, value = "Invalid value [%s] for default TTL. Will use a default of %s days")
     void warnInvalidDefaultTTL(String ttl, String defaultTTL);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200012, value = "Invalid value [%s] for max connections per host. Will use a default of %s")
+    void warnInvalidMaxConnections(String maxConnectionsPerHost, String defaultMaxConnections);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200013, value = "Invalid value [%s] for max requests per connection. Will use a default of %s")
+    void warnInvalidMaxRequests(String maxRequestsPerConnection, String defaultMaxRequests);
 }
