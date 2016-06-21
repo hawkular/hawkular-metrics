@@ -286,7 +286,8 @@ public class AvailabilityHandler extends MetricsServiceHandler {
 
     @POST
     @Path("/raw/query")
-    @ApiOperation(value = "Fetch raw data points for multiple metrics")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics. This endpoint is experimental and may " +
+            "undergo non-backwards compatible changes in future releases.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
             @ApiResponse(code = 400, message = "No metric ids are specified",
