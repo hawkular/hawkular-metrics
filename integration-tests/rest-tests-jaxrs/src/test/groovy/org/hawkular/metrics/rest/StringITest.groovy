@@ -21,6 +21,7 @@ import org.junit.Test
 
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
 /**
  * @author jsanda
  */
@@ -243,4 +244,156 @@ class StringITest extends RESTTest {
     ]
     assertEquals(expectedData, response.data)
   }
+
+  @Test
+  void fetchRawDataFromMultipleStringMetrics() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "strings/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'S1',
+                data: [
+                    [timestamp: start.millis, value: 'down'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'starting']
+                ]
+            ],
+            [
+                id: 'S2',
+                data: [
+                    [timestamp: start.millis, value: 'running'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'stopping']
+                ]
+            ],
+            [
+                id: 'S3',
+                data: [
+                    [timestamp: start.millis, value: 'restart'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'down']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "strings/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['S1', 'S2', 'S3']]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'S1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'starting'],
+            [timestamp: start.millis, value: 'down']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S2',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'stopping'],
+            [timestamp: start.millis, value: 'running']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S3',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'down'],
+            [timestamp: start.millis, value: 'restart']
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchMRawDataFromMultipleStringMetricsWithQueryParams() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "strings/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'S1',
+                data: [
+                    [timestamp: start.millis, value: 'running'],
+                    [timestamp: start.plusHours(1).millis, value: 'running'],
+                    [timestamp: start.plusHours(2).millis, value: 'maintenance'],
+                    [timestamp: start.plusHours(3).millis, value: 'maintenance'],
+                    [timestamp: start.plusHours(4).millis, value: 'down']
+                ]
+            ],
+            [
+                id: 'S2',
+                data: [
+                    [timestamp: start.millis, value: 'stopped'],
+                    [timestamp: start.plusHours(1).millis, value: 'starting'],
+                    [timestamp: start.plusHours(2).millis, value: 'running'],
+                    [timestamp: start.plusHours(3).millis, value: 'running'],
+                    [timestamp: start.plusHours(4).millis, value: 'unknown']
+                ]
+            ],
+            [
+                id: 'S3',
+                data: [
+                    [timestamp: start.millis, value: 'maintenance'],
+                    [timestamp: start.plusHours(1).millis, value: 'running'],
+                    [timestamp: start.plusHours(2).millis, value: 'maintenance'],
+                    [timestamp: start.plusHours(3).millis, value: 'reboot'],
+                    [timestamp: start.plusHours(4).millis, value: 'starting']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "strings/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['S1', 'S2', 'S3'],
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'S1',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'maintenance'],
+            [timestamp: start.plusHours(2).millis, value: 'maintenance']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S2',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'running'],
+            [timestamp: start.plusHours(2).millis, value: 'running']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S3',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'reboot'],
+            [timestamp: start.plusHours(2).millis, value: 'maintenance']
+        ]
+    ]))
+  }
+
 }

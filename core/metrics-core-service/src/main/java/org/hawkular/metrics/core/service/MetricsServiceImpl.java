@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
+import static org.hawkular.metrics.core.service.Order.ASC;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
@@ -58,6 +59,7 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.TaggedBucketPoint;
@@ -690,6 +692,14 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(mapper));
     }
 
+    @Override
+    public <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> metricIds, long start,
+            long end, int limit, Order order) {
+        return Observable.from(metricIds)
+                .concatMap(id -> findDataPoints(id, start, end, limit, order)
+                        .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
+    }
+
     private <T> Timer getDataPointFindTimer(MetricType<T> metricType) {
         Timer timer = dataPointReadTimers.get(metricType);
         if (timer == null) {
@@ -729,7 +739,7 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<DataPoint<Double>> dataPoints = this.findDataPoints(id, start, end, 0, order)
                 .buffer(2, 1) // emit previous/next pairs
                 // adapt pair to the order of traversal
-                .map(l -> order == Order.ASC ? l : Lists.reverse(l))
+                .map(l -> order == ASC ? l : Lists.reverse(l))
                 // Drop the last buffer
                 .filter(l -> l.size() == 2)
                 // Filter out counter resets
@@ -747,11 +757,17 @@ public class MetricsServiceImpl implements MetricsService {
         return limit <= 0 ? dataPoints : dataPoints.take(limit);
     }
 
+    public Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start,
+            long end, int limit, Order order) {
+        return Observable.from(ids).concatMap(id -> findRateData(id, start, end, limit, order)
+                .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
+    }
+
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
                                                               Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findRateData(id, start, end, 0, Order.ASC)
+        return findRateData(id, start, end, 0, ASC)
                 .compose(new NumericBucketPointTransformer(buckets, percentiles));
     }
 
@@ -796,7 +812,7 @@ public class MetricsServiceImpl implements MetricsService {
             } else {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 return findMetricsWithFilters(tenantId, mtype, tagFilters)
-                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC))
+                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
@@ -812,7 +828,7 @@ public class MetricsServiceImpl implements MetricsService {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 individualStats = findMetricsWithFilters(tenantId, mtype, tagFilters)
                         .map(metric -> {
-                            return findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
+                            return findRateData(metric.getMetricId(), start, end, 0, ASC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
@@ -847,7 +863,7 @@ public class MetricsServiceImpl implements MetricsService {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 return Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
-                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, Order.ASC))
+                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
@@ -865,7 +881,7 @@ public class MetricsServiceImpl implements MetricsService {
                 individualStats = Observable.from(metrics)
                         .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
                         .map(metric -> {
-                            return findRateData(metric.getMetricId(), start, end, 0, Order.ASC)
+                            return findRateData(metric.getMetricId(), start, end, 0, ASC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
@@ -902,7 +918,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId,
             long start, long end, Buckets buckets) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return this.findDataPoints(metricId, start, end, 0, Order.ASC)
+        return this.findDataPoints(metricId, start, end, 0, ASC)
                 .groupBy(dataPoint -> buckets.getIndex(dataPoint.getTimestamp()))
                 .flatMap(group -> group.collect(() -> new AvailabilityDataPointCollector(buckets, group.getKey()),
                         AvailabilityDataPointCollector::increment))
@@ -937,14 +953,14 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end,
             Buckets buckets, List<Double> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findDataPoints(id, start, end, 0, Order.ASC)
+        return findDataPoints(id, start, end, 0, ASC)
                 .compose(new NumericBucketPointTransformer(buckets, percentiles));
     }
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
             Map<String, String> tags, long start, long end, List<Double> percentiles) {
-        return findDataPoints(metricId, start, end, 0, Order.ASC)
+        return findDataPoints(metricId, start, end, 0, ASC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
 
@@ -952,7 +968,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start,
             long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return dataAccess.findGaugeData(id, start, end, 0, Order.ASC)
+        return dataAccess.findGaugeData(id, start, end, 0, ASC)
                 .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {
                     List<long[]> periods = new ArrayList<>(data.size());

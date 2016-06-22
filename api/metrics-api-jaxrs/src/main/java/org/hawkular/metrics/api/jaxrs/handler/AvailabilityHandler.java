@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
@@ -30,12 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -48,12 +45,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
-import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -85,13 +82,7 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Availability")
-public class AvailabilityHandler {
-
-    @Inject
-    private MetricsService metricsService;
-
-    @HeaderParam(TENANT_HEADER_NAME)
-    private String tenantId;
+public class AvailabilityHandler extends MetricsServiceHandler {
 
     @POST
     @Path("/")
@@ -291,6 +282,23 @@ public class AvailabilityHandler {
                 AVAILABILITY);
         Observable<Void> observable = metricsService.addDataPoints(AVAILABILITY, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
+    }
+
+    @POST
+    @Path("/raw/query")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics. This endpoint is experimental and may " +
+            "undergo non-backwards compatible changes in future releases.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
+            @ApiResponse(code = 400, message = "No metric ids are specified",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public Response findRawData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
+            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
+            QueryRequest query) {
+        return findRawDataPointsForMetrics(query, AVAILABILITY);
     }
 
     @Deprecated

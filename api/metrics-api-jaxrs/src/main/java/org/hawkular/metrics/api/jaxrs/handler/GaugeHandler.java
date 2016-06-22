@@ -19,7 +19,6 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
@@ -33,12 +32,10 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -51,12 +48,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
-import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Buckets;
@@ -71,6 +68,7 @@ import org.hawkular.metrics.model.param.Percentiles;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.logging.Logger;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -87,13 +85,9 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Gauge")
-public class GaugeHandler {
+public class GaugeHandler extends MetricsServiceHandler {
 
-    @Inject
-    private MetricsService metricsService;
-
-    @HeaderParam(TENANT_HEADER_NAME)
-    private String tenantId;
+    private Logger logger = Logger.getLogger(GaugeHandler.class);
 
     @POST
     @Path("/")
@@ -290,6 +284,42 @@ public class GaugeHandler {
         Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
+    }
+
+    @POST
+    @Path("/raw/query")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics. This endpoint is experimental and may " +
+            "undergo non-backwards compatible changes in future releases.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
+            @ApiResponse(code = 400, message = "No metric ids are specified",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public Response findRawData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
+            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
+            QueryRequest query) {
+        logger.debug("Fetching data points for " + query);
+
+        return findRawDataPointsForMetrics(query, GAUGE);
+    }
+
+    @POST
+    @Path("/rate/query")
+    @ApiOperation(value = "Fetch rate data points for multiple metrics. This endpoint is experimental and may " +
+            "undergo non-backwards compatible changes in future releases.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric rate data points."),
+            @ApiResponse(code = 400, message = "No metric ids are specified",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public Response findRateData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
+            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
+            QueryRequest query) {
+        return findRateDataPointsForMetrics(query, GAUGE);
     }
 
     @Deprecated

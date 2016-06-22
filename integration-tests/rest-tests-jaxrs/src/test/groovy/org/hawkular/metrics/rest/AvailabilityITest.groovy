@@ -16,14 +16,12 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-
 import org.hawkular.metrics.model.AvailabilityType
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.*
 /**
  * @author Thomas Segismont
  */
@@ -231,4 +229,156 @@ class AvailabilityITest extends RESTTest {
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
   }
+
+  @Test
+  void fetchRawDataFromMultipleAvailabilityMetrics() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "availability/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'A1',
+                data: [
+                    [timestamp: start.millis, value: 'up'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'down']
+                ]
+            ],
+            [
+                id: 'A2',
+                data: [
+                    [timestamp: start.millis, value: 'up'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'up']
+                ]
+            ],
+            [
+                id: 'A3',
+                data: [
+                    [timestamp: start.millis, value: 'down'],
+                    [timestamp: start.plusMinutes(1).millis, value: 'down']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "availability/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['A1', 'A2', 'A3']]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'A1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'down'],
+            [timestamp: start.millis, value: 'up']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A2',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'up'],
+            [timestamp: start.millis, value: 'up']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A3',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 'down'],
+            [timestamp: start.millis, value: 'down']
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchMRawDataFromMultipleAvailabilityMetricsWithQueryParams() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "availability/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'A1',
+                data: [
+                    [timestamp: start.millis, value: 'up'],
+                    [timestamp: start.plusHours(1).millis, value: 'up'],
+                    [timestamp: start.plusHours(2).millis, value: 'down'],
+                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                    [timestamp: start.plusHours(4).millis, value: 'up']
+                ]
+            ],
+            [
+                id: 'A2',
+                data: [
+                    [timestamp: start.millis, value: 'up'],
+                    [timestamp: start.plusHours(1).millis, value: 'down'],
+                    [timestamp: start.plusHours(2).millis, value: 'up'],
+                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                    [timestamp: start.plusHours(4).millis, value: 'down']
+                ]
+            ],
+            [
+                id: 'A3',
+                data: [
+                    [timestamp: start.millis, value: 'down'],
+                    [timestamp: start.plusHours(1).millis, value: 'up'],
+                    [timestamp: start.plusHours(2).millis, value: 'up'],
+                    [timestamp: start.plusHours(3).millis, value: 'up'],
+                    [timestamp: start.plusHours(4).millis, value: 'down']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "availability/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['A1', 'A2', 'A3'],
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'A1',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'down'],
+            [timestamp: start.plusHours(2).millis, value: 'down']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A2',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'down'],
+            [timestamp: start.plusHours(2).millis, value: 'up']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A3',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 'up'],
+            [timestamp: start.plusHours(2).millis, value: 'up']
+        ]
+    ]))
+  }
+
 }

@@ -16,13 +16,11 @@
  */
 package org.hawkular.metrics.rest
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.*
 /**
  * @author Thomas Segismont
  */
@@ -413,4 +411,253 @@ Actual:   ${response.data}
 
     assertNumericBucketsEquals(expectedData, response.data ?: [])
   }
+
+  @Test
+  void fetchRawDataFromMultipleGauges() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'G1',
+                data: [
+                    [timestamp: start.millis, value: 1.23],
+                    [timestamp: start.plusMinutes(1).millis, value: 3.45]
+                ]
+            ],
+            [
+                id: 'G2',
+                data: [
+                    [timestamp: start.millis, value: 1.45],
+                    [timestamp: start.plusMinutes(1).millis, value: 2.36]
+                ]
+            ],
+            [
+                id: 'G3',
+                data: [
+                    [timestamp: start.millis, value: 4.45],
+                    [timestamp: start.plusMinutes(1).millis, value: 5.55]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['G1', 'G2', 'G3']]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 3.45],
+            [timestamp: start.millis, value: 1.23]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G2',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 2.36],
+            [timestamp: start.millis, value: 1.45]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G3',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 5.55],
+            [timestamp: start.millis, value: 4.45]
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchMRawDataFromMultipleGaugesWithQueryParams() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'G1',
+                data: [
+                    [timestamp: start.millis, value: 1.23],
+                    [timestamp: start.plusHours(1).millis, value: 3.45],
+                    [timestamp: start.plusHours(2).millis, value: 5.34],
+                    [timestamp: start.plusHours(3).millis, value: 2.22],
+                    [timestamp: start.plusHours(4).millis, value: 5.22]
+                ]
+            ],
+            [
+                id: 'G2',
+                data: [
+                    [timestamp: start.millis, value: 1.45],
+                    [timestamp: start.plusHours(1).millis, value: 2.36],
+                    [timestamp: start.plusHours(2).millis, value: 3.62],
+                    [timestamp: start.plusHours(3).millis, value: 2.63],
+                    [timestamp: start.plusHours(4).millis, value: 3.99]
+                ]
+            ],
+            [
+                id: 'G3',
+                data: [
+                    [timestamp: start.millis, value: 4.45],
+                    [timestamp: start.plusHours(1).millis, value: 5.55],
+                    [timestamp: start.plusHours(2).millis, value: 4.44],
+                    [timestamp: start.plusHours(3).millis, value: 3.33],
+                    [timestamp: start.plusHours(4).millis, value: 3.77]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['G1', 'G2', 'G3'],
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 2.22],
+            [timestamp: start.plusHours(2).millis, value: 5.34]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G2',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 2.63],
+            [timestamp: start.plusHours(2).millis, value: 3.62]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G3',
+        data: [
+            [timestamp: start.plusHours(3).millis, value: 3.33],
+            [timestamp: start.plusHours(2).millis, value: 4.44]
+        ]
+    ]))
+  }
+
+  @Test
+  void fetchRatesFromMultipleMetrics() {
+    String tenantId = nextTenantId()
+    def dataPoints = [
+        [
+            id: 'G1',
+            data: [
+                [timestamp: 60_000, value: 1.23],
+                [timestamp: 60_000 * 1.5, value: 3.45],
+                [timestamp: 60_000 * 2, value: 5.34],
+                [timestamp: 60_000 * 2.5, value: 2.22],
+                [timestamp: 60_000 * 3, value: 5.22]
+            ]
+        ],
+        [
+            id: 'G2',
+            data: [
+                [timestamp: 60_000, value: 1.45],
+                [timestamp: 60_000 * 1.5, value: 2.36],
+                [timestamp: 60_000 * 2, value: 3.62],
+                [timestamp: 60_000 * 2.5, value: 2.63],
+                [timestamp: 60_000 * 3, value: 3.99]
+            ]
+        ],
+        [
+            id: 'G3',
+            data: [
+                [timestamp: 60_000, value: 4.45],
+                [timestamp: 60_000 * 1.5, value: 5.55],
+                [timestamp: 60_000 * 2, value: 4.44],
+                [timestamp: 60_000 * 2.5, value: 3.33],
+                [timestamp: 60_000 * 3, value: 3.77]
+            ]
+        ]
+    ]
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: dataPoints
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/rate/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['G1', 'G2', 'G3'],
+            start: 60_000 * 1.5,
+            end: 60_000 * 3,
+            limit: 2,
+            order: 'asc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size())
+
+    assertListOfGaugesContains(response.data, [
+        id: 'G1',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
+        ]
+    ])
+
+    assertListOfGaugesContains(response.data, [
+        id: 'G2',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
+        ]
+    ])
+
+    assertListOfGaugesContains(response.data, [
+        id: 'G3',
+        data: [
+            [timestamp: 60_000 * 2, value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
+            [timestamp: 60_000 * 2.5, value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
+        ]
+    ])
+  }
+
+  static void assertListOfGaugesContains(data, expected) {
+    def actual = data.find { it.id == expected.id }
+    printJson(actual)
+    assertNotNull(actual)
+    assertEquals(expected.id, actual.id)
+    assertEquals(expected.data.size(), actual.data.size())
+    expected.data.eachWithIndex { expectedDataPoint, index ->
+      def actualDataPoint = actual.data[index]
+      assertEquals(expectedDataPoint.timestamp as Long, actualDataPoint.timestamp as Long)
+      assertDoubleEquals(expectedDataPoint.value, actualDataPoint.value)
+    }
+  }
+
 }

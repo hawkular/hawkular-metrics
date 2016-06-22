@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.rest
 
+import groovy.json.JsonOutput
+
 import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
@@ -198,6 +200,12 @@ Actual: ${actual}
     return mean.result
   }
 
+  static double rate(Map dataPointX, Map dataPointY) {
+    double valueDiff = (dataPointY.value - dataPointX.value) as Double
+    long timeDiff = (dataPointY.timestamp - dataPointX.timestamp) as Long
+    return 60_000 * valueDiff / timeDiff
+  }
+
   static void assertTaggedBucketEquals(def expected, def actual) {
     assertDoubleEquals(expected.max, actual.max)
     assertDoubleEquals(expected.min, actual.min)
@@ -239,5 +247,14 @@ Actual: ${actual}
     assertEquals(empty, actualBucket.empty)
     assertEquals(samples, actualBucket.samples)
     assertTrue("Expected the [median] property to be set", actualBucket.median != null)
+  }
+
+  /**
+   * Useful for debugging
+   */
+  static void printJson(data) {
+    def json = JsonOutput.toJson(data)
+    println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
+
   }
 }
