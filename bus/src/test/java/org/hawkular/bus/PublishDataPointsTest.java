@@ -19,6 +19,7 @@ package org.hawkular.bus;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.model.AvailabilityType.ADMIN;
 import static org.hawkular.metrics.model.AvailabilityType.DOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
@@ -148,7 +149,8 @@ public class PublishDataPointsTest {
         Metric<AvailabilityType> availability = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricId), asList(
                 new DataPoint<>(System.currentTimeMillis(), UP),
                 new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
-                new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN)
+                new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
+                new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)
         ));
 
         Observable<Metric<?>> observable = Observable.just(availability);

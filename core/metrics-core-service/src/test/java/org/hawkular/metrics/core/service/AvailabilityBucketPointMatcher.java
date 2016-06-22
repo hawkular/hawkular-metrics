@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,11 +37,11 @@ public class AvailabilityBucketPointMatcher extends TypeSafeMatcher<Availability
     @Override
     protected boolean matchesSafely(AvailabilityBucketPoint item) {
         return item.getStart() == expected.getStart()
-               && item.getEnd() == expected.getEnd()
-               && item.getDowntimeCount() == expected.getDowntimeCount()
-               && item.getDowntimeDuration() == expected.getDowntimeDuration()
-               && item.getLastDowntime() == expected.getLastDowntime()
-               && DoubleMath.fuzzyEquals(item.getUptimeRatio(), expected.getUptimeRatio(), 0.001);
+                && item.getEnd() == expected.getEnd()
+                && item.getNotUpCount() == expected.getNotUpCount()
+                && item.getDurationMap().equals(expected.getDurationMap())
+                && item.getLastNotUptime() == expected.getLastNotUptime()
+                && DoubleMath.fuzzyEquals(item.getUptimeRatio(), expected.getUptimeRatio(), 0.001);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class AvailabilityBucketPointMatcher extends TypeSafeMatcher<Availability
     @Factory
     public static Matcher<AvailabilityBucketPoint> matchesAvailabilityBucketPoint(
             AvailabilityBucketPoint expected
-    ) {
+            ) {
         return new AvailabilityBucketPointMatcher(expected);
     }
 }

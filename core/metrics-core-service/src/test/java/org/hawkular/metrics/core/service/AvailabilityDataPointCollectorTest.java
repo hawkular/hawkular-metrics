@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,9 @@
 package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.AvailabilityBucketPointMatcher.matchesAvailabilityBucketPoint;
+import static org.hawkular.metrics.model.AvailabilityType.ADMIN;
 import static org.hawkular.metrics.model.AvailabilityType.DOWN;
+import static org.hawkular.metrics.model.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -47,6 +49,7 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a1);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
+                .setUpDuration(10)
                 .setUptimeRatio(1.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -59,9 +62,9 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a1);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
-                .setDowntimeCount(1)
-                .setDowntimeDuration(10)
-                .setLastDowntime(20)
+                .setNotUptimeCount(1)
+                .setDownDuration(10)
+                .setLastNotUptime(20)
                 .setUptimeRatio(0.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -76,9 +79,10 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
-                .setDowntimeCount(1)
-                .setDowntimeDuration(8)
-                .setLastDowntime(18)
+                .setNotUptimeCount(1)
+                .setUpDuration(2)
+                .setDownDuration(8)
+                .setLastNotUptime(18)
                 .setUptimeRatio(0.2)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -93,9 +97,10 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
-                .setDowntimeCount(1)
-                .setDowntimeDuration(3)
-                .setLastDowntime(20)
+                .setNotUptimeCount(1)
+                .setUpDuration(7)
+                .setDownDuration(3)
+                .setLastNotUptime(20)
                 .setUptimeRatio(0.7)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -110,9 +115,9 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
-                .setDowntimeCount(1)
-                .setDowntimeDuration(10)
-                .setLastDowntime(20)
+                .setNotUptimeCount(1)
+                .setDownDuration(10)
+                .setLastNotUptime(20)
                 .setUptimeRatio(0.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
@@ -127,12 +132,69 @@ public class AvailabilityDataPointCollectorTest {
         collector.increment(a2);
         AvailabilityBucketPoint actual = collector.toBucketPoint();
         AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
-                .setDowntimeCount(0)
-                .setDowntimeDuration(0)
-                .setLastDowntime(0)
+                .setUpDuration(10)
+                .setNotUptimeCount(0)
+                .setLastNotUptime(0)
                 .setUptimeRatio(1.0)
                 .build();
         assertFalse("Expected non empty instance", actual.isEmpty());
         assertThat(actual, matchesAvailabilityBucketPoint(expected));
     }
+
+    @Test
+    public void testWithAll() throws Exception {
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13L, UP);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(14L, DOWN);
+        DataPoint<AvailabilityType> a3 = new DataPoint<>(15L, UNKNOWN);
+        DataPoint<AvailabilityType> a4 = new DataPoint<>(16L, UP);
+        DataPoint<AvailabilityType> a5 = new DataPoint<>(17L, ADMIN);
+        DataPoint<AvailabilityType> a6 = new DataPoint<>(18L, ADMIN);
+        collector.increment(a1);
+        collector.increment(a2);
+        collector.increment(a3);
+        collector.increment(a4);
+        collector.increment(a5);
+        collector.increment(a6);
+        AvailabilityBucketPoint actual = collector.toBucketPoint();
+        AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
+                .setNotUptimeCount(2)
+                .setAdminDuration(3)
+                .setDownDuration(1)
+                .setUnknownDuration(1)
+                .setUpDuration(5)
+                .setLastNotUptime(20)
+                .setUptimeRatio(0.5)
+                .build();
+        assertFalse("Expected non empty instance", actual.isEmpty());
+        assertThat(actual, matchesAvailabilityBucketPoint(expected));
+    }
+
+    @Test
+    public void testWithAll2() throws Exception {
+        DataPoint<AvailabilityType> a1 = new DataPoint<>(13L, DOWN);
+        DataPoint<AvailabilityType> a2 = new DataPoint<>(14L, DOWN);
+        DataPoint<AvailabilityType> a3 = new DataPoint<>(15L, UNKNOWN);
+        DataPoint<AvailabilityType> a4 = new DataPoint<>(16L, UP);
+        DataPoint<AvailabilityType> a5 = new DataPoint<>(17L, ADMIN);
+        DataPoint<AvailabilityType> a6 = new DataPoint<>(18L, UP);
+        collector.increment(a1);
+        collector.increment(a2);
+        collector.increment(a3);
+        collector.increment(a4);
+        collector.increment(a5);
+        collector.increment(a6);
+        AvailabilityBucketPoint actual = collector.toBucketPoint();
+        AvailabilityBucketPoint expected = new AvailabilityBucketPoint.Builder(10, 20)
+                .setNotUptimeCount(2)
+                .setAdminDuration(1)
+                .setDownDuration(5)
+                .setUnknownDuration(1)
+                .setUpDuration(3)
+                .setLastNotUptime(18)
+                .setUptimeRatio(0.3)
+                .build();
+        assertFalse("Expected non empty instance", actual.isEmpty());
+        assertThat(actual, matchesAvailabilityBucketPoint(expected));
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,10 @@
  */
 package org.hawkular.metrics.core.service;
 
-import static org.hawkular.metrics.model.AvailabilityType.DOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -35,42 +37,48 @@ final class AvailabilityDataPointCollector {
     private final long bucketStart;
 
     private DataPoint<AvailabilityType> previous;
-    private long downtimeDuration;
-    private long lastDowntime;
-    private long downtimeCount;
+    private Map<AvailabilityType, Long> durationMap;
+    private long lastNotUptime;
+    private long notUpCount;
 
     AvailabilityDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
-        bucketStart = buckets.getBucketStart(bucketIndex);
+        this.bucketStart = buckets.getBucketStart(bucketIndex);
+
+        this.durationMap = new HashMap<>();
     }
 
     void increment(DataPoint<AvailabilityType> dataPoint) {
         long timestamp = dataPoint.getTimestamp();
-        AvailabilityType value = dataPoint.getValue();
+        AvailabilityType availType = dataPoint.getValue();
 
         if (previous != null && timestamp <= previous.getTimestamp()) {
             throw new IllegalStateException("Expected stream sorted in time ascending order");
         }
 
         if (previous == null) {
-            if (value == DOWN) {
-                downtimeDuration += timestamp - bucketStart;
-                lastDowntime = timestamp;
-                downtimeCount++;
+            Long availTypeDuration = durationMap.getOrDefault(availType, 0L);
+            availTypeDuration += (timestamp - bucketStart);
+            durationMap.put(availType, availTypeDuration);
+            if (availType != UP) {
+                lastNotUptime = timestamp;
+                ++notUpCount;
             }
-        } else {
-            if (value == DOWN) {
-                lastDowntime = timestamp;
-                if (previous.getValue() == DOWN) {
-                    downtimeDuration += timestamp - previous.getTimestamp();
-                } else {
-                    downtimeCount++;
+        }
+        else {
+            Long previousAvailTypeDuration = durationMap.getOrDefault(previous.getValue(), 0L);
+            previousAvailTypeDuration += (timestamp - previous.getTimestamp());
+            durationMap.put(previous.getValue(), previousAvailTypeDuration);
+
+            if (availType == UP) {
+                if (previous.getValue() != UP) {
+                    lastNotUptime = timestamp;
                 }
-            } else if (value == UP) {
-                if (previous.getValue() == DOWN) {
-                    downtimeDuration += timestamp - previous.getTimestamp();
-                    lastDowntime = timestamp;
+            } else {
+                if (previous.getValue() == UP) {
+                    ++notUpCount;
                 }
+                lastNotUptime = timestamp;
             }
         }
 
@@ -80,16 +88,19 @@ final class AvailabilityDataPointCollector {
     AvailabilityBucketPoint toBucketPoint() {
         long to = bucketStart + buckets.getStep();
 
-        if (previous.getValue() == DOWN) {
-            downtimeDuration += to - previous.getTimestamp();
-            lastDowntime = to;
+        Long availTypeDuration = durationMap.getOrDefault(previous.getValue(), 0L);
+        availTypeDuration += (to - previous.getTimestamp());
+        durationMap.put(previous.getValue(), availTypeDuration);
+
+        if (previous.getValue() != UP) {
+            lastNotUptime = to;
         }
 
         return new AvailabilityBucketPoint.Builder(bucketStart, to)
-                .setDowntimeDuration(downtimeDuration)
-                .setLastDowntime(lastDowntime)
-                .setUptimeRatio(1.0 - (double) downtimeDuration / buckets.getStep())
-                .setDowntimeCount(downtimeCount)
+                .setDurationMap(durationMap)
+                .setLastNotUptime(lastNotUptime)
+                .setUptimeRatio(((double) durationMap.getOrDefault(AvailabilityType.UP, 0L) / buckets.getStep()))
+                .setNotUptimeCount(notUpCount)
                 .build();
     }
 }
