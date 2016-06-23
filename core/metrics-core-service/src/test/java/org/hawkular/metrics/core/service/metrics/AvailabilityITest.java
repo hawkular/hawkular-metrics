@@ -23,6 +23,7 @@ import static java.util.Collections.singletonList;
 
 import static org.hawkular.metrics.core.service.DataAccessImpl.DPART;
 import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
+import static org.hawkular.metrics.model.AvailabilityType.ADMIN;
 import static org.hawkular.metrics.model.AvailabilityType.DOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UNKNOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
@@ -138,7 +139,8 @@ public class AvailabilityITest extends BaseMetricsITest {
                 new DataPoint<>(start.plusMinutes(7).getMillis(), UNKNOWN),
                 new DataPoint<>(start.plusMinutes(8).getMillis(), UNKNOWN),
                 new DataPoint<>(start.plusMinutes(9).getMillis(), DOWN),
-                new DataPoint<>(start.plusMinutes(10).getMillis(), UP)));
+                new DataPoint<>(start.plusMinutes(10).getMillis(), ADMIN),
+                new DataPoint<>(start.plusMinutes(11).getMillis(), UP)));
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).toBlocking().lastOrDefault(null);
 
@@ -153,7 +155,8 @@ public class AvailabilityITest extends BaseMetricsITest {
                 metric.getDataPoints().get(5),
                 metric.getDataPoints().get(7),
                 metric.getDataPoints().get(9),
-                metric.getDataPoints().get(10));
+                metric.getDataPoints().get(10),
+                metric.getDataPoints().get(11));
 
         assertEquals(actual, expected, "The availability data does not match the expected values");
     }

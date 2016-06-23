@@ -18,6 +18,7 @@ package org.hawkular.metrics.model;
 
 import static java.lang.Double.NaN;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,45 +26,146 @@ import java.util.Map;
  * {@link BucketPoint} for availability metrics.
  *
  * @author Thomas Segismont
+ * @author Jay Shaughnessy
  */
 public final class AvailabilityBucketPoint extends BucketPoint {
-    private final Long downtimeDuration;
-    private final Long lastDowntime;
+    private final Map<AvailabilityType, Long> durationMap;
+    private final Long lastNotUptime;
     private final Double uptimeRatio;
+    private final Long notUpCount;
+
+    ////
+    // Deprecated fields/methods kept for backward compatibility with 0.16.0.Final on June 22, 2016
+    // Note, deprecated fields are maontained for exported JSON compatibility
+
+    @Deprecated
+    private final Long downtimeDuration;
+    @Deprecated
+    private final Long lastDowntime;
+    @Deprecated
     private final Long downtimeCount;
 
+    /**
+     * @deprecated Use {@link #AvailabilityBucketPoint(long, long, Map, long, double, long)}
+     */
+    @Deprecated
     protected AvailabilityBucketPoint(long start, long end, long downtimeDuration, long lastDowntime, double
             uptimeRatio, long downtimeCount) {
         super(start, end);
+        this.durationMap = new HashMap<AvailabilityType, Long>();
+        this.durationMap.put(AvailabilityType.DOWN, downtimeDuration);
+        this.lastNotUptime = lastDowntime;
+        this.uptimeRatio = getDoubleValue(uptimeRatio);
+        this.notUpCount = downtimeCount;
+
+        this.downtimeCount = downtimeCount;
         this.downtimeDuration = downtimeDuration;
         this.lastDowntime = lastDowntime;
-        this.uptimeRatio = getDoubleValue(uptimeRatio);
-        this.downtimeCount = downtimeCount;
     }
 
+    /**
+     * @Deprecated Use {@link #getDownDuration()} or {@link #getNotUpDuration()}
+     * @return This is equivalent to calling {@link #getDownDuration()}
+     */
+    @Deprecated
     public Long getDowntimeDuration() {
-        if (isEmpty()) {
-            return null;
-        }
-        return downtimeDuration;
+        return getDownDuration();
     }
 
+    /**
+     * @Deprecated Use {@link #getLastNotUptime()}
+     * @return This is equivalent to calling {@link #getLastNotUptime()}
+     */
+    @Deprecated
     public Long getLastDowntime() {
+        return getLastNotUptime();
+    }
+
+    /**
+     * @Deprecated Use {@link #getNotUpCount()}
+     * @return This is equivalent to calling {@link #getNotUpCount()}
+     */
+    @Deprecated
+    public Long getDowntimeCount() {
+        return getNotUpCount();
+    }
+
+    // End Deprecated methods
+    ////
+
+    protected AvailabilityBucketPoint(long start, long end, Map<AvailabilityType, Long> durationMap,
+            long lastNotUptime, double uptimeRatio, long notUpCount) {
+        super(start, end);
+        this.durationMap = durationMap;
+        this.lastNotUptime = lastNotUptime;
+        this.uptimeRatio = getDoubleValue(uptimeRatio);
+        this.notUpCount = notUpCount;
+
+        this.downtimeCount = notUpCount;
+        this.downtimeDuration = getDownDuration();
+        this.lastDowntime = lastNotUptime;
+    }
+
+    /**
+     * @return The number of segments of where the availability type is not UP. A segment can combine multiple
+     * NotUP statuses (e.g. a change from DOWN to UNKNOWN does not increment the count).
+     */
+    public Long getNotUpCount() {
         if (isEmpty()) {
             return null;
         }
-        return lastDowntime;
+
+        return notUpCount;
+    }
+
+    public Map<AvailabilityType, Long> getDurationMap() {
+        return durationMap;
+    }
+
+    public Long getAdminDuration() {
+        if (isEmpty()) {
+            return null;
+        }
+        return durationMap.getOrDefault(AvailabilityType.ADMIN, 0L);
+    }
+
+    public Long getDownDuration() {
+        if (isEmpty()) {
+            return null;
+        }
+        return durationMap.getOrDefault(AvailabilityType.DOWN, 0L);
+    }
+
+    public Long getUnknownDuration() {
+        if (isEmpty()) {
+            return null;
+        }
+        return durationMap.getOrDefault(AvailabilityType.UNKNOWN, 0L);
+    }
+
+    public Long getUpDuration() {
+        if (isEmpty()) {
+            return null;
+        }
+        return durationMap.getOrDefault(AvailabilityType.UP, 0L);
+    }
+
+    public Long getNotUpDuration() {
+        if (isEmpty()) {
+            return null;
+        }
+        return getAdminDuration() + getDownDuration() + getUnknownDuration();
+    }
+
+    public Long getLastNotUptime() {
+        if (isEmpty()) {
+            return null;
+        }
+        return lastNotUptime;
     }
 
     public Double getUptimeRatio() {
         return uptimeRatio;
-    }
-
-    public Long getDowntimeCount() {
-        if (isEmpty()) {
-            return null;
-        }
-        return downtimeCount;
     }
 
     @Override
@@ -73,15 +175,8 @@ public final class AvailabilityBucketPoint extends BucketPoint {
 
     @Override
     public String toString() {
-        return "AvailabilityBucketPoint[" +
-                "start=" + getStart() +
-                ", end=" + getEnd() +
-                ", downtimeDuration=" + downtimeDuration +
-                ", lastDowntime=" + lastDowntime +
-                ", uptimeRatio=" + uptimeRatio +
-                ", downtimeCount=" + downtimeCount +
-                ", isEmpty=" + isEmpty() +
-                ']';
+        return "AvailabilityBucketPoint [durationMap=" + durationMap + ", lastNotUptime=" + lastNotUptime
+                + ", uptimeRatio=" + uptimeRatio + ", notUpCount=" + notUpCount + "]";
     }
 
     /**
@@ -94,10 +189,10 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     public static class Builder {
         private final long start;
         private final long end;
-        private long downtimeDuration = 0;
-        private long lastDowntime = 0;
+        private Map<AvailabilityType, Long> durationMap = new HashMap<>();
+        private long lastNotUptime = 0;
         private double uptimeRatio = NaN;
-        private long downtimeCount = 0;
+        private long notUpCount = 0;
 
         /**
          * Creates a builder for an initially empty instance, configurable with the builder setters.
@@ -110,13 +205,33 @@ public final class AvailabilityBucketPoint extends BucketPoint {
             this.end = end;
         }
 
-        public Builder setDowntimeDuration(long downtimeDuration) {
-            this.downtimeDuration = downtimeDuration;
+        public Builder setDurationMap(Map<AvailabilityType, Long> durationMap) {
+            this.durationMap.putAll(durationMap);
             return this;
         }
 
-        public Builder setLastDowntime(long lastDowntime) {
-            this.lastDowntime = lastDowntime;
+        public Builder setAdminDuration(long adminDuration) {
+            this.durationMap.put(AvailabilityType.ADMIN, adminDuration);
+            return this;
+        }
+
+        public Builder setDownDuration(long downDuration) {
+            this.durationMap.put(AvailabilityType.DOWN, downDuration);
+            return this;
+        }
+
+        public Builder setUnknownDuration(long unknownDuration) {
+            this.durationMap.put(AvailabilityType.UNKNOWN, unknownDuration);
+            return this;
+        }
+
+        public Builder setUpDuration(long upDuration) {
+            this.durationMap.put(AvailabilityType.UP, upDuration);
+            return this;
+        }
+
+        public Builder setLastNotUptime(long lastNotUptime) {
+            this.lastNotUptime = lastNotUptime;
             return this;
         }
 
@@ -125,13 +240,13 @@ public final class AvailabilityBucketPoint extends BucketPoint {
             return this;
         }
 
-        public Builder setDowntimeCount(long downtimeCount) {
-            this.downtimeCount = downtimeCount;
+        public Builder setNotUptimeCount(long notUptimeCount) {
+            this.notUpCount = notUptimeCount;
             return this;
         }
 
         public AvailabilityBucketPoint build() {
-            return new AvailabilityBucketPoint(start, end, downtimeDuration, lastDowntime, uptimeRatio, downtimeCount);
+            return new AvailabilityBucketPoint(start, end, durationMap, lastNotUptime, uptimeRatio, notUpCount);
         }
     }
 }

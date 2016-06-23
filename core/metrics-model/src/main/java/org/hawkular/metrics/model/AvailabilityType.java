@@ -29,7 +29,9 @@ public enum AvailabilityType {
 
     DOWN((byte) 1, "down"),
 
-    UNKNOWN((byte) 2, "unknown");
+    UNKNOWN((byte) 2, "unknown"),
+
+    ADMIN((byte) 3, "admin");
 
     private byte code;
 
@@ -60,6 +62,7 @@ public enum AvailabilityType {
             case "up"     : return UP;
             case "down"   : return DOWN;
             case "unknown": return UNKNOWN;
+            case "admin"  : return ADMIN;
             default: throw new IllegalArgumentException(s + " is not a recognized availability type");
         }
     }
@@ -69,6 +72,7 @@ public enum AvailabilityType {
             case 0 : return UP;
             case 1 : return DOWN;
             case 2 : return UNKNOWN;
+            case 3 : return ADMIN;
         default: throw new IllegalArgumentException(bytes.array()[0] + " is not a recognized availability type");
         }
     }
