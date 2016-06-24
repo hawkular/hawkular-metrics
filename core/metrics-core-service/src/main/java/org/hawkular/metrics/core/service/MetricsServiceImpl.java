@@ -85,7 +85,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -182,7 +181,7 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
-    private Map<MetricType<?>, Cache<String, Boolean>> metricsIdxCaches;
+    private Cache<MetricId<?>, Boolean> metricsIdxCache;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -263,19 +262,14 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
-        Builder<MetricType<?>, Cache<String, Boolean>> metricsIdxCachesBuilder = ImmutableMap
-                .<MetricType<?>, Cache<String, Boolean>> builder();
-        MetricType.userTypes().stream().forEach(
-                t -> metricsIdxCachesBuilder.put(t,
-                        CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).maximumSize(20000).build()));
-        metricsIdxCaches = metricsIdxCachesBuilder.build();
+        metricsIdxCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).maximumSize(40000).build();
 
         initStringSize(session);
         initMetrics();
     }
 
     public void clearMetricsIdxCaches() {
-        metricsIdxCaches.values().stream().forEach(m -> m.invalidateAll());
+        metricsIdxCache.invalidateAll();
     }
 
     void loadDataRetentions() {
@@ -662,11 +656,9 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Cache<String, Boolean> metricsIdxCache = metricsIdxCaches.get(metricType);
-
         Observable<Metric<T>> updateIdxMetrics = metrics.filter(metric -> {
-            if (metricsIdxCache.getIfPresent(metric.getId()) == null) {
-                metricsIdxCache.put(metric.getId(), true);
+            if (metricsIdxCache.getIfPresent(metric.getMetricId()) == null) {
+                metricsIdxCache.put(metric.getMetricId(), true);
                 return true;
             }
 
