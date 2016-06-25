@@ -47,11 +47,11 @@ if (!reset && keyspaceExists(keyspace)) {
     def expectedTables = [
         'tenants', 'tenants_by_time', 'data', 'metrics_tags_idx', 'metrics_idx', 'retentions_idx',
         'tasks', 'task_queue', 'leases'
-    ]
-    def expectedTypes = ['aggregation_template', 'aggregate_data', 'trigger_def', ]
+    ] as Set
+    def expectedTypes = ['aggregation_template', 'aggregate_data', 'trigger_def', ] as Set
 
-    def actualTables = getTables(keyspace)
-    def actualTypes = getUDTs(keyspace)
+    def actualTables = getTables(keyspace) as Set
+    def actualTypes = getUDTs(keyspace) as Set
 
     if (actualTables != expectedTables) {
       throw new RuntimeException("The schema is in an unknown state and cannot be versioned. Expected tables to be " +
@@ -59,7 +59,7 @@ if (!reset && keyspaceExists(keyspace)) {
     }
     if (actualTypes != expectedTypes) {
       throw new RuntimeException("The schema is in an unknown state and cannot be versioned. Expected user defined " +
-        "types to be $actualTypes but found $actualTypes")
+        "types to be $expectedTypes but found $actualTypes")
     }
   }
 } else {

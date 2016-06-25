@@ -165,6 +165,9 @@
           <name>!skipTests</name>
         </property>
       </activation>
+      <properties>
+        <resetdb>true</resetdb>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -188,6 +191,7 @@
                 <exclude>**/CreateTenantsSchedulerITest.java</exclude>
               </excludes>
               <systemPropertyVariables>
+                <resetdb>${resetdb}</resetdb>
                 <keyspace>${test.keyspace}</keyspace>
                 <nodes>${nodes}</nodes>
               </systemPropertyVariables>

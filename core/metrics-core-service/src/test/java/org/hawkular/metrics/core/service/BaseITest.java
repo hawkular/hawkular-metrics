@@ -71,7 +71,7 @@ public abstract class BaseITest {
         rxSession = new RxSessionImpl(session);
 
         SchemaService schemaService = new SchemaService();
-        schemaService.run(session, getKeyspace(), true);
+        schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
     }
