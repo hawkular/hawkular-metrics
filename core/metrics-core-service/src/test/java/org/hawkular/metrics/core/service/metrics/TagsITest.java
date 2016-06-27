@@ -438,14 +438,15 @@ public class TagsITest extends BaseMetricsITest {
 
         List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                asList(95.0)).toBlocking().single();
+                asList(new Percentile("95.0"))).toBlocking().single();
+
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
             switch (i) {
                 case 1:
                     builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D)
-                            .setPercentiles(asList(new Percentile(0.95, 0D))).setSamples(2).setSum(200D);
+                            .setPercentiles(asList(new Percentile("95.0", 0D))).setSamples(2).setSum(200D);
                     break;
                 case 2:
                 case 4:
@@ -453,15 +454,15 @@ public class TagsITest extends BaseMetricsITest {
                     break;
                 case 3:
                     builder.setAvg(400D).setMax(400D).setMedian(400D).setMin(400D)
-                            .setPercentiles(asList(new Percentile(0.95, 400D))).setSamples(1).setSum(400D);
+                            .setPercentiles(asList(new Percentile("95.0", 400D))).setSamples(1).setSum(400D);
                     break;
                 case 5:
                     builder.setAvg(550D).setMax(550D).setMedian(550D).setMin(550D)
-                            .setPercentiles(asList(new Percentile(0.95, 550D))).setSamples(1).setSum(550D);
+                            .setPercentiles(asList(new Percentile("95.0", 550D))).setSamples(1).setSum(550D);
                     break;
                 case 7:
                     builder.setAvg(975D).setMax(1000D).setMedian(950D).setMin(950D)
-                            .setPercentiles(asList(new Percentile(0.95, 950D))).setSamples(2).setSum(1950D);
+                            .setPercentiles(asList(new Percentile("95.0", 950D))).setSamples(2).setSum(1950D);
                     break;
             }
             expected.add(builder.build());

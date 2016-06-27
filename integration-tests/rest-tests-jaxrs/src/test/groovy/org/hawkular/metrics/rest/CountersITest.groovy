@@ -777,7 +777,7 @@ Actual:   ${response.data}
       assertEquals(1, response.data.size)
       assertEquals(3, response.data[0].percentiles.size)
 
-      assertEquals(0.5, response.data[0].percentiles[0].quantile, 0.01)
+      assertEquals(50.0, response.data[0].percentiles[0].quantile)
       assertEquals(400, response.data[0].percentiles[0].value, 0.1)
   }
 

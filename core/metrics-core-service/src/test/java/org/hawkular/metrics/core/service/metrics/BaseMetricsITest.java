@@ -156,10 +156,10 @@ public abstract class BaseMetricsITest extends BaseITest {
             assertEquals(actual.getSum(), expected.getSum(), 0.001, msg);
             assertEquals(actual.getSamples(), expected.getSamples(), 0, msg);
             for(int i = 0; i < expected.getPercentiles().size(); i++) {
-                assertEquals(expected.getPercentiles().get(i).getQuantile(), actual.getPercentiles().get(i)
-                        .getQuantile(), 0.001, msg);
-                assertEquals(expected.getPercentiles().get(i).getValue(), actual.getPercentiles().get(i)
-                        .getValue(), 0.001, msg);
+                assertEquals(actual.getPercentiles().get(i).getOriginalQuantile(),
+                        expected.getPercentiles().get(i).getOriginalQuantile(),  msg);
+                assertEquals(actual.getPercentiles().get(i).getValue(), expected.getPercentiles().get(i).getValue(),
+                        0.001, msg);
             }
         }
     }

@@ -237,7 +237,7 @@ public class RatesITest extends BaseMetricsITest {
 
         List<NumericBucketPoint> actual = metricsService.findRateStats(counter.getMetricId(),
                 0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                asList(99.0)).toBlocking().single();
+                asList(new Percentile("99.0"))).toBlocking().single();
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
             NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
@@ -246,22 +246,22 @@ public class RatesITest extends BaseMetricsITest {
                 case 1:
                     val = 400D;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
+                            .setPercentiles(asList(new Percentile("0.99", val))).setSamples(1).setSum(val);
                     break;
                 case 3:
                     val = 100D;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
+                            .setPercentiles(asList(new Percentile("0.99", val))).setSamples(1).setSum(val);
                     break;
                 case 5:
                     val = 100;
                     builder.setAvg(val).setMax(val).setMedian(val).setMin(val)
-                            .setPercentiles(asList(new Percentile(0.99, val))).setSamples(1).setSum(val);
+                            .setPercentiles(asList(new Percentile("0.99", val))).setSamples(1).setSum(val);
                 case 6:
                     break;
                 case 7:
                     builder.setAvg(150.0).setMax(200.0).setMin(100.0).setMedian(100.0).setPercentiles(
-                            asList(new Percentile(0.99, 100.0))).setSamples(2).setSum(300.0);
+                            asList(new Percentile("0.99", 100.0))).setSamples(2).setSum(300.0);
                 default:
                     break;
             }

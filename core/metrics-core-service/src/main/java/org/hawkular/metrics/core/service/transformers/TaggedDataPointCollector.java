@@ -17,16 +17,17 @@
 
 package org.hawkular.metrics.core.service.transformers;
 
+import static org.hawkular.metrics.core.service.transformers.NumericDataPointCollector.createPercentile;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.rank.Max;
 import org.apache.commons.math3.stat.descriptive.rank.Min;
-import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
@@ -44,31 +45,42 @@ public class TaggedDataPointCollector {
     private Mean average = new Mean();
     private Max max = new Max();
     private Sum sum = new Sum();
-    private PSquarePercentile median = new PSquarePercentile(50.0);
-    private List<PSquarePercentile> percentiles;
+    private List<PercentileWrapper> percentiles;
+    private List<Percentile> percentileList;
 
-    public TaggedDataPointCollector(Map<String, String> tags, List<Double> percentiles) {
+    public TaggedDataPointCollector(Map<String, String> tags, List<Percentile> percentilesList) {
         this.tags = tags;
-        this.percentiles = new ArrayList<>();
-        percentiles.stream().forEach(d -> this.percentiles.add(new PSquarePercentile(d)));
+        this.percentiles = new ArrayList<>(percentilesList.size() + 1);
+        this.percentileList = percentilesList;
+        percentilesList.stream().forEach(d -> percentiles.add(createPercentile.apply(d.getQuantile())));
+        percentiles.add(createPercentile.apply(50.0)); // Important to be the last one
     }
 
     public void increment(DataPoint<? extends Number> dataPoint) {
         Number value = dataPoint.getValue();
         min.increment(value.doubleValue());
         average.increment(value.doubleValue());
-        median.increment(value.doubleValue());
         max.increment(value.doubleValue());
         sum.increment(value.doubleValue());
         samples++;
-        percentiles.stream().forEach(p -> p.increment(value.doubleValue()));
+        percentiles.stream().forEach(p -> p.addValue(value.doubleValue()));
     }
 
     public TaggedBucketPoint toBucketPoint() {
-        List<Percentile> results = percentiles.stream()
-                .map(p -> new Percentile(p.quantile(), p.getResult())).collect(Collectors.toList());
-        return new TaggedBucketPoint(tags, min.getResult(), average.getResult(), median.getResult(), max.getResult(),
-                sum.getResult(), samples, results);
+
+        List<Percentile> percentileReturns = new ArrayList<>(percentileList.size());
+
+        if(percentileList.size() > 0) {
+            for(int i = 0; i < percentileList.size(); i++) {
+                Percentile p = percentileList.get(i);
+                PercentileWrapper pw = percentiles.get(i);
+                percentileReturns.add(new Percentile(p.getOriginalQuantile(), pw.getResult()));
+            }
+        }
+
+        return new TaggedBucketPoint(tags, min.getResult(), average.getResult(),
+                this.percentiles.get(this.percentiles.size() - 1).getResult(), max.getResult(), sum.getResult(),
+                samples, percentileReturns);
     }
 
 }

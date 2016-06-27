@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,22 +22,25 @@ package org.hawkular.metrics.model;
 public class Percentile {
     private double target;
     private double value = 0.0;
+    private String originalQuantile;
 
-    public Percentile(double quantile) {
-        this.target = quantile;
+    public Percentile(String quantile) {
+        this.originalQuantile = quantile;
+        this.target = Double.valueOf(quantile);
     }
 
-    public Percentile(double quantile, double value) {
-        this.target = quantile;
+    public Percentile(String quantile, double value) {
+        this.originalQuantile = quantile;
         this.value = value;
+        this.target = Double.valueOf(quantile);
+    }
+
+    public String getOriginalQuantile() {
+        return originalQuantile;
     }
 
     public double getQuantile() {
         return target;
-    }
-
-    public void setQuantile(double target) {
-        this.target = target;
     }
 
     public double getValue() {

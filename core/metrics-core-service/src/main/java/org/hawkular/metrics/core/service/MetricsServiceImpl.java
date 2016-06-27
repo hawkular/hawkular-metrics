@@ -61,6 +61,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
@@ -765,7 +766,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
-                                                              Buckets buckets, List<Double> percentiles) {
+                                                              Buckets buckets, List<Percentile> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findRateData(id, start, end, 0, ASC)
                 .compose(new NumericBucketPointTransformer(buckets, percentiles));
@@ -781,7 +782,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
-                List<Double> percentiles) {
+                List<Percentile> percentiles) {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
         return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
@@ -790,7 +791,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId,
-            Map<String, String> tags, long start, long end, List<Double> percentiles) {
+            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, Order.DESC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
@@ -798,7 +799,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
             MetricType<T> metricType, Map<String, String> tagFilters, long start, long end, Buckets buckets,
-            List<Double> percentiles, boolean stacked) {
+            List<Percentile> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
@@ -847,7 +848,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
             MetricType<T> metricType, List<String> metrics, long start, long end, Buckets buckets,
-            List<Double> percentiles, boolean stacked) {
+            List<Percentile> percentiles, boolean stacked) {
 
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
@@ -951,7 +952,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end,
-            Buckets buckets, List<Double> percentiles) {
+            Buckets buckets, List<Percentile> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         return findDataPoints(id, start, end, 0, ASC)
                 .compose(new NumericBucketPointTransformer(buckets, percentiles));
@@ -959,7 +960,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
-            Map<String, String> tags, long start, long end, List<Double> percentiles) {
+            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, ASC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.ext.ParamConverter;
 
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.param.Percentiles;
 
 
@@ -32,11 +33,12 @@ import org.hawkular.metrics.model.param.Percentiles;
 public class PercentilesConverter implements ParamConverter<Percentiles> {
     @Override
     public Percentiles fromString(String param) {
-        return new Percentiles(Arrays.stream(param.split(",")).map(Double::valueOf).collect(Collectors.toList()));
+        return new Percentiles(Arrays.stream(param.split(",")).map(Percentile::new).collect(Collectors.toList()));
     }
 
     @Override
     public String toString(Percentiles percentiles) {
-        return percentiles.getPercentiles().stream().map(Object::toString).collect(Collectors.joining(","));
+        return percentiles.getPercentiles().stream().map(Percentile::getOriginalQuantile)
+                .collect(Collectors.joining(","));
     }
 }

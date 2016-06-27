@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 
 import rx.Observable;
@@ -41,9 +42,9 @@ public class TaggedBucketPointTransformer
         implements Transformer<DataPoint<? extends Number>, Map<String, TaggedBucketPoint>> {
 
     private final Map<String, String> tags;
-    private final List<Double> percentiles;
+    private final List<Percentile> percentiles;
 
-    public TaggedBucketPointTransformer(Map<String, String> tags, List<Double> percentiles) {
+    public TaggedBucketPointTransformer(Map<String, String> tags, List<Percentile> percentiles) {
         this.tags = tags;
         this.percentiles = percentiles;
     }
