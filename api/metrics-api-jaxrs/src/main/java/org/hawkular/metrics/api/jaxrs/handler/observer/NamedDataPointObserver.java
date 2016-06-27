@@ -27,80 +27,51 @@ import org.jboss.logging.Logger;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import rx.Subscriber;
-import rx.functions.Action1;
 
 /**
  * @author jsanda
  */
 public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
-
     private static final Logger log = Logger.getLogger(NamedDataPointObserver.class);
 
-    private String currentMetric;
+    @FunctionalInterface
+    private interface WriteValue<T> {
+        void call(NamedDataPoint<T> dataPoint) throws IOException;
+    }
 
-    private JsonGenerator generator;
+    private final JsonGenerator generator;
+    private final CountDownLatch latch;
+    private final WriteValue<T> writeValue;
 
-    private CountDownLatch latch;
+    private volatile String currentMetric;
 
-    private Action1<NamedDataPoint<T>> writeValue;
 
     public NamedDataPointObserver(JsonGenerator generator, CountDownLatch latch, MetricType<T> type) {
-        try {
-            this.generator = generator;
-            this.latch = latch;
-
-            if (type == MetricType.GAUGE || type == MetricType.GAUGE_RATE || type == MetricType.COUNTER_RATE) {
-                writeValue = dataPoint -> {
-                    try {
-                        generator.writeNumberField("value", (Double) dataPoint.getValue());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-            } else if (type == MetricType.COUNTER) {
-                writeValue = dataPoint -> {
-                    try {
-                        generator.writeNumberField("value", (Long) dataPoint.getValue());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-            } else if (type == MetricType.AVAILABILITY) {
-                writeValue = dataPoint -> {
-                    try {
-                        AvailabilityType availability = (AvailabilityType) dataPoint.getValue();
-                        generator.writeStringField("value", availability.getText());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-            } else if (type == MetricType.STRING) {
-                writeValue = dataPoint -> {
-                    try {
-                        generator.writeStringField("value", (String) dataPoint.getValue());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-            } else {
-                throw new IllegalArgumentException(type + " is not supported metric type. This class should be " +
-                        "updated to add support for it!");
-            }
-
-            this.generator.writeStartArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        this.generator = generator;
+        this.latch = latch;
+        if (type == MetricType.GAUGE || type == MetricType.GAUGE_RATE || type == MetricType.COUNTER_RATE) {
+            writeValue = dataPoint -> generator.writeNumberField("value", (Double) dataPoint.getValue());
+        } else if (type == MetricType.COUNTER) {
+            writeValue = dataPoint -> generator.writeNumberField("value", (Long) dataPoint.getValue());
+        } else if (type == MetricType.AVAILABILITY) {
+            writeValue = dataPoint -> {
+                AvailabilityType availability = (AvailabilityType) dataPoint.getValue();
+                generator.writeStringField("value", availability.getText());
+            };
+        } else if (type == MetricType.STRING) {
+            writeValue = dataPoint -> generator.writeStringField("value", (String) dataPoint.getValue());
+        } else {
+            throw new IllegalArgumentException(type + " is not supported metric type. This class should be " +
+                    "updated to add support for it!");
         }
     }
 
-
-
     @Override
     public void onNext(NamedDataPoint<T> dataPoint) {
-        log.debug("Next data point is " + dataPoint);
+        log.trace("Next data point is " + dataPoint);
         try {
-
             if (currentMetric == null) {
+                generator.writeStartArray();
                 generator.writeStartObject();
                 generator.writeStringField("id", dataPoint.getName());
                 generator.writeArrayFieldStart("data");
@@ -138,7 +109,7 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
             log.warn("Fetching data failed", e);
             generator.close();
         } catch (IOException e1) {
-                log.error("Failed to close " + generator.getClass().getName());
+            log.error("Failed to close " + generator.getClass().getName());
         } finally {
             latch.countDown();
         }
@@ -147,13 +118,18 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
     @Override
     public void onCompleted() {
         try {
-            generator.writeEndArray();
-            generator.writeEndObject();
-            generator.writeEndArray();
+            if (currentMetric == null) {
+                generator.writeStartArray();
+                generator.writeEndArray();
+            } else {
+                generator.writeEndArray();
+                generator.writeEndObject();
+                generator.writeEndArray();
+            }
             generator.close();
             latch.countDown();
         } catch (IOException e) {
-                log.warn("Error while finishing streaming data", e);
+            log.warn("Error while finishing streaming data", e);
         } finally {
             latch.countDown();
         }
