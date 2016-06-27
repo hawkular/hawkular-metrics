@@ -49,6 +49,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
@@ -201,7 +202,8 @@ public class CounterITest extends BaseMetricsITest {
             top.increment(i);
         }
 
-        List<Double> percentiles = asList(50.0, 90.0, 99.0, 99.9);
+        List<Percentile> percentiles = asList(new Percentile("50.0"), new Percentile("90.0"), new Percentile("99.0"),
+                new Percentile("99.9"));
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), counterList);
 

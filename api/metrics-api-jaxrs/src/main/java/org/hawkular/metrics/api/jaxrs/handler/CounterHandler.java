@@ -60,6 +60,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
@@ -432,7 +433,7 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+                : new Percentiles(Collections.<Percentile> emptyList());
 
         observableConfig
                 .flatMap((config) -> metricsService.findCounterStats(metricId,
@@ -563,7 +564,7 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+                : new Percentiles(Collections.<Percentile> emptyList());
 
         observableConfig
                 .flatMap((config) -> metricsService.findCounterStats(metricId,
@@ -640,7 +641,7 @@ public class CounterHandler extends MetricsServiceHandler {
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
         } else {
             if(percentiles == null) {
-                percentiles = new Percentiles(Collections.<Double>emptyList());
+                percentiles = new Percentiles(Collections.<Percentile>emptyList());
             }
 
             metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
@@ -697,7 +698,7 @@ public class CounterHandler extends MetricsServiceHandler {
         Buckets buckets = bucketConfig.getBuckets();
 
         if (percentiles == null) {
-            percentiles = new Percentiles(Collections.<Double> emptyList());
+            percentiles = new Percentiles(Collections.<Percentile> emptyList());
         }
 
         metricsService.findRateStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets,
@@ -757,7 +758,7 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         if (percentiles == null) {
-            percentiles = new Percentiles(Collections.<Double> emptyList());
+            percentiles = new Percentiles(Collections.<Percentile> emptyList());
         }
 
         if (metricNames.isEmpty()) {
@@ -844,7 +845,7 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         if (percentiles == null) {
-            percentiles = new Percentiles(Collections.<Double> emptyList());
+            percentiles = new Percentiles(Collections.<Percentile> emptyList());
         }
 
         if (metricNames.isEmpty()) {
@@ -908,7 +909,7 @@ public class CounterHandler extends MetricsServiceHandler {
         }
         MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
         final Percentiles lPercentiles = percentiles != null ? percentiles
-                : new Percentiles(Collections.<Double> emptyList());
+                : new Percentiles(Collections.<Percentile> emptyList());
         metricsService.findCounterStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),
                 lPercentiles.getPercentiles())
                 .map(ApiUtils::mapToResponse)

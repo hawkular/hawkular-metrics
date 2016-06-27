@@ -128,7 +128,8 @@ public abstract class BaseITest {
     protected <T> List<T> getOnNextEvents(Supplier<Observable<T>> fn) {
         TestSubscriber<T> subscriber = new TestSubscriber<>();
         Observable<T> observable = fn.get();
-        observable.subscribe(subscriber);
+        observable.doOnError(Throwable::printStackTrace)
+                .subscribe(subscriber);
         subscriber.awaitTerminalEvent(5, SECONDS);
         subscriber.assertNoErrors();
         subscriber.assertCompleted();

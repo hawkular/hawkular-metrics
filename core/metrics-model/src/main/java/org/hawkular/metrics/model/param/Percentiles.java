@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,8 @@ package org.hawkular.metrics.model.param;
 
 import java.util.List;
 
+import org.hawkular.metrics.model.Percentile;
+
 /**
  * A wrapping class for List<Double> of percentile requests for JAX-RS
  *
@@ -25,17 +27,17 @@ import java.util.List;
  */
 public class Percentiles {
 
-    private List<Double> percentiles;
+    private List<Percentile> percentiles;
 
-    public Percentiles(List<Double> percentiles) {
+    public Percentiles(List<Percentile> percentiles) {
         this.percentiles = percentiles;
     }
 
-    public List<Double> getPercentiles() {
+    public List<Percentile> getPercentiles() {
         return percentiles;
     }
 
-    public void setPercentiles(List<Double> percentiles) {
+    public void setPercentiles(List<Percentile> percentiles) {
         this.percentiles = percentiles;
     }
 }

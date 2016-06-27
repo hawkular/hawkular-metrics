@@ -31,6 +31,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
@@ -181,7 +182,7 @@ public interface MetricsService {
                                     Func1<Observable<DataPoint<Double>>, Observable<T>>... funcs);
 
     Observable<List<NumericBucketPoint>> findGaugeStats(MetricId<Double> metricId, BucketConfig bucketConfig,
-            List<Double> percentiles);
+            List<Percentile> percentiles);
 
     /**
      * Queries data points from a single metric and groups results using tag filter expressions that are applied
@@ -197,7 +198,7 @@ public interface MetricsService {
      * the form tag_name:tag_value,tag_name:tag_value.
      */
     Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Map<String, String> tags,
-            long start, long end, List<Double> percentiles);
+            long start, long end, List<Percentile> percentiles);
 
     /**
      * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
@@ -213,7 +214,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Double> percentiles,
+            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Percentile> percentiles,
             boolean stacked);
 
     /**
@@ -230,7 +231,7 @@ public interface MetricsService {
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
     <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
-            List<String> metrics, long start, long end, Buckets buckets, List<Double> percentiles, boolean stacked);
+            List<String> metrics, long start, long end, Buckets buckets, List<Percentile> percentiles, boolean stacked);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
             boolean distinct, int limit, Order order);
@@ -257,7 +258,7 @@ public interface MetricsService {
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets,
-                                                          List<Double> percentiles);
+                                                          List<Percentile> percentiles);
 
     /**
      * Queries data points from a single metric and groups results using tag filter expressions that are applied
@@ -273,7 +274,7 @@ public interface MetricsService {
      * the form tag_name:tag_value,tag_name:tag_value.
      */
     Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId, Map<String, String> tags,
-            long start, long end, List<Double> percentiles);
+            long start, long end, List<Percentile> percentiles);
 
     /**
      * Fetches gauge or counter data points and calculates per-minute rates.
@@ -306,7 +307,7 @@ public interface MetricsService {
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
     Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
-                                                       Buckets buckets, List<Double> percentiles);
+                                                       Buckets buckets, List<Percentile> percentiles);
 
     /**
      * <p>

@@ -61,6 +61,7 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
@@ -434,7 +435,7 @@ public class GaugeHandler extends MetricsServiceHandler {
 
         observableConfig
                 .flatMap((config) -> {
-                    List<Double> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
+                    List<Percentile> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
                     return metricsService.findGaugeStats(metricId, config, perc);
                 })
                 .flatMap(Observable::from)
@@ -559,7 +560,7 @@ public class GaugeHandler extends MetricsServiceHandler {
 
         observableConfig
                 .flatMap((config) -> {
-                    List<Double> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
+                    List<Percentile> perc = percentiles == null ? Collections.emptyList() : percentiles.getPercentiles();
                     return metricsService.findGaugeStats(metricId, config, perc);
                 })
                 .flatMap(Observable::from)

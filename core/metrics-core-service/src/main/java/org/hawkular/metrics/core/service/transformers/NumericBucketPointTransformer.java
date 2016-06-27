@@ -22,6 +22,7 @@ import java.util.List;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 
 import rx.Observable;
 import rx.Observable.Transformer;
@@ -33,9 +34,9 @@ public class NumericBucketPointTransformer
         implements Transformer<DataPoint<? extends Number>, List<NumericBucketPoint>> {
 
     private final Buckets buckets;
-    private final List<Double> percentiles;
+    private final List<Percentile> percentiles;
 
-    public NumericBucketPointTransformer(Buckets buckets, List<Double> percentiles) {
+    public NumericBucketPointTransformer(Buckets buckets, List<Percentile> percentiles) {
         this.buckets = buckets;
         this.percentiles = percentiles;
     }
