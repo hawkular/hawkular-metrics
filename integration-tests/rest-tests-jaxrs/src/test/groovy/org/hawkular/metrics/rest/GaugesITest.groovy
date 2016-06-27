@@ -16,11 +16,15 @@
  */
 package org.hawkular.metrics.rest
 
+import static org.joda.time.DateTime.now
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
+
 import org.joda.time.DateTime
 import org.junit.Test
 
-import static org.joda.time.DateTime.now
-import static org.junit.Assert.*
 /**
  * @author Thomas Segismont
  */
@@ -562,6 +566,26 @@ Actual:   ${response.data}
             [timestamp: start.plusHours(2).millis, value: 4.44]
         ]
     ]))
+  }
+
+  @Test
+  void noResultForMultipleMetricsQuery() {
+    def tenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(
+        path: "gauges/rate/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids  : ['G1', 'G2', 'G3'],
+            start: 60_000 * 1.5,
+            end  : 60_000 * 3,
+            limit: 2,
+            order: 'asc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertTrue('Expected empty result', (response.data as List).isEmpty())
   }
 
   @Test
