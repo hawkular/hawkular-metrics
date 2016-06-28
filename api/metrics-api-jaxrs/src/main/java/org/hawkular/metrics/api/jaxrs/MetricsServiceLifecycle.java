@@ -30,6 +30,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_INDEX_CACHE_EXPIRE_MINUTES;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_INDEX_CACHE_MAXIMUM_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -166,6 +168,16 @@ public class MetricsServiceLifecycle {
     private String disableMetricsJmxReporting;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_INDEX_CACHE_EXPIRE_MINUTES)
+    private String metricsIndexCacheExpireMinutes;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_INDEX_CACHE_MAXIMUM_SIZE)
+    private String metricsIndexCacheMaximumSize;
+
+    @Inject
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
@@ -262,6 +274,9 @@ public class MetricsServiceLifecycle {
             metricsService.setTaskScheduler(taskScheduler);
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
+
+            metricsService.resetCacheConfiguration(getDefaultMetricsIndexCacheExpireMinutes(),
+                    getDefaultMetricsIndexCacheMaximumSize());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
             if (!Boolean.parseBoolean(disableMetricsJmxReporting)) {
@@ -396,6 +411,25 @@ public class MetricsServiceLifecycle {
         } catch (NumberFormatException e) {
             log.warnInvalidDefaultTTL(defaultTTL, DEFAULT_TTL.defaultValue());
             return Integer.parseInt(DEFAULT_TTL.defaultValue());
+        }
+    }
+
+    private int getDefaultMetricsIndexCacheExpireMinutes() {
+        try {
+            return Integer.parseInt(metricsIndexCacheExpireMinutes);
+        } catch (NumberFormatException e) {
+            log.warnInvalidDefaultTTL(metricsIndexCacheExpireMinutes,
+                    METRICS_INDEX_CACHE_EXPIRE_MINUTES.defaultValue());
+            return Integer.parseInt(METRICS_INDEX_CACHE_EXPIRE_MINUTES.defaultValue());
+        }
+    }
+
+    private int getDefaultMetricsIndexCacheMaximumSize() {
+        try {
+            return Integer.parseInt(metricsIndexCacheMaximumSize);
+        } catch (NumberFormatException e) {
+            log.warnInvalidDefaultTTL(metricsIndexCacheMaximumSize, METRICS_INDEX_CACHE_MAXIMUM_SIZE.defaultValue());
+            return Integer.parseInt(METRICS_INDEX_CACHE_EXPIRE_MINUTES.defaultValue());
         }
     }
 

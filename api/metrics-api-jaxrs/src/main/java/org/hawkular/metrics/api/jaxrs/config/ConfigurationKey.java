@@ -41,7 +41,11 @@ public enum ConfigurationKey {
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
-    DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true);
+    DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true),
+    METRICS_INDEX_CACHE_EXPIRE_MINUTES("hawkular.metrics.metrics-index-cache-expire-minutes",
+            "60", "METRICS_INDEX_CACHE_EXPIRE_MINUTES", false),
+    METRICS_INDEX_CACHE_MAXIMUM_SIZE("hawkular.metrics.metrics-index-cache-maximum-size",
+            "40000", "METRICS_INDEX_CACHE_MAXIMUM_SIZE", false);
 
     private final String name;
     private final String env;

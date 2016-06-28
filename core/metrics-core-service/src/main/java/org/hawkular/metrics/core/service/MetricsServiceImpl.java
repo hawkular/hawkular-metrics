@@ -262,7 +262,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
-        metricsIdxCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).maximumSize(40000).build();
+        metricsIdxCache = CacheBuilder.newBuilder().expireAfterAccess(60, TimeUnit.MINUTES).maximumSize(40000).build();
 
         initStringSize(session);
         initMetrics();
@@ -270,6 +270,15 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void clearMetricsIdxCaches() {
         metricsIdxCache.invalidateAll();
+    }
+
+    public void resetCacheConfiguration(int expireAfterMinutes, int maximumSize) {
+        if (metricsIdxCache != null) {
+            metricsIdxCache.invalidateAll();
+        }
+
+        metricsIdxCache = CacheBuilder.newBuilder().expireAfterAccess(expireAfterMinutes, TimeUnit.MINUTES)
+                .maximumSize(maximumSize).build();
     }
 
     void loadDataRetentions() {
