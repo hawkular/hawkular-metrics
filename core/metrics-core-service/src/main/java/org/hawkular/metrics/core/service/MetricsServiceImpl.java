@@ -659,8 +659,9 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        return updates.mergeWith(indexUpdates)
-                .map(i -> null);
+        return Observable.concat(updates, indexUpdates)
+                .takeLast(1)
+                .map(count -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
