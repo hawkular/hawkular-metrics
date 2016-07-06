@@ -178,7 +178,7 @@
   <profiles>
 
     <profile>
-      <id>publish</id>
+      <id>release</id>
       <build>
         <plugins>
           <plugin>
