@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,6 @@
 package org.hawkular.metrics.clients.ptrans;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toSet;
 
 import static org.hawkular.metrics.clients.ptrans.util.Arguments.checkArgument;
 
@@ -25,12 +24,13 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import org.hawkular.metrics.clients.ptrans.backend.MetricsSender;
+import org.hawkular.metrics.clients.ptrans.backend.Constants;
 import org.hawkular.metrics.clients.ptrans.backend.NettyToVertxHandler;
 import org.hawkular.metrics.clients.ptrans.collectd.CollectdServer;
 import org.hawkular.metrics.clients.ptrans.ganglia.GangliaChannelInitializer;
@@ -51,6 +51,10 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.ext.hawkular.AuthenticationOptions;
+import io.vertx.ext.hawkular.VertxHawkularOptions;
 
 /**
  * PTrans core. After an instance is created for a specific {@link org.hawkular.metrics.clients.ptrans.Configuration},
@@ -70,7 +74,6 @@ public class PTrans {
     // Needed as long as some servers are still Netty-based
     // Can be removed as soon as all servers are implemented on top of vertx
     private NettyToVertxHandler nettyToVertxHandler;
-    private String metricsSenderID;
 
     /**
      * Creates a new PTrans instance for the given {@code configuration}.
@@ -90,18 +93,35 @@ public class PTrans {
     /**
      * Starts this PTrans instance. the calling thread will be blocked until another thread calls {@link #stop()}.
      */
-    public void start() {
+    public void start() throws InterruptedException {
         log.infoStarting();
 
         group = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
 
-        vertx = Vertx.vertx();
-        nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
+        URI metricsUrl = configuration.getMetricsUrl();
 
-        vertx.deployVerticle(new MetricsSender(configuration), handler -> {
-            metricsSenderID = handler.result();
-        });
+        VertxHawkularOptions metricsOptions = new VertxHawkularOptions()
+                .setEnabled(true)
+                .setHost(metricsUrl.getHost())
+                .setPort(metricsUrl.getPort())
+                .setMetricsServiceUri(metricsUrl.getPath())
+                .setHttpOptions(new HttpClientOptions()
+                        .setMaxPoolSize(configuration.getMaxConnections())
+                        .setSsl("https".equalsIgnoreCase(metricsUrl.getScheme())))
+                .setTenant(configuration.getTenant())
+                .setSendTenantHeader(configuration.isSendTenant())
+                .setAuthenticationOptions(new AuthenticationOptions()
+                        .setEnabled(configuration.isAuthEnabled())
+                        .setId(configuration.getAuthId())
+                        .setSecret(configuration.getAuthSecret()))
+                .setHttpHeaders(configuration.getHttpHeaders())
+                .setBatchSize(configuration.getBatchSize())
+                .setMetricsBridgeEnabled(true)
+                .setMetricsBridgeAddress(Constants.METRIC_ADDRESS);
+
+        vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOptions));
+        nettyToVertxHandler = new NettyToVertxHandler(vertx.eventBus());
 
         Set<Service> services = configuration.getServices();
         List<ChannelFuture> closeFutures = new ArrayList<>(services.size());
@@ -172,9 +192,12 @@ public class PTrans {
         }
 
         if (services.contains(Service.GRAPHITE)) {
+            CountDownLatch latch = new CountDownLatch(1);
             vertx.deployVerticle(new GraphiteServer(configuration), handler -> {
                 log.infoServerListening("Graphite", "TCP", configuration.getGraphitePort());
+                latch.countDown();
             });
+            latch.await();
         }
 
         if (services.contains(Service.COLLECTD)) {
@@ -195,22 +218,11 @@ public class PTrans {
         log.infoStopping();
         group.shutdownGracefully().syncUninterruptibly();
         workerGroup.shutdownGracefully().syncUninterruptibly();
-        Set<String> deploymentIDs = vertx.deploymentIDs().stream()
-                .filter(id -> !metricsSenderID.equals(id))
-                .collect(toSet());
+        Set<String> deploymentIDs = vertx.deploymentIDs();
         CountDownLatch deploymentsLatch = new CountDownLatch(deploymentIDs.size());
-        deploymentIDs.forEach(id -> {
-            vertx.undeploy(id, handler -> deploymentsLatch.countDown());
-        });
+        deploymentIDs.forEach(id -> vertx.undeploy(id, handler -> deploymentsLatch.countDown()));
         try {
             deploymentsLatch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        CountDownLatch senderLatch = new CountDownLatch(1);
-        vertx.undeploy(metricsSenderID, handler -> senderLatch.countDown());
-        try {
-            senderLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

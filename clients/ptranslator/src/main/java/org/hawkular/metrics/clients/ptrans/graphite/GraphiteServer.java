@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRESS;
 
-import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.jboss.logging.Logger;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServer;
 import io.vertx.core.parsetools.RecordParser;
 
@@ -51,7 +51,7 @@ public class GraphiteServer extends AbstractVerticle {
     public void start(Future<Void> startFuture) throws Exception {
         NetServer tcpServer = vertx.createNetServer();
         tcpServer.connectHandler(socket -> {
-            socket.handler(recordParser::handle);
+            socket.handler(recordParser);
         });
         tcpServer.listen(port, result -> {
             if (result.succeeded()) {
@@ -75,7 +75,10 @@ public class GraphiteServer extends AbstractVerticle {
         double value = Double.parseDouble(items[1]);
         long timestamp = MILLISECONDS.convert(Long.parseLong(items[2]), SECONDS);
 
-        SingleMetric metric = new SingleMetric(name, timestamp, value);
+        JsonObject metric = new JsonObject()
+                .put("id", name)
+                .put("timestamp", timestamp)
+                .put("value", value);
         vertx.eventBus().publish(METRIC_ADDRESS, metric);
     }
 }

@@ -22,54 +22,74 @@ package org.hawkular.metrics.clients.ptrans;
  * @author Thomas Segismont
  */
 public enum ConfigurationKey {
-    /** Services to start. */
+    /**
+     * Services to start.
+     */
     SERVICES("services"),
-    /** Multiplexed  UDP port. */
-    UDP_PORT("port.udp"),
-    /** Multiplexed  TCP port. */
-    TCP_PORT("port.tcp"),
-    /** Ganglia port. */
-    GANGLIA_PORT("ganglia.port"),
-    /** Ganglia group. */
-    GANGLIA_GROUP("ganglia.group"),
-    /** Explicit multicast interface. */
-    GANGLIA_MULTICAST_INTERFACE("multicast.interface"),
-    /** UDP port for statsd type of messages. */
-    STATSD_PORT("statsd.port"),
-    /** UDP port for collectd type of messages. */
-    COLLECTD_PORT("collectd.port"),
-    /** TCP port for graphite type of messages. */
-    GRAPHITE_PORT("graphite.port"),
-    /** REST endpoint. */
-    REST_URL("rest.url"),
-    /** If present the HTTP proxy to use. */
-    HTTP_PROXY("http.proxy"),
     /**
-     * Server type.
+     * Multiplexed  UDP port.
      */
-    SERVER_TYPE("server.type"),
+    SERVICES_UDP_PORT("services.port.udp"),
     /**
-     * Tenant. Used when server type is standalone Metrics.
+     * Multiplexed  TCP port.
      */
-    TENANT("tenant"),
+    SERVICES_TCP_PORT("services.port.tcp"),
     /**
-     * Authentication id. Used when server type is Hawkular.
+     * Ganglia port.
      */
-    AUTH_ID("auth.id"),
+    SERVICES_GANGLIA_PORT("services.ganglia.port"),
     /**
-     * Authentication secret. Used when server type is Hawkular.
+     * Ganglia group.
      */
-    AUTH_SECRET("auth.secret"),
+    SERVICES_GANGLIA_GROUP("services.ganglia.group"),
     /**
-     * Hawkular Persona id. Used when server type is Hawkular.
+     * Explicit multicast interface.
      */
-    PERSONA_ID("persona.id"),
-    /** Capacity of the buffer where incoming metrics are queued before sending to the backend. */
-    BUFFER_CAPACITY("buffer.capacity"),
-    /** Size of the metric batches sent to the backend. */
-    BATCH_SIZE("batch.size"),
-    /** Maximum number of HTTP connections used to send metrics to the backend. */
-    REST_MAX_CONNECTIONS("rest.max.connections");
+    SERVICES_GANGLIA_MULTICAST_INTERFACE("services.multicast.interface"),
+    /**
+     * UDP port for statsd type of messages.
+     */
+    SERVICES_STATSD_PORT("services.statsd.port"),
+    /**
+     * UDP port for collectd type of messages.
+     */
+    SERVICES_COLLECTD_PORT("services.collectd.port"),
+    /**
+     * TCP port for graphite type of messages.
+     */
+    SERVICES_GRAPHITE_PORT("services.graphite.port"),
+    /**
+     * Metrics service url.
+     */
+    METRICS_URL("metrics.url"),
+    /**
+     * Tenant Header switch. Older versions of Hawkular reject requests having a tenant header.
+     */
+    METRICS_TENANT_SEND("metrics.tenant.send"),
+    /**
+     * Tenant selection. Ignored if {@link #METRICS_TENANT_SEND} property is set to false.
+     */
+    METRICS_TENANT("metrics.tenant"),
+    /**
+     * Authentication switch.
+     */
+    METRICS_AUTH_ENABLED("metrics.auth.enabled"),
+    /**
+     * Authentication id.
+     */
+    METRICS_AUTH_ID("metrics.auth.id"),
+    /**
+     * Authentication secret.
+     */
+    METRICS_AUTH_SECRET("metrics.auth.secret"),
+    /**
+     * Maximum number of HTTP connections used to send metrics to the backend.
+     */
+    METRICS_MAX_CONNECTIONS("metrics.max-connections"),
+    /**
+     * Size of the metric batches sent to the backend.
+     */
+    METRICS_BATCH_SIZE("metrics.batch-size");
 
     private final String externalForm;
 

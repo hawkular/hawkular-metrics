@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -108,7 +108,7 @@ public class CollectdITest extends FullStackITest {
     @Override
     protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.COLLECTD.getExternalForm());
-        properties.setProperty(ConfigurationKey.COLLECTD_PORT.toString(), String.valueOf(35826));
+        properties.setProperty(ConfigurationKey.SERVICES_COLLECTD_PORT.toString(), String.valueOf(35826));
     }
 
     @Override

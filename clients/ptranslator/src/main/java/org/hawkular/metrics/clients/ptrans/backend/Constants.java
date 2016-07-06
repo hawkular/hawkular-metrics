@@ -16,18 +16,11 @@
  */
 package org.hawkular.metrics.clients.ptrans.backend;
 
-import io.vertx.core.http.HttpHeaders;
-
 /**
  * @author Thomas Segismont
  */
 public class Constants {
-
     public static final String METRIC_ADDRESS = "singlemetric";
-
-    public static final CharSequence TENANT_HEADER_NAME = HttpHeaders.createOptimized("Hawkular-Tenant");
-    public static final CharSequence PERSONA_HEADER_NAME = HttpHeaders.createOptimized("Hawkular-Persona");
-    public static final CharSequence APPLICATION_JSON = HttpHeaders.createOptimized("application/json");
 
     private Constants() {
         // Defensive

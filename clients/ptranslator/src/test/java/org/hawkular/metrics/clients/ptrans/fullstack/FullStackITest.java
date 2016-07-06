@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.hawkular.metrics.clients.ptrans.ConfigurationKey;
 import org.hawkular.metrics.clients.ptrans.data.Point;
@@ -62,9 +63,9 @@ abstract class FullStackITest extends ExecutableITestBase {
         try (InputStream in = new FileInputStream(ptransConfFile)) {
             properties.load(in);
         }
-        String restUrl = "http://" + BASE_URI + "/gauges/raw";
-        properties.setProperty(ConfigurationKey.REST_URL.toString(), restUrl);
-        properties.setProperty(ConfigurationKey.TENANT.toString(), tenant);
+        String restUrl = "http://" + BASE_URI;
+        properties.setProperty(ConfigurationKey.METRICS_URL.toString(), restUrl);
+        properties.setProperty(ConfigurationKey.METRICS_TENANT.toString(), tenant);
         changePTransConfig(properties);
         try (OutputStream out = new FileOutputStream(ptransConfFile)) {
             properties.store(out, "");
@@ -90,8 +91,10 @@ abstract class FullStackITest extends ExecutableITestBase {
         Collections.sort(expectedData, Point.POINT_COMPARATOR);
 
         ServerDataHelper serverDataHelper = new ServerDataHelper(tenant);
-        List<Point> serverData = serverDataHelper.getServerData();
-        Collections.sort(serverData, Point.POINT_COMPARATOR);
+        List<Point> serverData = serverDataHelper.getServerData().stream()
+                .filter(point -> !point.getName().startsWith("vertx."))
+                .sorted(Point.POINT_COMPARATOR)
+                .collect(Collectors.toList());
 
         String failureMsg = String.format(
                 Locale.ROOT, "Expected:%n%s%nActual:%n%s%n",
