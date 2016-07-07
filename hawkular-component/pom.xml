@@ -105,11 +105,6 @@
       <artifactId>cdi-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>io.undertow</groupId>
-      <artifactId>undertow-servlet</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <!-- Test dependencies -->
     <dependency>
       <groupId>ch.qos.logback</groupId>

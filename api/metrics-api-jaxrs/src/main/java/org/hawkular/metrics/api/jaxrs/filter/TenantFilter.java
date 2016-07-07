@@ -54,10 +54,8 @@ public class TenantFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        // TODO: remove /db when Influx endpoint is removed
-        if (path.startsWith("/tenants") || path.startsWith("/db") || path.startsWith(StatusHandler.PATH)
-            || path.equals(BaseHandler.PATH)) {
-            // Tenants, Influx and status handlers do not check the tenant header
+        if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
+            // Some handlers do not check the tenant header
             return;
         }
 
@@ -66,7 +64,6 @@ public class TenantFilter implements ContainerRequestFilter {
             // We're good already
             return;
         }
-
         // Fail on missing tenant info
         Response response = Response.status(Status.BAD_REQUEST)
                                     .type(APPLICATION_JSON_TYPE)
