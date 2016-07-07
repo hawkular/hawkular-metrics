@@ -49,6 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
