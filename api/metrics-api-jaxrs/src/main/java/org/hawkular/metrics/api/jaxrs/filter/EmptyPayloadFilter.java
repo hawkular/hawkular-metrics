@@ -22,7 +22,6 @@ import java.io.IOException;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
 /**
@@ -37,18 +36,9 @@ public class EmptyPayloadFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (!HttpMethod.POST.equals(requestContext.getMethod()) &&
-                !HttpMethod.PUT.equals(requestContext.getMethod())) {
-            return;
+        if (HttpMethod.POST.equals(requestContext.getMethod()) ||
+                HttpMethod.PUT.equals(requestContext.getMethod())) {
+            requestContext.setProperty(EMPTY_PAYLOAD, Boolean.TRUE);
         }
-        UriInfo uriInfo = requestContext.getUriInfo();
-        String path = uriInfo.getPath();
-        // TODO: remove when Influx endpoint is removed
-        if (path.startsWith("/db")) {
-            // Skip some endpoints:
-            // - Influx
-            return;
-        }
-        requestContext.setProperty(EMPTY_PAYLOAD, Boolean.TRUE);
     }
 }
