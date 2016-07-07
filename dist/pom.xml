@@ -31,8 +31,13 @@
 
   <name>Hawkular Metrics Distributions</name>
 
-  <modules>
-    <module>wildfly-standalone</module>
-    <module>wildfly-embedded-cassandra</module>
-  </modules>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <modules>
+        <module>wildfly-standalone</module>
+        <module>wildfly-embedded-cassandra</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
