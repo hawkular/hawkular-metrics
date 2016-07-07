@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,9 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import java.util.Date;
 import java.util.Map;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
@@ -38,10 +38,10 @@ import io.swagger.annotations.ApiOperation;
 @Path("/ping")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@ApplicationScoped
 public class PingHandler {
 
     @GET
-    @POST
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
             Map.class)
     public Response ping() {

@@ -28,8 +28,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import javax.inject.Inject;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
@@ -61,8 +62,12 @@ public abstract class MetricsServiceHandler {
     @Inject
     protected ObjectMapper mapper;
 
-    @HeaderParam(TENANT_HEADER_NAME)
-    protected String tenantId;
+    @Context
+    protected HttpHeaders httpHeaders;
+
+    protected String getTenant() {
+        return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
+    }
 
     protected <T> Response findRawDataPointsForMetrics(QueryRequest query, MetricType<T> type) {
         TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
@@ -87,7 +92,7 @@ public abstract class MetricsServiceHandler {
             return badRequest(new ApiError("Metric ids must be specified"));
         }
 
-        List<MetricId<T>> metricIds = query.getIds().stream().map(id -> new MetricId<>(tenantId, type, id))
+        List<MetricId<T>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type, id))
                 .collect(toList());
         Observable<NamedDataPoint<T>> dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
                 timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
@@ -132,7 +137,7 @@ public abstract class MetricsServiceHandler {
             return badRequest(new ApiError("Metric ids must be specified"));
         }
 
-        List<MetricId<? extends Number>> metricIds = query.getIds().stream().map(id -> new MetricId<>(tenantId, type,
+        List<MetricId<? extends Number>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type,
                 id)).collect(toList());
         Observable<NamedDataPoint<Double>> dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
                 timeRange.getEnd(), limit, order).observeOn(Schedulers.io());

@@ -31,11 +31,11 @@ import java.net.URI;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -44,6 +44,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
@@ -82,12 +83,21 @@ import rx.functions.Func1;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Metric")
+@ApplicationScoped
 public class MetricHandler {
     @Inject
     private MetricsService metricsService;
 
-    @HeaderParam(TENANT_HEADER_NAME)
-    private String tenantId;
+    @Context
+    private HttpHeaders httpHeaders;
+
+    private String getTenant() {
+        return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
+    }
+
+    public MetricHandler() {
+        System.out.println("MetricHandler.MetricHandler");
+    }
 
     @POST
     @Path("/")
@@ -112,7 +122,7 @@ public class MetricHandler {
         if (metric.getType() == null || !metric.getType().isUserType()) {
             asyncResponse.resume(badRequest(new ApiError("Metric type is invalid")));
         }
-        MetricId<T> id = new MetricId<>(tenantId, metric.getMetricId().getType(), metric.getId());
+        MetricId<T> id = new MetricId<>(getTenant(), metric.getMetricId().getType(), metric.getId());
         metric = new Metric<>(id, metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/{type}/{id}").build(MetricTypeTextConverter.getLongForm(id
                 .getType()), id.getName());
@@ -132,7 +142,7 @@ public class MetricHandler {
                             @ApiParam(value = "Queried metric type", allowableValues = "gauge, availability, counter")
                             @QueryParam("type") MetricType<T> metricType,
                             @ApiParam("Tag query") @PathParam("tags") Tags tags) {
-        metricsService.getTagValues(tenantId, metricType, tags.getTags())
+        metricsService.getTagValues(getTenant(), metricType, tags.getTags())
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -170,8 +180,8 @@ public class MetricHandler {
         }
 
         Observable<Metric<T>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(tenantId, metricType)
-                : metricsService.findMetricsWithFilters(tenantId, metricType, tags.getTags(), metricFuncs);
+                ? metricsService.findMetrics(getTenant(), metricType)
+                : metricsService.findMetricsWithFilters(getTenant(), metricType, tags.getTags(), metricFuncs);
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -214,12 +224,13 @@ public class MetricHandler {
             return;
         }
 
-        Observable<Metric<Double>> gauges = Functions.metricToObservable(tenantId, metricsRequest.getGauges(), GAUGE);
-        Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(tenantId,
+        Observable<Metric<Double>> gauges =
+                Functions.metricToObservable(getTenant(), metricsRequest.getGauges(), GAUGE);
+        Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(getTenant(),
                 metricsRequest.getAvailabilities(), AVAILABILITY);
-        Observable<Metric<Long>> counters = Functions.metricToObservable(tenantId, metricsRequest.getCounters(),
+        Observable<Metric<Long>> counters = Functions.metricToObservable(getTenant(), metricsRequest.getCounters(),
                 COUNTER);
-        Observable<Metric<String>> strings = Functions.metricToObservable(tenantId, metricsRequest.getStrings(),
+        Observable<Metric<String>> strings = Functions.metricToObservable(getTenant(), metricsRequest.getStrings(),
                 STRING);
 
         metricsService.addDataPoints(GAUGE, gauges)

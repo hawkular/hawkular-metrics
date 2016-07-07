@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -76,6 +77,7 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
         "releases that are not backwards compatible.")
+@ApplicationScoped
 public class StringHandler extends MetricsServiceHandler {
 
     @POST
@@ -103,7 +105,7 @@ public class StringHandler extends MetricsServiceHandler {
         if (metric.getType() != null && UNDEFINED != metric.getType() && STRING != metric.getType()) {
             asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + STRING.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, STRING, metric.getId()), metric.getTags(),
+        metric = new Metric<>(new MetricId<>(getTenant(), STRING, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/strings/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -124,8 +126,8 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
 
         Observable<Metric<String>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(tenantId, STRING)
-                : metricsService.findMetricsWithFilters(tenantId, STRING, tags.getTags());
+                ? metricsService.findMetrics(getTenant(), STRING)
+                : metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -148,7 +150,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 204, message = "Query was successful, but no metrics definition is set."),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.", response = ApiError.class) })
     public void getMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-        metricsService.findMetric(new MetricId<>(tenantId, STRING, id))
+        metricsService.findMetric(new MetricId<>(getTenant(), STRING, id))
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
@@ -165,7 +167,7 @@ public class StringHandler extends MetricsServiceHandler {
     })
     public void getTags(@Suspended final AsyncResponse asyncResponse,
             @ApiParam("Tag query") @PathParam("tags") Tags tags) {
-        metricsService.getTagValues(tenantId, STRING, tags.getTags())
+        metricsService.getTagValues(getTenant(), STRING, tags.getTags())
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -180,7 +182,7 @@ public class StringHandler extends MetricsServiceHandler {
     public void getMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, STRING, id))
+        metricsService.getMetricTags(new MetricId<>(getTenant(), STRING, id))
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -195,7 +197,7 @@ public class StringHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
-        Metric<String> metric = new Metric<>(new MetricId<>(tenantId, STRING, id));
+        Metric<String> metric = new Metric<>(new MetricId<>(getTenant(), STRING, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -210,7 +212,7 @@ public class StringHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names") @PathParam("tags") TagNames tags) {
-        Metric<String> metric = new Metric<>(new MetricId<>(tenantId, STRING, id));
+        Metric<String> metric = new Metric<>(new MetricId<>(getTenant(), STRING, id));
         metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -227,7 +229,7 @@ public class StringHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of string datapoints", required = true) List<DataPoint<String>> data
     ) {
-        Observable<Metric<String>> metrics = Functions.dataPointToObservable(tenantId, id, data,
+        Observable<Metric<String>> metrics = Functions.dataPointToObservable(getTenant(), id, data,
                 STRING);
         Observable<Void> observable = metricsService.addDataPoints(STRING, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
@@ -248,7 +250,7 @@ public class StringHandler extends MetricsServiceHandler {
             @JsonDeserialize()
                     List<Metric<String>> availabilities
     ) {
-        Observable<Metric<String>> metrics = Functions.metricToObservable(tenantId, availabilities,
+        Observable<Metric<String>> metrics = Functions.metricToObservable(getTenant(), availabilities,
                 STRING);
         Observable<Void> observable = metricsService.addDataPoints(STRING, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
@@ -297,7 +299,7 @@ public class StringHandler extends MetricsServiceHandler {
             return;
         }
 
-        MetricId<String> metricId = new MetricId<>(tenantId, STRING, id);
+        MetricId<String> metricId = new MetricId<>(getTenant(), STRING, id);
         if (limit != null) {
             if (order == null) {
                 if (start == null && end != null) {

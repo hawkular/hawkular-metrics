@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import static javax.ws.rs.core.MediaType.TEXT_HTML;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiOperation;
  * @author Matt Wringe
  */
 @Path(BaseHandler.PATH)
+@ApplicationScoped
 public class BaseHandler {
     public static final String PATH = "/";
 
