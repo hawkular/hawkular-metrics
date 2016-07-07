@@ -31,10 +31,6 @@
 
   <name>Hawkular Metrics Distributions</name>
 
-  <modules>
-    <module>wildfly-standalone</module>
-  </modules>
-
   <profiles>
     <profile>
       <id>release</id>
