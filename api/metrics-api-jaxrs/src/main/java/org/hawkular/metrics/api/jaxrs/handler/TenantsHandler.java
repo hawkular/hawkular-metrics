@@ -23,6 +23,7 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 
 import java.net.URI;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -54,6 +55,7 @@ import io.swagger.annotations.ApiResponses;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Tenant")
+@ApplicationScoped
 public class TenantsHandler {
 
     @Inject

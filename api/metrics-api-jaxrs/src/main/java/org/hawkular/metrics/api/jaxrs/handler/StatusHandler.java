@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiOperation;
 @Path(StatusHandler.PATH)
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@ApplicationScoped
 public class StatusHandler {
     public static final String PATH = "/status";
 

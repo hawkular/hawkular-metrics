@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -84,16 +85,8 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Counter")
+@ApplicationScoped
 public class CounterHandler extends MetricsServiceHandler {
-
-//    @Inject
-//    private MetricsService metricsService;
-//
-//    @Inject
-//    private ObjectMapper mapper;
-//
-//    @HeaderParam(TENANT_HEADER_NAME)
-//    private String tenantId;
 
     @POST
     @Path("/")
@@ -125,7 +118,7 @@ public class CounterHandler extends MetricsServiceHandler {
                     .resume(badRequest(new ApiError("Metric type does not match " + MetricType
                     .COUNTER.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, COUNTER, metric.getId()),
+        metric = new Metric<>(new MetricId<>(getTenant(), COUNTER, metric.getId()),
                 metric.getTags(), metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/counters/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -148,8 +141,8 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
 
         Observable<Metric<Long>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(tenantId, COUNTER)
-                : metricsService.findMetricsWithFilters(tenantId, COUNTER, tags.getTags());
+                ? metricsService.findMetrics(getTenant(), COUNTER)
+                : metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags.getTags());
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -174,7 +167,7 @@ public class CounterHandler extends MetricsServiceHandler {
                          response = ApiError.class) })
     public void getCounter(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
 
-        metricsService.findMetric(new MetricId<>(tenantId, COUNTER, id))
+        metricsService.findMetric(new MetricId<>(getTenant(), COUNTER, id))
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(noContent()))
@@ -192,7 +185,7 @@ public class CounterHandler extends MetricsServiceHandler {
     })
     public void getTags(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam("Tag query") @PathParam("tags") Tags tags) {
-        metricsService.getTagValues(tenantId, COUNTER, tags.getTags())
+        metricsService.getTagValues(getTenant(), COUNTER, tags.getTags())
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -208,7 +201,7 @@ public class CounterHandler extends MetricsServiceHandler {
     public void getMetricTags(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, COUNTER, id))
+        metricsService.getMetricTags(new MetricId<>(getTenant(), COUNTER, id))
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -224,7 +217,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        Metric<Long> metric = new Metric<>(new MetricId<>(getTenant(), COUNTER, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -242,7 +235,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names")
             @PathParam("tags") TagNames tags
     ) {
-        Metric<Long> metric = new Metric<>(new MetricId<>(tenantId, COUNTER, id));
+        Metric<Long> metric = new Metric<>(new MetricId<>(getTenant(), COUNTER, id));
         metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -259,7 +252,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Metric<Long>> counters
     ) {
-        Observable<Metric<Long>> metrics = Functions.metricToObservable(tenantId, counters, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.metricToObservable(getTenant(), counters, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -324,7 +317,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "List of data points containing timestamp and value", required = true)
             List<DataPoint<Long>> data
     ) {
-        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(tenantId, id, data, COUNTER);
+        Observable<Metric<Long>> metrics = Functions.dataPointToObservable(getTenant(), id, data, COUNTER);
         Observable<Void> observable = metricsService.addDataPoints(COUNTER, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -359,7 +352,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
 
         if ((bucketsCount != null || bucketDuration != null) &&
                 (limit != null || order != null)) {
@@ -466,7 +459,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -512,7 +505,7 @@ public class CounterHandler extends MetricsServiceHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
     ) {
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
 
         if (bucketsCount == null && bucketDuration == null) {
             asyncResponse
@@ -624,7 +617,7 @@ public class CounterHandler extends MetricsServiceHandler {
             return;
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
         if (buckets == null) {
 
@@ -694,7 +687,7 @@ public class CounterHandler extends MetricsServiceHandler {
             return;
         }
 
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
         Buckets buckets = bucketConfig.getBuckets();
 
         if (percentiles == null) {
@@ -762,12 +755,12 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         if (metricNames.isEmpty()) {
-            metricsService.findNumericStats(tenantId, MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), MetricType.COUNTER, tags.getTags(), timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
-            metricsService.findNumericStats(tenantId, MetricType.COUNTER, metricNames, timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), MetricType.COUNTER, metricNames, timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -849,12 +842,12 @@ public class CounterHandler extends MetricsServiceHandler {
         }
 
         if (metricNames.isEmpty()) {
-            metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), MetricType.COUNTER_RATE, tags.getTags(), timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
-            metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), MetricType.COUNTER_RATE, metricNames, timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -907,7 +900,7 @@ public class CounterHandler extends MetricsServiceHandler {
             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
             return;
         }
-        MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, id);
+        MetricId<Long> metricId = new MetricId<>(getTenant(), COUNTER, id);
         final Percentiles lPercentiles = percentiles != null ? percentiles
                 : new Percentiles(Collections.<Percentile> emptyList());
         metricsService.findCounterStats(metricId, tags.getTags(), timeRange.getStart(), timeRange.getEnd(),

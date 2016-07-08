@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -86,6 +87,7 @@ import rx.Observable;
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Gauge")
+@ApplicationScoped
 public class GaugeHandler extends MetricsServiceHandler {
 
     private Logger logger = Logger.getLogger(GaugeHandler.class);
@@ -115,7 +117,7 @@ public class GaugeHandler extends MetricsServiceHandler {
         if (metric.getType() != null && UNDEFINED != metric.getType() && GAUGE != metric.getType()) {
             asyncResponse.resume(badRequest(new ApiError("Metric type does not match " + GAUGE.getText())));
         }
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, metric.getId()), metric.getTags(),
+        metric = new Metric<>(new MetricId<>(getTenant(), GAUGE, metric.getId()), metric.getTags(),
                 metric.getDataRetention());
         URI location = uriInfo.getBaseUriBuilder().path("/gauges/{id}").build(metric.getMetricId().getName());
         metricsService.createMetric(metric, overwrite).subscribe(new MetricCreatedObserver(asyncResponse, location));
@@ -138,8 +140,8 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
 
         Observable<Metric<Double>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(tenantId, GAUGE)
-                : metricsService.findMetricsWithFilters(tenantId, GAUGE, tags.getTags());
+                ? metricsService.findMetrics(getTenant(), GAUGE)
+                : metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags.getTags());
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -163,7 +165,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric's definition.",
                          response = ApiError.class) })
     public void getGaugeMetric(@Suspended final AsyncResponse asyncResponse, @PathParam("id") String id) {
-        metricsService.findMetric(new MetricId<>(tenantId, GAUGE, id))
+        metricsService.findMetric(new MetricId<>(getTenant(), GAUGE, id))
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .map(metric -> Response.ok(metric).build())
                 .switchIfEmpty(Observable.just(ApiUtils.noContent()))
@@ -181,7 +183,7 @@ public class GaugeHandler extends MetricsServiceHandler {
     })
     public void getTags(@Suspended final AsyncResponse asyncResponse,
                         @ApiParam("Tag query") @PathParam("tags") Tags tags) {
-        metricsService.getTagValues(tenantId, GAUGE, tags.getTags())
+        metricsService.getTagValues(getTenant(), GAUGE, tags.getTags())
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -198,7 +200,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id
     ) {
-        metricsService.getMetricTags(new MetricId<>(tenantId, GAUGE, id))
+        metricsService.getMetricTags(new MetricId<>(getTenant(), GAUGE, id))
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
@@ -215,7 +217,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @PathParam("id") String id,
             @ApiParam(required = true) Map<String, String> tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(getTenant(), GAUGE, id));
         metricsService.addTags(metric, tags).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -233,7 +235,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "Tag names", allowableValues = "Comma-separated list of tag names")
             @PathParam("tags") TagNames tags
     ) {
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, id));
+        Metric<Double> metric = new Metric<>(new MetricId<>(getTenant(), GAUGE, id));
         metricsService.deleteTags(metric, tags.getNames()).subscribe(new ResultSetObserver(asyncResponse));
     }
 
@@ -252,7 +254,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "List of datapoints containing timestamp and value", required = true)
             List<DataPoint<Double>> data
     ) {
-        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(tenantId, id, data, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.dataPointToObservable(getTenant(), id, data, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -282,7 +284,7 @@ public class GaugeHandler extends MetricsServiceHandler {
     public void addGaugeData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges) {
-        Observable<Metric<Double>> metrics = Functions.metricToObservable(tenantId, gauges, GAUGE);
+        Observable<Metric<Double>> metrics = Functions.metricToObservable(getTenant(), gauges, GAUGE);
         Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
         observable.subscribe(new ResultSetObserver(asyncResponse));
     }
@@ -361,7 +363,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
 
         if ((bucketsCount != null || bucketDuration != null) &&
                 (limit != null || order != null)) {
@@ -465,7 +467,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
             ) {
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
 
         TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
@@ -511,7 +513,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
 
         if (bucketsCount == null && bucketDuration == null) {
             asyncResponse
@@ -627,12 +629,12 @@ public class GaugeHandler extends MetricsServiceHandler {
         }
 
         if (metricNames.isEmpty()) {
-            metricsService.findNumericStats(tenantId, GAUGE, tags.getTags(), timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), GAUGE, tags.getTags(), timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
-            metricsService.findNumericStats(tenantId, GAUGE, metricNames, timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), GAUGE, metricNames, timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -665,7 +667,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
             return;
         }
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
         if (percentiles == null) {
             percentiles = new Percentiles(Collections.emptyList());
         }
@@ -753,7 +755,7 @@ public class GaugeHandler extends MetricsServiceHandler {
                     )
             ));
         } else {
-            MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+            MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
             metricsService.getPeriods(metricId, predicate, timeRange.getStart(), timeRange.getEnd())
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -784,7 +786,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             return;
         }
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
 
         if (limit == null) {
             limit = 0;
@@ -840,7 +842,7 @@ public class GaugeHandler extends MetricsServiceHandler {
             return;
         }
 
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, id);
+        MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
         Buckets buckets = bucketConfig.getBuckets();
 
         if (percentiles == null) {
@@ -908,12 +910,12 @@ public class GaugeHandler extends MetricsServiceHandler {
         }
 
         if (metricNames.isEmpty()) {
-            metricsService.findNumericStats(tenantId, GAUGE_RATE, tags.getTags(), timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), GAUGE_RATE, tags.getTags(), timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         } else {
-            metricsService.findNumericStats(tenantId, GAUGE_RATE, metricNames, timeRange.getStart(),
+            metricsService.findNumericStats(getTenant(), GAUGE_RATE, metricNames, timeRange.getStart(),
                     timeRange.getEnd(), bucketConfig.getBuckets(), percentiles.getPercentiles(), stacked)
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
