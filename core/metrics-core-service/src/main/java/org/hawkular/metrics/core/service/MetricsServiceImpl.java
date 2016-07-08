@@ -51,7 +51,6 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
-import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;

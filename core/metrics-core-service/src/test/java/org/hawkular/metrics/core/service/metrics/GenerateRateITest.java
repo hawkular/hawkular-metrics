@@ -27,7 +27,8 @@ import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 
-import org.hawkular.metrics.datetime.DateTimeService;
+import org.hawkular.metrics.core.service.GenerateRate;
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;

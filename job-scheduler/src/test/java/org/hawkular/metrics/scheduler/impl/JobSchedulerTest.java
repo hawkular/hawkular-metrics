@@ -53,6 +53,8 @@ public class JobSchedulerTest {
     private static PreparedStatement findJob;
     private static PreparedStatement findScheduledJobs;
     private static PreparedStatement findFinishedJobs;
+    private static PreparedStatement getActiveTimeSlices;
+    private static PreparedStatement addActiveTimeSlice;
 
     @BeforeSuite
     public static void initSuite() {
@@ -78,6 +80,8 @@ public class JobSchedulerTest {
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
         findScheduledJobs = session.prepare("SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
         findFinishedJobs = session.prepare("SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
+        getActiveTimeSlices = session.prepare("SELECT distinct time_slice FROM active_time_slices");
+        addActiveTimeSlice = session.prepare("INSERT INTO active_time_slices (time_slice) VALUES (?)");
     }
 
     @BeforeTest
@@ -99,6 +103,17 @@ public class JobSchedulerTest {
     protected static void setActiveQueue(DateTime dateTime) {
         configurationService.save("org.hawkular.metrics.scheduler", "active-queue", Long.toString(dateTime.getMillis()))
                 .toBlocking().lastOrDefault(null);
+    }
+
+    protected Set<DateTime> getActiveTimeSlices() {
+        return session.execute(getActiveTimeSlices.bind()).all().stream().map(row -> new DateTime(row.getTimestamp(0)))
+                .collect(Collectors.toSet());
+    }
+
+    protected static void setActiveTimeSlices(DateTime... timeSlices) {
+        for (DateTime timmeSlice : timeSlices) {
+            session.execute(addActiveTimeSlice.bind(timmeSlice.toDate()));
+        }
     }
 
     protected static Set<UUID> getScheduledJobs(DateTime timeSlice) {

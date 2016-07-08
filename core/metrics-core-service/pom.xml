@@ -111,6 +111,12 @@
       <artifactId>jboss-logging-processor</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-datetime-service</artifactId>
+      <version>0.15.0-SNAPSHOT</version>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 

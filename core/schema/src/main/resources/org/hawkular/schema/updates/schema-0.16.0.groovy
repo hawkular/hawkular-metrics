@@ -68,3 +68,14 @@ CREATE TABLE finished_jobs_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
 }
+
+schemaChange {
+  version '2.4'
+  author 'jsanda'
+  tags '0.16.x'
+  cql """
+CREATE TABLE active_time_slices (
+    time_slice timestamp PRIMARY KEY
+) WITH compaction = { 'class' : 'LeveledCompactionStrategy' }
+"""
+}
