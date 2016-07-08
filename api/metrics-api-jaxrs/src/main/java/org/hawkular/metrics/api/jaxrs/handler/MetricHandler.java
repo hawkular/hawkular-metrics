@@ -95,10 +95,6 @@ public class MetricHandler {
         return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
     }
 
-    public MetricHandler() {
-        System.out.println("MetricHandler.MetricHandler");
-    }
-
     @POST
     @Path("/")
     @ApiOperation(value = "Create metric.", notes = "Clients are not required to explicitly create "
