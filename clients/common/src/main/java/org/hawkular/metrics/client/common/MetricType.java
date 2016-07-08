@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,10 @@ package org.hawkular.metrics.client.common;
  * @author Heiko W. Rupp
  */
 public enum MetricType {
-    SIMPLE,
-    TIMING,
     COUNTER,
-    GAUGE;
+    GAUGE,
+    AVAILABILITY,
+    STRING;
 
     public static MetricType from(String type) {
         switch (type) {
@@ -32,10 +32,12 @@ public enum MetricType {
             return COUNTER;
         case "g":
             return GAUGE;
-        case "ms":
-            return TIMING;
+        case "a":
+            return AVAILABILITY;
+        case "s":
+            return STRING;
         default:
-            return SIMPLE;
+            throw new IllegalArgumentException("Bad type: " + type);
         }
     }
 }
