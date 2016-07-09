@@ -16,6 +16,10 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
@@ -28,8 +32,11 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -48,8 +55,10 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.StatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
+import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
@@ -60,9 +69,14 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.MixedMetricsRequest;
+import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
+import org.hawkular.metrics.model.param.TimeRange;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ObjectArrays;
 
 import io.swagger.annotations.Api;
@@ -240,4 +254,66 @@ public class MetricHandler {
                         () -> asyncResponse.resume(Response.ok().build())
                 );
     }
+
+    @POST
+    @Path("/stats/query")
+    public void findStats(@Suspended AsyncResponse asyncResponse, StatsQueryRequest query) {
+        if (query.getBuckets() == null && query.getBucketDuration() == null) {
+            asyncResponse.resume(badRequest(new ApiError("Either the buckets or bucketDuration property must be set")));
+            return;
+        }
+
+        Duration duration;
+        if (query.getBucketDuration() == null) {
+            duration = null;
+        } else {
+            duration = new DurationConverter().fromString(query.getBucketDuration());
+        }
+        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+        BucketConfig bucketsConfig = new BucketConfig(query.getBuckets(), duration, timeRange);
+
+        if (query.getMetrics().containsKey("gauge") || query.getMetrics().containsKey("counter")) {
+            Observable<Map<String, List<NumericBucketPoint>>> gaugeStats;
+            if (query.getMetrics().get("gauge") != null && !query.getMetrics().get("gauge").isEmpty()) {
+                gaugeStats = Observable.from(query.getMetrics().get("gauge"))
+                        .flatMap(id -> metricsService.findGaugeStats(new MetricId<>(tenantId, GAUGE, id),
+                                bucketsConfig, emptyList())
+                                .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                        .collect(HashMap::new, (statsMap, namedBucketPoints) ->
+                                statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
+            } else {
+                gaugeStats = Observable.just(emptyMap());
+            }
+
+            Observable<Map<String, List<NumericBucketPoint>>> counterStats;
+            if (query.getMetrics().get("counter") != null && !query.getMetrics().get("counter").isEmpty()) {
+                counterStats = Observable.from(query.getMetrics().get("counter"))
+                        .flatMap(id -> metricsService.findCounterStats(new MetricId<>(tenantId, COUNTER, id),
+                                timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets(), emptyList())
+                                .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                        .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
+                                namedBucketPoints.bucketPoints));
+            } else {
+                counterStats = Observable.just(emptyMap());
+            }
+
+            Observable.zip(gaugeStats, counterStats, (gaugeMap, counterMap) -> ImmutableMap.of(
+                    "gauge", gaugeMap,
+                    "counter", counterMap))
+                    .first()
+                    .map(ApiUtils::mapToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+        }
+    }
+
+    private class NamedBucketPoints {
+        public String id;
+        public List<NumericBucketPoint> bucketPoints;
+
+        public NamedBucketPoints(String id, List<NumericBucketPoint> bucketPoints) {
+            this.id = id;
+            this.bucketPoints = bucketPoints;
+        }
+    }
+
 }

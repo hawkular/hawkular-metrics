@@ -16,26 +16,23 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
-
-import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
-
-import java.util.concurrent.atomic.AtomicInteger
-
-import org.apache.commons.math3.stat.descriptive.moment.Mean
-import org.joda.time.DateTime
-import org.junit.BeforeClass
-
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-
+import groovy.json.JsonOutput
 import groovyx.net.http.ContentType
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
+import org.apache.commons.math3.stat.descriptive.moment.Mean
+import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
+import org.joda.time.DateTime
+import org.junit.BeforeClass
+
+import java.util.concurrent.atomic.AtomicInteger
+
+import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
 
 class RESTTest {
 
@@ -198,6 +195,12 @@ Actual: ${actual}
     Mean mean = new Mean()
     values.each { mean.increment(it as double) }
     return mean.result
+  }
+
+  static double median(List values) {
+    PSquarePercentile median = new PSquarePercentile(50.0)
+    values.each { median.increment(it as double) }
+    return median.result
   }
 
   static double rate(Map dataPointX, Map dataPointY) {
