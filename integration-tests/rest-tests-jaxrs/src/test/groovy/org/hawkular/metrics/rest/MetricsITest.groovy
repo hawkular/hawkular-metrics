@@ -596,27 +596,50 @@ class MetricsITest extends RESTTest {
               ]
           ]
       ]
-      assertEquals(expected.size(), response.data.size())
-      assertEquals(expected.gauge.size(), response.data.gauge.size())
-      assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
-      assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
-      assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
-      assertEquals(expected.gauge.G3.size(), response.data.gauge.G3.size())
-      assertNumericBucketEquals('The data for G3[0] does not match', expected.gauge.G3[0], response.data.gauge.G3[0])
-      assertNumericBucketEquals('The data for G3[1] does not match', expected.gauge.G3[1], response.data.gauge.G3[1])
+
+      def verifyResponse = {
+        assertEquals(expected.size(), response.data.size())
+        assertEquals(expected.gauge.size(), response.data.gauge.size())
+        assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
+        assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
+        assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
+        assertEquals(expected.gauge.G3.size(), response.data.gauge.G3.size())
+        assertNumericBucketEquals('The data for G3[0] does not match', expected.gauge.G3[0], response.data.gauge.G3[0])
+        assertNumericBucketEquals('The data for G3[1] does not match', expected.gauge.G3[1], response.data.gauge.G3[1])
 
 
-      assertEquals(expected.counter.size(), response.data.counter.size())
-      assertEquals(expected.counter.C2.size(), response.data.counter.C2.size())
-      assertNumericBucketEquals('The data for C2[0] does not match', expected.counter.C2[0],
-          response.data.counter.C2[0])
-      assertNumericBucketEquals('The data for C2[1] does not match', expected.counter.C2[1],
-          response.data.counter.C2[1])
-      assertEquals(expected.counter.C3.size(), response.data.counter.C3.size())
-      assertNumericBucketEquals('The data for C3[0] does not match', expected.counter.C3[0],
-          response.data.counter.C3[0])
-      assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
-          response.data.counter.C3[1])
+        assertEquals(expected.counter.size(), response.data.counter.size())
+        assertEquals(expected.counter.C2.size(), response.data.counter.C2.size())
+        assertNumericBucketEquals('The data for C2[0] does not match', expected.counter.C2[0],
+            response.data.counter.C2[0])
+        assertNumericBucketEquals('The data for C2[1] does not match', expected.counter.C2[1],
+            response.data.counter.C2[1])
+        assertEquals(expected.counter.C3.size(), response.data.counter.C3.size())
+        assertNumericBucketEquals('The data for C3[0] does not match', expected.counter.C3[0],
+            response.data.counter.C3[0])
+        assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
+            response.data.counter.C3[1])
+      }
+
+      verifyResponse()
+
+      // now query using bucketDuration instead of buckets
+      response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  gauge: ['G1', 'G3'],
+                  counter: ['C2', 'C3']
+              ],
+              bucketDuration: '150ms',
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      verifyResponse()
     })
   }
 
@@ -703,6 +726,106 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
+  void fetchStatsWithPercentilesFromGauges() {
+    String tenantId = nextTenantId()
+    withGaugeAndCounterData(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  gauge: ['G1', 'G3'],
+              ],
+              buckets: 2,
+              percentiles: '95,99',
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      def expected = [
+          gauge: [
+              G1: [
+                  [
+                      start: 200,
+                      end: 350,
+                      samples: 2,
+                      max: 5.34,
+                      min: 3.45,
+                      avg: avg([3.45, 5.34]),
+                      sum: 3.45 + 5.34,
+                      median: median([3.45, 5.34]),
+                      percentiles: [
+                          [quantile: 0.95, value: percentile(95, [3.45, 5.34])],
+                          [quantile: 0.99, value: percentile(99, [3.45, 5.34])]
+                      ],
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 2.22,
+                      min: 2.22,
+                      avg: 2.22,
+                      median: 2.22,
+                      sum: 2.22,
+                      percentiles: [
+                          [quantile: 0.95, value: percentile(95, [2.22])],
+                          [quantile: 0.99, value: percentile(99, [2.22])]
+                      ],
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              G3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 5.55,
+                      min: 4.44,
+                      avg: avg([5.55, 4.44]),
+                      median: median([5.55, 4.44]),
+                      sum: 5.55 + 4.44,
+                      percentiles: [
+                          [quantile: 0.95, value: percentile(95, [4.44, 5.55])],
+                          [quantile: 0.99, value: percentile(99, [4.44, 5.55])]
+                      ],
+                      samples: 2,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 3.33,
+                      min: 3.33,
+                      avg: 3.33,
+                      median: 3.33,
+                      sum: 3.33,
+                      percentiles: [
+                          [quantile: 0.95, value: percentile(95, [3.33])],
+                          [quantile: 0.99, value: percentile(99, [3.33])]
+                      ],
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ],
+          counter: []
+      ]
+      printJson(response.data)
+      assertEquals(expected.size(), response.data.size())
+      assertTrue(response.data.counter.isEmpty())
+      assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
+      assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
+      assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
+      assertEquals(expected.gauge.G3.size(), response.data.gauge.G3.size())
+      assertNumericBucketEquals('The data for G3[0] does not match', expected.gauge.G3[0], response.data.gauge.G3[0])
+      assertNumericBucketEquals('The data for G3[1] does not match', expected.gauge.G3[1], response.data.gauge.G3[1])
+    })
+  }
+
+  @Test
   void fetchStatsFromCounters() {
     String tenantId = nextTenantId()
     withGaugeAndCounterData(tenantId, {
@@ -773,7 +896,6 @@ class MetricsITest extends RESTTest {
               ]
           ]
       ]
-      printJson(response.data)
       assertEquals(expected.size(), response.data.size())
       assertEquals(expected.gauge.size(), response.data.gauge.size())
 

@@ -35,7 +35,7 @@ public class StatsQueryRequest {
 
     private String bucketDuration;
 
-    private List<Double> percentiles;
+    private String percentiles;
 
     public Map<String, List<String>> getMetrics() {
         return metrics;
@@ -77,11 +77,11 @@ public class StatsQueryRequest {
         this.bucketDuration = bucketDuration;
     }
 
-    public List<Double> getPercentiles() {
+    public String getPercentiles() {
         return percentiles;
     }
 
-    public void setPercentiles(List<Double> percentiles) {
+    public void setPercentiles(String percentiles) {
         this.percentiles = percentiles;
     }
 

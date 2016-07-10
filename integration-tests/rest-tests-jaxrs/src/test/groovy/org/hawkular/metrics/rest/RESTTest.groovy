@@ -30,8 +30,10 @@ import org.junit.BeforeClass
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import static junit.framework.Assert.assertNull
 import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
 class RESTTest {
@@ -188,6 +190,20 @@ Actual: ${actual}
       assertDoubleEquals(msg, expected.median, actual.median)
       assertDoubleEquals(msg, expected.max, actual.max)
       assertDoubleEquals(msg, expected.sum, actual.sum)
+      assertPercentilesEquals(expected.percentiles, actual.percentiles)
+    }
+  }
+
+  static void assertPercentilesEquals(def expected, def actual) {
+    if (expected == null) {
+      assertNull(actual)
+    } else {
+      assertEquals(expected.size(), actual.size())
+      expected.each { expectedP ->
+        def actualP = actual.find { it.quantile == expectedP.quantile }
+        assertNotNull(actualP)
+        assertDoubleEquals(expectedP.value, actualP.value)
+      }
     }
   }
 
@@ -201,6 +217,12 @@ Actual: ${actual}
     PSquarePercentile median = new PSquarePercentile(50.0)
     values.each { median.increment(it as double) }
     return median.result
+  }
+
+  static double percentile(double p, List values) {
+    PSquarePercentile percentile = new PSquarePercentile(p)
+    values.each { percentile.increment(it as double) }
+    return percentile.result
   }
 
   static double rate(Map dataPointX, Map dataPointY) {

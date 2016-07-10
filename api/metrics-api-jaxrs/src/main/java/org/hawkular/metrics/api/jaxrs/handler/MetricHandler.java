@@ -59,6 +59,7 @@ import org.hawkular.metrics.api.jaxrs.StatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
+import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
@@ -272,12 +273,19 @@ public class MetricHandler {
         TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
         BucketConfig bucketsConfig = new BucketConfig(query.getBuckets(), duration, timeRange);
 
+        List<Double> percentiles;
+        if (query.getPercentiles() == null) {
+            percentiles = emptyList();
+        } else {
+            percentiles = new PercentilesConverter().fromString(query.getPercentiles()).getPercentiles();
+        }
+
         if (query.getMetrics().containsKey("gauge") || query.getMetrics().containsKey("counter")) {
             Observable<Map<String, List<NumericBucketPoint>>> gaugeStats;
             if (query.getMetrics().get("gauge") != null && !query.getMetrics().get("gauge").isEmpty()) {
                 gaugeStats = Observable.from(query.getMetrics().get("gauge"))
                         .flatMap(id -> metricsService.findGaugeStats(new MetricId<>(tenantId, GAUGE, id),
-                                bucketsConfig, emptyList())
+                                bucketsConfig, percentiles)
                                 .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
                         .collect(HashMap::new, (statsMap, namedBucketPoints) ->
                                 statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
@@ -289,7 +297,7 @@ public class MetricHandler {
             if (query.getMetrics().get("counter") != null && !query.getMetrics().get("counter").isEmpty()) {
                 counterStats = Observable.from(query.getMetrics().get("counter"))
                         .flatMap(id -> metricsService.findCounterStats(new MetricId<>(tenantId, COUNTER, id),
-                                timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets(), emptyList())
+                                timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets(), percentiles)
                                 .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
                         .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
                                 namedBucketPoints.bucketPoints));
