@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +26,7 @@ import java.util.Objects;
  */
 public class StatsQueryRequest {
 
-    private Map<String, List<String>> metrics;
+    private Map<String, List<String>> metrics = new HashMap<>();
 
     private Long start;
 
@@ -36,6 +37,8 @@ public class StatsQueryRequest {
     private String bucketDuration;
 
     private String percentiles;
+
+    private String tags;
 
     public Map<String, List<String>> getMetrics() {
         return metrics;
@@ -85,12 +88,21 @@ public class StatsQueryRequest {
         this.percentiles = percentiles;
     }
 
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         StatsQueryRequest that = (StatsQueryRequest) o;
         return Objects.equals(metrics, that.metrics) &&
+                Objects.equals(tags, that.tags) &&
                 Objects.equals(start, that.start) &&
                 Objects.equals(end, that.end) &&
                 Objects.equals(buckets, that.buckets) &&
@@ -106,6 +118,7 @@ public class StatsQueryRequest {
     @Override public String toString() {
         return "StatsQueryRequest{" +
                 "metrics=" + metrics +
+                "tags=" +
                 ", start=" + start +
                 ", end=" + end +
                 ", buckets=" + buckets +

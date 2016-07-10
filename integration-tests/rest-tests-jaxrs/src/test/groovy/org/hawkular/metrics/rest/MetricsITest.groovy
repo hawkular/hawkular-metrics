@@ -398,6 +398,31 @@ class MetricsITest extends RESTTest {
   }
 
   def withGaugeAndCounterData(String tenantId, Closure callback) {
+    def createGauge = { id, tags ->
+      def response = hawkularMetrics.post(
+          path: 'gauges',
+          body: [id: id, tags: tags],
+          headers: [(tenantHeaderName): tenantId]
+      )
+      assertEquals(201, response.status)
+    }
+    def createCounter = { id, tags ->
+      def response = hawkularMetrics.post(
+          path: 'counters',
+          body: [id: id, tags: tags],
+          headers: [(tenantHeaderName): tenantId]
+      )
+      assertEquals(201, response.status)
+    }
+
+    createGauge('G1', [x: 1, y: 1, z: 1])
+    createGauge('G2', [x: 1, y: 2, z: 2])
+    createGauge('G3', [x: 2, y: 3, z: 1])
+
+    createCounter('C1', [x: 1, y: 1, z: 3])
+    createCounter('C2', [x: 1, y: 2, z: 1])
+    createCounter('C3', [x: 2, y: 3, z: 1])
+
     def response = hawkularMetrics.post(
         path: "gauges/raw",
         headers: [(tenantHeaderName): tenantId],
@@ -640,6 +665,20 @@ class MetricsITest extends RESTTest {
       assertEquals(200, response.status)
 
       verifyResponse()
+
+      // now query by tags instead of ids
+      response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              buckets: 2,
+              start: 200,
+              end: 500,
+              tags: 'z:1'
+          ]
+      )
+
+      verifyResponse()
     })
   }
 
@@ -813,7 +852,6 @@ class MetricsITest extends RESTTest {
           ],
           counter: []
       ]
-      printJson(response.data)
       assertEquals(expected.size(), response.data.size())
       assertTrue(response.data.counter.isEmpty())
       assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
