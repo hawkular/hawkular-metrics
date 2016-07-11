@@ -126,6 +126,7 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
         try {
             if (currentMetric == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setHeader("Content-Type", "application/json");
                 ApiError apiError = new ApiError(Throwables.getRootCause(e).getMessage());
                 mapper.writeValue(response.getOutputStream(), apiError);
             } else {
