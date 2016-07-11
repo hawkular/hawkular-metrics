@@ -17,14 +17,20 @@
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.jboss.logging.Logger;
 
+import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 
 import rx.Subscriber;
 
@@ -39,16 +45,25 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
         void call(NamedDataPoint<T> dataPoint) throws IOException;
     }
 
+    private final HttpServletRequest request;
+    private final HttpServletResponse response;
+    private final ObjectMapper mapper;
     private final JsonGenerator generator;
-    private final CountDownLatch latch;
     private final WriteValue<T> writeValue;
 
     private volatile String currentMetric;
 
 
-    public NamedDataPointObserver(JsonGenerator generator, CountDownLatch latch, MetricType<T> type) {
-        this.generator = generator;
-        this.latch = latch;
+    public NamedDataPointObserver(HttpServletRequest request, HttpServletResponse response, ObjectMapper mapper,
+                                  MetricType<T> type) {
+        this.request = request;
+        this.response = response;
+        this.mapper = mapper;
+        try {
+            this.generator = mapper.getFactory().createGenerator(response.getOutputStream(), JsonEncoding.UTF8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         if (type == MetricType.GAUGE || type == MetricType.GAUGE_RATE || type == MetricType.COUNTER_RATE) {
             writeValue = dataPoint -> generator.writeNumberField("value", (Double) dataPoint.getValue());
         } else if (type == MetricType.COUNTER) {
@@ -68,9 +83,11 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
 
     @Override
     public void onNext(NamedDataPoint<T> dataPoint) {
-        log.trace("Next data point is " + dataPoint);
         try {
             if (currentMetric == null) {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setHeader("Content-Type", "application/json");
+
                 generator.writeStartArray();
                 generator.writeStartObject();
                 generator.writeStringField("id", dataPoint.getName());
@@ -105,13 +122,18 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
 
     @Override
     public void onError(Throwable e) {
+        log.trace("Fetching data failed", e);
         try {
-            log.warn("Fetching data failed", e);
-            generator.close();
-        } catch (IOException e1) {
-            log.error("Failed to close " + generator.getClass().getName());
+            if (currentMetric == null) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                ApiError apiError = new ApiError(Throwables.getRootCause(e).getMessage());
+                mapper.writeValue(response.getOutputStream(), apiError);
+            } else {
+                generator.close();
+            }
+        } catch (IOException ignored) {
         } finally {
-            latch.countDown();
+            request.getAsyncContext().complete();
         }
     }
 
@@ -119,19 +141,17 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
     public void onCompleted() {
         try {
             if (currentMetric == null) {
-                generator.writeStartArray();
-                generator.writeEndArray();
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             } else {
                 generator.writeEndArray();
                 generator.writeEndObject();
                 generator.writeEndArray();
             }
             generator.close();
-            latch.countDown();
         } catch (IOException e) {
-            log.warn("Error while finishing streaming data", e);
+            log.trace("Error while finishing streaming data", e);
         } finally {
-            latch.countDown();
+            request.getAsyncContext().complete();
         }
     }
 }

@@ -25,14 +25,13 @@ import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import javax.inject.Inject;
-import javax.ws.rs.WebApplicationException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
@@ -43,9 +42,8 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import rx.Observable;
@@ -69,10 +67,12 @@ public abstract class MetricsServiceHandler {
         return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
     }
 
-    protected <T> Response findRawDataPointsForMetrics(QueryRequest query, MetricType<T> type) {
+    protected <T> void findRawDataPointsForMetrics(AsyncResponse asyncResponse, QueryRequest query,
+                                                   MetricType<T> type) {
         TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
         if (!timeRange.isValid()) {
-            return badRequest(new ApiError(timeRange.getProblem()));
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
         }
 
         int limit;
@@ -89,7 +89,8 @@ public abstract class MetricsServiceHandler {
         }
 
         if (query.getIds().isEmpty()) {
-            return badRequest(new ApiError("Metric ids must be specified"));
+            asyncResponse.resume(badRequest(new ApiError("Metric ids must be specified")));
+            return;
         }
 
         List<MetricId<T>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type, id))
@@ -97,27 +98,18 @@ public abstract class MetricsServiceHandler {
         Observable<NamedDataPoint<T>> dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
                 timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
 
-        StreamingOutput stream = output -> {
-            JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
-            CountDownLatch latch = new CountDownLatch(1);
-            dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, type));
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
 
-            try {
-                // We have to block here and wait for all of the results to be streamed before returning; otherwise,
-                // we will return too soon and the container will close the stream early.
-                latch.await();
-            } catch (InterruptedException e) {
-                throw new WebApplicationException("There was an interrupt while fetching raw data points", e);
-            }
-        };
-
-        return Response.ok(stream).build();
+        dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, type));
     }
 
-    protected Response findRateDataPointsForMetrics(QueryRequest query, MetricType<? extends Number> type) {
+    protected void findRateDataPointsForMetrics(AsyncResponse asyncResponse, QueryRequest query,
+                                                MetricType<? extends Number> type) {
         TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
         if (!timeRange.isValid()) {
-            return badRequest(new ApiError(timeRange.getProblem()));
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
         }
 
         int limit;
@@ -134,7 +126,8 @@ public abstract class MetricsServiceHandler {
         }
 
         if (query.getIds().isEmpty()) {
-            return badRequest(new ApiError("Metric ids must be specified"));
+            asyncResponse.resume(badRequest(new ApiError("Metric ids must be specified")));
+            return;
         }
 
         List<MetricId<? extends Number>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type,
@@ -142,25 +135,15 @@ public abstract class MetricsServiceHandler {
         Observable<NamedDataPoint<Double>> dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
                 timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
 
-        StreamingOutput stream = output -> {
-            JsonGenerator generator = mapper.getFactory().createGenerator(output, JsonEncoding.UTF8);
-            CountDownLatch latch = new CountDownLatch(1);
-            if (type == GAUGE) {
-                dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, GAUGE));
-            } else if (type == COUNTER) {
-                dataPoints.subscribe(new NamedDataPointObserver<>(generator, latch, COUNTER_RATE));
-            } else {
-                throw new IllegalArgumentException(type + " is not a supported metric type for rate data points");
-            }
-            try {
-                // We have to block here and wait for all of the results to be streamed before returning; otherwise,
-                // we will return too soon and the container will close the stream early.
-                latch.await();
-            } catch (InterruptedException e) {
-                throw new WebApplicationException("There was an interrupt while fetching raw data points", e);
-            }
-        };
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
 
-        return Response.ok(stream).build();
+        if (type == GAUGE) {
+            dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, GAUGE));
+        } else if (type == COUNTER) {
+            dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, COUNTER_RATE));
+        } else {
+            throw new IllegalArgumentException(type + " is not a supported metric type for rate data points");
+        }
     }
 }

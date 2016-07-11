@@ -298,10 +298,12 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
-    public Response getData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
-            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
-            QueryRequest query) {
-        return findRawDataPointsForMetrics(query, AVAILABILITY);
+    public void getData(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
+                    "The standard start, end, order, and limit query parameters are supported as well.")
+                    QueryRequest query) {
+        findRawDataPointsForMetrics(asyncResponse, query, AVAILABILITY);
     }
 
     @Deprecated
