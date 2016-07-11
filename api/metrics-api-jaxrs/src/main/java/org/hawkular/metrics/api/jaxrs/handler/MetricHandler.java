@@ -31,7 +31,6 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
