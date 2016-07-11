@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,12 +45,14 @@ public class NettyToVertxHandler extends SimpleChannelInboundHandler<Object> {
     protected void channelRead0(ChannelHandlerContext ctx, Object object) throws Exception {
         if (object instanceof SingleMetric) {
             SingleMetric singleMetric = (SingleMetric) object;
-            eventBus.publish(METRIC_ADDRESS, singleMetric);
+            eventBus.publish(METRIC_ADDRESS, SingleMetricConverter.toJsonObject(singleMetric));
         } else if (object instanceof List) {
             List<?> objects = (List<?>) object;
             objects.stream()
                    .filter(o -> o instanceof SingleMetric)
-                   .forEach(singleMetric -> eventBus.publish(METRIC_ADDRESS, singleMetric));
+                    .map(o -> (SingleMetric) o)
+                    .map(SingleMetricConverter::toJsonObject)
+                    .forEach(jsonObject -> eventBus.publish(METRIC_ADDRESS, jsonObject));
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,6 @@ import static org.hawkular.metrics.clients.ptrans.backend.Constants.METRIC_ADDRE
 import java.util.List;
 import java.util.ListIterator;
 
-import org.hawkular.metrics.client.common.SingleMetric;
 import org.hawkular.metrics.clients.ptrans.Configuration;
 import org.hawkular.metrics.clients.ptrans.collectd.event.CollectdEventsDecoder;
 import org.hawkular.metrics.clients.ptrans.collectd.event.Event;
@@ -35,6 +34,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.datagram.DatagramPacket;
 import io.vertx.core.datagram.DatagramSocket;
+import io.vertx.core.json.JsonObject;
 
 /**
  * @author Thomas Segismont
@@ -98,7 +98,10 @@ public class CollectdServer extends AbstractVerticle {
             if (values.size() > 1) {
                 sourceBuilder.append(".").append(iterator.previousIndex());
             }
-            SingleMetric metric = new SingleMetric(sourceBuilder.toString(), timestamp, value.doubleValue());
+            JsonObject metric = new JsonObject()
+                    .put("id", sourceBuilder.toString())
+                    .put("timestamp", timestamp)
+                    .put("value", value.doubleValue());
             vertx.eventBus().publish(METRIC_ADDRESS, metric);
         }
     }

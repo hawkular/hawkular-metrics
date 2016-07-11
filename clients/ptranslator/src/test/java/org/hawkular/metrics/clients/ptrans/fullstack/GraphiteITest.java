@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.clients.ptrans.fullstack;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -63,7 +62,7 @@ public class GraphiteITest extends FullStackITest {
     @Override
     protected void changePTransConfig(Properties properties) {
         properties.setProperty(ConfigurationKey.SERVICES.toString(), Service.GRAPHITE.getExternalForm());
-        properties.setProperty(ConfigurationKey.GRAPHITE_PORT.toString(), String.valueOf(12003));
+        properties.setProperty(ConfigurationKey.SERVICES_GRAPHITE_PORT.toString(), String.valueOf(12003));
     }
 
     @Override
@@ -124,10 +123,16 @@ public class GraphiteITest extends FullStackITest {
     }
 
     public static final class ListAppenderWriter extends AbstractOutputWriter {
+
+        public ListAppenderWriter() {
+            results.clear();
+        }
+
         private static final List<QueryResult> results = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public void write(Iterable<QueryResult> results) {
+            results.forEach(System.out::println);
             results.forEach(ListAppenderWriter.results::add);
         }
     }

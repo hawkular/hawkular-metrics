@@ -53,6 +53,11 @@
       <artifactId>vertx-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-hawkular-metrics</artifactId>
+      <version>${version.io.vertx.vertx-core}</version>
+    </dependency>
+    <dependency>
       <groupId>org.acplt</groupId>
       <artifactId>oncrpc</artifactId>
     </dependency>
@@ -136,21 +141,28 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
+        <artifactId>maven-shade-plugin</artifactId>
         <executions>
           <execution>
-            <id>all</id>
             <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>shade</goal>
             </goals>
             <configuration>
-              <descriptor>${project.basedir}/src/assembly/all/assembly.xml</descriptor>
-              <archive>
-                <manifest>
-                  <mainClass>org.hawkular.metrics.clients.ptrans.Main</mainClass>
-                </manifest>
-              </archive>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>all</shadedClassifierName>
+              <finalName>${project.build.finalName}-all</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>org.hawkular.metrics.clients.ptrans.Main</Main-Class>
+                  </manifestEntries>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/io.vertx.core.spi.VerticleFactory</resource>
+                </transformer>
+              </transformers>
             </configuration>
           </execution>
         </executions>

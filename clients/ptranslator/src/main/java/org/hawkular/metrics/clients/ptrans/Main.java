@@ -61,7 +61,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
-    private void start() {
+    private void start() throws InterruptedException {
         Options options = optionsFactory.getCommandOptions(true);
         Exception parseException = null;
         CommandLine cmd = null;

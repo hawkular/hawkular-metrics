@@ -14,36 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.clients.ptrans;
 
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.AUTH_ID;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.AUTH_SECRET;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BATCH_SIZE;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.BUFFER_CAPACITY;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.COLLECTD_PORT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_GROUP;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_MULTICAST_INTERFACE;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GANGLIA_PORT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.GRAPHITE_PORT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.HTTP_PROXY;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.PERSONA_ID;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_MAX_CONNECTIONS;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.REST_URL;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVER_TYPE;
+import static java.util.stream.Collectors.toList;
+
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_AUTH_ENABLED;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_AUTH_ID;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_AUTH_SECRET;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_BATCH_SIZE;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_MAX_CONNECTIONS;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_TENANT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_TENANT_SEND;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.METRICS_URL;
 import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.STATSD_PORT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TCP_PORT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.TENANT;
-import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.UDP_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_COLLECTD_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_GANGLIA_GROUP;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_GANGLIA_MULTICAST_INTERFACE;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_GANGLIA_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_GRAPHITE_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_STATSD_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_TCP_PORT;
+import static org.hawkular.metrics.clients.ptrans.ConfigurationKey.SERVICES_UDP_PORT;
 
 import java.net.URI;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.stream.Collectors;
+
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 /**
  * PTrans configuration holder. An instance can be created with
@@ -59,112 +65,87 @@ public class Configuration {
     private final int tcpPort;
     private final int gangliaPort;
     private final String gangliaGroup;
+    private final String multicastIfOverride;
     private final int statsDport;
     private final int collectdPort;
     private final int graphitePort;
-    private final String multicastIfOverride;
-    private final ServerType serverType;
-    private final URI restUrl;
-    private final URI httpProxy;
+    private final URI metricsUrl;
+    private final boolean sendTenant;
     private final String tenant;
+    private final boolean authEnabled;
     private final String authId;
     private final String authSecret;
-    private final String personaId;
-    private final int bufferCapacity;
+    private final JsonObject httpHeaders;
+    private final int maxConnections;
     private final int batchSize;
-    private final int restMaxConnections;
     private final Set<String> validationMessages;
 
-    private Configuration(
-            Set<Service> services,
-            int udpPort,
-            int tcpPort,
-            int gangliaPort,
-            String gangliaGroup,
-            int statsDport,
-            int collectdPort,
-            int graphitePort,
-            String multicastIfOverride,
-            ServerType serverType,
-            URI restUrl,
-            URI httpProxy,
-            String tenant,
-            String authId,
-            String authSecret,
-            String personaId,
-            int bufferCapacity,
-            int batchSize,
-            int restMaxConnections,
-            Set<String> validationMessages
-    ) {
+    private Configuration(Set<Service> services, int udpPort, int tcpPort, int gangliaPort, String gangliaGroup,
+                          String multicastIfOverride, int statsDport, int collectdPort, int graphitePort,
+                          URI metricsUrl, boolean sendTenant, String tenant, boolean authEnabled, String authId,
+                          String authSecret, JsonObject httpHeaders, int maxConnections, int batchSize,
+                          Set<String> validationMessages) {
         this.services = services;
         this.udpPort = udpPort;
         this.tcpPort = tcpPort;
         this.gangliaPort = gangliaPort;
+        this.gangliaGroup = gangliaGroup;
+        this.multicastIfOverride = multicastIfOverride;
         this.statsDport = statsDport;
         this.collectdPort = collectdPort;
-        this.gangliaGroup = gangliaGroup;
         this.graphitePort = graphitePort;
-        this.multicastIfOverride = multicastIfOverride;
-        this.serverType = serverType;
-        this.restUrl = restUrl;
-        this.httpProxy = httpProxy;
+        this.metricsUrl = metricsUrl;
+        this.sendTenant = sendTenant;
         this.tenant = tenant;
+        this.authEnabled = authEnabled;
         this.authId = authId;
         this.authSecret = authSecret;
-        this.personaId = personaId;
-        this.bufferCapacity = bufferCapacity;
+        this.httpHeaders = httpHeaders;
+        this.maxConnections = maxConnections;
         this.batchSize = batchSize;
-        this.restMaxConnections = restMaxConnections;
         this.validationMessages = Collections.unmodifiableSet(validationMessages);
     }
 
     public static Configuration from(Properties properties) {
         Set<String> validationMessages = new HashSet<>();
         Set<Service> services = getServices(properties, validationMessages);
-        int udpPort = getIntProperty(properties, UDP_PORT, 5140);
-        int tcpPort = getIntProperty(properties, TCP_PORT, 5140);
-        int gangliaPort = getIntProperty(properties, GANGLIA_PORT, 8649);
-        String gangliaGroup = properties.getProperty(GANGLIA_GROUP.toString(), "239.2.11.71");
-        String multicastIfOverride = properties.getProperty(GANGLIA_MULTICAST_INTERFACE.toString());
-        int statsDport = getIntProperty(properties, STATSD_PORT, 8125);
-        int collectdPort = getIntProperty(properties, COLLECTD_PORT, 25826);
-        int graphitePort = getIntProperty(properties, GRAPHITE_PORT, 2003);
-        ServerType serverType = getServerType(properties, validationMessages);
-        URI restUrl = URI.create(properties.getProperty(REST_URL.toString(),
+        int udpPort = getIntProperty(properties, SERVICES_UDP_PORT, 5140);
+        int tcpPort = getIntProperty(properties, SERVICES_TCP_PORT, 5140);
+        int gangliaPort = getIntProperty(properties, SERVICES_GANGLIA_PORT, 8649);
+        String gangliaGroup = properties.getProperty(SERVICES_GANGLIA_GROUP.toString(), "239.2.11.71");
+        String multicastIfOverride = properties.getProperty(SERVICES_GANGLIA_MULTICAST_INTERFACE.toString());
+        int statsDport = getIntProperty(properties, SERVICES_STATSD_PORT, 8125);
+        int collectdPort = getIntProperty(properties, SERVICES_COLLECTD_PORT, 25826);
+        int graphitePort = getIntProperty(properties, SERVICES_GRAPHITE_PORT, 2003);
+        URI metricsUrl = URI.create(properties.getProperty(METRICS_URL.toString(),
                 "http://localhost:8080/hawkular/metrics/gauges/raw"));
-        String proxyString = properties.getProperty(HTTP_PROXY.toString());
-        URI httpProxy = null;
-        if (proxyString != null && !proxyString.trim().isEmpty()) {
-            httpProxy = URI.create(proxyString);
-        }
-        String tenant = properties.getProperty(TENANT.toString(), "default");
-        String authId = properties.getProperty(AUTH_ID.toString());
-        String authSecret = properties.getProperty(AUTH_SECRET.toString());
-        String personaId = properties.getProperty(PERSONA_ID.toString());
-        int bufferCapacity = getIntProperty(properties, BUFFER_CAPACITY, 10000);
-        int batchSize = getIntProperty(properties, BATCH_SIZE, 50);
-        int restMaxConnections = getIntProperty(properties, REST_MAX_CONNECTIONS, 10);
+        boolean sendTenant = getBooleanProperty(properties, METRICS_TENANT_SEND.toString(), true);
+        String tenant = properties.getProperty(METRICS_TENANT.toString(), "default");
+        boolean authEnabled = getBooleanProperty(properties, METRICS_AUTH_ENABLED.toString(), false);
+        String authId = properties.getProperty(METRICS_AUTH_ID.toString());
+        String authSecret = properties.getProperty(METRICS_AUTH_SECRET.toString());
+        JsonObject httpHeaders = getHttpHeaders(properties);
+        int maxConnections = getIntProperty(properties, METRICS_MAX_CONNECTIONS, 10);
+        int batchSize = getIntProperty(properties, METRICS_BATCH_SIZE, 50);
         return new Configuration(
                 services,
                 udpPort,
                 tcpPort,
                 gangliaPort,
                 gangliaGroup,
+                multicastIfOverride,
                 statsDport,
                 collectdPort,
                 graphitePort,
-                multicastIfOverride,
-                serverType,
-                restUrl,
-                httpProxy,
+                metricsUrl,
+                sendTenant,
                 tenant,
+                authEnabled,
                 authId,
                 authSecret,
-                personaId,
-                bufferCapacity,
+                httpHeaders,
+                maxConnections,
                 batchSize,
-                restMaxConnections,
                 validationMessages
         );
     }
@@ -195,22 +176,56 @@ public class Configuration {
         return services;
     }
 
-    private static ServerType getServerType(Properties properties, Set<String> validationMessages) {
-        String serverTypeProperty = properties.getProperty(SERVER_TYPE.toString(),
-                ServerType.METRICS.getExternalForm());
-        ServerType serverType = ServerType.findByExternalForm(serverTypeProperty);
-        if (serverType == null) {
-            validationMessages.add(String.format(Locale.ROOT, "Unknown server type %s", serverTypeProperty));
-        }
-        return serverType;
-    }
-
     private static int getIntProperty(Properties properties, ConfigurationKey key, int defaultValue) {
         String property = properties.getProperty(key.toString());
         if (property == null) {
             return defaultValue;
         }
         return Integer.parseInt(property);
+    }
+
+    private static boolean getBooleanProperty(Properties properties, String name, boolean defaultValue) {
+        String property = properties.getProperty(name);
+        if (property == null) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(property);
+    }
+
+    private static JsonObject getHttpHeaders(Properties properties) {
+        JsonObject jsonObject = new JsonObject();
+        Set<Object> keys = properties.keySet();
+        String namePrefix = "metrics.http.header.";
+        String nameSuffix = ".name";
+        Set<String> headerIds = keys.stream().filter(k -> k instanceof String).map(String.class::cast)
+                .filter(name -> name.startsWith(namePrefix) && name.endsWith(nameSuffix))
+                .map(name -> name.substring(namePrefix.length(), name.length() - nameSuffix.length()))
+                .collect(Collectors.toSet());
+        headerIds.forEach(headerId -> {
+            String headerName = properties.getProperty(namePrefix + headerId + nameSuffix);
+            String valuePrefix = namePrefix + headerId + ".value.";
+            List<Integer> headerPriorities = keys.stream().filter(k -> k instanceof String).map(String.class::cast)
+                    .filter(name -> name.startsWith(valuePrefix))
+                    .map(name -> name.substring(valuePrefix.length()))
+                    .filter(orderStr -> orderStr.matches("\\d{1,2}"))
+                    .map(Integer::valueOf)
+                    .sorted()
+                    .collect(toList());
+            if (!headerPriorities.isEmpty()) {
+                if (headerPriorities.size() == 1) {
+                    String headerValue = properties.getProperty(valuePrefix + headerPriorities.iterator().next());
+                    jsonObject.put(headerName, headerValue);
+                } else {
+                    JsonArray headerValues = new JsonArray();
+                    headerPriorities.forEach(headerPriority -> {
+                        String headerValue = properties.getProperty(valuePrefix + headerPriority);
+                        headerValues.add(headerValue);
+                    });
+                    jsonObject.put(headerName, headerValues);
+                }
+            }
+        });
+        return jsonObject;
     }
 
     /**
@@ -263,20 +278,20 @@ public class Configuration {
         return multicastIfOverride;
     }
 
-    public ServerType getServerType() {
-        return serverType;
+    public URI getMetricsUrl() {
+        return metricsUrl;
     }
 
-    public URI getRestUrl() {
-        return restUrl;
-    }
-
-    public URI getHttpProxy() {
-        return httpProxy;
+    public boolean isSendTenant() {
+        return sendTenant;
     }
 
     public String getTenant() {
         return tenant;
+    }
+
+    public boolean isAuthEnabled() {
+        return authEnabled;
     }
 
     public String getAuthId() {
@@ -287,19 +302,15 @@ public class Configuration {
         return authSecret;
     }
 
-    public String getPersonaId() {
-        return personaId;
+    public JsonObject getHttpHeaders() {
+        return httpHeaders;
     }
 
-    public int getBufferCapacity() {
-        return bufferCapacity;
+    public int getMaxConnections() {
+        return maxConnections;
     }
 
     public int getBatchSize() {
         return batchSize;
-    }
-
-    public int getRestMaxConnections() {
-        return restMaxConnections;
     }
 }
