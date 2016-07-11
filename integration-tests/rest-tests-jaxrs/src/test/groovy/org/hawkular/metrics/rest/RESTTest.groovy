@@ -201,9 +201,26 @@ Actual: ${actual}
       assertEquals(expected.size(), actual.size())
       expected.each { expectedP ->
         def actualP = actual.find { it.quantile == expectedP.quantile }
-        assertNotNull(actualP)
-        assertDoubleEquals(expectedP.value, actualP.value)
+        assertNotNull("Expected to find $expectedP in $actual", actualP)
+        assertDoubleEquals("The percentile value is wrong", expectedP.value, actualP.value)
       }
+    }
+  }
+
+  static void assertAvailablityBucketEquals(String msg, def expected, def actual) {
+    assertEquals(msg, expected.start, actual.start)
+    assertEquals(msg, expected.end, actual.end)
+    assertEquals(msg, expected.empty, actual.empty)
+    if (!expected.empty) {
+      assertEquals(msg, expected.lastNotUptime, actual.lastNotUptime)
+      assertDoubleEquals(msg, expected.uptimeRatio, actual.uptimeRatio)
+      assertEquals(msg, expected.notUpCount, actual.notUpCount)
+      assertEquals(msg, expected.downtimeDuration, actual.downtimeDuration)
+      assertEquals(msg, expected.lastDowntime, actual.lastDowntime)
+      assertEquals(msg, expected.adminDuration, actual.adminDuration)
+      assertEquals(msg, expected.unknownDuration, actual.unknownDuration)
+      assertEquals(msg, expected.upDuration, actual.upDuration)
+      assertEquals(msg, expected.notUpDuration, actual.notUpDuration)
     }
   }
 

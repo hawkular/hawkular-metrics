@@ -397,7 +397,7 @@ class MetricsITest extends RESTTest {
     }
   }
 
-  def withGaugeAndCounterData(String tenantId, Closure callback) {
+  static def withDataPoints(String tenantId, Closure callback) {
     def createGauge = { id, tags ->
       def response = hawkularMetrics.post(
           path: 'gauges',
@@ -414,6 +414,14 @@ class MetricsITest extends RESTTest {
       )
       assertEquals(201, response.status)
     }
+    def createAvailability = { id, tags ->
+      def response = hawkularMetrics.post(
+          path: 'availability',
+          body: [id: id, tags: tags],
+          headers: [(tenantHeaderName): tenantId]
+      )
+      assertEquals(201, response.status)
+    }
 
     createGauge('G1', [x: 1, y: 1, z: 1])
     createGauge('G2', [x: 1, y: 2, z: 2])
@@ -422,6 +430,10 @@ class MetricsITest extends RESTTest {
     createCounter('C1', [x: 1, y: 1, z: 3])
     createCounter('C2', [x: 1, y: 2, z: 1])
     createCounter('C3', [x: 2, y: 3, z: 1])
+
+    createAvailability('A1', [x: 1, y: 1, z: 3])
+    createAvailability('A2', [x: 1, y: 2, z: 1])
+    createAvailability('A3', [x: 2, y: 3, z: 1])
 
     def response = hawkularMetrics.post(
         path: "gauges/raw",
@@ -459,6 +471,7 @@ class MetricsITest extends RESTTest {
             ]
         ]
     )
+    assertEquals(200, response.status)
     response = hawkularMetrics.post(
         path: "counters/raw",
         headers: [(tenantHeaderName): tenantId],
@@ -496,21 +509,59 @@ class MetricsITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
+    response = hawkularMetrics.post(
+        path: 'availability/raw',
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'A1',
+                data: [
+                    [timestamp: 100, value: 'up'],
+                    [timestamp: 200, value: 'up'],
+                    [timestamp: 300, value: 'down'],
+                    [timestamp: 400, value: 'down'],
+                    [timestamp: 500, value: 'up']
+                ]
+            ],
+            [
+                id: 'A2',
+                data: [
+                    [timestamp: 100, value: 'down'],
+                    [timestamp: 200, value: 'up'],
+                    [timestamp: 300, value: 'down'],
+                    [timestamp: 400, value: 'up'],
+                    [timestamp: 500, value: 'up']
+                ]
+            ],
+            [
+                id: 'A3',
+                data: [
+                    [timestamp: 100, value: 'up'],
+                    [timestamp: 200, value: 'down'],
+                    [timestamp: 300, value: 'down'],
+                    [timestamp: 400, value: 'up'],
+                    [timestamp: 500, value: 'up']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
     callback()
   }
 
   @Test
-  void fetchStatsFromGaugesAndCounters() {
+  void fetchStats() {
     String tenantId = nextTenantId()
 
-    withGaugeAndCounterData(tenantId, {
+    withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
           body: [
               metrics: [
                   gauge: ['G1', 'G3'],
-                  counter: ['C2', 'C3']
+                  counter: ['C2', 'C3'],
+                  availability: ['A2', 'A3']
               ],
               buckets: 2,
               start: 200,
@@ -619,6 +670,81 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ]
               ]
+          ],
+          availability: [
+              A2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      durationMap: [
+                          "AvailabilityType{code=1, text=down}": 50,
+                          "AvailabilityType{code=0, text=up}": 100
+                      ],
+                      lastNotUptime: 350,
+                      uptimeRatio: 100 / 150,
+                      notUpCount: 1,
+                      downtimeDuration: 50,
+                      lastDowntime: 350,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 100,
+                      notUpDuration: 50
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      durationMap: [
+                          "AvailabilityType{code=0, text=up}": 150
+                      ],
+                      lastNotUptime: 0,
+                      uptimeRatio: 1.0,
+                      notUpCount: 0,
+                      downtimeDuration: 0,
+                      lastDowntime: 0,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 150,
+                      notUpDuration: 0
+                  ]
+              ],
+              A3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      durationMap: [
+                          "AvailabilityType{code=1, text=down}": 150
+                      ],
+                      lastNotUptime: 350,
+                      uptimeRatio: 0.0,
+                      notUpCount: 1,
+                      downtimeDuration: 150,
+                      lastDowntime: 350,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 0,
+                      notUpDuration: 150
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      durationMap: [
+                          "AvailabilityType{code=0, text=up}": 150
+                      ],
+                      lastNotUptime: 0,
+                      uptimeRatio: 1.0,
+                      notUpCount: 0,
+                      downtimeDuration: 0,
+                      lastDowntime: 0,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 150,
+                      notUpDuration: 0
+                  ]
+              ]
           ]
       ]
 
@@ -644,6 +770,18 @@ class MetricsITest extends RESTTest {
             response.data.counter.C3[0])
         assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
             response.data.counter.C3[1])
+
+        assertEquals(expected.availability.size(), response.data.availability.size())
+        assertEquals(expected.availability.A2.size(), response.data.availability.A2.size())
+        assertAvailablityBucketEquals("The data for A2[0] does not match", expected.availability.A2[0],
+            response.data.availability.A2[0])
+        assertAvailablityBucketEquals("The data for A2[1] does not match", expected.availability.A2[1],
+            response.data.availability.A2[1])
+        assertEquals(expected.availability.A3.size(), response.data.availability.A3.size())
+        assertAvailablityBucketEquals('The data for A3[0] does not match', expected.availability.A3[0],
+            response.data.availability.A3[0])
+        assertAvailablityBucketEquals('The data for A3[1] does not match', expected.availability.A3[1],
+            response.data.availability.A3[1])
       }
 
       verifyResponse()
@@ -655,7 +793,8 @@ class MetricsITest extends RESTTest {
           body: [
               metrics: [
                   gauge: ['G1', 'G3'],
-                  counter: ['C2', 'C3']
+                  counter: ['C2', 'C3'],
+                  availability: ['A2', 'A3']
               ],
               bucketDuration: '150ms',
               start: 200,
@@ -685,7 +824,7 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchStatsFromGauges() {
     String tenantId = nextTenantId()
-    withGaugeAndCounterData(tenantId, {
+    withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -751,7 +890,8 @@ class MetricsITest extends RESTTest {
                   ]
               ]
           ],
-          counter: []
+          counter: [],
+          availability: []
       ]
       assertEquals(expected.size(), response.data.size())
       assertTrue(response.data.counter.isEmpty())
@@ -767,7 +907,7 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchStatsWithPercentilesFromGauges() {
     String tenantId = nextTenantId()
-    withGaugeAndCounterData(tenantId, {
+    withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -796,8 +936,8 @@ class MetricsITest extends RESTTest {
                       sum: 3.45 + 5.34,
                       median: median([3.45, 5.34]),
                       percentiles: [
-                          [quantile: 0.95, value: percentile(95, [3.45, 5.34])],
-                          [quantile: 0.99, value: percentile(99, [3.45, 5.34])]
+                          [quantile: 95, value: percentile(95, [3.45, 5.34])],
+                          [quantile: 99, value: percentile(99, [3.45, 5.34])]
                       ],
                       empty: false
                   ],
@@ -810,8 +950,8 @@ class MetricsITest extends RESTTest {
                       median: 2.22,
                       sum: 2.22,
                       percentiles: [
-                          [quantile: 0.95, value: percentile(95, [2.22])],
-                          [quantile: 0.99, value: percentile(99, [2.22])]
+                          [quantile: 95, value: percentile(95, [2.22])],
+                          [quantile: 99, value: percentile(99, [2.22])]
                       ],
                       samples: 1,
                       empty: false
@@ -827,8 +967,8 @@ class MetricsITest extends RESTTest {
                       median: median([5.55, 4.44]),
                       sum: 5.55 + 4.44,
                       percentiles: [
-                          [quantile: 0.95, value: percentile(95, [4.44, 5.55])],
-                          [quantile: 0.99, value: percentile(99, [4.44, 5.55])]
+                          [quantile: 95, value: percentile(95, [4.44, 5.55])],
+                          [quantile: 99, value: percentile(99, [4.44, 5.55])]
                       ],
                       samples: 2,
                       empty: false
@@ -842,16 +982,18 @@ class MetricsITest extends RESTTest {
                       median: 3.33,
                       sum: 3.33,
                       percentiles: [
-                          [quantile: 0.95, value: percentile(95, [3.33])],
-                          [quantile: 0.99, value: percentile(99, [3.33])]
+                          [quantile: 95, value: percentile(95, [3.33])],
+                          [quantile: 99, value: percentile(99, [3.33])]
                       ],
                       samples: 1,
                       empty: false
                   ]
               ]
           ],
-          counter: []
+          counter: [],
+          availability: []
       ]
+
       assertEquals(expected.size(), response.data.size())
       assertTrue(response.data.counter.isEmpty())
       assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
@@ -866,7 +1008,7 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchStatsFromCounters() {
     String tenantId = nextTenantId()
-    withGaugeAndCounterData(tenantId, {
+    withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -932,10 +1074,12 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ]
               ]
-          ]
+          ],
+          availability: []
       ]
       assertEquals(expected.size(), response.data.size())
       assertEquals(expected.gauge.size(), response.data.gauge.size())
+      assertEquals(expected.availability.size(), response.data.availability.size())
 
       assertEquals(expected.counter.size(), response.data.counter.size())
       assertEquals(expected.counter.C2.size(), response.data.counter.C2.size())
@@ -948,6 +1092,123 @@ class MetricsITest extends RESTTest {
           response.data.counter.C3[0])
       assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
           response.data.counter.C3[1])
+    })
+  }
+
+  @Test
+  void fetchStatsFromAvailabilities() {
+    String tenantId = nextTenantId()
+    withDataPoints(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  availability: ['A2', 'A3'],
+              ],
+              buckets: 2,
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      def expected = [
+          gauge: [],
+          counter: [],
+          availability: [
+              A2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      durationMap: [
+                          "AvailabilityType{code=1, text=down}": 50,
+                          "AvailabilityType{code=0, text=up}": 100
+                      ],
+                      lastNotUptime: 350,
+                      uptimeRatio: 100 / 150,
+                      notUpCount: 1,
+                      downtimeDuration: 50,
+                      lastDowntime: 350,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 100,
+                      notUpDuration: 50
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      durationMap: [
+                          "AvailabilityType{code=0, text=up}": 150
+                      ],
+                      lastNotUptime: 0,
+                      uptimeRatio: 1.0,
+                      notUpCount: 0,
+                      downtimeDuration: 0,
+                      lastDowntime: 0,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 150,
+                      notUpDuration: 0
+                  ]
+              ],
+              A3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      durationMap: [
+                          "AvailabilityType{code=1, text=down}": 150
+                      ],
+                      lastNotUptime: 350,
+                      uptimeRatio: 0.0,
+                      notUpCount: 1,
+                      downtimeDuration: 150,
+                      lastDowntime: 350,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 0,
+                      notUpDuration: 150
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      durationMap: [
+                          "AvailabilityType{code=0, text=up}": 150
+                      ],
+                      lastNotUptime: 0,
+                      uptimeRatio: 1.0,
+                      notUpCount: 0,
+                      downtimeDuration: 0,
+                      lastDowntime: 0,
+                      empty: false,
+                      adminDuration: 0,
+                      unknownDuration: 0,
+                      upDuration: 150,
+                      notUpDuration: 0
+                  ]
+              ]
+          ]
+      ]
+
+      printJson(response.data)
+      assertEquals(expected.size(), response.data.size())
+      assertEquals(expected.gauge.size(), response.data.gauge.size())
+      assertEquals(expected.counter.size(), response.data.counter.size())
+
+      assertEquals(expected.availability.size(), response.data.availability.size())
+      assertEquals(expected.availability.A2.size(), response.data.availability.A2.size())
+      assertAvailablityBucketEquals("The data for A2[0] does not match", expected.availability.A2[0],
+          response.data.availability.A2[0])
+      assertAvailablityBucketEquals("The data for A2[1] does not match", expected.availability.A2[1],
+          response.data.availability.A2[1])
+      assertEquals(expected.availability.A3.size(), response.data.availability.A3.size())
+      assertAvailablityBucketEquals('The data for A3[0] does not match', expected.availability.A3[0],
+          response.data.availability.A3[0])
+      assertAvailablityBucketEquals('The data for A3[1] does not match', expected.availability.A3[1],
+          response.data.availability.A3[1])
     })
   }
 
