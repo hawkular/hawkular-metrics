@@ -98,6 +98,8 @@ public abstract class BaseMetricsITest extends BaseITest {
         session.execute("TRUNCATE leases");
 
         metricsService.setDataAccess(dataAccess);
+        metricsService.clearMetricsIdxCaches();
+
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }
 
