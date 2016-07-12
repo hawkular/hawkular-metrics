@@ -39,7 +39,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -72,14 +71,12 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -159,6 +156,9 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(DISABLE_METRICS_JMX)
     private String disableMetricsJmxReporting;
+
+    @Inject
+    DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
     @ServiceReady
@@ -265,21 +265,43 @@ public class MetricsServiceLifecycle {
 
             initJobsService();
 
-            Configuration configuration = session.getCluster().getConfiguration();
-            LoadBalancingPolicy loadBalancingPolicy = configuration.getPolicies().getLoadBalancingPolicy();
-            PoolingOptions poolingOptions = configuration.getPoolingOptions();
-            lifecycleExecutor.scheduleAtFixedRate(() -> {
-                if (log.isDebugEnabled()) {
-                    Session.State state = session.getState();
-                    for (Host host : state.getConnectedHosts()) {
-                        HostDistance distance = loadBalancingPolicy.distance(host);
-                        int connections = state.getOpenConnections(host);
-                        int inFlightQueries = state.getInFlightQueries(host);
-                        log.debugf("%s connections=%d, current load=%d, max load=%d%n", host, connections,
-                                inFlightQueries, connections * poolingOptions.getMaxRequestsPerConnection(distance));
-                    }
+            session.getCluster().register(new Host.StateListener() {
+                @Override
+                public void onAdd(Host host) {
+                    update();
                 }
-            }, 5, 5, TimeUnit.SECONDS);
+
+                private void update() {
+                    lifecycleExecutor.submit(() -> {
+                        driverUsageMetricsManager.updateDriverUsageMetrics(session);
+                    });
+                }
+
+                @Override
+                public void onUp(Host host) {
+                    update();
+                }
+
+                @Override
+                public void onDown(Host host) {
+                    update();
+                }
+
+                @Override
+                public void onRemove(Host host) {
+                    update();
+                }
+
+                @Override
+                public void onRegister(Cluster cluster) {
+                    update();
+                }
+
+                @Override
+                public void onUnregister(Cluster cluster) {
+                    lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
+                }
+            });
 
             state = State.STARTED;
             log.infoServiceStarted();
