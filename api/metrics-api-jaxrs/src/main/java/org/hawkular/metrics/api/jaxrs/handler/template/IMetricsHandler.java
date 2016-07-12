@@ -35,12 +35,12 @@ import org.hawkular.metrics.model.param.Tags;
  * @author Stefan Negrea
  *
  */
-public interface IMetricsHandler<V> {
+public interface IMetricsHandler<T> {
 
     //Metric
     void getMetrics(AsyncResponse asyncResponse, Tags tags);
 
-    void createMetric(AsyncResponse asyncResponse, Metric<V> metric, Boolean overwrite, UriInfo uriInfo);
+    void createMetric(AsyncResponse asyncResponse, Metric<T> metric, Boolean overwrite, UriInfo uriInfo);
 
     void getMetric(AsyncResponse asyncResponse, String id);
 
@@ -54,11 +54,11 @@ public interface IMetricsHandler<V> {
     void deleteMetricTags(AsyncResponse asyncResponse, String id, TagNames tags);
 
     //Data
-    void addData(AsyncResponse asyncResponse, List<Metric<V>> metrics);
+    void addData(AsyncResponse asyncResponse, List<Metric<T>> metrics);
 
     Response getData(QueryRequest query);
 
-    void addMetricData(AsyncResponse asyncResponse, String id, List<DataPoint<V>> data);
+    void addMetricData(AsyncResponse asyncResponse, String id, List<DataPoint<T>> data);
 
     void getMetricData(AsyncResponse asyncResponse, String id, Long start, Long end, Boolean flag, Integer limit,
             Order order);
