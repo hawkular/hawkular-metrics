@@ -20,8 +20,6 @@ import org.joda.time.DateTime
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
 /**
  * @author jsanda
  */
@@ -552,7 +550,6 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchStats() {
     String tenantId = nextTenantId()
-
     withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
@@ -822,7 +819,7 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
-  void fetchStatsFromGauges() {
+  void fetchGaugeStats() {
     String tenantId = nextTenantId()
     withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
@@ -889,12 +886,9 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ]
               ]
-          ],
-          counter: [],
-          availability: []
+          ]
       ]
       assertEquals(expected.size(), response.data.size())
-      assertTrue(response.data.counter.isEmpty())
       assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
       assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
       assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
@@ -905,7 +899,146 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
-  void fetchStatsWithPercentilesFromGauges() {
+  void fetchGaugeStatsWithRates() {
+    String tenantId = nextTenantId()
+    withDataPoints(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  gauge: ['G1', 'G3'],
+              ],
+              types: ['gauge', 'gauge_rate'],
+              buckets: 2,
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      def expected = [
+          gauge: [
+              G1: [
+                  [
+                      start: 200,
+                      end: 350,
+                      samples: 2,
+                      max: 5.34,
+                      min: 3.45,
+                      avg: avg([3.45, 5.34]),
+                      sum: 3.45 + 5.34,
+                      median: median([3.45, 5.34]),
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 2.22,
+                      min: 2.22,
+                      avg: 2.22,
+                      median: 2.22,
+                      sum: 2.22,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              G3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 5.55,
+                      min: 4.44,
+                      avg: avg([5.55, 4.44]),
+                      median: median([5.55, 4.44]),
+                      sum: 5.55 + 4.44,
+                      samples: 2,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 3.33,
+                      min: 3.33,
+                      avg: 3.33,
+                      median: 3.33,
+                      sum: 3.33,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ],
+          gauge_rate: [
+              G1: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 1134,
+                      min: 1134,
+                      avg: 1134,
+                      median: 1134,
+                      sum: 1134,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: -1872,
+                      min: -1872,
+                      avg: -1872,
+                      median: -1872,
+                      sum: -1872,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              G3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: -666,
+                      min: -666,
+                      avg: -666,
+                      median: -666,
+                      sum: -666,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: -666,
+                      min: -666,
+                      avg: -666,
+                      median: -666,
+                      sum: -666,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ]
+      ]
+      assertEquals(expected.size(), response.data.size())
+      assertEquals(expected.gauge.size(), response.data.gauge.size())
+      assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
+      assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
+      assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
+      assertEquals(expected.gauge.G3.size(), response.data.gauge.G3.size())
+      assertNumericBucketEquals('The data for G3[0] does not match', expected.gauge.G3[0], response.data.gauge.G3[0])
+      assertNumericBucketEquals('The data for G3[1] does not match', expected.gauge.G3[1], response.data.gauge.G3[1])
+
+      assertEquals(expected.gauge_rate.size(), response.data.gauge_rate.size())
+      assertEquals(expected.gauge_rate.G1.size(), response.data.gauge_rate.G1.size())
+      assertNumericBucketEquals('The rate data for G1[0] does not match', expected.gauge_rate.G1[0],
+          response.data.gauge_rate.G1[0])
+      assertNumericBucketEquals('The rate data for G1[1] does not match', expected.gauge_rate.G1[1],
+          response.data.gauge_rate.G1[1])
+    })
+  }
+
+  @Test
+  void fetchGaugeStatsWithPercentiles() {
     String tenantId = nextTenantId()
     withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
@@ -989,13 +1122,10 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ]
               ]
-          ],
-          counter: [],
-          availability: []
+          ]
       ]
 
       assertEquals(expected.size(), response.data.size())
-      assertTrue(response.data.counter.isEmpty())
       assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
       assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
       assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
@@ -1006,7 +1136,7 @@ class MetricsITest extends RESTTest {
   }
 
   @Test
-  void fetchStatsFromCounters() {
+  void fetchCounterStats() {
     String tenantId = nextTenantId()
     withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
@@ -1024,7 +1154,93 @@ class MetricsITest extends RESTTest {
       assertEquals(200, response.status)
 
       def expected = [
-          gauge: [],
+          counter: [
+              C2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 64,
+                      min: 49,
+                      avg: avg([49, 64]),
+                      median: median([49, 64]),
+                      sum: 49 + 64,
+                      samples: 2,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 71,
+                      min: 71,
+                      avg: 71,
+                      median: 71,
+                      sum: 71,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              C3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 42,
+                      min: 35,
+                      avg: avg([35, 42]),
+                      median: median([35, 42]),
+                      sum: 35 + 42,
+                      samples: 2,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 49,
+                      min: 49,
+                      avg: 49,
+                      median: 49,
+                      sum: 49,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ]
+      ]
+      assertEquals(expected.size(), response.data.size())
+
+      assertEquals(expected.counter.size(), response.data.counter.size())
+      assertEquals(expected.counter.C2.size(), response.data.counter.C2.size())
+      assertNumericBucketEquals('The data for C2[0] does not match', expected.counter.C2[0],
+          response.data.counter.C2[0])
+      assertNumericBucketEquals('The data for C2[1] does not match', expected.counter.C2[1],
+          response.data.counter.C2[1])
+      assertEquals(expected.counter.C3.size(), response.data.counter.C3.size())
+      assertNumericBucketEquals('The data for C3[0] does not match', expected.counter.C3[0],
+          response.data.counter.C3[0])
+      assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
+          response.data.counter.C3[1])
+    })
+  }
+
+  @Test
+  void fetchCounterStatsWithRates() {
+    String tenantId = nextTenantId()
+    withDataPoints(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  counter: ['C2', 'C3'],
+              ],
+              types: ['counter', 'counter_rate'],
+              buckets: 2,
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      def expected = [
           counter: [
               C2: [
                   [
@@ -1075,11 +1291,58 @@ class MetricsITest extends RESTTest {
                   ]
               ]
           ],
-          availability: []
+          counter_rate: [
+              C2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 9000,
+                      avg: 9000,
+                      min: 9000,
+                      sum: 9000,
+                      median: 9000,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              C3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ]
       ]
       assertEquals(expected.size(), response.data.size())
-      assertEquals(expected.gauge.size(), response.data.gauge.size())
-      assertEquals(expected.availability.size(), response.data.availability.size())
 
       assertEquals(expected.counter.size(), response.data.counter.size())
       assertEquals(expected.counter.C2.size(), response.data.counter.C2.size())
@@ -1092,11 +1355,312 @@ class MetricsITest extends RESTTest {
           response.data.counter.C3[0])
       assertNumericBucketEquals('The data for C3[1] does not match', expected.counter.C3[1],
           response.data.counter.C3[1])
+
+      assertEquals(expected.counter_rate.size(), response.data.counter_rate.size())
+      assertEquals(expected.counter_rate.C2.size(), response.data.counter_rate.C2.size())
+      assertNumericBucketEquals('The rate data for C2[0] does not match', expected.counter_rate.C2[0],
+          response.data.counter_rate.C2[0])
+      assertNumericBucketEquals('The rate data for C2[1] does not match', expected.counter_rate.C2[1],
+          response.data.counter_rate.C2[1])
+      assertEquals(expected.counter_rate.C3.size(), response.data.counter_rate.C3.size())
+      assertNumericBucketEquals('The rate data for C3[0] does not match', expected.counter_rate.C3[0],
+          response.data.counter_rate.C3[0])
+      assertNumericBucketEquals('The rate data for C3[1] does not match', expected.counter_rate.C3[1],
+          response.data.counter_rate.C3[1])
     })
   }
 
   @Test
-  void fetchStatsFromAvailabilities() {
+  void fetchGaugeAndCounterRateStats() {
+    String tenantId = nextTenantId()
+    withDataPoints(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics    : [
+                  gauge: ['G1', 'G3'],
+                  counter: ['C2', 'C3']
+              ],
+              types: ['gauge', 'counter_rate'],
+              buckets    : 2,
+              start      : 200,
+              end        : 500
+          ]
+      )
+      assertEquals(200, response.status)
+      def expected = [
+          gauge: [
+              G1: [
+                  [
+                      start: 200,
+                      end: 350,
+                      samples: 2,
+                      max: 5.34,
+                      min: 3.45,
+                      avg: avg([3.45, 5.34]),
+                      sum: 3.45 + 5.34,
+                      median: median([3.45, 5.34]),
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 2.22,
+                      min: 2.22,
+                      avg: 2.22,
+                      median: 2.22,
+                      sum: 2.22,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              G3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 5.55,
+                      min: 4.44,
+                      avg: avg([5.55, 4.44]),
+                      median: median([5.55, 4.44]),
+                      sum: 5.55 + 4.44,
+                      samples: 2,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 3.33,
+                      min: 3.33,
+                      avg: 3.33,
+                      median: 3.33,
+                      sum: 3.33,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ],
+          counter_rate: [
+              C2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 9000,
+                      avg: 9000,
+                      min: 9000,
+                      sum: 9000,
+                      median: 9000,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              C3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ]
+      ]
+
+      assertEquals(expected.size(), response.data.size())
+      assertEquals(expected.gauge.size(), response.data.gauge.size())
+      assertEquals(expected.gauge.G1.size(), response.data.gauge.G1.size())
+      assertNumericBucketEquals('The data for G1[0] does not match', expected.gauge.G1[0], response.data.gauge.G1[0])
+      assertNumericBucketEquals('The data for G1[1] does not match', expected.gauge.G1[1], response.data.gauge.G1[1])
+      assertEquals(expected.gauge.G3.size(), response.data.gauge.G3.size())
+      assertNumericBucketEquals('The data for G3[0] does not match', expected.gauge.G3[0], response.data.gauge.G3[0])
+
+      assertEquals(expected.counter_rate.size(), response.data.counter_rate.size())
+      assertEquals(expected.counter_rate.C2.size(), response.data.counter_rate.C2.size())
+      assertNumericBucketEquals('The rate data for C2[0] does not match', expected.counter_rate.C2[0],
+          response.data.counter_rate.C2[0])
+      assertNumericBucketEquals('The rate data for C2[1] does not match', expected.counter_rate.C2[1],
+          response.data.counter_rate.C2[1])
+      assertEquals(expected.counter_rate.C3.size(), response.data.counter_rate.C3.size())
+      assertNumericBucketEquals('The rate data for C3[0] does not match', expected.counter_rate.C3[0],
+          response.data.counter_rate.C3[0])
+      assertNumericBucketEquals('The rate data for C3[1] does not match', expected.counter_rate.C3[1],
+          response.data.counter_rate.C3[1])
+    })
+  }
+
+  @Test
+  void fetchRateStats() {
+    String tenantId = nextTenantId()
+    withDataPoints(tenantId, {
+      def response = hawkularMetrics.post(
+          path: 'metrics/stats/query',
+          headers: [(tenantHeaderName): tenantId],
+          body: [
+              metrics: [
+                  gauge: ['G1', 'G3'],
+                  counter: ['C2', 'C3']
+              ],
+              types: ['gauge_rate', 'counter_rate'],
+              buckets: 2,
+              start: 200,
+              end: 500
+          ]
+      )
+      assertEquals(200, response.status)
+
+      def expected = [
+          gauge_rate: [
+              G1: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 1134,
+                      min: 1134,
+                      avg: 1134,
+                      median: 1134,
+                      sum: 1134,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: -1872,
+                      min: -1872,
+                      avg: -1872,
+                      median: -1872,
+                      sum: -1872,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              G3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: -666,
+                      min: -666,
+                      avg: -666,
+                      median: -666,
+                      sum: -666,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: -666,
+                      min: -666,
+                      avg: -666,
+                      median: -666,
+                      sum: -666,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ],
+          counter_rate: [
+              C2: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 9000,
+                      avg: 9000,
+                      min: 9000,
+                      sum: 9000,
+                      median: 9000,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ],
+              C3: [
+                  [
+                      start: 200,
+                      end: 350,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ],
+                  [
+                      start: 350,
+                      end: 500,
+                      max: 4200,
+                      min: 4200,
+                      avg: 4200,
+                      sum: 4200,
+                      median: 4200,
+                      samples: 1,
+                      empty: false
+                  ]
+              ]
+          ]
+      ]
+      printJson(response.data)
+      assertEquals(expected.size(), response.data.size())
+      assertEquals(expected.gauge_rate.size(), response.data.gauge_rate.size())
+      assertEquals(expected.gauge_rate.G1.size(), response.data.gauge_rate.G1.size())
+      assertNumericBucketEquals('The rate data for G1[0] does not match', expected.gauge_rate.G1[0],
+          response.data.gauge_rate.G1[0])
+      assertNumericBucketEquals('The rate data for G1[1] does not match', expected.gauge_rate.G1[1],
+          response.data.gauge_rate.G1[1])
+
+      assertEquals(expected.counter_rate.size(), response.data.counter_rate.size())
+      assertEquals(expected.counter_rate.C2.size(), response.data.counter_rate.C2.size())
+      assertNumericBucketEquals('The rate data for C2[0] does not match', expected.counter_rate.C2[0],
+          response.data.counter_rate.C2[0])
+      assertNumericBucketEquals('The rate data for C2[1] does not match', expected.counter_rate.C2[1],
+          response.data.counter_rate.C2[1])
+      assertEquals(expected.counter_rate.C3.size(), response.data.counter_rate.C3.size())
+      assertNumericBucketEquals('The rate data for C3[0] does not match', expected.counter_rate.C3[0],
+          response.data.counter_rate.C3[0])
+      assertNumericBucketEquals('The rate data for C3[1] does not match', expected.counter_rate.C3[1],
+          response.data.counter_rate.C3[1])
+    })
+  }
+
+  @Test
+  void fetchAvailabilityStats() {
     String tenantId = nextTenantId()
     withDataPoints(tenantId, {
       def response = hawkularMetrics.post(
@@ -1114,8 +1678,6 @@ class MetricsITest extends RESTTest {
       assertEquals(200, response.status)
 
       def expected = [
-          gauge: [],
-          counter: [],
           availability: [
               A2: [
                   [
@@ -1193,10 +1755,7 @@ class MetricsITest extends RESTTest {
           ]
       ]
 
-      printJson(response.data)
       assertEquals(expected.size(), response.data.size())
-      assertEquals(expected.gauge.size(), response.data.gauge.size())
-      assertEquals(expected.counter.size(), response.data.counter.size())
 
       assertEquals(expected.availability.size(), response.data.availability.size())
       assertEquals(expected.availability.A2.size(), response.data.availability.A2.size())

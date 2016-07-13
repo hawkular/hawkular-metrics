@@ -16,10 +16,13 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.common.base.MoreObjects;
 
 /**
  * @author jsanda
@@ -39,6 +42,8 @@ public class StatsQueryRequest {
     private String percentiles;
 
     private String tags;
+
+    private List<String> types = new ArrayList<>();
 
     public Map<String, List<String>> getMetrics() {
         return metrics;
@@ -96,6 +101,14 @@ public class StatsQueryRequest {
         this.tags = tags;
     }
 
+    public List<String> getTypes() {
+        return types;
+    }
+
+    public void setTypes(List<String> types) {
+        this.types = types;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -107,23 +120,25 @@ public class StatsQueryRequest {
                 Objects.equals(end, that.end) &&
                 Objects.equals(buckets, that.buckets) &&
                 Objects.equals(bucketDuration, that.bucketDuration) &&
-                Objects.equals(percentiles, that.percentiles);
+                Objects.equals(percentiles, that.percentiles) &&
+                Objects.equals(types, that.types);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metrics, start, end, buckets, bucketDuration, percentiles);
+        return Objects.hash(metrics, start, end, buckets, bucketDuration, percentiles, types);
     }
 
     @Override public String toString() {
-        return "StatsQueryRequest{" +
-                "metrics=" + metrics +
-                "tags=" +
-                ", start=" + start +
-                ", end=" + end +
-                ", buckets=" + buckets +
-                ", bucketDuration=" + bucketDuration +
-                ", percentiles=" + percentiles +
-                '}';
+        return MoreObjects.toStringHelper(this)
+                .add("metrics", metrics)
+                .add("tags", tags)
+                .add("start", start)
+                .add("end", end)
+                .add("buckets", buckets)
+                .add("bucketDuration", bucketDuration)
+                .add("percentiles", percentiles)
+                .add("types", types)
+                .toString();
     }
 }

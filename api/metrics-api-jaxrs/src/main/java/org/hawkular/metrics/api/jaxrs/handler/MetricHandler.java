@@ -27,7 +27,9 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
+import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.net.URI;
@@ -35,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -286,30 +289,54 @@ public class MetricHandler {
             percentiles = new PercentilesConverter().fromString(query.getPercentiles()).getPercentiles();
         }
 
-        Observable<Map<String, List<NumericBucketPoint>>> gaugeStats;
-        Observable<Map<String, List<NumericBucketPoint>>> counterStats;
-        Observable<Map<String, List<AvailabilityBucketPoint>>> availabilityStats;
+        List<MetricType<?>> types = emptyList();
+        if (query.getTypes() != null) {
+            types = query.getTypes().stream().map(MetricType::fromTextCode).collect(Collectors.toList());
+        }
+
+        Observable<Map<String, List<? extends BucketPoint>>> gaugeStats;
+        Observable<Map<String, List<? extends BucketPoint>>> counterStats;
+        Observable<Map<String, List<? extends BucketPoint>>> availabilityStats;
+        Observable<Map<String, List<? extends BucketPoint>>> gaugeRateStats = Observable.just(emptyMap());
+        Observable<Map<String, List<? extends BucketPoint>>> counterRateStats = Observable.just(emptyMap());
+
 
         if (!query.getMetrics().isEmpty() && (query.getMetrics().containsKey("gauge") ||
                 query.getMetrics().containsKey("counter") || query.getMetrics().containsKey("availability"))) {
+
             if (query.getMetrics().get("gauge") != null && !query.getMetrics().get("gauge").isEmpty()) {
-                gaugeStats = Observable.from(query.getMetrics().get("gauge"))
-                        .flatMap(id -> metricsService.findGaugeStats(new MetricId<>(getTenant(), GAUGE, id),
-                                bucketsConfig, percentiles)
-                                .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
-                        .collect(HashMap::new, (statsMap, namedBucketPoints) ->
-                                statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
+                if (types.isEmpty()) {
+                    gaugeStats = getGaugeStats(query, bucketsConfig, percentiles);
+                } else if (types.contains(GAUGE_RATE)) {
+                    if (types.contains(GAUGE)) {
+                        gaugeStats = getGaugeStats(query, bucketsConfig, percentiles);
+                        gaugeRateStats = getRateStats(query, GAUGE, bucketsConfig, percentiles);
+                    } else {
+                        gaugeStats = Observable.just(emptyMap());
+                        gaugeRateStats = getRateStats(query, GAUGE, bucketsConfig, percentiles);
+                    }
+                } else {
+                    gaugeStats = getGaugeStats(query, bucketsConfig, percentiles);
+                }
             } else {
                 gaugeStats = Observable.just(emptyMap());
             }
 
             if (query.getMetrics().get("counter") != null && !query.getMetrics().get("counter").isEmpty()) {
-                counterStats = Observable.from(query.getMetrics().get("counter"))
-                        .flatMap(id -> metricsService.findCounterStats(new MetricId<>(getTenant(), COUNTER, id),
-                                timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets(), percentiles)
-                                .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
-                        .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
-                                namedBucketPoints.bucketPoints));
+                if (types.isEmpty()) {
+                    counterStats = getCounterStats(query, timeRange, bucketsConfig, percentiles);
+                } else if (types.contains(COUNTER_RATE)) {
+                    if (types.contains(COUNTER)) {
+                        counterStats = getCounterStats(query, timeRange, bucketsConfig, percentiles);
+                        counterRateStats = getRateStats(query, COUNTER, bucketsConfig, percentiles);
+
+                    } else {
+                        counterStats = Observable.just(emptyMap());
+                        counterRateStats = getRateStats(query, COUNTER, bucketsConfig, percentiles);
+                    }
+                } else {
+                    counterStats = getCounterStats(query, timeRange, bucketsConfig, percentiles);
+                }
             } else {
                 counterStats = Observable.just(emptyMap());
             }
@@ -353,15 +380,67 @@ public class MetricHandler {
                             statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
         }
 
-        Observable.zip(gaugeStats, counterStats, availabilityStats, (gaugeMap, counterMap, availabiltyMap) ->
-                ImmutableMap.of(
-                        "gauge", gaugeMap,
-                        "counter", counterMap,
-                        "availability", availabiltyMap
-                ))
+        Observable.zip(gaugeStats, counterStats, availabilityStats, gaugeRateStats, counterRateStats,
+                (gaugeMap, counterMap, availabiltyMap, gaugeRateMap, counterRateMap) -> {
+                    Map<String, Map<String, List<? extends BucketPoint>>> stats = new HashMap<>();
+                    if (!gaugeMap.isEmpty()) {
+                        stats.put("gauge", gaugeMap);
+                    }
+                    if (!counterMap.isEmpty()) {
+                        stats.put("counter", counterMap);
+                    }
+                    if (!availabiltyMap.isEmpty()) {
+                        stats.put("availability", availabiltyMap);
+                    }
+                    if (!gaugeRateMap.isEmpty()) {
+                        stats.put("gauge_rate", gaugeRateMap);
+                    }
+                    if (!counterRateMap.isEmpty()) {
+                        stats.put("counter_rate", counterRateMap);
+                    }
+                    return stats;
+                })
                 .first()
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Observable<Map<String, List<? extends BucketPoint>>> getGaugeStats(StatsQueryRequest query,
+            BucketConfig bucketsConfig, List<Percentile> percentiles) {
+        Observable<Map<String, List<? extends BucketPoint>>> gaugeStats;
+        gaugeStats = Observable.from(query.getMetrics().get("gauge"))
+                .flatMap(id -> metricsService.findGaugeStats(new MetricId<>(getTenant(), GAUGE, id),
+                        bucketsConfig, percentiles)
+                        .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                .collect(HashMap::new, (statsMap, namedBucketPoints) ->
+                        statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
+        return gaugeStats;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Observable<Map<String, List<? extends BucketPoint>>> getCounterStats(StatsQueryRequest query,
+            TimeRange timeRange, BucketConfig bucketsConfig, List<Percentile> percentiles) {
+        Observable<Map<String, List<? extends BucketPoint>>> counterStats;
+        counterStats = Observable.from(query.getMetrics().get("counter"))
+                .flatMap(id -> metricsService.findCounterStats(new MetricId<>(getTenant(), COUNTER, id),
+                        timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets(), percentiles)
+                        .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
+                        namedBucketPoints.bucketPoints));
+        return counterStats;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Observable<Map<String, List<? extends BucketPoint>>> getRateStats(StatsQueryRequest query,
+            MetricType<? extends Number> type, BucketConfig bucketConfig, List<Percentile> percentiles) {
+        return Observable.from(query.getMetrics().get(type.getText()))
+                .flatMap(id -> metricsService.findRateStats(new MetricId<>(getTenant(), type, id),
+                        bucketConfig.getTimeRange().getStart(), bucketConfig.getTimeRange().getEnd(),
+                        bucketConfig.getBuckets(), percentiles)
+                        .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
+                        namedBucketPoints.bucketPoints));
     }
 
     private boolean isMetricIdsEmpty(StatsQueryRequest query) {
