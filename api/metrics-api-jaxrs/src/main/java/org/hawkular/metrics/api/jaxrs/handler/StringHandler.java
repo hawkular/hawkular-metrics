@@ -48,6 +48,7 @@ import javax.ws.rs.core.UriInfo;
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
+import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
@@ -78,7 +79,7 @@ import rx.Observable;
 @Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
         "releases that are not backwards compatible.")
 @ApplicationScoped
-public class StringHandler extends MetricsServiceHandler {
+public class StringHandler extends MetricsServiceHandler implements IMetricsHandler<String> {
 
     @POST
     @Path("/")
@@ -121,7 +122,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 400, message = "Invalid type parameter type.", response = ApiError.class),
             @ApiResponse(code = 500, message = "Failed to retrieve metrics due to unexpected error.", response = ApiError.class)
     })
-    public void findMetrics(
+    public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
 
@@ -225,7 +226,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)
     })
-    public void addStringForMetric(
+    public void addMetricData(
             @Suspended final AsyncResponse asyncResponse, @PathParam("id") String id,
             @ApiParam(value = "List of string datapoints", required = true) List<DataPoint<String>> data
     ) {
@@ -244,7 +245,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 500, message = "Unexpected error happened while storing the data",
                     response = ApiError.class)
     })
-    public void addStringData(
+    public void addData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of string metrics", required = true)
             @JsonDeserialize()
@@ -267,7 +268,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
-    public Response findRawData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
+    public Response getData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
             "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
             QueryRequest query) {
         return findRawDataPointsForMetrics(query, STRING);
@@ -282,7 +283,7 @@ public class StringHandler extends MetricsServiceHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching string data.",
                     response = ApiError.class)
     })
-    public void findRawStringData(
+    public void getMetricData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
