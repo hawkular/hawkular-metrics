@@ -265,43 +265,7 @@ public class MetricsServiceLifecycle {
 
             initJobsService();
 
-            session.getCluster().register(new Host.StateListener() {
-                @Override
-                public void onAdd(Host host) {
-                    update();
-                }
-
-                private void update() {
-                    lifecycleExecutor.submit(() -> {
-                        driverUsageMetricsManager.updateDriverUsageMetrics(session);
-                    });
-                }
-
-                @Override
-                public void onUp(Host host) {
-                    update();
-                }
-
-                @Override
-                public void onDown(Host host) {
-                    update();
-                }
-
-                @Override
-                public void onRemove(Host host) {
-                    update();
-                }
-
-                @Override
-                public void onRegister(Cluster cluster) {
-                    update();
-                }
-
-                @Override
-                public void onUnregister(Cluster cluster) {
-                    lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
-                }
-            });
+            session.getCluster().register(new ClusterStateListener());
 
             state = State.STARTED;
             log.infoServiceStarted();
@@ -462,6 +426,44 @@ public class MetricsServiceLifecycle {
             }
         } finally {
             state = State.STOPPED;
+        }
+    }
+
+    private class ClusterStateListener implements Host.StateListener {
+        @Override
+        public void onAdd(Host host) {
+            update();
+        }
+
+        private void update() {
+            lifecycleExecutor.submit(() -> {
+                driverUsageMetricsManager.updateDriverUsageMetrics(session);
+            });
+        }
+
+        @Override
+        public void onUp(Host host) {
+            update();
+        }
+
+        @Override
+        public void onDown(Host host) {
+            update();
+        }
+
+        @Override
+        public void onRemove(Host host) {
+            update();
+        }
+
+        @Override
+        public void onRegister(Cluster cluster) {
+            update();
+        }
+
+        @Override
+        public void onUnregister(Cluster cluster) {
+            lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
         }
     }
 }
