@@ -584,8 +584,7 @@ Actual:   ${response.data}
         ]
     )
 
-    assertEquals(200, response.status)
-    assertTrue('Expected empty result', (response.data as List).isEmpty())
+    assertEquals(204, response.status)
   }
 
   @Test

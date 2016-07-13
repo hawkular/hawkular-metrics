@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
@@ -56,7 +55,7 @@ public interface IMetricsHandler<T> {
     //Data
     void addData(AsyncResponse asyncResponse, List<Metric<T>> metrics);
 
-    Response getData(QueryRequest query);
+    void getData(AsyncResponse asyncResponse, QueryRequest query);
 
     void addMetricData(AsyncResponse asyncResponse, String id, List<DataPoint<T>> data);
 

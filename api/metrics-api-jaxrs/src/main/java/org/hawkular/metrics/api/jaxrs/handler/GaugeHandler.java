@@ -296,17 +296,17 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             "undergo non-backwards compatible changes in future releases.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
-            @ApiResponse(code = 400, message = "No metric ids are specified",
-                    response = ApiError.class),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "No metric ids are specified", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
-    public Response getData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
-            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
-            QueryRequest query) {
-        logger.debug("Fetching data points for " + query);
-
-        return findRawDataPointsForMetrics(query, GAUGE);
+    public void getData(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
+                    "The standard start, end, order, and limit query parameters are supported as well.")
+                    QueryRequest query) {
+        findRawDataPointsForMetrics(asyncResponse, query, GAUGE);
     }
 
     @POST
@@ -315,15 +315,17 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             "undergo non-backwards compatible changes in future releases.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric rate data points."),
-            @ApiResponse(code = 400, message = "No metric ids are specified",
-                    response = ApiError.class),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "No metric ids are specified", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
-    public Response getRateData(@ApiParam(required = true, value = "Query parameters that minimally must include a " +
-            "list of metric ids. The standard start, end, order, and limit query parameters are supported as well.")
-            QueryRequest query) {
-        return findRateDataPointsForMetrics(query, GAUGE);
+    public void getRateData(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
+                    "The standard start, end, order, and limit query parameters are supported as well.")
+                    QueryRequest query) {
+        findRateDataPointsForMetrics(asyncResponse, query, GAUGE);
     }
 
     @Deprecated
