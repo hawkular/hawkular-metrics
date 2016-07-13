@@ -293,8 +293,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             "undergo non-backwards compatible changes in future releases.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
-            @ApiResponse(code = 400, message = "No metric ids are specified",
-                    response = ApiError.class),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "No metric ids are specified", response = ApiError.class),
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
