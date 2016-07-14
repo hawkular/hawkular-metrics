@@ -38,14 +38,13 @@ public class JobSchedulingTest extends JobSchedulerTest {
     @Test
     public void scheduleSingleExecutionJob() {
         DateTime activeQueue = currentMinute().plusMinutes(1);
-        setActiveQueue(activeQueue);
         Trigger trigger = new SingleExecutionTrigger.Builder()
                 .withTriggerTime(activeQueue.plusMinutes(5).getMillis())
                 .build();
         String type = "Test-Job";
         String name = "Test Job";
         Map<String, String> params = ImmutableMap.of("x", "1", "y", "2");
-        JobDetails details = jobScheduler.scheduleJob(type, name, params, trigger).toBlocking().firstOrDefault(null);
+        JobDetails details = jobScheduler.scheduleJob(type, name, params, trigger).toBlocking().value();
 
         assertNotNull(details);
         assertJobEquals(details);
@@ -54,14 +53,12 @@ public class JobSchedulingTest extends JobSchedulerTest {
     @Test(expectedExceptions = RuntimeException.class)
     public void doNotScheduleSingleExecutionJobWhenTriggerAlreadyFired() {
         DateTime activeQueue = currentMinute().plusMinutes(1);
-        setActiveQueue(activeQueue);
         Trigger trigger = new SingleExecutionTrigger.Builder()
                 .withTriggerTime(activeQueue.minusMinutes(2).getMillis())
                 .build();
         String type = "Test-Job";
         String name = "Test Job";
-        JobDetails details = jobScheduler.scheduleJob(type, name, Collections.emptyMap(), trigger).toBlocking()
-                .firstOrDefault(null);
+        JobDetails details = jobScheduler.scheduleJob(type, name, Collections.emptyMap(), trigger).toBlocking().value();
     }
 
 }

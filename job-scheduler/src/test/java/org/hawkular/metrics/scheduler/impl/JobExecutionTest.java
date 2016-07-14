@@ -36,10 +36,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -112,12 +110,6 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         insertJob = session.prepare("INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         updateJobQueue = session.prepare("INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
-
-        setActiveQueue(new DateTime(tickScheduler.now()));
-
-//        jobScheduler.setTickScheduler(tickScheduler);
-//        jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
-//        jobScheduler.setJobFinishedSubject(jobFinished);
     }
 
     private void initJobScheduler() {
@@ -150,7 +142,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         truncationFinished.await();
 
         initJobScheduler();
-        jobScheduler.startY();
+        jobScheduler.start();
     }
 
     @AfterMethod(alwaysRun = true)
@@ -218,7 +210,6 @@ public class JobExecutionTest extends JobSchedulerTest {
         }));
 
         scheduleJob(jobDetails);
-//        setActiveQueue(timeSlice);
 
         CountDownLatch timeSliceFinished = new CountDownLatch(1);
         onTimeSliceFinished(finishedTimeSlice -> {
@@ -233,7 +224,6 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         assertEquals(executionCountRef.get(), 1, jobDetails + " should have been executed once");
 
-//        assertEquals(getActiveQueue(), timeSlice.plusMinutes(1));
         assertEquals(getActiveTimeSlices(), emptySet());
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
@@ -283,7 +273,6 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(executionCounts, ImmutableMap.of("Test Job 0", 1, "Test Job 1", 1, "Test Job 2", 1));
-//        assertEquals(getActiveQueue(), timeSlice.plusMinutes(1));
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
     }
@@ -567,7 +556,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(getScheduledJobs(nextTimeSlice), ImmutableSet.of(longJob.getJobId(), shortJob.getJobId()));
     }
 
-//    @Test
+    @Test
     public void executeLotsOfJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -585,8 +574,6 @@ public class JobExecutionTest extends JobSchedulerTest {
             JobDetails details = new JobDetails(randomUUID(), jobType, "job-" + i, emptyMap(), trigger);
             scheduleJob(details);
         }
-
-        BlockingDeque<TestLatch> latches = new LinkedBlockingDeque<>();
 
         AtomicInteger firstIterationExecutions = new AtomicInteger();
         AtomicInteger secondIterationExecutions = new AtomicInteger();
@@ -618,18 +605,23 @@ public class JobExecutionTest extends JobSchedulerTest {
             DateTime time = new DateTime(details.getTrigger().getTriggerTime());
             if (time.equals(timeSlice)) {
                 firstIterationJobs.countDown();
+                logger.debug("First iteration count is " + firstIterationJobs.getCount());
             } else if (time.equals(timeSlice.plusMinutes(1))) {
                 secondIterationJobs.countDown();
+                logger.debug("Second iteration count is " + secondIterationJobs.getCount());
             }
         });
 
         onTimeSliceFinished(finishedTimeSlice -> {
             logger.debug("Finished all work for " + finishedTimeSlice.toDate());
             if (finishedTimeSlice.equals(timeSlice)) {
+                logger.debug("First time slice finished");
                 firstTimeSliceFinished.countDown();
             } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
+                logger.debug("Second time slice finished");
                 secondTimeSliceFinished.countDown();
             } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(2))) {
+                logger.debug("Third time slice finished");
                 thirdTimeSliceFinished.countDown();
             } else {
                 logger.warn("Did not expect job scheduler to run for time slice [" + finishedTimeSlice.toDate() +
@@ -637,10 +629,8 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
         });
 
-        latches.addFirst(new TestLatch(1, timeSlice.toDate()));
         tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
         Thread.sleep(50);
-        latches.addFirst(new TestLatch(1, timeSlice.plusMinutes(1).toDate()));
         tickScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis(), TimeUnit.MILLISECONDS);
 
         assertTrue(firstIterationJobs.await(30, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
@@ -651,10 +641,10 @@ public class JobExecutionTest extends JobSchedulerTest {
         tickScheduler.advanceTimeTo(timeSlice.plusMinutes(2).getMillis(), TimeUnit.MILLISECONDS);
 
         assertTrue(secondTimeSliceFinished.await(30, TimeUnit.SECONDS));
-//        assertTrue(thirdTimeSliceFinished.await(30, TimeUnit.SECONDS));
+        assertTrue(thirdTimeSliceFinished.await(30, TimeUnit.SECONDS));
 
-        tickScheduler.advanceTimeTo(timeSlice.plusMinutes(3).getMillis(), TimeUnit.SECONDS);
-        assertTrue(secondIterationJobs.await(30, TimeUnit.SECONDS), "There are " + secondIterationJobs.getCount() +
+        tickScheduler.advanceTimeTo(timeSlice.plusMinutes(3).getMillis(), TimeUnit.MILLISECONDS);
+        assertTrue(secondIterationJobs.await(60, TimeUnit.SECONDS), "There are " + secondIterationJobs.getCount() +
                 " job executions remaining");
         assertEquals(secondIterationExecutions.get(), numJobs);
     }

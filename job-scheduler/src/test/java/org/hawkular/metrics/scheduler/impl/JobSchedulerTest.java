@@ -18,7 +18,6 @@ package org.hawkular.metrics.scheduler.impl;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.fail;
 
 import java.util.Set;
 import java.util.UUID;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.schema.SchemaService;
-import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -90,19 +88,6 @@ public class JobSchedulerTest {
         session.execute("TRUNCATE finished_jobs_idx");
         session.execute("TRUNCATE locks");
         session.execute("TRUNCATE scheduled_jobs_idx");
-    }
-
-    protected static DateTime getActiveQueue() {
-        Configuration config = configurationService.load("org.hawkular.metrics.scheduler").toBlocking().last();
-        if (config.get("active-queue") == null) {
-            fail("The [org.hawkular.metrics.scheduler.active-queue] system setting should be set!");
-        }
-        return new DateTime(Long.parseLong(config.get("active-queue")));
-    }
-
-    protected static void setActiveQueue(DateTime dateTime) {
-        configurationService.save("org.hawkular.metrics.scheduler", "active-queue", Long.toString(dateTime.getMillis()))
-                .toBlocking().lastOrDefault(null);
     }
 
     protected Set<DateTime> getActiveTimeSlices() {

@@ -23,7 +23,6 @@ schemaChange {
 CREATE TABLE locks (
     name text PRIMARY KEY,
     value text,
-    permits list<text>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
 }

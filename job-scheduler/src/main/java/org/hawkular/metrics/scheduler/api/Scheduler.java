@@ -16,7 +16,10 @@
  */
 package org.hawkular.metrics.scheduler.api;
 
+import java.util.Map;
+
 import rx.Completable;
+import rx.Single;
 import rx.functions.Func1;
 
 /**
@@ -24,6 +27,12 @@ import rx.functions.Func1;
  */
 public interface Scheduler {
 
+    Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger);
+
     void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory);
+
+    void start();
+
+    void shutdown();
 
 }
