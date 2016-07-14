@@ -298,11 +298,16 @@ public class MetricHandler {
         Observable<Map<String, List<? extends BucketPoint>>> gaugeRateStats = Observable.just(emptyMap());
         Observable<Map<String, List<? extends BucketPoint>>> counterRateStats = Observable.just(emptyMap());
 
+        // TODO Eliminate duplicate queries when fetching and rates
+        // When we return gauge and gauge rates and/or counter and counter rate data points we are doing extra queries
+        // that can be avoided. The code below can be optimized such that we fetch gauge/counter raw data, and then
+        // reuse that observable to compute stats and rate stats.
 
-        if (!query.getMetrics().isEmpty() && (query.getMetrics().containsKey("gauge") ||
-                query.getMetrics().containsKey("counter") || query.getMetrics().containsKey("availability"))) {
-
-            if (query.getMetrics().get("gauge") != null && !query.getMetrics().get("gauge").isEmpty()) {
+        if (!query.getMetrics().isEmpty() && (query.getMetrics().containsKey(GAUGE.getText()) ||
+                query.getMetrics().containsKey(COUNTER.getText()) ||
+                query.getMetrics().containsKey(AVAILABILITY.getText())
+        )) {
+            if (!isMetricsEmpty(query, GAUGE)) {
                 if (types.isEmpty()) {
                     gaugeStats = getGaugeStats(getMetricIds(query, GAUGE), bucketsConfig, percentiles);
                 } else if (types.contains(GAUGE_RATE)) {
@@ -310,17 +315,14 @@ public class MetricHandler {
                         gaugeStats = getGaugeStats(query, bucketsConfig, percentiles);
                         gaugeRateStats = getRateStats(getMetricIds(query, GAUGE), GAUGE, bucketsConfig, percentiles);
                     } else {
-                        gaugeStats = Observable.just(emptyMap());
                         gaugeRateStats = getRateStats(getMetricIds(query, GAUGE), GAUGE, bucketsConfig, percentiles);
                     }
                 } else {
                     gaugeStats = getGaugeStats(getMetricIds(query, GAUGE), bucketsConfig, percentiles);
                 }
-            } else {
-                gaugeStats = Observable.just(emptyMap());
             }
 
-            if (query.getMetrics().get("counter") != null && !query.getMetrics().get("counter").isEmpty()) {
+            if (!isMetricsEmpty(query, COUNTER)) {
                 if (types.isEmpty()) {
                     counterStats = getCounterStats(getMetricIds(query, COUNTER), bucketsConfig, percentiles);
                 } else if (types.contains(COUNTER_RATE)) {
@@ -329,26 +331,21 @@ public class MetricHandler {
                         counterRateStats = getRateStats(getMetricIds(query, COUNTER), COUNTER, bucketsConfig,
                                 percentiles);
                     } else {
-                        counterStats = Observable.just(emptyMap());
                         counterRateStats = getRateStats(getMetricIds(query, COUNTER), COUNTER, bucketsConfig,
                                 percentiles);
                     }
                 } else {
                     counterStats = getCounterStats(query, timeRange, bucketsConfig, percentiles);
                 }
-            } else {
-                counterStats = Observable.just(emptyMap());
             }
 
-            if (query.getMetrics().get("availability") != null && !query.getMetrics().get("availability").isEmpty()) {
+            if (!isMetricsEmpty(query, AVAILABILITY)) {
                 availabilityStats = Observable.from(query.getMetrics().get("availability"))
                         .flatMap(id -> metricsService.findAvailabilityStats(new MetricId<>(getTenant(), AVAILABILITY,
                                 id), timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets())
                                 .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
                         .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
                                 namedBucketPoints.bucketPoints));
-            } else {
-                availabilityStats = Observable.just(emptyMap());
             }
         } else {
             Func1[] filters = new Func1[0];
@@ -411,19 +408,19 @@ public class MetricHandler {
                 (gaugeMap, counterMap, availabiltyMap, gaugeRateMap, counterRateMap) -> {
                     Map<String, Map<String, List<? extends BucketPoint>>> stats = new HashMap<>();
                     if (!gaugeMap.isEmpty()) {
-                        stats.put("gauge", gaugeMap);
+                        stats.put(GAUGE.getText(), gaugeMap);
                     }
                     if (!counterMap.isEmpty()) {
-                        stats.put("counter", counterMap);
+                        stats.put(COUNTER.getText(), counterMap);
                     }
                     if (!availabiltyMap.isEmpty()) {
-                        stats.put("availability", availabiltyMap);
+                        stats.put(AVAILABILITY.getText(), availabiltyMap);
                     }
                     if (!gaugeRateMap.isEmpty()) {
-                        stats.put("gauge_rate", gaugeRateMap);
+                        stats.put(GAUGE_RATE.getText(), gaugeRateMap);
                     }
                     if (!counterRateMap.isEmpty()) {
-                        stats.put("counter_rate", counterRateMap);
+                        stats.put(COUNTER_RATE.getText(), counterRateMap);
                     }
                     return stats;
                 })
@@ -535,6 +532,10 @@ public class MetricHandler {
                 .map(bucketPoints -> new NamedBucketPoints<>(id.getName(), bucketPoints)))
                 .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
                         namedBucketPoints.bucketPoints));
+    }
+
+    private <T> boolean isMetricsEmpty(StatsQueryRequest query, MetricType<T> type) {
+        return query.getMetrics().get(type.getText()) == null || query.getMetrics().get(type.getText()).isEmpty();
     }
 
     private boolean isMetricIdsEmpty(StatsQueryRequest query) {

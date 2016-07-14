@@ -1636,7 +1636,7 @@ class MetricsITest extends RESTTest {
               ]
           ]
       ]
-      printJson(response.data)
+
       assertEquals(expected.size(), response.data.size())
       assertEquals(expected.gauge_rate.size(), response.data.gauge_rate.size())
       assertEquals(expected.gauge_rate.G1.size(), response.data.gauge_rate.G1.size())
