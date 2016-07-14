@@ -52,7 +52,7 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     protected AvailabilityBucketPoint(long start, long end, long downtimeDuration, long lastDowntime, double
             uptimeRatio, long downtimeCount) {
         super(start, end);
-        this.durationMap = new HashMap<AvailabilityType, Long>();
+        this.durationMap = new HashMap<>();
         this.durationMap.put(AvailabilityType.DOWN, downtimeDuration);
         this.lastNotUptime = lastDowntime;
         this.uptimeRatio = getDoubleValue(uptimeRatio);

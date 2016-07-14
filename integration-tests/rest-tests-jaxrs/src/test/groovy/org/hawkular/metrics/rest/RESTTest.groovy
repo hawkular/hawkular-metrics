@@ -16,26 +16,25 @@
  */
 package org.hawkular.metrics.rest
 
-import groovy.json.JsonOutput
-
-import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
-
-
-import java.util.concurrent.atomic.AtomicInteger
-
-import org.apache.commons.math3.stat.descriptive.moment.Mean
-import org.joda.time.DateTime
-import org.junit.BeforeClass
-
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-
+import groovy.json.JsonOutput
 import groovyx.net.http.ContentType
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
+import org.apache.commons.math3.stat.descriptive.moment.Mean
+import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile
+import org.joda.time.DateTime
+import org.junit.BeforeClass
+
+import java.util.concurrent.atomic.AtomicInteger
+
+import static junit.framework.Assert.assertNull
+import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 class RESTTest {
 
@@ -191,6 +190,37 @@ Actual: ${actual}
       assertDoubleEquals(msg, expected.median, actual.median)
       assertDoubleEquals(msg, expected.max, actual.max)
       assertDoubleEquals(msg, expected.sum, actual.sum)
+      assertPercentilesEquals(expected.percentiles, actual.percentiles)
+    }
+  }
+
+  static void assertPercentilesEquals(def expected, def actual) {
+    if (expected == null) {
+      assertNull(actual)
+    } else {
+      assertEquals(expected.size(), actual.size())
+      expected.each { expectedP ->
+        def actualP = actual.find { it.quantile == expectedP.quantile }
+        assertNotNull("Expected to find $expectedP in $actual", actualP)
+        assertDoubleEquals("The percentile value is wrong", expectedP.value, actualP.value)
+      }
+    }
+  }
+
+  static void assertAvailablityBucketEquals(String msg, def expected, def actual) {
+    assertEquals(msg, expected.start, actual.start)
+    assertEquals(msg, expected.end, actual.end)
+    assertEquals(msg, expected.empty, actual.empty)
+    if (!expected.empty) {
+      assertEquals(msg, expected.lastNotUptime, actual.lastNotUptime)
+      assertDoubleEquals(msg, expected.uptimeRatio, actual.uptimeRatio)
+      assertEquals(msg, expected.notUpCount, actual.notUpCount)
+      assertEquals(msg, expected.downtimeDuration, actual.downtimeDuration)
+      assertEquals(msg, expected.lastDowntime, actual.lastDowntime)
+      assertEquals(msg, expected.adminDuration, actual.adminDuration)
+      assertEquals(msg, expected.unknownDuration, actual.unknownDuration)
+      assertEquals(msg, expected.upDuration, actual.upDuration)
+      assertEquals(msg, expected.notUpDuration, actual.notUpDuration)
     }
   }
 
@@ -198,6 +228,18 @@ Actual: ${actual}
     Mean mean = new Mean()
     values.each { mean.increment(it as double) }
     return mean.result
+  }
+
+  static double median(List values) {
+    PSquarePercentile median = new PSquarePercentile(50.0)
+    values.each { median.increment(it as double) }
+    return median.result
+  }
+
+  static double percentile(double p, List values) {
+    PSquarePercentile percentile = new PSquarePercentile(p)
+    values.each { percentile.increment(it as double) }
+    return percentile.result
   }
 
   static double rate(Map dataPointX, Map dataPointY) {
