@@ -97,11 +97,6 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     @BeforeClass
     public void initClass() {
-        tickScheduler = Schedulers.test();
-        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
-
-        DateTimeService.now = () -> new DateTime(tickScheduler.now());
-
         finishedTimeSlices = PublishSubject.create();
         jobFinished = PublishSubject.create();
 
@@ -113,6 +108,12 @@ public class JobExecutionTest extends JobSchedulerTest {
     }
 
     private void initJobScheduler() {
+        DateTimeService.now = DateTime::now;
+        tickScheduler = Schedulers.test();
+        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
+
+        DateTimeService.now = () -> new DateTime(tickScheduler.now());
+
         jobScheduler = new SchedulerImpl(rxSession);
         jobScheduler.setConfigurationService(configurationService);
         jobScheduler.setTickScheduler(tickScheduler);
