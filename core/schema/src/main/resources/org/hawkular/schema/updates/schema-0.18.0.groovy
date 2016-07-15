@@ -18,7 +18,7 @@
 schemaChange {
   version '2.0'
   author 'jsanda'
-  tags '0.16.x'
+  tags '0.18.x'
   cql """
 CREATE TABLE locks (
     name text PRIMARY KEY,
@@ -30,7 +30,7 @@ CREATE TABLE locks (
 schemaChange {
   version '2.1'
   author 'jsanda'
-  tags '0.16.x'
+  tags '0.18.x'
   cql """
 CREATE TABLE jobs (
     id uuid PRIMARY KEY,
@@ -45,7 +45,7 @@ CREATE TABLE jobs (
 schemaChange {
   version '2.2'
   author 'jsanda'
-  tags '0.16.x'
+  tags '0.18.x'
   cql """
 CREATE TABLE scheduled_jobs_idx (
     time_slice timestamp,
@@ -58,7 +58,7 @@ CREATE TABLE scheduled_jobs_idx (
 schemaChange {
   version '2.3'
   author 'jsanda'
-  tags '0.16.x'
+  tags '0.18.x'
   cql """
 CREATE TABLE finished_jobs_idx (
     time_slice timestamp,
@@ -71,7 +71,7 @@ CREATE TABLE finished_jobs_idx (
 schemaChange {
   version '2.4'
   author 'jsanda'
-  tags '0.16.x'
+  tags '0.18.x'
   cql """
 CREATE TABLE active_time_slices (
     time_slice timestamp PRIMARY KEY
