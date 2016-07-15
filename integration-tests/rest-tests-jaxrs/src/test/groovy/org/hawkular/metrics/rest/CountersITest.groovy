@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.rest
 
+import org.hawkular.metrics.datetime.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
