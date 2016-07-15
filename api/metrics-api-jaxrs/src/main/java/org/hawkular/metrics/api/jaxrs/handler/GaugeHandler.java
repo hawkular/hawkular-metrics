@@ -682,7 +682,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     @Deprecated
     @GET
     @Path("/data")
-    @ApiOperation(value = "Deprecated. Please use /stast endpoint.",
+    @ApiOperation(value = "Deprecated. Please use /stats endpoint.",
             response = NumericBucketPoint.class, responseContainer = "List")
     public void deprecatedFindData(
             @Suspended AsyncResponse asyncResponse,
