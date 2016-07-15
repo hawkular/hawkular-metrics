@@ -21,7 +21,8 @@
 
   <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>${test.logging.console.level:-DEBUG}</level>
+      <!--<level>${test.logging.console.level:-DEBUG}</level>-->
+      <level>DEBUG</level>
     </filter>
     <encoder>
       <pattern>${pattern}</pattern>
@@ -45,6 +46,10 @@
   </root>
 
   <logger name="org.hawkular" level="debug" additivity="false">
+    <appender-ref ref="file"/>
+    <appender-ref ref="stdout"/>
+  </logger>
+  <logger name="com.datastax" level="error" additivity="false">
     <appender-ref ref="file"/>
     <appender-ref ref="stdout"/>
   </logger>

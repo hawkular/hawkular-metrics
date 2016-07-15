@@ -33,7 +33,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -76,9 +79,9 @@ public class SchedulerImpl implements Scheduler {
 
     private rx.Scheduler tickScheduler;
 
-    private ExecutorService queueExecutor;
-
-    private rx.Scheduler queueScheduler;
+//    private ExecutorService queueExecutor;
+//
+//    private rx.Scheduler queueScheduler;
 
     private ExecutorService queryExecutor;
 
@@ -128,13 +131,16 @@ public class SchedulerImpl implements Scheduler {
         jobFactories = new HashMap<>();
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
-        queueExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
+//        queueExecutor = Executors.newSingleThreadExecutor(
+//                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         tickScheduler = Schedulers.from(tickExecutor);
-        queueScheduler = Schedulers.from(queueExecutor);
+//        queueScheduler = Schedulers.from(queueExecutor);
 
-        queryExecutor = Executors.newFixedThreadPool(4,
-                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
+        ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build();
+        queryExecutor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
+                threadFactory, new ThreadPoolExecutor.DiscardPolicy());
+//        queryExecutor = Executors.newFixedThreadPool(4,
+//                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
         queryScheduler = Schedulers.from(queryExecutor);
 
         lockManager = new LockManager(session);
@@ -357,8 +363,8 @@ public class SchedulerImpl implements Scheduler {
             running = false;
             tickExecutor.shutdown();
             tickExecutor.awaitTermination(5, TimeUnit.SECONDS);
-            queueExecutor.shutdown();
-            queueExecutor.awaitTermination(30, TimeUnit.SECONDS);
+//            queueExecutor.shutdown();
+//            queueExecutor.awaitTermination(30, TimeUnit.SECONDS);
             queryExecutor.shutdown();
             queryExecutor.awaitTermination(30, TimeUnit.SECONDS);
 
@@ -372,10 +378,10 @@ public class SchedulerImpl implements Scheduler {
         logger.debug("Starting reset");
         shutdown();
         jobFactories = new HashMap<>();
-        queueExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
+//        queueExecutor = Executors.newSingleThreadExecutor(
+//                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         this.tickScheduler = tickScheduler;
-        queueScheduler = Schedulers.from(queueExecutor);
+//        queueScheduler = Schedulers.from(queueExecutor);
         queryExecutor = Executors.newFixedThreadPool(2,
                 new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
         queryScheduler = Schedulers.from(queryExecutor);
@@ -524,7 +530,7 @@ public class SchedulerImpl implements Scheduler {
 //                    return false;
 //                })
                 .takeUntil(d -> !running)
-                .subscribeOn(queryScheduler)
+//                .subscribeOn(queryScheduler)
                 .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
     }
 
