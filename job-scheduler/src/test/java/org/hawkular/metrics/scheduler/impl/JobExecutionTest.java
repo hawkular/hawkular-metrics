@@ -318,11 +318,11 @@ public class JobExecutionTest extends JobSchedulerTest {
         scheduleJob(job1);
         scheduleJob(job2);
 
-        CountDownLatch timeSliceFinished = new CountDownLatch(1);
+        CountDownLatch timeSlicesFinished = new CountDownLatch(2);
         onTimeSliceFinished(finishedTime -> {
-            if (finishedTime.equals(timeSlice.plusMinutes(1))) {
-                logger.debug("Finished " + timeSlice.toDate());
-                timeSliceFinished.countDown();
+            if (finishedTime.equals(timeSlice) || finishedTime.equals(timeSlice.plusMinutes(1))) {
+                logger.debug("Finished " + finishedTime.toDate());
+                timeSlicesFinished.countDown();
             }
         });
 
@@ -339,9 +339,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         assertTrue(job2Finished.await(10, TimeUnit.SECONDS));
         job1Finished.countDown();
-        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
-
-//        Thread.sleep(3000);
+        assertTrue(timeSlicesFinished.await(10, TimeUnit.SECONDS));
 
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getScheduledJobs(timeSlice.plusMinutes(1)), emptySet());
