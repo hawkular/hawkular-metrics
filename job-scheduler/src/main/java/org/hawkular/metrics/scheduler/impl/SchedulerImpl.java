@@ -290,15 +290,21 @@ public class SchedulerImpl implements Scheduler {
                         return Observable.sequenceEqual(scheduled, finished).flatMap(allFinished -> {
                             if (allFinished) {
                                 logger.debug("All jobs for time slice [" + time + "] have finished");
-                                return Observable.merge(
-                                        deleteActiveTimeSliceX(time),
-                                        deleteFinishedJobsX(time),
-                                        deleteScheduledJobsX(time)
-                                ).map(aVoid -> time);
+                                return Completable.merge(
+                                        deleteActiveTimeSlice(time),
+                                        deleteFinishedJobs(time),
+                                        deleteScheduledJobs(time)
+                                ).toObservable().reduce(null, (o1, o2) -> o2).map(o -> time);
+//                                return Observable.merge(
+//                                        deleteActiveTimeSliceX(time),
+//                                        deleteFinishedJobsX(time),
+//                                        deleteScheduledJobsX(time)
+//                                ).reduce((v1, v2) -> v1).map(v -> time);
                             }
                             return Observable.just(time);
                         });
                     })
+                    .doOnNext(d -> logger.debug("TIME [" + d + "]"))
 //                    .flatMap(time -> {
 //                        Observable<? extends Set<UUID>> scheduled = findScheduledJobs(time);
 //                        Observable<? extends Set<UUID>> finished = findFinishedJobs(time);
