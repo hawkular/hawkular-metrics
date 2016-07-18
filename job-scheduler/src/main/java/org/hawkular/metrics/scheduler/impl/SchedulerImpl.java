@@ -264,7 +264,10 @@ public class SchedulerImpl implements Scheduler {
         doOnTick(() -> {
             logger.debug("Activating scheduler for [" + currentMinute().toDate() + "]");
 
-            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
+            Date timeSlice = currentMinute().toDate();
+//            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
+            updateActiveTimeSlicesX(timeSlice)
+                    .flatMap(aVoid -> findTimeSlices())
                     .filter(d -> !activeTimeSlices.contains(d))
                     .doOnNext(d -> {
                         logger.debug("Running job scheduler for [" + d + "]");
@@ -693,6 +696,10 @@ public class SchedulerImpl implements Scheduler {
 
     private Completable updateActiveTimeSlices(Date timeSlice) {
             return session.execute(addActiveTimeSlice.bind(timeSlice)).toCompletable();
+    }
+
+    private Observable<Void> updateActiveTimeSlicesX(Date timeSlice) {
+        return session.execute(addActiveTimeSlice.bind(timeSlice)).map(resultSet -> null);
     }
 
     private Observable<Date> findTimeSlices() {
