@@ -629,7 +629,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         });
 
         tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
-        Thread.sleep(50);
+        Thread.sleep(1000);
         tickScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis(), TimeUnit.MILLISECONDS);
 
         assertTrue(firstIterationJobs.await(30, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
