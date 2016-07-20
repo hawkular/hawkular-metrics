@@ -283,16 +283,6 @@ public class SchedulerImpl implements Scheduler {
         });
     }
 
-    private synchronized boolean containsTimeSlice(Set<Date> activeTimeSlices, Date timeSlice) {
-        return activeTimeSlices.contains(timeSlice);
-    }
-
-    private synchronized void updateActiveTimeSlicesCache(Set<Date> activeTimeSlices, Date timeSlice) {
-        if (!activeTimeSlices.contains(timeSlice)) {
-            activeTimeSlices.add(timeSlice);
-        }
-    }
-
     private Observable<TimeSliceLock> acquireTimeSliceLock(Date timeSlice) {
         String lockName = "org.hawkular.metrics.scheduler.queue." + timeSlice.getTime();
         return lockManager.acquireLock(lockName, "locked", 3600)
