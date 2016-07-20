@@ -65,7 +65,6 @@ import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.Task2;
-import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
@@ -105,8 +104,6 @@ public class MetricsServiceLifecycle {
     }
 
     private MetricsServiceImpl metricsService;
-
-    private TaskScheduler taskScheduler;
 
     private final ScheduledExecutorService lifecycleExecutor;
 
@@ -259,7 +256,6 @@ public class MetricsServiceLifecycle {
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
-            metricsService.setTaskScheduler(taskScheduler);
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
@@ -418,12 +414,6 @@ public class MetricsServiceLifecycle {
         return metricsService;
     }
 
-    @Produces
-    @ApplicationScoped
-    public TaskScheduler getTaskScheduler() {
-        return taskScheduler;
-    }
-
     @PreDestroy
     void destroy() {
         Future<?> stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
@@ -440,14 +430,6 @@ public class MetricsServiceLifecycle {
         try {
             if (metricsService != null) {
                 metricsService.shutdown();
-            }
-            if (taskScheduler != null) {
-                taskScheduler.shutdown();
-            }
-            jobs.values().forEach(Subscription::unsubscribe);
-            if (session != null) {
-                session.close();
-                session.getCluster().close();
             }
             if (jmxReporter != null) {
                 jmxReporter.stop();

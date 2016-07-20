@@ -376,7 +376,6 @@
         <module>core/schema</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
-        <module>core/task-queue</module>
         <module>job-scheduler</module>
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>
@@ -406,7 +405,6 @@
         <module>core/schema</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
-        <module>core/task-queue</module>
         <module>job-scheduler</module>
         <module>core/metrics-model</module>
         <module>core/metrics-core-service</module>

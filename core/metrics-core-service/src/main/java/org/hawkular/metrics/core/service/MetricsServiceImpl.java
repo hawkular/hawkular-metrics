@@ -71,7 +71,6 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
-import org.hawkular.metrics.tasks.api.TaskScheduler;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -145,9 +144,6 @@ public class MetricsServiceImpl implements MetricsService {
     private ListeningExecutorService metricsTasks;
 
     private DataAccess dataAccess;
-
-    @SuppressWarnings("unused")
-    private TaskScheduler taskScheduler;
 
     private ConfigurationService configurationService;
 
@@ -358,10 +354,6 @@ public class MetricsServiceImpl implements MetricsService {
      */
     public void setDataAccess(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
-    }
-
-    public void setTaskScheduler(TaskScheduler taskScheduler) {
-        this.taskScheduler = taskScheduler;
     }
 
     public void setConfigurationService(ConfigurationService configurationService) {
