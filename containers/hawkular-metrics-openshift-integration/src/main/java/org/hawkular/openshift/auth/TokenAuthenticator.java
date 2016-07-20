@@ -36,6 +36,7 @@ import static io.undertow.util.StatusCodes.BAD_REQUEST;
 import static io.undertow.util.StatusCodes.CREATED;
 import static io.undertow.util.StatusCodes.FORBIDDEN;
 import static io.undertow.util.StatusCodes.INTERNAL_SERVER_ERROR;
+import static io.undertow.util.StatusCodes.UNAUTHORIZED;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -107,6 +108,8 @@ class TokenAuthenticator implements Authenticator {
     static final String BEARER_PREFIX = "Bearer ";
     private static final String MISSING_HEADERS_MSG =
             "The '" + AUTHORIZATION + "' and '" + HAWKULAR_TENANT + "' headers are required";
+    private static final String UNAUTHORIZED_USER_EDIT_MSG =
+            "Users are not authorized to perform edits on metric data";
 
     //The resource to check against for security purposes. For this version we are allowing Metrics based on a users
     //access to the pods in in a particular project.
@@ -129,9 +132,11 @@ class TokenAuthenticator implements Authenticator {
     }
 
     private static final String KUBERNETES_MASTER_URL_SYSPROP = "KUBERNETES_MASTER_URL";
+    private static final String USER_WRITE_ACCESS_SYSPROP = "USER_WRITE_ACCESS";
     private static final String KUBERNETES_MASTER_URL_DEFAULT = "https://kubernetes.default.svc.cluster.local";
     private static final String KUBERNETES_MASTER_URL =
             System.getProperty(KUBERNETES_MASTER_URL_SYSPROP, KUBERNETES_MASTER_URL_DEFAULT);
+    private static final String USER_WRITE_ACCESS = System.getProperty(USER_WRITE_ACCESS_SYSPROP, "false");
     private static final String ACCESS_URI = "/oapi/v1/subjectaccessreviews";
     private static final int MAX_CONNECTIONS_PER_THREAD = 20;
     private static final long CONNECTION_WAIT_TIMEOUT = MILLISECONDS.convert(30, SECONDS);
@@ -178,6 +183,12 @@ class TokenAuthenticator implements Authenticator {
             endExchange(serverExchange, BAD_REQUEST, MISSING_HEADERS_MSG);
             return;
         }
+
+        if (!USER_WRITE_ACCESS.equalsIgnoreCase("true") && !isQuery(serverExchange)) {
+                endExchange(serverExchange, UNAUTHORIZED, UNAUTHORIZED_USER_EDIT_MSG);
+                return;
+        }
+
         // Marks the request as dispatched. If we don't do this, the exchange will be terminated by the container when
         // this method returns, but we need to wait for Kubernetes' master response.
         serverExchange.dispatch();
@@ -188,6 +199,27 @@ class TokenAuthenticator implements Authenticator {
         PooledConnectionWaiter waiter = createWaiter(serverExchange);
         if (!connectionPool.offer(waiter)) {
             endExchange(serverExchange, INTERNAL_SERVER_ERROR, TOO_MANY_PENDING_REQUESTS);
+        }
+    }
+
+    //Returns if the request is a query request, eg to perform a READ
+    private boolean isQuery(HttpServerExchange serverExchange) {
+        if (serverExchange.getRequestMethod().toString().equalsIgnoreCase("GET") || serverExchange.getRequestMethod().toString().equalsIgnoreCase("HEAD")) {
+            // all GET requests are considered queries
+            return true;
+        } else if (serverExchange.getRequestMethod().toString().equalsIgnoreCase("POST")) {
+            // some POST requests may be queries we need to check.
+            // For instance: /[counters, gauges, availabilities, strings]/raw/query, or /metrics/stats/query
+
+            // Note the path will be something like /foo/bar/baz and the first element will be "", we need to check 2 & 3
+            String[] paths = serverExchange.getRelativePath().split("/");
+            if (paths.length >= 4 && (paths[2].equals("raw") || paths[2].equals("stats")) && paths[3].equals("query")) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 
@@ -202,7 +234,7 @@ class TokenAuthenticator implements Authenticator {
      */
     private void sendAuthenticationRequest(HttpServerExchange serverExchange, PooledConnection connection) {
         AuthContext context = serverExchange.getAttachment(AUTH_CONTEXT_KEY);
-        String verb = getVerb(serverExchange.getRequestMethod());
+        String verb = getVerb(serverExchange);
         context.subjectAccessReview = generateSubjectAccessReview(context.tenant, verb);
         ClientRequest request = buildClientRequest(context);
         context.clientRequestStarting();
@@ -223,13 +255,18 @@ class TokenAuthenticator implements Authenticator {
      *
      * @return the verb to use
      */
-    private String getVerb(HttpString method) {
-        String verb = VERBS.get(method);
-        if (verb == null) {
-            log.debugf("Unhandled http method '%s'. Checking for read access.", method);
-            verb = VERBS_DEFAULT;
+    private String getVerb(HttpServerExchange serverExchange) {
+        // if its a query type verb, then treat as a GET type call.
+        if (isQuery(serverExchange)) {
+            return VERBS.get(GET);
+        } else {
+            String verb = VERBS.get(serverExchange.getRequestMethod());
+            if (verb == null) {
+                log.debugf("Unhandled http method '%s'. Checking for read access.", serverExchange.getRequestMethod());
+                verb = VERBS_DEFAULT;
+            }
+            return verb;
         }
-        return verb;
     }
 
     /**
