@@ -16,7 +16,13 @@
  */
 package org.hawkular.metrics.rest
 
-import org.hawkular.metrics.core.service.DateTimeService
+import static java.lang.Double.NaN
+
+import static org.joda.time.Minutes.minutes
+import static org.joda.time.Seconds.seconds
+import static org.junit.Assert.assertEquals
+
+import org.hawkular.metrics.datetime.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
