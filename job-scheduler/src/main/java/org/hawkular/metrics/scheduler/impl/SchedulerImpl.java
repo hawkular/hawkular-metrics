@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.scheduler.impl;
 
-import static java.util.Collections.emptySet;
-
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
 import static org.joda.time.Minutes.minutes;
@@ -131,16 +129,11 @@ public class SchedulerImpl implements Scheduler {
         jobFactories = new HashMap<>();
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
-//        queueExecutor = Executors.newSingleThreadExecutor(
-//                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         tickScheduler = Schedulers.from(tickExecutor);
-//        queueScheduler = Schedulers.from(queueExecutor);
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build();
         queryExecutor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
                 threadFactory, new ThreadPoolExecutor.DiscardPolicy());
-//        queryExecutor = Executors.newFixedThreadPool(4,
-//                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
         queryScheduler = Schedulers.from(queryExecutor);
 
         lockManager = new LockManager(session);
@@ -217,42 +210,6 @@ public class SchedulerImpl implements Scheduler {
                 .flatMap(details -> Completable.merge(insertIntoJobsTable(details), updateScheduledJobsIndex(details))
                             .andThen(Single.just(details))
                 );
-
-//        return lockManager.acquirePermit(lockName, permit, 30)
-//                .map(acquired -> {
-//                    if (acquired) {
-//                        UUID jobId = UUID.randomUUID();
-//                        return new JobDetails(jobId, type, name, parameter, trigger);
-//                    } else {
-//                        throw new RuntimeException("Failed to schedule job");
-//                    }
-//                })
-//                .flatMap(jobDetails -> findActiveTimeSlice().map(timeSlice -> {
-//                    if (jobDetails.getTrigger().getTriggerTime() >= timeSlice.getTime()) {
-//                        return jobDetails;
-//                    } else {
-//                        throw new RuntimeException("Failed to schedule job");
-//                    }
-//                }))
-//                .flatMap(this::insertIntoJobsTable)
-//                .flatMap(this::addJobToQueue)
-//                .flatMap(details -> lockManager.releasePermit(lockName, permit)
-//                        .map(released -> {
-//                            if (released) {
-//                                return details;
-//                            } else {
-//                                throw new RuntimeException("Failed to schedule job.");
-//                            }
-//                        }));
-    }
-
-    public void startX() {
-        running = true;
-        NavigableSet<Date> activeTimeSlices = new ConcurrentSkipListSet<>();
-        Set<UUID> activeJobs = new ConcurrentSkipListSet<>();
-        tickExecutor.scheduleAtFixedRate(() -> {
-
-        }, 0, 1, TimeUnit.MINUTES);
     }
 
     @Override
@@ -265,9 +222,14 @@ public class SchedulerImpl implements Scheduler {
             logger.debug("Activating scheduler for [" + currentMinute().toDate() + "]");
 
             Date timeSlice = currentMinute().toDate();
+            // TODO Figure out why updateActiveTimeSlices() with Completable doesn't work
+            // When using updateActiveTimeSlices() that returns a Completable, we get intermittent failures. Need
+            // understand why. Maybe it has something to do with converting from ListenableFuture to Observable to
+            // Completable.
 //            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
             updateActiveTimeSlicesX(timeSlice)
                     .flatMap(aVoid -> findTimeSlices())
+                    // Filter on activeTimeSlices to prevent multiple threads doing the same work.
                     .filter(d -> !activeTimeSlices.contains(d))
                     .doOnNext(d -> {
                         logger.debug("Running job scheduler for [" + d + "]");
@@ -282,10 +244,6 @@ public class SchedulerImpl implements Scheduler {
                             .flatMap(jobLock -> findJob(jobLock.getJobId()))
                             .flatMap(details -> doJobExecution(details, activeJobs).toObservable()
                                     .map(o -> timeSliceLock.getTimeSlice()))
-//                            .map(details -> doJobExecution(details, activeJobs))
-//                            .reduce(Completable.complete(), Completable::merge)
-//                            .flatMap(completable -> Completable.fromAction(completable::await).toObservable())
-//                            .map(completable -> timeSliceLock.getTimeSlice())
                             .defaultIfEmpty(timeSliceLock.getTimeSlice()))
                     .flatMap(time -> {
                         Observable<? extends Set<UUID>> scheduled = findScheduledJobs(time);
@@ -297,114 +255,23 @@ public class SchedulerImpl implements Scheduler {
                                         deleteActiveTimeSlice(time),
                                         deleteFinishedJobs(time),
                                         deleteScheduledJobs(time)
+                                        // Without the reduce call here, the completable does not get executed.
+                                        // Not sure why.
                                 ).toObservable().reduce(null, (o1, o2) -> o2).map(o -> time);
-//                                return Observable.merge(
-//                                        deleteActiveTimeSliceX(time),
-//                                        deleteFinishedJobsX(time),
-//                                        deleteScheduledJobsX(time)
-//                                ).reduce((v1, v2) -> v1).map(v -> time);
                             }
                             return Observable.just(time);
                         });
                     })
-                    .doOnNext(d -> logger.debug("TIME [" + d + "]"))
-//                    .flatMap(time -> {
-//                        Observable<? extends Set<UUID>> scheduled = findScheduledJobs(time);
-//                        Observable<? extends Set<UUID>> finished = findFinishedJobs(time);
-//
-//                        return Observable.sequenceEqual(scheduled, finished).flatMap(allFinished -> {
-//                            if (allFinished) {
-//                                logger.debug("All jobs for time slice [" + time + "] have finished");
-//                                return Completable.merge(
-//                                        deleteActiveTimeSlice(time),
-//                                        deleteFinishedJobs(time),
-//                                        deleteScheduledJobs(time)
-//                                ).toObservable().observeOn(queryScheduler).map(o -> time);
-//                            }
-//                            return Completable.complete().toObservable().map(o -> time);
-//                        });
-//                    })
-                    .doOnNext(d -> {
-                        logger.debug("FINISHED [" + d + "]");
-                        activeTimeSlices.remove(d);
-                    })
+//                    .doOnNext(activeTimeSlices::remove)
                     .subscribe(
                             d -> {
                                 logger.debug("Finished post job execution clean up for [" + d + "]");
+                                activeTimeSlices.remove(d);
                                 finishedTimeSlices.ifPresent(subject -> subject.onNext(d));
                             },
                             t -> logger.warn("Job execution failed", t),
                             () ->  logger.debug("Done!")
                     );
-
-
-//            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
-//                    .doOnNext(d -> logger.debug("Running job scheduler for [" + d + "]"))
-//                    .flatMap(timeSlice -> findScheduledJobs(timeSlice)
-//                            .concatMap(scheduledJobs -> getJobsToExecute(timeSlice, scheduledJobs, activeJobs)))
-//                    .doOnNext(details -> logger.debug("Executing " + details))
-//                    .flatMap(details -> {
-//                        logger.debug("Starting execution for " + details);
-//                        Func1<JobDetails, Completable> factory = jobFactories.get(details.getJobType());
-//                        Completable job = factory.call(details);
-//                        logger.debug("Preparing to execute " + details);
-//                        Date timeSlice = new Date(details.getTrigger().getTriggerTime());
-//                        return Completable.merge(
-//                                job,
-//                                setJobFinished(timeSlice, details),
-//                                rescheduleJob(details),
-//                                deactivateJob(activeJobs, details),
-//                                Completable.fromAction(() ->
-//                                        jobFinished.ifPresent(subject -> subject.onNext(details)))
-//                        ).subscribeOn(Schedulers.io()).toObservable().map(o -> timeSlice);
-//                    })
-//                    .reduce(currentMinute().toDate(), (d1, d2) -> d2)
-//
-//                    .flatMap(time -> {
-//                        Observable<? extends Set<UUID>> scheduled = findScheduledJobs(time);
-//                        Observable<? extends Set<UUID>> finished = findFinishedJobs(time);
-//                        return Observable.sequenceEqual(scheduled, finished).flatMap(allFinished -> {
-//                            if (allFinished) {
-//                                logger.debug("All jobs for time slice [" + time + "] have finished");
-//                                return Completable.merge(
-//                                        deleteActiveTimeSlice(time),
-//                                        deleteFinishedJobs(time),
-//                                        deleteScheduledJobs(time)
-//                                ).toObservable().map(o -> time);
-//                            }
-//                            return Completable.complete().toObservable().map(o -> time);
-//                        });
-//                    })
-//                    .subscribe(
-//                            d -> {
-//                                logger.debug("Finished post job execution clean up for [" + d + "]");
-//                                finishedTimeSlices.ifPresent(subject -> subject.onNext(d));
-//                            },
-//                            t -> logger.warn("Job execution failed", t),
-//                            () ->  logger.debug("Done!")
-//                    );
-
-//                    .subscribe(
-//                            time -> {
-//                                Observable<? extends Set<UUID>> scheduled = findScheduledJobs(time);
-//                                Observable<? extends Set<UUID>> finished = findFinishedJobs(time);
-//                                Observable.sequenceEqual(scheduled, finished).flatMap(allFinished -> {
-//                                    if (allFinished) {
-//                                        logger.debug("All jobs for time slice [" + time + "] have finished");
-//                                        return Completable.merge(
-//                                                deleteActiveTimeSlice(time),
-//                                                deleteFinishedJobs(time),
-//                                                deleteScheduledJobs(time)
-//                                        ).toObservable().map(o -> time);
-//                                    }
-//                                    return Completable.complete().toObservable().map(o -> time);
-//                                }).subscribe(
-//                                        o -> logger.debug("Finished post job execution clean up for [" + time + "]"),
-//                                        t -> logger.warn("Post job execution clean up failed", t),
-//                                        () -> finishedTimeSlices.ifPresent(subject -> subject.onNext(time))
-//                                );
-//                            },
-//                            t -> logger.warn("Job scheduler failed", t), () -> logger.debug("Done!"));
         });
     }
 
@@ -458,6 +325,9 @@ public class SchedulerImpl implements Scheduler {
 
         JobDetails newDetails = new JobDetails(details.getJobId(), details.getJobType(), details.getJobName(),
                 details.getParameters(), nextTrigger);
+        // TODO Make sure we do not end with an orphaned job.
+        // We need to obtain the lock here just like we do when scheduling a job. And of course, if we have already
+        // reached or passed the next execution time, we need to go ahead and just execute the job again.
         return Completable.concat(
                 Completable.fromAction(() -> logger.debug("Scheduling " + newDetails + " for next execution at " +
                         new Date(nextTrigger.getTriggerTime()))),
@@ -510,8 +380,6 @@ public class SchedulerImpl implements Scheduler {
             running = false;
             tickExecutor.shutdown();
             tickExecutor.awaitTermination(5, TimeUnit.SECONDS);
-//            queueExecutor.shutdown();
-//            queueExecutor.awaitTermination(30, TimeUnit.SECONDS);
             queryExecutor.shutdown();
             queryExecutor.awaitTermination(30, TimeUnit.SECONDS);
 
@@ -525,59 +393,10 @@ public class SchedulerImpl implements Scheduler {
         logger.debug("Starting reset");
         shutdown();
         jobFactories = new HashMap<>();
-//        queueExecutor = Executors.newSingleThreadExecutor(
-//                new ThreadFactoryBuilder().setNameFormat("job-queue-pool-%d").build());
         this.tickScheduler = tickScheduler;
-//        queueScheduler = Schedulers.from(queueExecutor);
         queryExecutor = Executors.newFixedThreadPool(2,
                 new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
         queryScheduler = Schedulers.from(queryExecutor);
-    }
-
-    private Observable<JobDetails> getJobsToExecute(Date timeSlice, Set<UUID> scheduledJobs, Set<UUID> activeJobs) {
-        return Observable.create(subscriber -> {
-            String lockName = "org.hawkular.metrics.scheduler.queue." + timeSlice.getTime();
-
-            logger.debug("Acquiring queue lock [" + lockName + "] for " + timeSlice);
-            boolean acquiredLock = lockManager.acquireLock(lockName, "locked", 300).toBlocking()
-                    .lastOrDefault(false);
-            TimeSliceLock lock = new TimeSliceLock(timeSlice, lockName, acquiredLock);
-            logger.debug("Compute remaining jobs....");
-
-            try {
-                Set<UUID> remainingJobs = computeRemainingJobs(scheduledJobs, lock.getTimeSlice(), emptySet());
-
-                logger.debug("The jobs scheduled for time slice [" + lock.getTimeSlice() + "] are " + scheduledJobs);
-                logger.debug("Remaining jobs = " + remainingJobs + ", active jobs = " + activeJobs);
-
-                while (!remainingJobs.isEmpty()) {
-                    logger.debug("Scanning remaining jobs");
-                    remainingJobs.stream().limit(2).filter(jobId -> !activeJobs.contains(jobId)).forEach(jobId -> {
-                        String jobLock = "org.hawkular.metrics.scheduler.job." + jobId;
-                        activeJobs.add(jobId);
-                        boolean acquired = lockManager.acquireLock(jobLock, "locked", 3600)
-                                .toBlocking().first();
-                        logger.debug("Acquired job lock for job [" + jobId + "]? " + acquired);
-                        if (acquired) {
-                            // TODO handle null
-                            JobDetails jobDetails = findJob(jobId).toBlocking().firstOrDefault(null);
-                            logger.debug("Acquired job execution lock for " + jobDetails);
-                            subscriber.onNext(jobDetails);
-                            logger.debug("Emitted job " + jobDetails);
-                        } else {
-                            logger.debug("Failed to acquire job [" + jobId + "]");
-                        }
-                    });
-                    remainingJobs = computeRemainingJobs(scheduledJobs, lock.getTimeSlice(), activeJobs);
-                    logger.debug("Remaining jobs = " + remainingJobs);
-                }
-                logger.debug("No more jobs! [" + lock.getTimeSlice() + "]");
-                subscriber.onCompleted();
-            } catch (Exception e) {
-                logger.warn("There was an error getting jobs", e);
-                subscriber.onError(e);
-            }
-        }).doOnCompleted(() -> logger.debug("Finished scanning for jobs")).cast(JobDetails.class);
     }
 
     private Set<UUID> findScheduledJobsBlocking(Date timeSlice) {
@@ -593,18 +412,10 @@ public class SchedulerImpl implements Scheduler {
 
     private Observable<? extends Set<UUID>> findScheduledJobs(Date timeSlice) {
         logger.debug("Fetching scheduled jobs for [" + timeSlice + "]");
-
         return session.execute(findScheduledJobs.bind(timeSlice), queryScheduler)
                 .flatMap(Observable::from)
                 .map(row -> row.getUUID(0))
-                .doOnNext(uuid -> logger.debug("Scheduled job [" + uuid + "]"))
                 .collect(HashSet<UUID>::new, HashSet::add);
-    }
-
-    private Observable<UUID> findScheduledJobsX(Date timeSlice) {
-        return session.execute(findScheduledJobs.bind(timeSlice), queryScheduler)
-                .flatMap(Observable::from)
-                .map(row -> row.getUUID(0));
     }
 
     private Set<UUID> computeRemainingJobs(Set<UUID> scheduledJobs, Date timeSlice, Set<UUID> activeJobs) {
@@ -646,11 +457,12 @@ public class SchedulerImpl implements Scheduler {
         Action0 wrapper = () -> {
             Date timeSlice = getTimeSlice(new DateTime(tickScheduler.now()), minutes(1).toStandardDuration()).toDate();
             logger.debug("[TICK][" + timeSlice + "] executing action");
-            logger.debug("NUM TICKS = " + ticks.incrementAndGet());
             action.call();
             logger.debug("Finished tick for [" + timeSlice + "]");
         };
         AtomicReference<DateTime> previousTimeSliceRef = new AtomicReference<>();
+        // TODO Do we really need a separate, dedicated scheduler for emitting ticks?
+        // TODO Emit ticks at the start of every minute
         Observable.interval(0, 1, TimeUnit.MINUTES, tickScheduler)
                 .doOnNext(tick -> logger.debug("CURRENT MINUTE = " + currentMinute().toDate()))
                 .filter(tick -> {
@@ -667,24 +479,7 @@ public class SchedulerImpl implements Scheduler {
                     previousTimeSliceRef.set(time);
                     return true;
                 })
-
-//                .filter(tick -> {
-//                    DateTime currentTimeSlice = new DateTime(getTimeSlice(tickScheduler.now(),
-//                            minutes(1).toStandardDuration()));
-//                    if (previousTimeSliceRef.get() == null) {
-//                        previousTimeSliceRef.set(currentTimeSlice);
-//                        return false;
-//                    }
-//                    logger.debug("previous=[" + previousTimeSliceRef.get().toLocalDateTime() + "], current=[" +
-//                            currentTimeSlice.toLocalDateTime() + "]");
-//                    if (previousTimeSliceRef.get().isBefore(currentTimeSlice)) {
-//                        previousTimeSliceRef.set(currentTimeSlice);
-//                        return true;
-//                    }
-//                    return false;
-//                })
                 .takeUntil(d -> !running)
-//                .subscribeOn(queryScheduler)
                 .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
     }
 
