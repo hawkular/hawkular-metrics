@@ -124,6 +124,8 @@ public class SchedulerImpl implements Scheduler {
 
     private Optional<PublishSubject<JobDetails>> jobFinished;
 
+    private final Object lock = new Object();
+
     public SchedulerImpl(RxSession session) {
         this.session = session;
         jobFactories = new HashMap<>();
@@ -229,11 +231,17 @@ public class SchedulerImpl implements Scheduler {
 //            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
             updateActiveTimeSlicesX(timeSlice)
                     .flatMap(aVoid -> findTimeSlices())
-                    // Filter on activeTimeSlices to prevent multiple threads doing the same work.
-                    .filter(d -> !activeTimeSlices.contains(d))
+                    .filter(d -> {
+                        synchronized (lock) {
+                            if (!activeTimeSlices.contains(d)) {
+                                activeTimeSlices.add(d);
+                                return true;
+                            }
+                            return false;
+                        }
+                    })
                     .doOnNext(d -> {
                         logger.debug("Running job scheduler for [" + d + "]");
-                        activeTimeSlices.add(d);
                     })
                     .flatMap(this::acquireTimeSliceLock)
                     .flatMap(timeSliceLock -> findScheduledJobs(timeSliceLock.getTimeSlice())
@@ -273,6 +281,16 @@ public class SchedulerImpl implements Scheduler {
                             () ->  logger.debug("Done!")
                     );
         });
+    }
+
+    private synchronized boolean containsTimeSlice(Set<Date> activeTimeSlices, Date timeSlice) {
+        return activeTimeSlices.contains(timeSlice);
+    }
+
+    private synchronized void updateActiveTimeSlicesCache(Set<Date> activeTimeSlices, Date timeSlice) {
+        if (!activeTimeSlices.contains(timeSlice)) {
+            activeTimeSlices.add(timeSlice);
+        }
     }
 
     private Observable<TimeSliceLock> acquireTimeSliceLock(Date timeSlice) {
@@ -502,7 +520,8 @@ public class SchedulerImpl implements Scheduler {
                 .flatMap(Observable::from)
                 .map(row -> row.getTimestamp(0))
                 .toSortedList()
-                .flatMap(Observable::from);
+                .flatMap(Observable::from)
+                .doOnNext(d -> logger.debug("Time slice [" + d + "]"));
     }
 
     private Observable<JobDetails> findJob(UUID jobId) {
