@@ -115,7 +115,6 @@ public class JobExecutionTest extends JobSchedulerTest {
         DateTimeService.now = () -> new DateTime(tickScheduler.now());
 
         jobScheduler = new SchedulerImpl(rxSession);
-        jobScheduler.setConfigurationService(configurationService);
         jobScheduler.setTickScheduler(tickScheduler);
         jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
         jobScheduler.setJobFinishedSubject(jobFinished);

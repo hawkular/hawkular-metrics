@@ -44,7 +44,6 @@ import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
-import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
@@ -110,8 +109,6 @@ public class SchedulerImpl implements Scheduler {
     private PreparedStatement deleteActiveTimeSlice;
 
     private LockManager lockManager;
-
-    private ConfigurationService configurationService;
 
     private boolean running;
 
@@ -183,10 +180,6 @@ public class SchedulerImpl implements Scheduler {
      */
     void setJobFinishedSubject(PublishSubject<JobDetails> subject) {
         jobFinished = Optional.of(subject);
-    }
-
-    public void setConfigurationService(ConfigurationService configurationService) {
-        this.configurationService = configurationService;
     }
 
     @Override
@@ -489,12 +482,6 @@ public class SchedulerImpl implements Scheduler {
                 })
                 .takeUntil(d -> !running)
                 .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
-    }
-
-    private Observable<Date> findActiveTimeSlice() {
-        // TODO We shouldn't ever get an empty result set but need to handle it to be safe
-        return configurationService.load("org.hawkular.metrics.scheduler")
-                .map(config -> new Date(Long.parseLong(config.get("active-queue"))));
     }
 
     private Completable updateActiveTimeSlices(Date timeSlice) {
