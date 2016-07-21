@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.schema.SchemaService;
-import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
@@ -46,7 +45,6 @@ import com.datastax.driver.core.UDTValue;
 public class JobSchedulerTest {
     protected static Session session;
     protected static RxSession rxSession;
-    protected static ConfigurationService configurationService;
     protected static SchedulerImpl jobScheduler;
     private static PreparedStatement findJob;
     private static PreparedStatement findScheduledJobs;
@@ -68,11 +66,7 @@ public class JobSchedulerTest {
 
         session.execute("USE " + keyspace);
 
-        configurationService = new ConfigurationService();
-        configurationService.init(rxSession);
-
         jobScheduler = new SchedulerImpl(rxSession);
-        jobScheduler.setConfigurationService(configurationService);
 
         findJob = session.prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
