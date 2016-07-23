@@ -101,6 +101,8 @@ public class MetricsServiceLifecycle {
 
     private MetricsServiceImpl metricsService;
 
+    private JobsService jobsService;
+
     private final ScheduledExecutorService lifecycleExecutor;
 
     private JobsServiceImpl jobsService;
