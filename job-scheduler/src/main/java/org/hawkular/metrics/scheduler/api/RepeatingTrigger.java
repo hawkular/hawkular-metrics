@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.scheduler.api;
 
+import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
 import static org.hawkular.metrics.datetime.DateTimeService.now;
 import static org.joda.time.Duration.standardMinutes;
@@ -70,7 +71,7 @@ public class RepeatingTrigger implements Trigger {
 
     private RepeatingTrigger(Long interval, Long delay, Integer repeatCount) {
         if (interval == null && delay == null) {
-            throw new IllegalArgumentException("Both [interval] and [delay] cannot be null");
+            this.triggerTime = currentMinute().plusMinutes(1).getMillis();
         }
         this.interval = interval;
         this.delay = delay == null ? 0 : delay;
