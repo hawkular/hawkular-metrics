@@ -25,22 +25,30 @@ import java.net.URI;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.TenantDefinition;
+
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -58,8 +66,13 @@ import io.swagger.annotations.ApiResponses;
 @ApplicationScoped
 public class TenantsHandler {
 
+    @Context
+    ServletContext context;
+
     @Inject
     private MetricsService metricsService;
+
+    private JobsService jobsService;
 
     @POST
     @ApiOperation(value = "Create a new tenant.", notes = "Clients are not required to create explicitly create a "
@@ -100,6 +113,16 @@ public class TenantsHandler {
         metricsService.getTenants().map(TenantDefinition::new).toList().subscribe(
                 tenants -> asyncResponse.resume(collectionToResponse(tenants)),
                 error -> asyncResponse.resume(serverError(error))
+        );
+    }
+
+    @DELETE
+    @Path("{id}")
+    public void deleteTenant(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
+        jobsService.submitDeleteTenantJob(id).subscribe(
+                jobDetails -> asyncResponse.resume(Response.ok(ImmutableMap.of("jobId",
+                        jobDetails.getJobId().toString()))),
+                ApiUtils::badRequest
         );
     }
 }
