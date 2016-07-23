@@ -54,11 +54,12 @@ public class SingleExecutionTrigger implements Trigger {
     private SingleExecutionTrigger(Long delay, Long triggerTime) {
         if (delay == null && triggerTime == null) {
             this.triggerTime = currentMinute().plusMinutes(1).getMillis();
-        }
-        if (triggerTime != null) {
-            this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));
         } else {
-            this.triggerTime = getTimeSlice(now.get().getMillis() + delay, standardMinutes(1));
+            if (triggerTime != null) {
+                this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));
+            } else {
+                this.triggerTime = getTimeSlice(now.get().getMillis() + delay, standardMinutes(1));
+            }
         }
     }
 
