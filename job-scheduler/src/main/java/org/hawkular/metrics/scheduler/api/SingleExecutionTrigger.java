@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.scheduler.api;
 
+import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
 import static org.hawkular.metrics.datetime.DateTimeService.now;
 import static org.joda.time.Duration.standardMinutes;
@@ -41,7 +42,7 @@ public class SingleExecutionTrigger implements Trigger {
         }
 
         public Builder withTriggerTime(long time) {
-            this.triggerTime = time;
+            triggerTime = time;
             return this;
         }
 
@@ -52,7 +53,7 @@ public class SingleExecutionTrigger implements Trigger {
 
     private SingleExecutionTrigger(Long delay, Long triggerTime) {
         if (delay == null && triggerTime == null) {
-            throw new IllegalArgumentException("Both [delay] and [triggerTime] cannot be null");
+            this.triggerTime = currentMinute().plusMinutes(1).getMillis();
         }
         if (triggerTime != null) {
             this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));

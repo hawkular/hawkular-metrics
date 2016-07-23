@@ -58,10 +58,12 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.jobs.JobsServiceImpl;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.Task2;
@@ -106,6 +108,8 @@ public class MetricsServiceLifecycle {
     private MetricsServiceImpl metricsService;
 
     private final ScheduledExecutorService lifecycleExecutor;
+
+    private JobsServiceImpl jobsService;
 
     @Inject
     @Configurable
@@ -249,7 +253,6 @@ public class MetricsServiceLifecycle {
             // probably move to the hawkular-commons repo.
             initSchema();
             dataAcces = new DataAccessImpl(session);
-            initTaskScheduler();
 
             ConfigurationService configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
@@ -266,9 +269,9 @@ public class MetricsServiceLifecycle {
             }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
-            initJobs();
-
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
+
+            initJobsService();
 
             Configuration configuration = session.getCluster().getConfiguration();
             LoadBalancingPolicy loadBalancingPolicy = configuration.getPolicies().getLoadBalancingPolicy();
@@ -374,18 +377,6 @@ public class MetricsServiceLifecycle {
         session.execute("USE " + keyspace);
     }
 
-    private void initTaskScheduler() {
-//        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
-//        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-//            TestScheduler scheduler = Schedulers.test();
-//            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
-//            AbstractTrigger.now = scheduler::now;
-//            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-//
-//        }
-//        taskScheduler.start();
-    }
-
     private int getDefaultTTL() {
         try {
             return Integer.parseInt(defaultTTL);
@@ -395,14 +386,12 @@ public class MetricsServiceLifecycle {
         }
     }
 
-    private void initJobs() {
-//        GenerateRate generateRates = new GenerateRate(metricsService);
-//        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
-//
-//      jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
-//                .subscribe(generateRates));
-//      jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
-//                .subscribe(createTenants));
+    private void initJobsService() {
+        jobsService = new JobsServiceImpl();
+        jobsService.setMetricsService(metricsService);
+        jobsService.setSession(new RxSessionImpl(session));
+        jobsService.setScheduler(new SchedulerImpl(new RxSessionImpl(session)));
+        jobsService.start();
     }
 
     /**
@@ -416,7 +405,7 @@ public class MetricsServiceLifecycle {
 
     @PreDestroy
     void destroy() {
-        Future<?> stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
+        Future<?> stopFuture = lifecycleExecutor.submit(this::stopServices);
         try {
             Futures.get(stopFuture, 1, MINUTES, Exception.class);
         } catch (Exception e) {
@@ -425,9 +414,15 @@ public class MetricsServiceLifecycle {
         lifecycleExecutor.shutdown();
     }
 
-    private void stopMetricsService() {
+    private void stopServices() {
         state = State.STOPPING;
         try {
+            // The order here is important. We need to shutdown jobsService first so that any running jobs can finish
+            // gracefully.
+            if (jobsService != null) {
+                jobsService.shutdown();
+            }
+
             if (metricsService != null) {
                 metricsService.shutdown();
             }
