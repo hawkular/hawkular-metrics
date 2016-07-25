@@ -19,7 +19,6 @@ package org.hawkular.metrics.core.jobs;
 import static java.util.Arrays.asList;
 
 import static org.hawkular.metrics.core.service.Order.ASC;
-import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.model.AvailabilityType.DOWN;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
@@ -29,8 +28,6 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +37,6 @@ import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -48,9 +44,10 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.scheduler.api.JobDetails;
-import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
+import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -61,11 +58,6 @@ import com.datastax.driver.core.ResultSet;
 import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
-import rx.Subscription;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
-import rx.subjects.PublishSubject;
 
 /**
  * @author jsanda
@@ -74,21 +66,21 @@ public class DeleteTenantITest extends BaseITest {
 
     private MetricsServiceImpl metricsService;
 
-    private SchedulerImpl jobScheduler;
+    private TestScheduler jobScheduler;
 
     private JobsServiceImpl jobsService;
 
-    private TestScheduler tickScheduler;
+//    private TestScheduler tickScheduler;
 
-    private List<Subscription> jobFinishedSubscriptions;
+//    private List<Subscription> jobFinishedSubscriptions;
 
     /**
      * Publishes notifications when the job scheduler finishes executing jobs for a time slice (or if there are no
      * jobs to execute). This a test hook that allows to verify the state of things incrementally as work is completed.
      */
-    private PublishSubject<Date> finishedTimeSlices;
-
-    private PublishSubject<JobDetails> jobFinished;
+//    private PublishSubject<Date> finishedTimeSlices;
+//
+//    private PublishSubject<JobDetails> jobFinished;
 
     private static AtomicInteger tenantCounter;
 
@@ -114,45 +106,52 @@ public class DeleteTenantITest extends BaseITest {
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
-        finishedTimeSlices = PublishSubject.create();
-        jobFinished = PublishSubject.create();
+//        finishedTimeSlices = PublishSubject.create();
+//        jobFinished = PublishSubject.create();
+//
+//        jobFinishedSubscriptions = new ArrayList<>();
+//
+//        initJobScheduler();
 
-        jobFinishedSubscriptions = new ArrayList<>();
-
-        initJobScheduler();
+        jobScheduler = new TestScheduler(rxSession);
 
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
-        jobsService.start();
     }
 
     @BeforeMethod
     public void initTest() {
 //        jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
 
-        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        jobsService.start();
+        jobScheduler.advanceTimeBy(1);
     }
 
-    private void initJobScheduler() {
-        DateTimeService.now = DateTime::now;
-        tickScheduler = Schedulers.test();
-        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
-
-        DateTimeService.now = () -> new DateTime(tickScheduler.now());
-
-        jobScheduler = new SchedulerImpl(rxSession);
-        jobScheduler.setTickScheduler(tickScheduler);
-        jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
-        jobScheduler.setJobFinishedSubject(jobFinished);
-//        jobScheduler.start();
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        jobsService.shutdown();
     }
+
+//    private void initJobScheduler() {
+//        DateTimeService.now = DateTime::now;
+//        tickScheduler = Schedulers.test();
+//        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
+//
+//        DateTimeService.now = () -> new DateTime(tickScheduler.now());
+//
+//        jobScheduler = new SchedulerImpl(rxSession);
+//        jobScheduler.setTickScheduler(tickScheduler);
+//        jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
+//        jobScheduler.setJobFinishedSubject(jobFinished);
+////        jobScheduler.start();
+//    }
 
     @Test
     public void deleteTenantHavingGaugesAndNoMetricTags() throws Exception {
         String tenantId = nextTenantId();
-        DateTime start = new DateTime(tickScheduler.now());
+        DateTime start = new DateTime(jobScheduler.now());
 
         Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"), asList(
                 new DataPoint<>(start.getMillis(), 1.1),
@@ -166,9 +165,9 @@ public class DeleteTenantITest extends BaseITest {
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
 
-        tickScheduler.advanceTimeTo(details.getTrigger().getTriggerTime(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
@@ -182,7 +181,7 @@ public class DeleteTenantITest extends BaseITest {
     @Test
     public void deleteTenantHavingGaugesWithMetricTagsAndDataRetention() throws Exception {
         String tenantId = nextTenantId();
-        DateTime start = new DateTime(tickScheduler.now());
+        DateTime start = new DateTime(jobScheduler.now());
 
         Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"),
                 ImmutableMap.of("x", "1", "y", "2"), 10, asList(
@@ -200,9 +199,9 @@ public class DeleteTenantITest extends BaseITest {
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
 
-        tickScheduler.advanceTimeTo(details.getTrigger().getTriggerTime(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
@@ -225,9 +224,9 @@ public class DeleteTenantITest extends BaseITest {
         JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId()).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
 
-        tickScheduler.advanceTimeTo(details.getTrigger().getTriggerTime(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
@@ -243,7 +242,7 @@ public class DeleteTenantITest extends BaseITest {
     @Test
     public void deleteTenantHavingAllMetricTypes() throws Exception {
         String tenantId = nextTenantId();
-        DateTime start = new DateTime(tickScheduler.now());
+        DateTime start = new DateTime(jobScheduler.now());
 
         Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"), asList(
                 new DataPoint<>(start.getMillis(), 1.1),
@@ -284,18 +283,14 @@ public class DeleteTenantITest extends BaseITest {
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
 
-        tickScheduler.advanceTimeTo(details.getTrigger().getTriggerTime(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(s1, start, start.plusMinutes(3));
         assertDataEmpty(s2, start, start.plusMinutes(3));
-    }
-
-    private void onJobFinished(Action1<JobDetails> callback) {
-        jobFinishedSubscriptions.add(jobFinished.subscribe(callback));
     }
 
     private String nextTenantId() {
