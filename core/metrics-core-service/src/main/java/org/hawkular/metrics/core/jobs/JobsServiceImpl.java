@@ -57,10 +57,10 @@ public class JobsServiceImpl implements JobsService {
 
     @Override
     public void start() {
+        scheduler.start();
+
         deleteTenant = new DeleteTenant(session, metricsService);
         scheduler.registerJobFactory(DeleteTenant.JOB_NAME, deleteTenant);
-
-        scheduler.start();
     }
 
     @Override
