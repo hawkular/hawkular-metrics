@@ -26,6 +26,7 @@ import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.joda.time.DateTime;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -34,6 +35,13 @@ import com.google.common.collect.ImmutableMap;
  * @author jsanda
  */
 public class JobSchedulingTest extends JobSchedulerTest {
+
+    private SchedulerImpl jobScheduler;
+
+    @BeforeClass
+    public void initClass() {
+        jobScheduler = new SchedulerImpl(rxSession);
+    }
 
     @Test
     public void scheduleSingleExecutionJob() {
