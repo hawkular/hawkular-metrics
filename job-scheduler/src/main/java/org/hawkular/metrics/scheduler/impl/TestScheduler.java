@@ -75,6 +75,9 @@ public class TestScheduler implements Scheduler {
 
     private PreparedStatement updateJobQueue;
 
+    TestScheduler() {
+    }
+
     public TestScheduler(RxSession  session) {
         this.session = session;
 

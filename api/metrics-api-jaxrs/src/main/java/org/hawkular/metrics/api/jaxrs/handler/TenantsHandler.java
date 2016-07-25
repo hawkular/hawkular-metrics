@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.collectionToResponse;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 
@@ -42,7 +43,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
@@ -72,6 +72,7 @@ public class TenantsHandler {
     @Inject
     private MetricsService metricsService;
 
+    @Inject
     private JobsService jobsService;
 
     @POST
@@ -117,12 +118,19 @@ public class TenantsHandler {
     }
 
     @DELETE
-    @Path("{id}")
+    @Path("/{id}")
+    @ApiOperation(value = "Asynchronously deletes a tenant. All metrics and their data points will be deleted. " +
+            "Internal indexes are also updated. A response is returned as soon as a job to delete the tenant gets " +
+            "created and scheduled. The response returns the id of the tenant deletion job.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tenant deletion job gets scheduled. The job id is returned."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred trying to scheduled the tenant deletion job.")
+    })
     public void deleteTenant(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
         jobsService.submitDeleteTenantJob(id).subscribe(
                 jobDetails -> asyncResponse.resume(Response.ok(ImmutableMap.of("jobId",
-                        jobDetails.getJobId().toString()))),
-                ApiUtils::badRequest
+                        jobDetails.getJobId().toString())).build()),
+                t -> asyncResponse.resume(badRequest(t))
         );
     }
 }
