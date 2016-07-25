@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,18 +70,6 @@ public class DeleteTenantITest extends BaseITest {
 
     private JobsServiceImpl jobsService;
 
-//    private TestScheduler tickScheduler;
-
-//    private List<Subscription> jobFinishedSubscriptions;
-
-    /**
-     * Publishes notifications when the job scheduler finishes executing jobs for a time slice (or if there are no
-     * jobs to execute). This a test hook that allows to verify the state of things incrementally as work is completed.
-     */
-//    private PublishSubject<Date> finishedTimeSlices;
-//
-//    private PublishSubject<JobDetails> jobFinished;
-
     private static AtomicInteger tenantCounter;
 
     private PreparedStatement getTags;
@@ -106,13 +94,6 @@ public class DeleteTenantITest extends BaseITest {
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
-//        finishedTimeSlices = PublishSubject.create();
-//        jobFinished = PublishSubject.create();
-//
-//        jobFinishedSubscriptions = new ArrayList<>();
-//
-//        initJobScheduler();
-
         jobScheduler = new TestScheduler(rxSession);
 
         jobsService = new JobsServiceImpl();
@@ -123,8 +104,6 @@ public class DeleteTenantITest extends BaseITest {
 
     @BeforeMethod
     public void initTest() {
-//        jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
-
         jobsService.start();
         jobScheduler.advanceTimeBy(1);
     }
@@ -133,20 +112,6 @@ public class DeleteTenantITest extends BaseITest {
     public void tearDown() {
         jobsService.shutdown();
     }
-
-//    private void initJobScheduler() {
-//        DateTimeService.now = DateTime::now;
-//        tickScheduler = Schedulers.test();
-//        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
-//
-//        DateTimeService.now = () -> new DateTime(tickScheduler.now());
-//
-//        jobScheduler = new SchedulerImpl(rxSession);
-//        jobScheduler.setTickScheduler(tickScheduler);
-//        jobScheduler.setTimeSlicesSubject(finishedTimeSlices);
-//        jobScheduler.setJobFinishedSubject(jobFinished);
-////        jobScheduler.start();
-//    }
 
     @Test
     public void deleteTenantHavingGaugesAndNoMetricTags() throws Exception {
