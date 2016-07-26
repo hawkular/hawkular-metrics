@@ -20,9 +20,11 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.toSet;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -107,7 +110,9 @@ public class JobExecutionTest extends JobSchedulerTest {
         jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        assertEquals(getActiveTimeSlices(), emptySet());
+        Set<DateTime> activeTimeSlices = getActiveTimeSlices();
+        assertFalse(activeTimeSlices.contains(timeSlice), "[" + timeSlice.toDate() + "] should not be an active " +
+                "time slice but found " + activeTimeSlices.stream().map(DateTime::toDate).collect(toSet()));
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
     }
