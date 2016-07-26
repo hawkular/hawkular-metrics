@@ -293,7 +293,7 @@ public class SchedulerImpl implements Scheduler {
         Completable job = factory.call(details);
         logger.debug("Preparing to execute " + details);
         Date timeSlice = new Date(details.getTrigger().getTriggerTime());
-        return Completable.merge(
+        return Completable.concat(
                 job,
                 setJobFinished(timeSlice, details),
                 rescheduleJob(details),
