@@ -486,6 +486,8 @@ public class SchedulerImpl implements Scheduler {
         return session.execute(findActiveTimeSlices.bind(), queryScheduler)
                 .flatMap(Observable::from)
                 .map(row -> row.getTimestamp(0))
+                .toSortedList()
+                .flatMap(Observable::from)
                 .doOnNext(d -> logger.debug("Time slice [" + d + "]"));
     }
 
