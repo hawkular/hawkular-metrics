@@ -352,15 +352,21 @@ public class SchedulerImpl implements Scheduler {
     }
 
     private Completable deleteScheduledJobs(Date timeSlice) {
-        return session.execute(deleteScheduledJobs.bind(timeSlice), queryScheduler).toCompletable();
+        return session.execute(deleteScheduledJobs.bind(timeSlice), queryScheduler)
+                .doOnCompleted(() -> logger.debug("Deleted scheduled jobs time slice [" + timeSlice + "]"))
+                .toCompletable();
     }
 
     private Completable deleteFinishedJobs(Date timeSlice) {
-        return session.execute(deleteFinishedJobs.bind(timeSlice), queryScheduler).toCompletable();
+        return session.execute(deleteFinishedJobs.bind(timeSlice), queryScheduler)
+                .doOnCompleted((() -> logger.debug("Deleted finished jobs time slice [" + timeSlice + "]")))
+                .toCompletable();
     }
 
     private Completable deleteActiveTimeSlice(Date timeSlice) {
-        return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler).toCompletable();
+        return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler)
+                .doOnCompleted(() -> logger.debug("Deleted active time slice [" + timeSlice + "]"))
+                .toCompletable();
     }
 
     private Observable<Void> deleteScheduledJobsX(Date timeSlice) {
