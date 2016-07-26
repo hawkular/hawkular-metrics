@@ -132,7 +132,8 @@ public class DeleteTenantITest extends BaseITest {
 
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, "deleteTenantHavingGaugesAndNoMetricTags")
+                .toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails ->{
@@ -169,7 +170,8 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.createMetric(g2, true));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId,
+                "deleteTenantHavingGaugesWithMetricTagsAndDataRetention").toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
@@ -198,7 +200,8 @@ public class DeleteTenantITest extends BaseITest {
         Tenant tenant = new Tenant(nextTenantId(), ImmutableMap.of(GAUGE, 10, COUNTER, 15, STRING, 20));
         doAction(() -> metricsService.createTenant(tenant, true));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId()).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId(), "deleteTenantWithSettings")
+                .toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
@@ -261,7 +264,8 @@ public class DeleteTenantITest extends BaseITest {
 
         doAction(() -> metricsService.addDataPoints(STRING, Observable.just(s1, s2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, "deleteTenantHavingAllMetricTypes")
+                .toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
