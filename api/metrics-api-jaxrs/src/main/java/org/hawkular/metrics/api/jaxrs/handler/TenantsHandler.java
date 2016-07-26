@@ -127,7 +127,7 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred trying to scheduled the tenant deletion job.")
     })
     public void deleteTenant(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
-        jobsService.submitDeleteTenantJob(id).subscribe(
+        jobsService.submitDeleteTenantJob(id, "Delete " + id).subscribe(
                 jobDetails -> asyncResponse.resume(Response.ok(ImmutableMap.of("jobId",
                         jobDetails.getJobId().toString())).build()),
                 t -> asyncResponse.resume(badRequest(t))
