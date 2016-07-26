@@ -217,8 +217,8 @@ public class SchedulerImpl implements Scheduler {
             // When using updateActiveTimeSlices() that returns a Completable, we get intermittent failures. Need
             // understand why. Maybe it has something to do with converting from ListenableFuture to Observable to
             // Completable.
-            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
-//            updateActiveTimeSlicesX(timeSlice)
+//            updateActiveTimeSlices(currentMinute().toDate()).andThen(findTimeSlices())
+            updateActiveTimeSlicesX(timeSlice)
                     .flatMap(aVoid -> findTimeSlices())
                     .filter(d -> {
                         synchronized (lock) {
@@ -486,8 +486,6 @@ public class SchedulerImpl implements Scheduler {
         return session.execute(findActiveTimeSlices.bind(), queryScheduler)
                 .flatMap(Observable::from)
                 .map(row -> row.getTimestamp(0))
-                .toSortedList()
-                .flatMap(Observable::from)
                 .doOnNext(d -> logger.debug("Time slice [" + d + "]"));
     }
 
