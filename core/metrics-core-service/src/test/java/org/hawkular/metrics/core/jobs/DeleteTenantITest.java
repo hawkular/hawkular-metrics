@@ -29,6 +29,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -134,6 +135,7 @@ public class DeleteTenantITest extends BaseITest {
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, "deleteTenantHavingGaugesAndNoMetricTags")
                 .toBlocking().value();
+        logger.debug("Scheduled " + details + " to execute at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails ->{
@@ -172,6 +174,7 @@ public class DeleteTenantITest extends BaseITest {
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId,
                 "deleteTenantHavingGaugesWithMetricTagsAndDataRetention").toBlocking().value();
+        logger.debug("Scheduled " + details + " to execute at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
@@ -202,6 +205,7 @@ public class DeleteTenantITest extends BaseITest {
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId(), "deleteTenantWithSettings")
                 .toBlocking().value();
+        logger.debug("Scheduled " + details + " to execute at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
@@ -266,6 +270,7 @@ public class DeleteTenantITest extends BaseITest {
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, "deleteTenantHavingAllMetricTypes")
                 .toBlocking().value();
+        logger.debug("Scheduled " + details + " to execute at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
 //        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
