@@ -76,10 +76,6 @@ public class SchedulerImpl implements Scheduler {
 
     private rx.Scheduler tickScheduler;
 
-//    private ExecutorService queueExecutor;
-//
-//    private rx.Scheduler queueScheduler;
-
     private ExecutorService queryExecutor;
 
     private rx.Scheduler queryScheduler;
@@ -263,10 +259,10 @@ public class SchedulerImpl implements Scheduler {
                             return Observable.just(time);
                         });
                     })
-//                    .doOnNext(activeTimeSlices::remove)
                     .subscribe(
                             d -> {
                                 logger.debug("Finished post job execution clean up for [" + d + "]");
+                                // TODO should this be in a synchronized block?
                                 activeTimeSlices.remove(d);
                                 finishedTimeSlices.ifPresent(subject -> subject.onNext(d));
                             },
