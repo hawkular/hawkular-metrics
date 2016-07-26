@@ -21,6 +21,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.rx.cassandra.driver.RxSession;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -33,6 +34,8 @@ import rx.functions.Func1;
  * @author jsanda
  */
 public class DeleteTenant implements Func1<JobDetails, Completable> {
+
+    private static Logger logger = Logger.getLogger(DeleteTenant.class);
 
     public static final String JOB_NAME = "DELETE_TENANT";
 
@@ -67,10 +70,13 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         String tenantId = details.getParameters().get("tenantId");
 
         return Completable.merge(
-                deleteMetrics(tenantId).toCompletable(),
-                deleteRetentions(tenantId).toCompletable(),
+                deleteMetrics(tenantId).toCompletable()
+                        .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),
+                deleteRetentions(tenantId).toCompletable()
+                        .doOnCompleted(() -> logger.debug("Finished deleting retentions for " + tenantId)),
                 deleteTenant(tenantId).toCompletable()
-        );
+                        .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
+        ).doOnCompleted(() -> logger.debug("Finished deleting " + tenantId));
     }
 
     private Observable<ResultSet> deleteMetrics(String tenantId) {
