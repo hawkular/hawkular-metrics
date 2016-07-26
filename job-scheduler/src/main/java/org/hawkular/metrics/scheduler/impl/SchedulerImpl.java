@@ -293,7 +293,7 @@ public class SchedulerImpl implements Scheduler {
         Completable job = factory.call(details);
         logger.debug("Preparing to execute " + details);
         Date timeSlice = new Date(details.getTrigger().getTriggerTime());
-        return Completable.merge(
+        return Completable.concat(
                 job,
                 setJobFinished(timeSlice, details),
                 rescheduleJob(details),
@@ -352,27 +352,21 @@ public class SchedulerImpl implements Scheduler {
     }
 
     private Completable deleteScheduledJobs(Date timeSlice) {
-        return session.execute(deleteScheduledJobs.bind(timeSlice), queryScheduler).toCompletable();
+        return session.execute(deleteScheduledJobs.bind(timeSlice), queryScheduler)
+                .doOnCompleted(() -> logger.debug("Deleted scheduled jobs time slice [" + timeSlice + "]"))
+                .toCompletable();
     }
 
     private Completable deleteFinishedJobs(Date timeSlice) {
-        return session.execute(deleteFinishedJobs.bind(timeSlice), queryScheduler).toCompletable();
+        return session.execute(deleteFinishedJobs.bind(timeSlice), queryScheduler)
+                .doOnCompleted((() -> logger.debug("Deleted finished jobs time slice [" + timeSlice + "]")))
+                .toCompletable();
     }
 
     private Completable deleteActiveTimeSlice(Date timeSlice) {
-        return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler).toCompletable();
-    }
-
-    private Observable<Void> deleteScheduledJobsX(Date timeSlice) {
-        return session.execute(deleteScheduledJobs.bind(timeSlice), queryScheduler).map(resultSet -> null);
-    }
-
-    private Observable<Void> deleteFinishedJobsX(Date timeSlice) {
-        return session.execute(deleteFinishedJobs.bind(timeSlice), queryScheduler).map(resultSet -> null);
-    }
-
-    private Observable<Void> deleteActiveTimeSliceX(Date timeSlice) {
-        return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler).map(resultSet -> null);
+        return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler)
+                .doOnCompleted(() -> logger.debug("Deleted active time slice [" + timeSlice + "]"))
+                .toCompletable();
     }
 
     @Override

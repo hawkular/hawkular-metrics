@@ -55,7 +55,6 @@ class LockManager {
     }
 
     public Observable<Boolean> releaseLock(String name, String value) {
-        logger.debug("Releasing lock {name=" + name + ", value=" + value + "}");
         return session.execute(releaseLock.bind(name, value)).map(ResultSet::wasApplied);
     }
 
