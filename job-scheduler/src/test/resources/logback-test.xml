@@ -1,0 +1,56 @@
+<!--
+
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<configuration>
+  <property name="pattern" value="%-5level %date{ISO8601} [%thread] %class:%M:%L - %message%n"/>
+
+  <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <!--<level>${test.logging.console.level:-DEBUG}</level>-->
+      <level>DEBUG</level>
+    </filter>
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>${test.logging.file.level:-DEBUG}</level>
+    </filter>
+    <file>target/test.log</file>
+    <append>false</append>
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
+
+  <root level="info">
+    <appender-ref ref="stdout"/>
+    <appender-ref ref="file"/>
+  </root>
+
+  <logger name="org.hawkular" level="debug" additivity="false">
+    <appender-ref ref="file"/>
+    <appender-ref ref="stdout"/>
+  </logger>
+  <logger name="com.datastax" level="error" additivity="false">
+    <appender-ref ref="file"/>
+    <appender-ref ref="stdout"/>
+  </logger>
+</configuration>
