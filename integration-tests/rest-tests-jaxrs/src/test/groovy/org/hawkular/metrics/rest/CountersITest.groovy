@@ -16,13 +16,14 @@
  */
 package org.hawkular.metrics.rest
 
-import org.hawkular.metrics.core.service.DateTimeService
+import org.hawkular.metrics.datetime.DateTimeService
 import org.joda.time.DateTime
 import org.junit.Test
 
 import static java.lang.Double.NaN
 import static org.joda.time.DateTime.now
 import static org.junit.Assert.*
+
 /**
  * @author John Sanda
  */

@@ -32,7 +32,6 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.DataRetentionsMapper;
 import org.hawkular.metrics.core.service.DelegatingDataAccess;
-import org.hawkular.metrics.core.service.FakeTaskScheduler;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
@@ -82,7 +81,6 @@ public abstract class BaseMetricsITest extends BaseITest {
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
-        metricsService.setTaskScheduler(new FakeTaskScheduler());
         metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());

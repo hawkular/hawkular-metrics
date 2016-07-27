@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,10 +14,20 @@ package org.hawkular.schema
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.hawkular.metrics.core.jobs;
 
-include '/org/hawkular/schema/bootstrap.groovy'
+import org.hawkular.metrics.scheduler.api.JobDetails;
 
-setKeyspace keyspace
+import rx.Single;
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
+/**
+ * @author jsanda
+ */
+public interface JobsService {
+
+    void start();
+
+    void shutdown();
+
+    Single<JobDetails> submitDeleteTenantJob(String tenantId);
+}
