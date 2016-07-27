@@ -135,6 +135,8 @@ public class TestScheduler implements Scheduler {
             scheduler.setTimeSlicesSubject(finishedTimeSlices);
             scheduler.setJobFinishedSubject(jobFinished);
             scheduler.start();
+
+            advanceTimeBy(1);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

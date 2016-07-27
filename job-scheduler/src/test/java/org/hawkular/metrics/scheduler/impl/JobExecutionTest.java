@@ -162,7 +162,7 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeMultipleSingleExecutionJobs() throws Exception {
-        DateTime timeSlice = new DateTime(jobScheduler.now());
+        DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
         String jobType = "Test Type";

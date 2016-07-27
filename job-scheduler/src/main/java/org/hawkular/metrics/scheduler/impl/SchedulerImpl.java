@@ -37,7 +37,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
@@ -76,9 +75,9 @@ public class SchedulerImpl implements Scheduler {
 
     private rx.Scheduler tickScheduler;
 
-//    private ExecutorService queueExecutor;
-//
-//    private rx.Scheduler queueScheduler;
+    private ExecutorService actionExecutor;
+
+    private rx.Scheduler actionScheduler;
 
     private ExecutorService queryExecutor;
 
@@ -129,6 +128,10 @@ public class SchedulerImpl implements Scheduler {
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
         tickScheduler = Schedulers.from(tickExecutor);
+
+        actionExecutor = Executors.newScheduledThreadPool(1,
+                new ThreadFactoryBuilder().setNameFormat("action-pool-%d").build());
+        actionScheduler = Schedulers.from(actionExecutor);
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build();
         queryExecutor = new ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
@@ -387,6 +390,8 @@ public class SchedulerImpl implements Scheduler {
             running = false;
             tickExecutor.shutdown();
             tickExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            actionExecutor.shutdown();
+            actionExecutor.awaitTermination(5, TimeUnit.SECONDS);
             queryExecutor.shutdown();
             queryExecutor.awaitTermination(30, TimeUnit.SECONDS);
 
@@ -401,6 +406,9 @@ public class SchedulerImpl implements Scheduler {
         shutdown();
         jobFactories = new HashMap<>();
         this.tickScheduler = tickScheduler;
+        actionExecutor = Executors.newFixedThreadPool(1,
+                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
+        actionScheduler = Schedulers.from(actionExecutor);
         queryExecutor = Executors.newFixedThreadPool(2,
                 new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
         queryScheduler = Schedulers.from(queryExecutor);
@@ -464,30 +472,35 @@ public class SchedulerImpl implements Scheduler {
         Action0 wrapper = () -> {
             Date timeSlice = getTimeSlice(new DateTime(tickScheduler.now()), minutes(1).toStandardDuration()).toDate();
             logger.debug("[TICK][" + timeSlice + "] executing action");
-            action.call();
+//            action.call();
+            actionScheduler.createWorker().schedule(action);
             logger.debug("Finished tick for [" + timeSlice + "]");
         };
-        AtomicReference<DateTime> previousTimeSliceRef = new AtomicReference<>();
-        // TODO Do we really need a separate, dedicated scheduler for emitting ticks?
-        // TODO Emit ticks at the start of every minute
-        Observable.interval(0, 1, TimeUnit.MINUTES, tickScheduler)
-                .doOnNext(tick -> logger.debug("CURRENT MINUTE = " + currentMinute().toDate()))
-                .filter(tick -> {
-                    DateTime time = currentMinute();
-                    if (previousTimeSliceRef.get() == null) {
-                        previousTimeSliceRef.set(time);
-                        return true;
-                    }
-                    logger.debug("previous=[" + previousTimeSliceRef.get().toLocalDateTime() + "], current=[" +
-                            time.toLocalDateTime() + "]");
-                    if (previousTimeSliceRef.get().equals(time)) {
-                        return false;
-                    }
-                    previousTimeSliceRef.set(time);
-                    return true;
-                })
-                .takeUntil(d -> !running)
-                .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
+//        AtomicReference<DateTime> previousTimeSliceRef = new AtomicReference<>();
+//        // TODO Do we really need a separate, dedicated scheduler for emitting ticks?
+//        // TODO Emit ticks at the start of every minute
+//        Observable.interval(0, 1, TimeUnit.MINUTES, tickScheduler)
+//                .doOnNext(tick -> logger.debug("CURRENT MINUTE = " + currentMinute().toDate()))
+//                .filter(tick -> {
+//                    DateTime time = currentMinute();
+//                    if (previousTimeSliceRef.get() == null) {
+//                        previousTimeSliceRef.set(time);
+//                        return true;
+//                    }
+//                    logger.debug("previous=[" + previousTimeSliceRef.get().toLocalDateTime() + "], current=[" +
+//                            time.toLocalDateTime() + "]");
+//                    if (previousTimeSliceRef.get().equals(time)) {
+//                        return false;
+//                    }
+//                    previousTimeSliceRef.set(time);
+//                    return true;
+//                })
+//                .takeUntil(d -> !running)
+//                .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
+
+        DateTime nextMinute = currentMinute().plusMinutes(1);
+        long delay = nextMinute.getMillis() - System.currentTimeMillis();
+        tickScheduler.createWorker().schedulePeriodically(wrapper, delay, 60000, TimeUnit.MILLISECONDS);
     }
 
     private Completable updateActiveTimeSlices(Date timeSlice) {
