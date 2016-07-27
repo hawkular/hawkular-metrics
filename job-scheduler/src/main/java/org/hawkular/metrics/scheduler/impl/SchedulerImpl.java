@@ -407,7 +407,7 @@ public class SchedulerImpl implements Scheduler {
         jobFactories = new HashMap<>();
         this.tickScheduler = tickScheduler;
         actionExecutor = Executors.newFixedThreadPool(1,
-                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
+                new ThreadFactoryBuilder().setNameFormat("action-thread-pool-%d").build());
         actionScheduler = Schedulers.from(actionExecutor);
         queryExecutor = Executors.newFixedThreadPool(2,
                 new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
