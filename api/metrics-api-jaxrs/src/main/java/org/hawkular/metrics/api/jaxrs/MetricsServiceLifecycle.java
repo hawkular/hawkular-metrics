@@ -30,7 +30,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.JOB_SCHEDULER;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.security.NoSuchAlgorithmException;
@@ -58,14 +58,19 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.jobs.JobsService;
+import org.hawkular.metrics.core.jobs.JobsServiceImpl;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.scheduler.api.Scheduler;
+import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
+import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.metrics.tasks.api.Task2;
-import org.hawkular.metrics.tasks.api.TaskScheduler;
+import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
@@ -106,9 +111,11 @@ public class MetricsServiceLifecycle {
 
     private MetricsServiceImpl metricsService;
 
-    private TaskScheduler taskScheduler;
-
     private final ScheduledExecutorService lifecycleExecutor;
+
+    private Scheduler scheduler;
+
+    private JobsServiceImpl jobsService;
 
     @Inject
     @Configurable
@@ -147,8 +154,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(USE_VIRTUAL_CLOCK)
-    private String useVirtualClock;
+    @ConfigurationProperty(JOB_SCHEDULER)
+    private String schedulerMode;
 
     @Inject
     @Configurable
@@ -252,14 +259,12 @@ public class MetricsServiceLifecycle {
             // probably move to the hawkular-commons repo.
             initSchema();
             dataAcces = new DataAccessImpl(session);
-            initTaskScheduler();
 
             ConfigurationService configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
-            metricsService.setTaskScheduler(taskScheduler);
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
@@ -270,9 +275,9 @@ public class MetricsServiceLifecycle {
             }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
-            initJobs();
-
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
+
+            initJobsService();
 
             Configuration configuration = session.getCluster().getConfiguration();
             LoadBalancingPolicy loadBalancingPolicy = configuration.getPolicies().getLoadBalancingPolicy();
@@ -378,18 +383,6 @@ public class MetricsServiceLifecycle {
         session.execute("USE " + keyspace);
     }
 
-    private void initTaskScheduler() {
-//        taskScheduler = new TaskSchedulerImpl(new RxSessionImpl(session), new Queries(session));
-//        if (Boolean.valueOf(useVirtualClock.toLowerCase())) {
-//            TestScheduler scheduler = Schedulers.test();
-//            scheduler.advanceTimeTo(System.currentTimeMillis(), MILLISECONDS);
-//            AbstractTrigger.now = scheduler::now;
-//            ((TaskSchedulerImpl) taskScheduler).setTickScheduler(scheduler);
-//
-//        }
-//        taskScheduler.start();
-    }
-
     private int getDefaultTTL() {
         try {
             return Integer.parseInt(defaultTTL);
@@ -399,14 +392,18 @@ public class MetricsServiceLifecycle {
         }
     }
 
-    private void initJobs() {
-//        GenerateRate generateRates = new GenerateRate(metricsService);
-//        CreateTenants createTenants = new CreateTenants(metricsService, dataAcces);
-//
-//      jobs.put(generateRates, taskScheduler.getTasks().filter(task -> task.getName().equals(GenerateRate.TASK_NAME))
-//                .subscribe(generateRates));
-//      jobs.put(createTenants, taskScheduler.getTasks().filter(task -> task.getName().equals(CreateTenants.TASK_NAME))
-//                .subscribe(createTenants));
+    private void initJobsService() {
+        RxSession rxSession = new RxSessionImpl(session);
+        jobsService = new JobsServiceImpl();
+        jobsService.setMetricsService(metricsService);
+        jobsService.setSession(rxSession);
+        if (schedulerMode.equals("test")) {
+            scheduler = new TestScheduler(rxSession);
+        } else {
+            scheduler = new SchedulerImpl(rxSession);
+        }
+        jobsService.setScheduler(scheduler);
+        jobsService.start();
     }
 
     /**
@@ -420,13 +417,23 @@ public class MetricsServiceLifecycle {
 
     @Produces
     @ApplicationScoped
-    public TaskScheduler getTaskScheduler() {
-        return taskScheduler;
+    public JobsService getJobsService() {
+        return jobsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public TestScheduler getTestScheduler() {
+        if (!schedulerMode.equals("test")) {
+            throw new RuntimeException("The hawkular.metrics.job-scheduler system property must be set to true in " +
+                    "order to use " + TestScheduler.class.getName());
+        }
+        return (TestScheduler) scheduler;
     }
 
     @PreDestroy
     void destroy() {
-        Future<?> stopFuture = lifecycleExecutor.submit(this::stopMetricsService);
+        Future<?> stopFuture = lifecycleExecutor.submit(this::stopServices);
         try {
             Futures.get(stopFuture, 1, MINUTES, Exception.class);
         } catch (Exception e) {
@@ -435,19 +442,17 @@ public class MetricsServiceLifecycle {
         lifecycleExecutor.shutdown();
     }
 
-    private void stopMetricsService() {
+    private void stopServices() {
         state = State.STOPPING;
         try {
+            // The order here is important. We need to shutdown jobsService first so that any running jobs can finish
+            // gracefully.
+            if (jobsService != null) {
+                jobsService.shutdown();
+            }
+
             if (metricsService != null) {
                 metricsService.shutdown();
-            }
-            if (taskScheduler != null) {
-                taskScheduler.shutdown();
-            }
-            jobs.values().forEach(Subscription::unsubscribe);
-            if (session != null) {
-                session.close();
-                session.getCluster().close();
             }
             if (jmxReporter != null) {
                 jmxReporter.stop();

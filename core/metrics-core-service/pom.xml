@@ -50,13 +50,25 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-task-queue</artifactId>
+      <artifactId>hawkular-metrics-datetime-service</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-configuration-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-job-scheduler</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-task-queue</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -99,7 +111,6 @@
       <artifactId>jboss-logging-processor</artifactId>
       <scope>provided</scope>
     </dependency>
-
   </dependencies>
 
   <build>

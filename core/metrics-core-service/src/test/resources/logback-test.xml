@@ -21,7 +21,7 @@
 
   <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>${test.logging.console.level:-ERROR}</level>
+      <level>DEUBG</level>
     </filter>
     <encoder>
       <pattern>${pattern}</pattern>
@@ -30,7 +30,7 @@
 
   <appender name="file" class="ch.qos.logback.core.FileAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>INFO</level>
+      <level>DEBUG</level>
     </filter>
     <file>target/test.log</file>
     <append>false</append>
@@ -39,8 +39,11 @@
     </encoder>
   </appender>
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="stdout"/>
     <appender-ref ref="file"/>
   </root>
+
+  <logger name="org.cassalog" level="debug"/>
+  <logger name="org.hawkular" level="debug"/>
 </configuration>

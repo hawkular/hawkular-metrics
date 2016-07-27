@@ -21,3 +21,4 @@ include '/org/hawkular/schema/bootstrap.groovy'
 setKeyspace keyspace
 
 include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
+include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
