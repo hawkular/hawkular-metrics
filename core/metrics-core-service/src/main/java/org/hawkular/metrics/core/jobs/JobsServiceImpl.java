@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.concurrent.TimeUnit;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.Scheduler;
@@ -71,7 +73,7 @@ public class JobsServiceImpl implements JobsService {
     @Override
     public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, DeleteTenant.JOB_NAME, ImmutableMap.of("tenantId",
-                tenantId), new SingleExecutionTrigger.Builder().build());
+                tenantId), new SingleExecutionTrigger.Builder().withDelay(5, TimeUnit.MINUTES).build());
     }
 
 }
