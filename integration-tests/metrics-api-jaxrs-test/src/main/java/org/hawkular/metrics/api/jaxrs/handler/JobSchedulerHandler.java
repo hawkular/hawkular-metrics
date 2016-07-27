@@ -69,7 +69,7 @@ public class JobSchedulerHandler {
                 }
             });
             scheduler.advanceTimeTo(time);
-            boolean finished = timeSliceFinished.await(10, TimeUnit.SECONDS);
+            boolean finished = timeSliceFinished.await(30, TimeUnit.SECONDS);
             if (finished) {
                 return Response.ok().build();
             } else {
