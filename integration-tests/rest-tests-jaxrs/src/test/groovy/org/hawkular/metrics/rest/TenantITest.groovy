@@ -193,7 +193,7 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.put(
         path: 'scheduler/clock',
         headers: [(tenantHeaderName): tenantId],
-        body: [time: now.plusMinutes(1).millis]
+        body: [time: now.plusMinutes(5).millis]
     )
     assertEquals(200, response.status)
 
@@ -288,7 +288,7 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.put(
         path: 'scheduler/clock',
         headers: [(tenantHeaderName): tenantId],
-        body: [time: start.plusMinutes(1).millis]
+        body: [time: start.plusMinutes(5).millis]
     )
     assertEquals(200, response.status)
 
