@@ -45,7 +45,8 @@ install:
 # unshallow is needed by license-maven-plugin
 - git fetch origin --unshallow
 script:
-- mvn verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=INFO -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -Dtravis -B
+- mvn verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=DEBUG -Djboss-as.logging.console
+.level=INFO -Dterminal-event.timeout=25 -Dtravis -B
 after_failure: bash .travis.diagnose.sh
 after_success:
 - PROJECT_VERSION=`mvn --batch-mode org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version | grep -v '\['`

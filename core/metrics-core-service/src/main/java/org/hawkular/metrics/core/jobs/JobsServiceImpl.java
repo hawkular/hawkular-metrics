@@ -71,9 +71,9 @@ public class JobsServiceImpl implements JobsService {
     }
 
     @Override
-    public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
-        return scheduler.scheduleJob(DeleteTenant.JOB_NAME, DeleteTenant.JOB_NAME, ImmutableMap.of("tenantId",
-                tenantId), new SingleExecutionTrigger.Builder().withDelay(5, TimeUnit.MINUTES).build());
+    public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
+        return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
+                new SingleExecutionTrigger.Builder().withDelay(5, TimeUnit.MINUTES).build());
     }
 
 }
