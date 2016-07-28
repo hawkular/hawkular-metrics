@@ -47,6 +47,7 @@ import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.TenantDefinition;
+import org.jboss.logging.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -65,6 +66,8 @@ import io.swagger.annotations.ApiResponses;
 @Api(tags = "Tenant")
 @ApplicationScoped
 public class TenantsHandler {
+
+    private Logger logger = Logger.getLogger(TenantsHandler.class);
 
     @Context
     ServletContext context;
@@ -127,10 +130,13 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred trying to scheduled the tenant deletion job.")
     })
     public void deleteTenant(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
-        jobsService.submitDeleteTenantJob(id).subscribe(
+        jobsService.submitDeleteTenantJob(id, "Delete" + id).subscribe(
                 jobDetails -> asyncResponse.resume(Response.ok(ImmutableMap.of("jobId",
                         jobDetails.getJobId().toString())).build()),
-                t -> asyncResponse.resume(badRequest(t))
+                t -> {
+                    logger.warn("Deleting tenant [" + id + "] failed", t);
+                    asyncResponse.resume(badRequest(t));
+                }
         );
     }
 }

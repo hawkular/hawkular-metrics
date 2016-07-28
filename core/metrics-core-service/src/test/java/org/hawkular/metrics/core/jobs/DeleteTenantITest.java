@@ -28,6 +28,7 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +47,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -64,6 +66,8 @@ import rx.Observable;
  */
 public class DeleteTenantITest extends BaseITest {
 
+    private static Logger logger = Logger.getLogger(DeleteTenantITest.class);
+
     private MetricsServiceImpl metricsService;
 
     private TestScheduler jobScheduler;
@@ -75,6 +79,8 @@ public class DeleteTenantITest extends BaseITest {
     private PreparedStatement getTags;
 
     private PreparedStatement getRetentions;
+
+    private String jobName;
 
     @BeforeClass
     public void initClass() {
@@ -103,7 +109,9 @@ public class DeleteTenantITest extends BaseITest {
     }
 
     @BeforeMethod
-    public void initTest() {
+    public void initTest(Method method) {
+        logger.debug("Starting [" + method.getName() + "]");
+        jobName = method.getName();
         jobsService.start();
         jobScheduler.advanceTimeBy(1);
     }
@@ -127,10 +135,13 @@ public class DeleteTenantITest extends BaseITest {
 
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + details);
+            latch.countDown();
+        });
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
@@ -161,10 +172,13 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.createMetric(g2, true));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + details);
+            latch.countDown();
+        });
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
@@ -186,10 +200,13 @@ public class DeleteTenantITest extends BaseITest {
         Tenant tenant = new Tenant(nextTenantId(), ImmutableMap.of(GAUGE, 10, COUNTER, 15, STRING, 20));
         doAction(() -> metricsService.createTenant(tenant, true));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId()).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId(), jobName).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + details);
+            latch.countDown();
+        });
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
@@ -245,10 +262,13 @@ public class DeleteTenantITest extends BaseITest {
 
         doAction(() -> metricsService.addDataPoints(STRING, Observable.just(s1, s2)));
 
-        JobDetails details = jobsService.submitDeleteTenantJob(tenantId).toBlocking().value();
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
 
         CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> latch.countDown());
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + details);
+            latch.countDown();
+        });
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
