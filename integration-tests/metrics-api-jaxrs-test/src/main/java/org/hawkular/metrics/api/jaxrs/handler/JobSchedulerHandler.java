@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
+import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 
 import com.google.common.collect.ImmutableMap;
@@ -46,6 +47,8 @@ import com.google.common.collect.ImmutableMap;
 @Produces(APPLICATION_JSON)
 @ApplicationScoped
 public class JobSchedulerHandler {
+
+    private Logger logger = Logger.getLogger(JobSchedulerHandler.class);
 
     @Inject
     private TestScheduler scheduler;
@@ -79,6 +82,12 @@ public class JobSchedulerHandler {
         } catch (InterruptedException e) {
             String msg = "There was an interrupt while waiting for the job scheduler to finish its work for time " +
                     "slice [" + timeSlice.toDate() + "]";
+            logger.warn(msg, e);
+            return Response.serverError().type(APPLICATION_JSON_TYPE).entity(new ApiError(msg)).build();
+        } catch (Exception e) {
+            String msg = "There was an unexpected error while waiting for the job scheduler to finish its work for " +
+                    "[" + timeSlice.toDate() + "]";
+            logger.warn(msg, e);
             return Response.serverError().type(APPLICATION_JSON_TYPE).entity(new ApiError(msg)).build();
         }
     }
