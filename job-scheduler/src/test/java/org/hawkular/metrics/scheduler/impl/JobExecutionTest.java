@@ -157,23 +157,19 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeMultipleSingleExecutionJobs() throws Exception {
-        DateTime timeSlice = new DateTime(jobScheduler.now());
+        DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
         String jobType = "Test Type";
         Map<String, Integer> executionCounts = new HashMap<>();
-        List<JobDetails> jobDetailsList = new ArrayList<>();
 
         logger.debug("Scheduling jobs for time slice [" + timeSlice.toLocalDateTime() + "]");
 
         for (int i = 0; i < 3; ++i) {
             JobDetails details = new JobDetails(randomUUID(), jobType, "Test Job " + i, emptyMap(), trigger);
-            jobDetailsList.add(details);
             executionCounts.put(details.getJobName(), 0);
 
-            session.execute(insertJob.bind(details.getJobId(), details.getJobType(), details.getJobName(),
-                    details.getParameters(), SchedulerImpl.getTriggerValue(rxSession, trigger)));
-            session.execute(updateJobQueue.bind(timeSlice.toDate(), details.getJobId()));
+            scheduleJob(details);
         }
 
         jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
