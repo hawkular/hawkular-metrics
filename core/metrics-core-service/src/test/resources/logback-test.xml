@@ -46,4 +46,5 @@
 
   <logger name="org.cassalog" level="debug"/>
   <logger name="org.hawkular" level="debug"/>
+  <logger name="com.datastax" level="error"/>
 </configuration>
