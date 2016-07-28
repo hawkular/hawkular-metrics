@@ -29,6 +29,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -136,6 +137,7 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+        logger.debug("Scheduled " + details + " for execution at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
@@ -173,6 +175,7 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+        logger.debug("Scheduled " + details + " for execution at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
@@ -201,6 +204,7 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.createTenant(tenant, true));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId(), jobName).toBlocking().value();
+        logger.debug("Scheduled " + details + " for execution at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
@@ -263,6 +267,7 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(STRING, Observable.just(s1, s2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+        logger.debug("Scheduled " + details + " for execution at " + new Date(details.getTrigger().getTriggerTime()));
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
