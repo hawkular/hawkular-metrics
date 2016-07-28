@@ -401,6 +401,7 @@ public class SchedulerImpl implements Scheduler {
         return session.execute(findScheduledJobs.bind(timeSlice), queryScheduler)
                 .flatMap(Observable::from)
                 .map(row -> row.getUUID(0))
+                .doOnNext(jobId -> logger.debug("Found job id " + jobId))
                 .collect(HashSet<UUID>::new, HashSet::add);
     }
 
