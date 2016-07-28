@@ -119,7 +119,7 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeSingleExecutionJob() throws Exception {
-        DateTime timeSlice = new DateTime(jobScheduler.now());
+        DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
         JobDetails jobDetails = new JobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
@@ -200,7 +200,7 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeLongRunningSingleExecutionJob() throws Exception {
-        final DateTime timeSlice = new DateTime(jobScheduler.now());
+        final DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
         logger.debug("TIME is" + timeSlice.toDate());
 
         JobDetails job1 = new JobDetails(randomUUID(), "Long Test Job", "Long Test Job", emptyMap(),
