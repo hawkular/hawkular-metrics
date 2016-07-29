@@ -23,6 +23,7 @@ import static java.util.UUID.randomUUID;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -107,7 +109,9 @@ public class JobExecutionTest extends JobSchedulerTest {
         jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        assertEquals(getActiveTimeSlices(), emptySet());
+        Set<DateTime> activeTimeSlices = getActiveTimeSlices();
+        assertFalse(activeTimeSlices.contains(timeSlice), "Did not expecte " + timeSlice + " to be in active " +
+                "time slices");
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
     }
@@ -119,7 +123,7 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeSingleExecutionJob() throws Exception {
-        DateTime timeSlice = new DateTime(jobScheduler.now());
+        DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
         JobDetails jobDetails = new JobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
@@ -157,23 +161,18 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeMultipleSingleExecutionJobs() throws Exception {
-        DateTime timeSlice = new DateTime(jobScheduler.now());
+        DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
         String jobType = "Test Type";
         Map<String, Integer> executionCounts = new HashMap<>();
-        List<JobDetails> jobDetailsList = new ArrayList<>();
 
         logger.debug("Scheduling jobs for time slice [" + timeSlice.toLocalDateTime() + "]");
 
         for (int i = 0; i < 3; ++i) {
             JobDetails details = new JobDetails(randomUUID(), jobType, "Test Job " + i, emptyMap(), trigger);
-            jobDetailsList.add(details);
             executionCounts.put(details.getJobName(), 0);
-
-            session.execute(insertJob.bind(details.getJobId(), details.getJobType(), details.getJobName(),
-                    details.getParameters(), SchedulerImpl.getTriggerValue(rxSession, trigger)));
-            session.execute(updateJobQueue.bind(timeSlice.toDate(), details.getJobId()));
+            scheduleJob(details);
         }
 
         jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
@@ -204,7 +203,7 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeLongRunningSingleExecutionJob() throws Exception {
-        final DateTime timeSlice = new DateTime(jobScheduler.now());
+        final DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
         logger.debug("TIME is" + timeSlice.toDate());
 
         JobDetails job1 = new JobDetails(randomUUID(), "Long Test Job", "Long Test Job", emptyMap(),
