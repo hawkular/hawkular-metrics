@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+setKeyspace keyspace
+
 schemaChange {
   version '2.0'
   author 'jsanda'
