@@ -57,7 +57,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-test</artifactId>
       <version>${project.version}</version>
       <type>war</type>
       <scope>test</scope>
@@ -173,7 +173,7 @@
                     <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
                     <javaOpt>-Dcassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.use-virtual-clock=true</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.job-scheduler=test</javaOpt>
                     <javaOpt>-Dhawkular.terminal-event.timeout=${terminal-event.timeout}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2</javaOpt>
@@ -216,7 +216,7 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <artifactId>hawkular-metrics-api-jaxrs-test</artifactId>
                   <name>hawkular-metric-rest.war</name>
                 </configuration>
               </execution>
