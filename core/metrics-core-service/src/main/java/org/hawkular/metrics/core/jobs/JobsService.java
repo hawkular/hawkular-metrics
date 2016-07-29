@@ -29,5 +29,5 @@ public interface JobsService {
 
     void shutdown();
 
-    Single<JobDetails> submitDeleteTenantJob(String tenantId);
+    Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 }
