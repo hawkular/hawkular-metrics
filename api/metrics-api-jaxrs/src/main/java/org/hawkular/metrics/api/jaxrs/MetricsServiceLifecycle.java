@@ -35,9 +35,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SE
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,7 +64,6 @@ import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
-import org.hawkular.metrics.tasks.api.Task2;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
@@ -83,9 +80,6 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
-
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * Bean created on startup to manage the lifecycle of the {@link MetricsService} instance shared in application scope.
@@ -176,8 +170,6 @@ public class MetricsServiceLifecycle {
     private JmxReporter jmxReporter;
 
     private DataAccess dataAcces;
-
-    private Map<? super Action1<Task2>, Subscription> jobs = new HashMap<>();
 
     MetricsServiceLifecycle() {
         ThreadFactory threadFactory = r -> {
