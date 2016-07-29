@@ -42,10 +42,6 @@
         </exclusion>
         <exclusion>
           <groupId>${project.groupId}</groupId>
-          <artifactId>hawkular-metrics-task-queue</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>${project.groupId}</groupId>
           <artifactId>hawkular-metrics-rx-java-driver</artifactId>
         </exclusion>
         <exclusion>
