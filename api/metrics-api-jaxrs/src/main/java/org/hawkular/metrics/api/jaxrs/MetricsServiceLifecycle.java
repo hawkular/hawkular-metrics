@@ -67,6 +67,7 @@ import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
