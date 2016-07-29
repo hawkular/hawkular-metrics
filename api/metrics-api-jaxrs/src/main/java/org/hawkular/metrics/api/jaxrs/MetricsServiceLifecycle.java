@@ -30,7 +30,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.USE_VIRTUAL_CLOCK;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.JOB_SCHEDULER;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.security.NoSuchAlgorithmException;
@@ -56,14 +56,18 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
+import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
@@ -102,6 +106,8 @@ public class MetricsServiceLifecycle {
     private MetricsServiceImpl metricsService;
 
     private final ScheduledExecutorService lifecycleExecutor;
+
+    private Scheduler scheduler;
 
     private JobsServiceImpl jobsService;
 
@@ -142,8 +148,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(USE_VIRTUAL_CLOCK)
-    private String useVirtualClock;
+    @ConfigurationProperty(JOB_SCHEDULER)
+    private String schedulerMode;
 
     @Inject
     @Configurable
@@ -379,10 +385,16 @@ public class MetricsServiceLifecycle {
     }
 
     private void initJobsService() {
+        RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
         jobsService.setMetricsService(metricsService);
-        jobsService.setSession(new RxSessionImpl(session));
-        jobsService.setScheduler(new SchedulerImpl(new RxSessionImpl(session)));
+        jobsService.setSession(rxSession);
+        if (schedulerMode.equals("test")) {
+            scheduler = new TestScheduler(rxSession);
+        } else {
+            scheduler = new SchedulerImpl(rxSession);
+        }
+        jobsService.setScheduler(scheduler);
         jobsService.start();
     }
 
@@ -393,6 +405,22 @@ public class MetricsServiceLifecycle {
     @ApplicationScoped
     public MetricsService getMetricsService() {
         return metricsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public JobsService getJobsService() {
+        return jobsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public TestScheduler getTestScheduler() {
+        if (!schedulerMode.equals("test")) {
+            throw new RuntimeException("The hawkular.metrics.job-scheduler system property must be set to true in " +
+                    "order to use " + TestScheduler.class.getName());
+        }
+        return (TestScheduler) scheduler;
     }
 
     @PreDestroy

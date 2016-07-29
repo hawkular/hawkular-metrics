@@ -16,10 +16,15 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.concurrent.TimeUnit;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.Scheduler;
+import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
+
+import com.google.common.collect.ImmutableMap;
 
 import rx.Single;
 
@@ -33,6 +38,8 @@ public class JobsServiceImpl implements JobsService {
     private RxSession session;
 
     private MetricsService metricsService;
+
+    private DeleteTenant deleteTenant;
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -52,9 +59,10 @@ public class JobsServiceImpl implements JobsService {
 
     @Override
     public void start() {
-        // Register jobs here and start scheduler
-
         scheduler.start();
+
+        deleteTenant = new DeleteTenant(session, metricsService);
+        scheduler.registerJobFactory(DeleteTenant.JOB_NAME, deleteTenant);
     }
 
     @Override
@@ -63,11 +71,9 @@ public class JobsServiceImpl implements JobsService {
     }
 
     @Override
-    public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
-//        return scheduler.scheduleJob("DELETE_TENANT", "DELETE_TENANT", ImmutableMap.of("tenantId", tenantId),
-//                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-        // This work is being done in HWKMETRICS-446
-        return Single.error(new UnsupportedOperationException());
+    public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
+        return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
+                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
 }
