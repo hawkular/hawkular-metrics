@@ -23,6 +23,7 @@ import static java.util.UUID.randomUUID;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -186,7 +188,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        assertEquals(getActiveTimeSlices(), emptySet());
+        Set<DateTime> activeTimeSlices = getActiveTimeSlices();
+        assertFalse(activeTimeSlices.contains(timeSlice));
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
     }
