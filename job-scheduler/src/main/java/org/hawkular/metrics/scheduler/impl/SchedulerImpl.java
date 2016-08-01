@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
+import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
@@ -60,6 +61,7 @@ import rx.Observable;
 import rx.Single;
 import rx.functions.Action0;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -71,6 +73,8 @@ public class SchedulerImpl implements Scheduler {
     private static Logger logger = Logger.getLogger(SchedulerImpl.class);
 
     private Map<String, Func1<JobDetails, Completable>> jobFactories;
+
+    private Map<String, Func2<JobDetails, Throwable, RetryPolicy>> retryFunctions;
 
     private ScheduledExecutorService tickExecutor;
 
@@ -110,6 +114,8 @@ public class SchedulerImpl implements Scheduler {
 
     private AtomicInteger ticks = new AtomicInteger();
 
+    private static Func2<JobDetails, Throwable, RetryPolicy> NO_RETRY = (details, throwable) -> RetryPolicy.NONE;
+
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
      */
@@ -122,6 +128,7 @@ public class SchedulerImpl implements Scheduler {
     public SchedulerImpl(RxSession session) {
         this.session = session;
         jobFactories = new HashMap<>();
+        retryFunctions = new HashMap<>();
         tickExecutor = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
         tickScheduler = Schedulers.from(tickExecutor);
@@ -179,8 +186,15 @@ public class SchedulerImpl implements Scheduler {
     }
 
     @Override
-    public void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory) {
-        jobFactories.put(jobType, factory);
+    public void register(String jobType, Func1<JobDetails, Completable> jobProducer) {
+        jobFactories.put(jobType, jobProducer);
+    }
+
+    @Override
+    public void register(String jobType, Func1<JobDetails, Completable> jobProducer,
+            Func2<JobDetails, Throwable, RetryPolicy> retryFunction) {
+        jobFactories.put(jobType, jobProducer);
+        retryFunctions.put(jobType, retryFunction);
     }
 
     @Override
@@ -285,7 +299,36 @@ public class SchedulerImpl implements Scheduler {
         logger.debug("Preparing to execute " + details);
         Date timeSlice = new Date(details.getTrigger().getTriggerTime());
         return Completable.concat(
-                job,
+                job.onErrorResumeNext(t -> {
+                    RetryPolicy retryPolicy = retryFunctions.getOrDefault(details.getJobType(), NO_RETRY)
+                            .call(details, t);
+                    if (retryPolicy == RetryPolicy.NONE) {
+                        return Completable.complete();
+                    }
+                    if (details.getTrigger().nextTrigger() != null) {
+                        logger.warn("Retry Policies cannot be used with jobs that repeat. " + details +
+                                " will execute again according to its next trigger.");
+                    }
+                    if (retryPolicy == RetryPolicy.NOW) {
+                        return factory.call(details);
+                    }
+                    Trigger newTrigger = new Trigger() {
+                        @Override
+                        public long getTriggerTime() {
+                            return details.getTrigger().getTriggerTime();
+                        }
+
+                        @Override
+                        public Trigger nextTrigger() {
+                            return new SingleExecutionTrigger.Builder()
+                                    .withDelay(retryPolicy.getDelay(), TimeUnit.MILLISECONDS)
+                                    .build();
+                        }
+                    };
+                    JobDetails newDetails = new JobDetails(details.getJobId(), details.getJobType(),
+                            details.getJobName(), details.getParameters(), newTrigger);
+                    return rescheduleJob(newDetails);
+                }),
                 setJobFinished(timeSlice, details),
                 rescheduleJob(details),
                 deactivateJob(activeJobs, details),

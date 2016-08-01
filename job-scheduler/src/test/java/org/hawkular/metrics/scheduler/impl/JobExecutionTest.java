@@ -46,10 +46,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
+import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.Minutes;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -65,6 +67,8 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.internal.schedulers.SchedulerLifecycle;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -207,7 +211,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         JobDetails jobDetails = new JobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
         AtomicInteger executionCountRef = new AtomicInteger();
 
-        jobScheduler.registerJobFactory(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
+        jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             executionCountRef.incrementAndGet();
         }));
@@ -258,7 +262,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             session.execute(updateJobQueue.bind(timeSlice.toDate(), details.getJobId()));
         }
 
-        jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
+        jobScheduler.register(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             Integer count = executionCounts.get(details.getJobName());
             executionCounts.put(details.getJobName(), ++count);
@@ -295,7 +299,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch job1Running = new CountDownLatch(1);
         CountDownLatch job2Finished = new CountDownLatch(1);
 
-        jobScheduler.registerJobFactory(job1.getJobType(), details -> Completable.fromAction(() -> {
+        jobScheduler.register(job1.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 logger.debug("First time slice finished!");
                 // This is to let the test know that this job has started executing and the clock can be advanced
@@ -314,7 +318,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         JobDetails job2 = new JobDetails(randomUUID(), "Test Type", "Test Job", emptyMap(),
                 new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.plusMinutes(1).getMillis()).build());
 
-        jobScheduler.registerJobFactory(job2.getJobType(), details -> Completable.fromAction(() ->
+        jobScheduler.register(job2.getJobType(), details -> Completable.fromAction(() ->
                 logger.debug("Executing " + details)));
 
         scheduleJob(job1);
@@ -362,7 +366,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         JobDetails jobDetails = new JobDetails(randomUUID(), "Repeat Test", "Repeat Test", emptyMap(), trigger);
         TestJob job = new TestJob();
 
-        jobScheduler.registerJobFactory(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
+        jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
             job.call(details);
         }));
 
@@ -395,6 +399,162 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(getFinishedJobs(timeSlice.plusMinutes(1)), emptySet());
     }
 
+    @Test
+    public void executeSingleExecutionJobThatFailsAndHasNoRetryPolicy() throws Exception {
+        Trigger repeatingTrigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(repeatingTrigger.getTriggerTime());
+        JobDetails repeating = new JobDetails(randomUUID(), "Repeating Job", "Repeating Job", emptyMap(),
+                repeatingTrigger);
+
+        Trigger singleFireTrigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
+        JobDetails failed = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), singleFireTrigger);
+
+        jobScheduler.register(repeating.getJobType(), details -> Completable.complete());
+        jobScheduler.register(failed.getJobType(), details -> Completable.error(new Exception()));
+
+        scheduleJob(repeating);
+        scheduleJob(failed);
+
+        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+        AtomicInteger executions = new AtomicInteger();
+
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (timeSlice.equals(finishedTimeSlice)) {
+                firstTimeSliceFinished.countDown();
+            }
+        });
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (timeSlice.plusMinutes(1).equals(finishedTimeSlice)) {
+                secondTimeSliceFinished.countDown();
+            }
+        });
+        onJobFinished(details -> {
+            if (details.getJobType().equals(repeating.getJobType())) {
+                executions.incrementAndGet();
+            }
+        });
+
+        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        assertEquals(executions.get(), 2);
+    }
+
+    @Test
+    public void executeJobThatFailsAndRetrysImmediately() throws Exception {
+        Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
+
+        AtomicInteger attempts = new AtomicInteger();
+        Func1<JobDetails, Completable> job = details -> {
+            if (attempts.getAndIncrement() == 0) {
+                return Completable.error(new Exception());
+            }
+            return Completable.complete();
+        };
+        Func2<JobDetails, Throwable, RetryPolicy> retry = (details, throwable) -> RetryPolicy.NOW;
+
+        jobScheduler.register(jobDetails.getJobType(), job, retry);
+
+        scheduleJob(jobDetails);
+
+        CountDownLatch timeSliceFinished = new CountDownLatch(1);
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                timeSliceFinished.countDown();
+            }
+        });
+
+        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
+        assertEquals(attempts.get(), 2);
+    }
+
+    @Test
+    public void executeJobThatFailsAndRetriesAfterDelay() throws Exception {
+        Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
+
+        AtomicInteger attempts = new AtomicInteger();
+        Func1<JobDetails, Completable> job = details -> {
+            if (attempts.getAndIncrement() == 0) {
+                return Completable.error(new Exception());
+            }
+            return Completable.complete();
+        };
+        Func2<JobDetails, Throwable, RetryPolicy> retry = (details, throwable) ->
+                () -> Minutes.ONE.toStandardDuration().getMillis();
+
+        jobScheduler.register(jobDetails.getJobType(), job, retry);
+
+        scheduleJob(jobDetails);
+
+        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                firstTimeSliceFinished.countDown();
+            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
+                secondTimeSliceFinished.countDown();
+            }
+        });
+
+        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+        assertEquals(attempts.get(), 2);
+    }
+
+    @Test
+    public void executeRepeatingJobThatFails() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Repeating Job", "Failed Repeating Job", emptyMap(),
+                trigger);
+
+        AtomicInteger attempts = new AtomicInteger();
+
+        jobScheduler.register(jobDetails.getJobType(), details -> {
+            if (attempts.getAndIncrement() == 0) {
+                return Completable.error(new Exception());
+            }
+            return Completable.complete();
+        });
+
+        scheduleJob(jobDetails);
+
+        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                firstTimeSliceFinished.countDown();
+            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
+                secondTimeSliceFinished.countDown();
+            }
+        });
+
+        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+        assertEquals(attempts.get(), 2);
+    }
+
     /**
      * This test executes multiple repeating jobs multiple times.
      */
@@ -415,7 +575,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             scheduleJob(details);
         }
 
-        jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
+        jobScheduler.register(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             List<DateTime> executionTimes = executions.get(details.getJobName());
             executionTimes.add(currentMinute());
@@ -491,7 +651,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             shortJobExecutions.offer(new TestLatch(1, timeSlice.plusMinutes(i).toDate()));
         }
 
-        jobScheduler.registerJobFactory(longJob.getJobType(), details -> Completable.fromAction(() -> {
+        jobScheduler.register(longJob.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 longJobExecutionCount.incrementAndGet();
                 logger.debug("LONG wait...");
@@ -503,7 +663,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
         }));
 
-        jobScheduler.registerJobFactory(shortJob.getJobType(), details -> Completable.fromAction(() -> {
+        jobScheduler.register(shortJob.getJobType(), details -> Completable.fromAction(() -> {
             try {
                 shortJobExecutionTimes.add(new Date(details.getTrigger().getTriggerTime()));
                 logger.debug("Executing " + details + " " + shortJobExecutionTimes.size() + " times");
@@ -584,7 +744,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch thirdTimeSliceFinished = new CountDownLatch(1);
 
-        jobScheduler.registerJobFactory(jobType, details -> Completable.fromAction(() -> {
+        jobScheduler.register(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             long timeout = Math.abs(random.nextLong() % 100);
             DateTime time = new DateTime(details.getTrigger().getTriggerTime());
