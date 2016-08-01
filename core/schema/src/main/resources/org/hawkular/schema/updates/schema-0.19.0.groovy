@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,10 +15,13 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
-
 setKeyspace keyspace
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
+schemaChange {
+  version '3.0'
+  author 'jsanda'
+  tags '0.18.x', '0.19.x'
+  cql """
+ALTER TABLE data WITH COMPRESSION = {'sstable_compression': 'DeflateCompressor'};
+"""
+}
