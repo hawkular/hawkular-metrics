@@ -17,18 +17,14 @@
 package org.hawkular.metrics.core.jobs;
 
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.scheduler.api.JobDetails;
-import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.rx.cassandra.driver.RxSession;
-
-import rx.Single;
 
 /**
  * @author jsanda
  */
 public class JobsServiceImpl implements JobsService {
 
-    private Scheduler scheduler;
+//    private Scheduler scheduler;
 
     private RxSession session;
 
@@ -46,28 +42,28 @@ public class JobsServiceImpl implements JobsService {
      * Ideally I think the scheduler should be an implementation detail of this service. This method is here though as
      * a test hook.
      */
-    public void setScheduler(Scheduler scheduler) {
-        this.scheduler = scheduler;
-    }
+//    public void setScheduler(Scheduler scheduler) {
+//        this.scheduler = scheduler;
+//    }
 
     @Override
     public void start() {
         // Register jobs here and start scheduler
 
-        scheduler.start();
+//        scheduler.start();
     }
 
     @Override
     public void shutdown() {
-        scheduler.shutdown();
+//        scheduler.shutdown();
     }
 
-    @Override
-    public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
-//        return scheduler.scheduleJob("DELETE_TENANT", "DELETE_TENANT", ImmutableMap.of("tenantId", tenantId),
-//                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-        // This work is being done in HWKMETRICS-446
-        return Single.error(new UnsupportedOperationException());
-    }
+//    @Override
+//    public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
+////        return scheduler.scheduleJob("DELETE_TENANT", "DELETE_TENANT", ImmutableMap.of("tenantId", tenantId),
+////                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
+//        // This work is being done in HWKMETRICS-446
+//        return Single.error(new UnsupportedOperationException());
+//    }
 
 }

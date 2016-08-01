@@ -16,10 +16,6 @@
  */
 package org.hawkular.metrics.core.jobs;
 
-import org.hawkular.metrics.scheduler.api.JobDetails;
-
-import rx.Single;
-
 /**
  * @author jsanda
  */
@@ -29,5 +25,5 @@ public interface JobsService {
 
     void shutdown();
 
-    Single<JobDetails> submitDeleteTenantJob(String tenantId);
+//    Single<JobDetails> submitDeleteTenantJob(String tenantId);
 }
