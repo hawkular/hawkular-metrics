@@ -717,7 +717,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(job);
 
-        jobScheduler.registerJobFactory(job.getJobType(), details -> Completable.fromAction(() -> executed.set(true)));
+        jobScheduler.register(job.getJobType(), details -> Completable.fromAction(() -> executed.set(true)));
 
         CountDownLatch timeSliceDone = new CountDownLatch(1);
         onTimeSliceFinished(finishedTimeSlice -> {

@@ -116,6 +116,8 @@ public class SchedulerImpl implements Scheduler {
 
     private static Func2<JobDetails, Throwable, RetryPolicy> NO_RETRY = (details, throwable) -> RetryPolicy.NONE;
 
+    static final String QUEUE_LOCK_PREFIX = "org.hawkular.metrics.scheduler.queue.";
+
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
      */
