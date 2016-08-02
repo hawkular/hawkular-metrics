@@ -18,18 +18,21 @@ package org.hawkular.metrics.scheduler.impl;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.fail;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
+import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.BeforeTest;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -38,6 +41,8 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.UDTValue;
+
+import rx.Observable;
 
 /**
  * @author jsanda
@@ -76,12 +81,26 @@ public class JobSchedulerTest {
         addActiveTimeSlice = session.prepare("INSERT INTO active_time_slices (time_slice) VALUES (?)");
     }
 
-    @BeforeTest
-    public static void resetSchema() {
-        session.execute("TRUNCATE jobs");
-        session.execute("TRUNCATE finished_jobs_idx");
-        session.execute("TRUNCATE locks");
-        session.execute("TRUNCATE scheduled_jobs_idx");
+    protected void resetSchema() throws Exception {
+        CountDownLatch truncationFinished = new CountDownLatch(1);
+
+        Observable.merge(
+                truncateTable("jobs"),
+                truncateTable("scheduled_jobs_idx"),
+                truncateTable("finished_jobs_idx"),
+                truncateTable("active_time_slices"),
+                truncateTable("locks")
+        ).subscribe(
+                resultSet -> {},
+                t -> fail("Truncating tables failed", t),
+                truncationFinished::countDown
+        );
+
+        truncationFinished.await();
+    }
+
+    private Observable<ResultSet> truncateTable(String table) {
+        return rxSession.execute("TRUNCATE " + table);
     }
 
     protected Set<DateTime> getActiveTimeSlices() {
@@ -119,7 +138,15 @@ public class JobSchedulerTest {
                 "The job parameters do not match");
 
         UDTValue udtValue = row.getUDTValue(3);
-        assertEquals(udtValue.getInt(0), 0, "The trigger type does not match");
+        int triggerType = 0;
+        if (expected.getTrigger() instanceof SingleExecutionTrigger) {
+            triggerType = 0;
+        } else if (expected.getTrigger() instanceof RepeatingTrigger) {
+            triggerType = 1;
+        } else {
+            fail(expected.getTrigger().getClass().getName() + " is not a recognized trigger type");
+        }
+        assertEquals(udtValue.getInt(0), triggerType, "The trigger type does not match");
         assertEquals(udtValue.getLong(1), expected.getTrigger().getTriggerTime(), "The trigger time does not match");
     }
 

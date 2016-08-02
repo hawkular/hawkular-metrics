@@ -116,6 +116,8 @@ public class SchedulerImpl implements Scheduler {
 
     private static Func2<JobDetails, Throwable, RetryPolicy> NO_RETRY = (details, throwable) -> RetryPolicy.NONE;
 
+    static final String QUEUE_LOCK_PREFIX = "org.hawkular.metrics.scheduler.queue.";
+
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
      */
@@ -202,7 +204,7 @@ public class SchedulerImpl implements Scheduler {
         if (System.currentTimeMillis() >= trigger.getTriggerTime()) {
             return Single.error(new RuntimeException("Trigger time has already passed"));
         }
-        String lockName = "org.hawkular.metrics.scheduler.queue." + trigger.getTriggerTime();
+        String lockName = QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
         return lockManager.acquireLock(lockName, "scheduling", 5)
                 .map(acquired -> {
                     if (acquired) {
@@ -213,8 +215,7 @@ public class SchedulerImpl implements Scheduler {
                 })
                 .toSingle()
                 .flatMap(details -> Completable.merge(insertIntoJobsTable(details), updateScheduledJobsIndex(details))
-                            .andThen(Single.just(details))
-                );
+                            .andThen(Single.just(details)));
     }
 
     @Override
@@ -282,9 +283,26 @@ public class SchedulerImpl implements Scheduler {
     }
 
     private Observable<TimeSliceLock> acquireTimeSliceLock(Date timeSlice) {
-        String lockName = "org.hawkular.metrics.scheduler.queue." + timeSlice.getTime();
-        return lockManager.acquireLock(lockName, "locked", 3600)
-                .map(acquired -> new TimeSliceLock(timeSlice, lockName, acquired));
+        String lockName = QUEUE_LOCK_PREFIX + timeSlice.getTime();
+        int delay = 5;
+        Observable<TimeSliceLock> observable = Observable.create(subscriber -> {
+            lockManager.acquireLock(lockName, "executing", 3600)
+                    .map(acquired -> {
+                        if (!acquired) {
+                            logger.debug("Failed to acquire time slice lock for ["  + timeSlice + "]. Will attempt " +
+                                    "to acquire it again in " + delay + " seconds.");
+                            throw new RuntimeException();
+                        }
+                        return new TimeSliceLock(timeSlice, lockName, acquired);
+                    })
+                    .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted);
+        });
+        // We keep retrying until we acquire the lock. If the lock is held for scheduling, it will expire in 5 seconds
+        // and we can obtain it for executing jobs. We should eventually acquire the lock because once the system
+        // clock catches up to the time slice, we won't allow any more clients to obtain the lock for scheduling. If
+        // system clocks are screwed up, we could have a problem.
+        return observable.retryWhen(errors -> errors.flatMap(e -> Observable.timer(delay, TimeUnit.SECONDS,
+                queryScheduler)));
     }
 
     private Observable<JobLock> acquireJobLock(UUID jobId) {
