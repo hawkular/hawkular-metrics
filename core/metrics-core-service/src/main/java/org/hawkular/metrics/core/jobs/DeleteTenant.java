@@ -72,6 +72,9 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
     public Completable call(JobDetails details) {
         String tenantId = details.getParameters().get("tenantId");
 
+        // The concat operator is used instead of merge to ensure things execute in order. The deleteMetricData
+        // method queries the metrics index, so we want to update the index only after we have finished deleting
+        // data.
         return Completable.concat(
                 deleteMetricData(tenantId).toCompletable()
                         .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),

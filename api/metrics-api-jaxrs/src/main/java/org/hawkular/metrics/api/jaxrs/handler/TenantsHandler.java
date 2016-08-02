@@ -26,7 +26,6 @@ import java.net.URI;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -68,9 +67,6 @@ import io.swagger.annotations.ApiResponses;
 public class TenantsHandler {
 
     private Logger logger = Logger.getLogger(TenantsHandler.class);
-
-    @Context
-    ServletContext context;
 
     @Inject
     private MetricsService metricsService;
