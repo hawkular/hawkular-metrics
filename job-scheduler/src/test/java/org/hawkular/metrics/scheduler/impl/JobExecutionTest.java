@@ -25,7 +25,6 @@ import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.datetime.DateTimeService;
@@ -58,12 +58,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import rx.Completable;
-import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action1;
@@ -130,22 +128,10 @@ public class JobExecutionTest extends JobSchedulerTest {
     public void initTest(Method method) throws Exception {
         logger.debug("Starting [" + method.getName() + "]");
 
-        CountDownLatch truncationFinished = new CountDownLatch(1);
-        Observable<ResultSet> o1 = rxSession.execute("TRUNCATE jobs");
-        Observable<ResultSet> o2 = rxSession.execute("TRUNCATE scheduled_jobs_idx");
-        Observable<ResultSet> o3 = rxSession.execute("TRUNCATE finished_jobs_idx");
-        Observable<ResultSet> o4 = rxSession.execute("TRUNCATE active_time_slices");
-
-        Observable.merge(o1, o2, o3, o4).subscribe(
-                resultSet -> {},
-                t -> fail("Truncating tables failed", t),
-                truncationFinished::countDown
-        );
+        resetSchema();
 
         finishedTimeSlicesSubscriptions.forEach(Subscription::unsubscribe);
         jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
-
-        truncationFinished.await();
 
         initJobScheduler();
         jobScheduler.start();
@@ -715,6 +701,38 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(getScheduledJobs(finishedTimeSlice), emptySet());
         assertEquals(getFinishedJobs(finishedTimeSlice), emptySet());
         assertEquals(getScheduledJobs(nextTimeSlice), ImmutableSet.of(longJob.getJobId(), shortJob.getJobId()));
+    }
+
+    /**
+     * This test goes over the scenario in which the job scheduler fails to acquire the time slice / queue lock because
+     * it has already been acquired for scheduling. In this scenario we just keep trying to acquire the lock because
+     * the scheduling lock will expire.
+     */
+    @Test
+    public void executeJobWhenQueueLockIsSetToScheduling() throws Exception {
+        Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails job = new JobDetails(randomUUID(), "TEST", "TEST", emptyMap(), trigger);
+        AtomicBoolean executed = new AtomicBoolean();
+
+        scheduleJob(job);
+
+        jobScheduler.registerJobFactory(job.getJobType(), details -> Completable.fromAction(() -> executed.set(true)));
+
+        CountDownLatch timeSliceDone = new CountDownLatch(1);
+        onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                timeSliceDone.countDown();
+            }
+        });
+
+        String lock = SchedulerImpl.QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
+        session.execute("INSERT INTO locks (name, value) VALUES ('" + lock + "', 'scheduling') USING TTL 5");
+
+        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+
+        assertTrue(timeSliceDone.await(20, TimeUnit.SECONDS));
+        assertTrue(executed.get());
     }
 
     @Test

@@ -41,13 +41,13 @@ class LockManager {
     public LockManager(RxSession session) {
         this.session = session;
         acquireLock = session.getSession().prepare(
-                "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value = NULL");
+                "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value IN (NULL, ?)");
         releaseLock = session.getSession().prepare(
                 "UPDATE locks SET value = NULL WHERE name = ? IF value = ?");
     }
 
     public Observable<Boolean> acquireLock(String name, String value, int timeout) {
-        return session.execute(acquireLock.bind(timeout, value, name)).map(ResultSet::wasApplied);
+        return session.execute(acquireLock.bind(timeout, value, name, value)).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> acquireLock(String name, String value, int timeout, Scheduler scheduler) {
