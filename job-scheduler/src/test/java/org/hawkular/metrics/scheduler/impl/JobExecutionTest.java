@@ -64,10 +64,6 @@ import rx.Completable;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
-import rx.internal.schedulers.SchedulerLifecycle;
-import rx.schedulers.Schedulers;
-import rx.schedulers.TestScheduler;
-import rx.subjects.PublishSubject;
 
 /**
  * @author jsanda
@@ -351,26 +347,26 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
         AtomicInteger executions = new AtomicInteger();
 
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (timeSlice.equals(finishedTimeSlice)) {
                 firstTimeSliceFinished.countDown();
             }
         });
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (timeSlice.plusMinutes(1).equals(finishedTimeSlice)) {
                 secondTimeSliceFinished.countDown();
             }
         });
-        onJobFinished(details -> {
+        jobScheduler.onJobFinished(details -> {
             if (details.getJobType().equals(repeating.getJobType())) {
                 executions.incrementAndGet();
             }
         });
 
-        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        jobScheduler.advanceTimeBy(1);
         assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
 
         assertEquals(executions.get(), 2);
@@ -396,13 +392,13 @@ public class JobExecutionTest extends JobSchedulerTest {
         scheduleJob(jobDetails);
 
         CountDownLatch timeSliceFinished = new CountDownLatch(1);
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (finishedTimeSlice.equals(timeSlice)) {
                 timeSliceFinished.countDown();
             }
         });
 
-        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }
@@ -429,7 +425,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (finishedTimeSlice.equals(timeSlice)) {
                 firstTimeSliceFinished.countDown();
             } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
@@ -437,10 +433,10 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
         });
 
-        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        jobScheduler.advanceTimeBy(1);
         assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }
@@ -468,7 +464,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (finishedTimeSlice.equals(timeSlice)) {
                 firstTimeSliceFinished.countDown();
             } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
@@ -476,10 +472,10 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
         });
 
-        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
 
-        tickScheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+        jobScheduler.advanceTimeBy(1);
         assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }

@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
@@ -42,6 +43,7 @@ import rx.Single;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -99,8 +101,13 @@ public class TestScheduler implements Scheduler {
     }
 
     @Override
-    public void registerJobFactory(String jobType, Func1<JobDetails, Completable> factory) {
-        scheduler.registerJobFactory(jobType, factory);
+    public void register(String jobType, Func1<JobDetails, Completable> factory) {
+        scheduler.register(jobType, factory);
+    }
+
+    @Override public void register(String jobType, Func1<JobDetails, Completable> jobProducer,
+            Func2<JobDetails, Throwable, RetryPolicy> retryFunction) {
+        scheduler.register(jobType, jobProducer, retryFunction);
     }
 
     @Override
