@@ -61,7 +61,6 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -382,7 +381,7 @@ public class MetricsServiceLifecycle {
         jobsService = new JobsServiceImpl();
         jobsService.setMetricsService(metricsService);
         jobsService.setSession(new RxSessionImpl(session));
-        jobsService.setScheduler(new SchedulerImpl(new RxSessionImpl(session)));
+//        jobsService.setScheduler(new SchedulerImpl(new RxSessionImpl(session)));
         jobsService.start();
     }
 
