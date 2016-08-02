@@ -87,13 +87,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     @BeforeMethod(alwaysRun = true)
     public void initTest(Method method) throws Exception {
         logger.debug("Starting [" + method.getName() + "]");
-
         resetSchema();
-
-        finishedTimeSlicesSubscriptions.forEach(Subscription::unsubscribe);
-        jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
-
-        initJobScheduler();
         jobScheduler.start();
     }
 
@@ -659,7 +653,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         jobScheduler.register(job.getJobType(), details -> Completable.fromAction(() -> executed.set(true)));
 
         CountDownLatch timeSliceDone = new CountDownLatch(1);
-        onTimeSliceFinished(finishedTimeSlice -> {
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
             if (finishedTimeSlice.equals(timeSlice)) {
                 timeSliceDone.countDown();
             }
@@ -668,7 +662,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         String lock = SchedulerImpl.QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
         session.execute("INSERT INTO locks (name, value) VALUES ('" + lock + "', 'scheduling') USING TTL 5");
 
-        tickScheduler.advanceTimeTo(timeSlice.getMillis(), TimeUnit.MILLISECONDS);
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
 
         assertTrue(timeSliceDone.await(20, TimeUnit.SECONDS));
         assertTrue(executed.get());
