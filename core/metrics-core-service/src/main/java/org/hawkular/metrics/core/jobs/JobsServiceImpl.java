@@ -16,17 +16,27 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import static java.util.Collections.emptyMap;
+
+import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
+import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
+import static org.joda.time.Duration.standardMinutes;
+
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
+import org.hawkular.metrics.scheduler.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
+import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +58,8 @@ public class JobsServiceImpl implements JobsService {
     private MetricsService metricsService;
 
     private DeleteTenant deleteTenant;
+
+    private ComputeRollups computeRollups;
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -80,6 +92,19 @@ public class JobsServiceImpl implements JobsService {
                     return Minutes.minutes(5).toStandardDuration().getMillis();
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
+
+        computeRollups = new ComputeRollups(session, metricsService);
+        scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
+        DateTime nextTimeSlice = getTimeSlice(currentMinute(), standardMinutes(5)).plusMinutes(5);
+        logger.debug("Next time slice [" + nextTimeSlice.toDate() + "]");
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withTriggerTime(nextTimeSlice.getMillis())
+                .withInterval(5, TimeUnit.MINUTES)
+                .build();
+        logger.debug("Scheduling " + ComputeRollups.JOB_NAME + " with start time [" +
+                new Date(trigger.getTriggerTime()) + "]");
+        scheduler.scheduleJob(ComputeRollups.JOB_NAME, ComputeRollups.JOB_NAME, emptyMap(), trigger)
+                .toBlocking().value();
     }
 
     @Override
