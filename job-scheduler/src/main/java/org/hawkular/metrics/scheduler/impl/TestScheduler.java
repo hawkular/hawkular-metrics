@@ -93,6 +93,9 @@ public class TestScheduler implements Scheduler {
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         updateJobQueue = session.getSession().prepare(
                 "INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+
+        initTickScheduler();
+        initJobScheduler();
     }
 
     @Override
@@ -131,21 +134,29 @@ public class TestScheduler implements Scheduler {
 
             truncationFinished.await();
 
-            DateTimeService.now = DateTime::now;
-            tickScheduler = Schedulers.test();
-            tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
+            initTickScheduler();
+            initJobScheduler();
 
-            DateTimeService.now = () -> new DateTime(tickScheduler.now());
-
-            scheduler = new SchedulerImpl(session);
-            scheduler.setTickScheduler(tickScheduler);
-            scheduler.setTimeSlicesSubject(finishedTimeSlices);
-            scheduler.setJobFinishedSubject(jobFinished);
             scheduler.start();
             advanceTimeBy(1);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void initJobScheduler() {
+        scheduler = new SchedulerImpl(session);
+        scheduler.setTickScheduler(tickScheduler);
+        scheduler.setTimeSlicesSubject(finishedTimeSlices);
+        scheduler.setJobFinishedSubject(jobFinished);
+    }
+
+    private void initTickScheduler() {
+        DateTimeService.now = DateTime::now;
+        tickScheduler = Schedulers.test();
+        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
+
+        DateTimeService.now = () -> new DateTime(tickScheduler.now());
     }
 
     @Override

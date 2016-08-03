@@ -25,3 +25,25 @@ schemaChange {
 ALTER TABLE data WITH COMPRESSION = {'sstable_compression': 'DeflateCompressor'};
 """
 }
+
+schemaChange {
+  version '3.1'
+  author 'jsanda'
+  tags '0.19.x'
+  cql """
+CREATE TABLE rollup5min (
+    tenant_id text,
+    metric text,
+    shard  bigint,
+    time timestamp,
+    min double,
+    max double,
+    avg double,
+    median double,
+    sum double,
+    samples int,
+    percentiles frozen <map<float, double>>,
+    PRIMARY KEY ((tenant_id, metric, shard), time)
+)
+"""
+}

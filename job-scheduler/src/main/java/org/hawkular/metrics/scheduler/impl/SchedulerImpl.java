@@ -318,6 +318,8 @@ public class SchedulerImpl implements Scheduler {
         Date timeSlice = new Date(details.getTrigger().getTriggerTime());
         return Completable.concat(
                 job.onErrorResumeNext(t -> {
+                    logger.info("Execution of " + details + " failed", t);
+
                     RetryPolicy retryPolicy = retryFunctions.getOrDefault(details.getJobType(), NO_RETRY)
                             .call(details, t);
                     if (retryPolicy == RetryPolicy.NONE) {
