@@ -278,6 +278,85 @@ public class DeleteTenantITest extends BaseITest {
         assertDataEmpty(s2, start, start.plusMinutes(3));
     }
 
+    @Test
+    public void deleteTenantTwiceConcurrently() throws Exception {
+        String tenantId = nextTenantId();
+        DateTime start = new DateTime(jobScheduler.now());
+
+        Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"), asList(
+                new DataPoint<>(start.getMillis(), 1.1),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2)));
+        Metric<Double> g2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G2"), asList(
+                new DataPoint<>(start.getMillis(), 1.1),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2)));
+
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
+
+        Metric<Long> c1 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
+                new DataPoint<>(start.getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 20L)));
+        Metric<Long> c2 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C2"), asList(
+                new DataPoint<>(start.getMillis(), 10L),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 20L)));
+
+        doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(c1, c2)));
+
+        Metric<AvailabilityType> a1 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "A1"), asList(
+                new DataPoint<>(start.getMillis(), UP),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN)));
+        Metric<AvailabilityType> a2 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "A2"), asList(
+                new DataPoint<>(start.getMillis(), UP),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN)));
+
+        doAction(() -> metricsService.addDataPoints(AVAILABILITY, Observable.just(a1, a2)));
+
+        Metric<String> s1 = new Metric<>(new MetricId<>(tenantId, STRING, "S1"), asList(
+                new DataPoint<>(start.getMillis(), "starting"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "stopping")));
+        Metric<String> s2 = new Metric<>(new MetricId<>(tenantId, STRING, "S2"), asList(
+                new DataPoint<>(start.getMillis(), "starting"),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), "stopping")));
+
+        doAction(() -> metricsService.addDataPoints(STRING, Observable.just(s1, s2)));
+
+        JobDetails details1 = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+        JobDetails details2 = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+
+        assertEquals(details1.getTrigger().getTriggerTime(), details2.getTrigger().getTriggerTime(),
+                "The jobs should be scheduled to execute at the same time");
+
+        CountDownLatch latch = new CountDownLatch(2);
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + jobDetails);
+            latch.countDown();
+        });
+
+        jobScheduler.advanceTimeTo(details1.getTrigger().getTriggerTime());
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+
+        assertDataEmpty(s1, start, start.plusMinutes(3));
+        assertDataEmpty(s2, start, start.plusMinutes(3));
+    }
+
+    @Test
+    public void deleteNonexistentTenant() throws Exception {
+        String tenantId = nextTenantId();
+        DateTime start = new DateTime(jobScheduler.now());
+
+        JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + details);
+            latch.countDown();
+        });
+
+        jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+    }
+
     private String nextTenantId() {
         return "T" + tenantCounter.getAndIncrement();
     }

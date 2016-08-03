@@ -329,4 +329,157 @@ class TenantITest extends RESTTest {
     assertEquals(200, response.status)
     assertNull(response.data.find { it.id == tenantId })
   }
+
+  @Test
+  void deleteNonexistentTenant() {
+    def response = hawkularMetrics.get(path:'scheduler/clock', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    DateTime start = new DateTime(response.data.time as Long)
+
+    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.put(
+        path: 'scheduler/clock',
+        headers: [(tenantHeaderName): tenantId],
+        body: [time: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertNull(response.data.find { it.id == tenantId })
+  }
+
+  @Test
+  void deleteTenantTwiceConcurrently() {
+    def response = hawkularMetrics.get(path:'scheduler/clock', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    DateTime start = new DateTime(response.data.time as Long)
+
+    response = hawkularMetrics.post(
+        path: "metrics/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            gauges: [
+                [
+                    id: 'G1',
+                    data:  [
+                        [timestamp: start.millis, value: 10.032],
+                        [timestamp: start.plusMinutes(1).millis, value: 9.589]
+                    ],
+                ],
+                [
+                    id: 'G2',
+                    data: [
+                        [timestamp: start.millis, value: 33.51],
+                        [timestamp: start.plusMinutes(1).millis, value: 57.327]
+                    ]
+                ]
+            ],
+            counters: [
+                [
+                    id: 'C1',
+                    data: [
+                        [timestamp: start.millis, value: 10],
+                        [timestamp: start.plusMinutes(1).millis, value: 20]
+                    ]
+                ],
+                [
+                    id: 'C2',
+                    data: [
+                        [timestamp: start.millis, value: 150],
+                        [timestamp: start.plusMinutes(1).millis, value: 225],
+                        [timestamp: start.plusMinutes(2).millis, value: 300]
+                    ]
+                ]
+            ],
+            availabilities: [
+                [
+                    id: 'A1',
+                    data: [
+                        [timestamp: start.millis, value: "down"],
+                        [timestamp: start.plusMinutes(1).millis, value: "up"]
+                    ]
+                ],
+                [
+                    id: 'A2',
+                    data: [
+                        [timestamp: start.millis, value: "up"],
+                        [timestamp: start.plusMinutes(1).millis, value: "up"]
+                    ]
+                ]
+            ],
+            strings: [
+                [
+                    id: 'S1',
+                    data: [
+                        [timestamp: start.millis, value: 'server accepting writes'],
+                        [timestamp: start.plusMinutes(1).millis, value: 'server accepting reads']
+                    ]
+                ],
+                [
+                    id: 'S2',
+                    data: [
+                        [timestamp: start.millis, value: 'entering maintenance mode'],
+                        [timestamp: start.plusMinutes(1).millis, value: 'rebuilding index']
+                    ]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.put(
+        path: 'scheduler/clock',
+        headers: [(tenantHeaderName): tenantId],
+        body: [time: start.plusMinutes(1).millis]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['G1', 'G2'], start: start.millis, end: start.plusMinutes(2).millis]
+    )
+    assertEquals(204, response.status)
+
+    response = hawkularMetrics.post(
+        path: "counters/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['C1', 'C2'], start: start.millis, end: start.plusMinutes(2).millis]
+    )
+    assertEquals(204, response.status)
+
+    response = hawkularMetrics.post(
+        path: "availability/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['A1', 'A2'], start: start.millis, end: start.plusMinutes(2).millis]
+    )
+    assertEquals(204, response.status)
+
+    response = hawkularMetrics.post(
+        path: "strings/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['S1', 'S2'], start: start.millis, end: start.plusMinutes(2).millis]
+    )
+    assertEquals(204, response.status)
+
+    ['gauge', 'counter', 'availability', 'string'].each { type ->
+      response = hawkularMetrics.get(path: "metrics", query: [type: type], headers: [(tenantHeaderName): tenantId])
+      assertEquals(204, response.status)
+    }
+
+    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertNull(response.data.find { it.id == tenantId })
+  }
 }
