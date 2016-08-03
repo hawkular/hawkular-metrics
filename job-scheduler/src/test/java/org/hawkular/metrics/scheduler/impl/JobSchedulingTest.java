@@ -35,6 +35,7 @@ import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.joda.time.DateTime;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -46,6 +47,13 @@ import rx.Single;
  * @author jsanda
  */
 public class JobSchedulingTest extends JobSchedulerTest {
+
+    private SchedulerImpl jobScheduler;
+
+    @BeforeClass
+    public void initClass() {
+        jobScheduler = new SchedulerImpl(rxSession);
+    }
 
     @BeforeMethod(alwaysRun = true)
     public void initTest(Method method) throws Exception {

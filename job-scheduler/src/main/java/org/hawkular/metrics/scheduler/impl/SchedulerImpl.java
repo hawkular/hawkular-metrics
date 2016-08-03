@@ -168,7 +168,7 @@ public class SchedulerImpl implements Scheduler {
     /**
      * Test hook to allow control of when ticks are emitted.
      */
-    void setTickScheduler(rx.Scheduler scheduler) {
+    public void setTickScheduler(rx.Scheduler scheduler) {
         tickScheduler = scheduler;
     }
 
@@ -176,14 +176,14 @@ public class SchedulerImpl implements Scheduler {
      * Test hook to broadcast when the job scheduler has finished all work for a time slice. This includes not only
      * executing jobs that are scheduled for a particular time slice but also post-job execution clean up.
      */
-    void setTimeSlicesSubject(PublishSubject<Date> timeSlicesSubject) {
+    public void setTimeSlicesSubject(PublishSubject<Date> timeSlicesSubject) {
         finishedTimeSlices = Optional.of(timeSlicesSubject);
     }
 
     /**
      * Test hook to broadcast when jobs finish executing.
      */
-    void setJobFinishedSubject(PublishSubject<JobDetails> subject) {
+    public void setJobFinishedSubject(PublishSubject<JobDetails> subject) {
         jobFinished = Optional.of(subject);
     }
 

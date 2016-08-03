@@ -16,23 +16,38 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
+import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
+import org.jboss.logging.Logger;
+import org.joda.time.Minutes;
+
+import com.google.common.collect.ImmutableMap;
 
 import rx.Single;
+import rx.functions.Func2;
 
 /**
  * @author jsanda
  */
 public class JobsServiceImpl implements JobsService {
 
+    private static Logger logger = Logger.getLogger(DeleteTenant.class);
+
     private Scheduler scheduler;
 
     private RxSession session;
 
     private MetricsService metricsService;
+
+    private DeleteTenant deleteTenant;
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -52,9 +67,19 @@ public class JobsServiceImpl implements JobsService {
 
     @Override
     public void start() {
-        // Register jobs here and start scheduler
-
         scheduler.start();
+
+        deleteTenant = new DeleteTenant(session, metricsService);
+        Map<JobDetails, Integer> deleteTenantAttempts = new ConcurrentHashMap<>();
+        // Use a simple retry policy to make sure tenant deletion does complete in the event of failure. For now
+        // we simply retry after 5 minutes. We can implement a more sophisticated strategy later on if need be.
+        Func2<JobDetails, Throwable, RetryPolicy> deleteTenantRetryPolicy = (details, throwable) ->
+                () -> {
+                    logger.warn("Execution of " + details + " failed", throwable);
+                    logger.info(details + " will be retried in 5 minutes");
+                    return Minutes.minutes(5).toStandardDuration().getMillis();
+                };
+        scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
     }
 
     @Override
@@ -63,11 +88,9 @@ public class JobsServiceImpl implements JobsService {
     }
 
     @Override
-    public Single<JobDetails> submitDeleteTenantJob(String tenantId) {
-//        return scheduler.scheduleJob("DELETE_TENANT", "DELETE_TENANT", ImmutableMap.of("tenantId", tenantId),
-//                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-        // This work is being done in HWKMETRICS-446
-        return Single.error(new UnsupportedOperationException());
+    public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
+        return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
+                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
 }

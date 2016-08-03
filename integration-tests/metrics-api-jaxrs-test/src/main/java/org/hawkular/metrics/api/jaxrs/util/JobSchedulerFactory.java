@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.jobs;
+package org.hawkular.metrics.api.jaxrs.util;
 
-import org.hawkular.metrics.scheduler.api.JobDetails;
-
-import rx.Single;
+import org.hawkular.metrics.scheduler.api.Scheduler;
+import org.hawkular.metrics.scheduler.impl.TestScheduler;
+import org.hawkular.rx.cassandra.driver.RxSession;
 
 /**
  * @author jsanda
  */
-public interface JobsService {
+public class JobSchedulerFactory {
 
-    void start();
+    public Scheduler getJobScheduler(RxSession session) {
+        return new TestScheduler(session);
+    }
 
-    void shutdown();
-
-    Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 }

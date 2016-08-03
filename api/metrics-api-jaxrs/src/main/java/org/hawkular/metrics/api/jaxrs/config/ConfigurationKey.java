@@ -39,7 +39,6 @@ public enum ConfigurationKey {
     CASSANDRA_MAX_REQUEST_CONN("hawkular-metrics.cassandra-max-requests-per-connection", "5000",
             "CASSANDRA_MAX_REQUEST_CONN", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
-    USE_VIRTUAL_CLOCK("hawkular.metrics.use-virtual-clock", "false", "USE_VIRTUAL_CLOCK", false),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
     DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true);
 

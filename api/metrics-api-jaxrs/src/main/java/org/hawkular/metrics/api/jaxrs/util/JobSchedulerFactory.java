@@ -14,20 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.jobs;
+package org.hawkular.metrics.api.jaxrs.util;
 
-import org.hawkular.metrics.scheduler.api.JobDetails;
-
-import rx.Single;
+import org.hawkular.metrics.scheduler.api.Scheduler;
+import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
+import org.hawkular.rx.cassandra.driver.RxSession;
 
 /**
+ * This class is essentially a test hook. For REST API integration tests it is replaced with a version that returns
+ * a {@link org.hawkular.metrics.scheduler.impl.TestScheduler TestScheduler}.
+ *
  * @author jsanda
  */
-public interface JobsService {
+public class JobSchedulerFactory {
 
-    void start();
+    public Scheduler getJobScheduler(RxSession session) {
+        return new SchedulerImpl(session);
+    }
 
-    void shutdown();
-
-    Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 }

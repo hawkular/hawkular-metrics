@@ -50,7 +50,6 @@ import rx.Observable;
 public class JobSchedulerTest {
     protected static Session session;
     protected static RxSession rxSession;
-    protected static SchedulerImpl jobScheduler;
     private static PreparedStatement findJob;
     private static PreparedStatement findScheduledJobs;
     private static PreparedStatement findFinishedJobs;
@@ -70,8 +69,6 @@ public class JobSchedulerTest {
         schemaService.run(session, keyspace, resetdb);
 
         session.execute("USE " + keyspace);
-
-        jobScheduler = new SchedulerImpl(rxSession);
 
         findJob = session.prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
