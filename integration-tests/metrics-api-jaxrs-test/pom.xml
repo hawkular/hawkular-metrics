@@ -121,7 +121,7 @@
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <excludes>
-                <!--<exclude>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/handler/TenantsHandler.class</exclude>-->
+                <exclude>/WEB-INF/classes/org/hawkular/metrics/api/jaxrs/util/JobSchedulerFactory</exclude>
               </excludes>
             </overlay>
           </overlays>
