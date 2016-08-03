@@ -41,9 +41,15 @@ public class RepeatingTrigger implements Trigger {
 
     public static class Builder {
 
+        private Long triggerTime;
         private Long interval;
         private Long delay;
         private Integer repeatCount;
+
+        public Builder withTriggerTime(long time) {
+            this.triggerTime = time;
+            return this;
+        }
 
         public Builder withInterval(int interval, TimeUnit timeUnit) {
             this.interval = TimeUnit.MILLISECONDS.convert(interval, timeUnit);
@@ -61,7 +67,7 @@ public class RepeatingTrigger implements Trigger {
         }
 
         public RepeatingTrigger build() {
-            return new RepeatingTrigger(interval, delay, repeatCount);
+            return new RepeatingTrigger(triggerTime, interval, delay, repeatCount);
         }
 
     }
@@ -69,16 +75,22 @@ public class RepeatingTrigger implements Trigger {
     private RepeatingTrigger() {
     }
 
-    private RepeatingTrigger(Long interval, Long delay, Integer repeatCount) {
-        if (interval == null && delay == null) {
+    private RepeatingTrigger(Long triggerTime, Long interval, Long delay, Integer repeatCount) {
+        if (triggerTime != null) {
+            this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));
+        }
+        else if (interval == null && delay == null) {
             this.triggerTime = currentMinute().plusMinutes(1).getMillis();
         }
+
         this.interval = interval;
         this.delay = delay == null ? 0 : delay;
         this.repeatCount = repeatCount;
         this.executionCount = 1;
 
-        triggerTime = getTimeSlice(now.get().getMillis() + this.delay, standardMinutes(1));
+        if (this.triggerTime == null) {
+            this.triggerTime = getTimeSlice(now.get().getMillis() + this.delay, standardMinutes(1));
+        }
     }
 
     // TODO reduce visibility?

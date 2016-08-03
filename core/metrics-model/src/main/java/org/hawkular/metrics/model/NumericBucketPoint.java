@@ -21,6 +21,7 @@ import static java.lang.Double.NaN;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * {@link BucketPoint} for numeric metrics.
@@ -36,7 +37,7 @@ public class NumericBucketPoint extends BucketPoint {
     private Integer samples;
     private final List<Percentile> percentiles;
 
-    private NumericBucketPoint(long start, long end, double min, double avg, double median, double max, double sum,
+    public NumericBucketPoint(long start, long end, double min, double avg, double median, double max, double sum,
             List<Percentile> percentiles, int samples) {
         super(start, end);
         this.min = getDoubleValue(min);
@@ -82,6 +83,25 @@ public class NumericBucketPoint extends BucketPoint {
     public boolean isEmpty() {
         return samples == null || min == null || avg == null || median == null || max == null || sum == null;
 //        return samples == null || isNaN(min) || isNaN(avg) || isNaN(median) || isNaN(max) || isNaN(sum);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        NumericBucketPoint that = (NumericBucketPoint) o;
+        return Objects.equals(min, that.min) &&
+                Objects.equals(avg, that.avg) &&
+                Objects.equals(median, that.median) &&
+                Objects.equals(max, that.max) &&
+                Objects.equals(sum, that.sum) &&
+                Objects.equals(samples, that.samples) &&
+                Objects.equals(percentiles, that.percentiles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(min, avg, median, max, sum, samples, percentiles);
     }
 
     @Override
