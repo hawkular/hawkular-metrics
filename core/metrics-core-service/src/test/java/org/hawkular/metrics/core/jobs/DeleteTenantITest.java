@@ -70,6 +70,8 @@ public class DeleteTenantITest extends BaseITest {
 
     private MetricsServiceImpl metricsService;
 
+    private ConfigurationService configurationService;
+
     private TestScheduler jobScheduler;
 
     private JobsServiceImpl jobsService;
@@ -92,28 +94,29 @@ public class DeleteTenantITest extends BaseITest {
 
         DataAccess dataAccess = new DataAccessImpl(session);
 
-        ConfigurationService configurationService = new ConfigurationService() ;
+        configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
+    }
 
+    @BeforeMethod
+    public void initTest(Method method) {
+        logger.debug("Starting [" + method.getName() + "]");
         jobScheduler = new TestScheduler(rxSession);
 
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
-    }
+        jobsService.setConfigurationService(configurationService);
 
-    @BeforeMethod
-    public void initTest(Method method) {
-        logger.debug("Starting [" + method.getName() + "]");
+        jobScheduler.truncateTables(getKeyspace());
         jobName = method.getName();
         jobsService.start();
-        jobScheduler.advanceTimeBy(1);
     }
 
     @AfterMethod(alwaysRun = true)
@@ -144,7 +147,6 @@ public class DeleteTenantITest extends BaseITest {
         });
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
-
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(g1, start, start.plusMinutes(3));
