@@ -34,6 +34,8 @@ import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
+import org.hawkular.metrics.sysconfig.Configuration;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
@@ -57,12 +59,18 @@ public class JobsServiceImpl implements JobsService {
 
     private MetricsService metricsService;
 
+    private ConfigurationService configService;
+
     private DeleteTenant deleteTenant;
 
     private ComputeRollups computeRollups;
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
+    }
+
+    public void setConfigurationService(ConfigurationService configurationService) {
+        configService = configurationService;
     }
 
     public void setSession(RxSession session) {
@@ -79,8 +87,6 @@ public class JobsServiceImpl implements JobsService {
 
     @Override
     public void start() {
-        scheduler.start();
-
         deleteTenant = new DeleteTenant(session, metricsService);
         Map<JobDetails, Integer> deleteTenantAttempts = new ConcurrentHashMap<>();
         // Use a simple retry policy to make sure tenant deletion does complete in the event of failure. For now
@@ -95,16 +101,27 @@ public class JobsServiceImpl implements JobsService {
 
         computeRollups = new ComputeRollups(session, metricsService);
         scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
-        DateTime nextTimeSlice = getTimeSlice(currentMinute(), standardMinutes(5)).plusMinutes(5);
-        logger.debug("Next time slice [" + nextTimeSlice.toDate() + "]");
-        Trigger trigger = new RepeatingTrigger.Builder()
-                .withTriggerTime(nextTimeSlice.getMillis())
-                .withInterval(5, TimeUnit.MINUTES)
-                .build();
-        logger.debug("Scheduling " + ComputeRollups.JOB_NAME + " with start time [" +
-                new Date(trigger.getTriggerTime()) + "]");
-        scheduler.scheduleJob(ComputeRollups.JOB_NAME, ComputeRollups.JOB_NAME, emptyMap(), trigger)
-                .toBlocking().value();
+        maybeScheduleComputeRollups();
+
+        scheduler.start();
+    }
+
+    private void maybeScheduleComputeRollups() {
+        Configuration configuration = configService.load("org.hawkular.metrics.rollups").toBlocking()
+                .firstOrDefault(null);
+        if (configuration == null || configuration.get("jobId") == null) {
+            DateTime nextTimeSlice = getTimeSlice(currentMinute(), standardMinutes(5)).plusMinutes(5);
+            Trigger trigger = new RepeatingTrigger.Builder()
+                    .withTriggerTime(nextTimeSlice.getMillis())
+                    .withInterval(5, TimeUnit.MINUTES)
+                    .build();
+            logger.debug("Scheduling " + ComputeRollups.JOB_NAME + " with start time [" +
+                    new Date(trigger.getTriggerTime()) + "]");
+            JobDetails details = scheduler.scheduleJob(ComputeRollups.JOB_NAME, ComputeRollups.JOB_NAME, emptyMap(),
+                    trigger).toBlocking().value();
+            configuration.set("jobId", details.getJobId().toString());
+            configService.save(configuration).toCompletable().await();
+        }
     }
 
     @Override
@@ -115,7 +132,8 @@ public class JobsServiceImpl implements JobsService {
     @Override
     public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
-                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
+                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build())
+                .doOnError(t -> logger.warn("Failed to schedule tenant deletion job [" + jobName + "]", t));
     }
 
 }

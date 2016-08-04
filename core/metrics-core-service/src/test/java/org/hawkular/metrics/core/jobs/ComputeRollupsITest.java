@@ -60,7 +60,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 
-import rx.Completable;
 import rx.Observable;
 
 /**
@@ -101,6 +100,7 @@ public class ComputeRollupsITest extends BaseITest {
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
 
         findDataPoint = session.prepare("SELECT time, max, min, avg, median, samples, sum, percentiles " +
                 "FROM rollup5min WHERE tenant_id = ? AND metric = ? AND shard = 0");
@@ -108,12 +108,8 @@ public class ComputeRollupsITest extends BaseITest {
 
     @BeforeMethod
     public void initTest() {
-        CountDownLatch latch = new CountDownLatch(1);
-        Completable truncations = Completable.merge(
-                rxSession.execute("TRUNCATE data").toCompletable(),
-                rxSession.execute("TRUNCATE rollup5min").toCompletable()
-        );
-        truncations.await();
+        jobScheduler.truncateTables(getKeyspace());
+//        jobScheduler.advanceTimeBy(1);
         jobsService.start();
     }
 

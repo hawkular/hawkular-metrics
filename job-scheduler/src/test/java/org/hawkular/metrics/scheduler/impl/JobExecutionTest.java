@@ -79,7 +79,6 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     @BeforeClass
     public void initClass() {
-        jobScheduler = new TestScheduler(rxSession);
         insertJob = session.prepare("INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         updateJobQueue = session.prepare("INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
     }
@@ -87,7 +86,9 @@ public class JobExecutionTest extends JobSchedulerTest {
     @BeforeMethod(alwaysRun = true)
     public void initTest(Method method) throws Exception {
         logger.debug("Starting [" + method.getName() + "]");
-        resetSchema();
+        jobScheduler = new TestScheduler(rxSession);
+        String keyspace = System.getProperty("keyspace", "hawkulartest");
+        jobScheduler.truncateTables(keyspace);
         jobScheduler.start();
     }
 
