@@ -25,3 +25,10 @@ schemaChange {
 ALTER TABLE data WITH COMPRESSION = {'sstable_compression': 'DeflateCompressor'};
 """
 }
+
+schemaChange {
+  version '3.1'
+  author 'jsanda'
+  tags '0.19.x'
+  cql "ALTER TABLE data WITH compaction = {'class': 'DateTieredCompactionStrategy'} AND default_time_to_live = 604800"
+}

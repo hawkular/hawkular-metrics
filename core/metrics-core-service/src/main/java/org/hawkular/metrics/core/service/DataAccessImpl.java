@@ -84,15 +84,27 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertGaugeData;
 
+    private PreparedStatement insertGaugeDataUsingTTL;
+
     private PreparedStatement insertGaugeDataWithTags;
+
+    private PreparedStatement insertGaugeDataWithTagsUsingTTL;
 
     private PreparedStatement insertCounterData;
 
+    private PreparedStatement insertCounterDataUsingTTL;
+
     private PreparedStatement insertCounterDataWithTags;
+
+    private PreparedStatement insertCounterDataWithTagsUsingTTL;
 
     private PreparedStatement insertStringData;
 
+    private PreparedStatement insertStringDataUsingTTL;
+
     private PreparedStatement insertStringDataWithTags;
+
+    private PreparedStatement insertStringDataWithTagsUsingTTL;
 
     private PreparedStatement findCounterDataExclusive;
 
@@ -124,7 +136,11 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertAvailability;
 
+    private PreparedStatement insertAvailabilityUsingTTL;
+
     private PreparedStatement insertAvailabilityWithTags;
+
+    private PreparedStatement insertAvailabilityWithTagsUsingTTL;
 
     private PreparedStatement findAvailabilities;
 
@@ -221,11 +237,21 @@ public class DataAccessImpl implements DataAccess {
 
         insertGaugeData = session.prepare(
             "UPDATE data " +
+            "SET n_value = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertGaugeDataUsingTTL = session.prepare(
+            "UPDATE data " +
             "USING TTL ? " +
             "SET n_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeDataWithTags = session.prepare(
+            "UPDATE data " +
+            "SET n_value = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertGaugeDataWithTagsUsingTTL = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
             "SET n_value = ?, tags = ? " +
@@ -233,11 +259,21 @@ public class DataAccessImpl implements DataAccess {
 
         insertStringData = session.prepare(
             "UPDATE data " +
+            "SET s_value = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
+
+        insertStringDataUsingTTL = session.prepare(
+            "UPDATE data " +
             "USING TTL ? " +
             "SET s_value = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
 
         insertStringDataWithTags = session.prepare(
+            "UPDATE data " +
+            "SET s_value = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertStringDataWithTagsUsingTTL = session.prepare(
               "UPDATE data " +
               "USING TTL ? " +
               "SET s_value = ?, tags = ? " +
@@ -245,11 +281,21 @@ public class DataAccessImpl implements DataAccess {
 
         insertCounterData = session.prepare(
             "UPDATE data " +
+            "SET l_value = ?" +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertCounterDataUsingTTL = session.prepare(
+            "UPDATE data " +
             "USING TTL ? " +
             "SET l_value = ?" +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertCounterDataWithTags = session.prepare(
+            "UPDATE data " +
+            "SET l_value = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertCounterDataWithTagsUsingTTL = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
             "SET l_value = ?, tags = ? " +
@@ -325,11 +371,21 @@ public class DataAccessImpl implements DataAccess {
 
         insertAvailability = session.prepare(
             "UPDATE data " +
+            "SET availability = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
+
+        insertAvailabilityUsingTTL = session.prepare(
+            "UPDATE data " +
             "USING TTL ? " +
             "SET availability = ? " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
 
         insertAvailabilityWithTags = session.prepare(
+            "UPDATE data " +
+            "SET availability = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
+
+        insertAvailabilityWithTagsUsingTTL = session.prepare(
             "UPDATE data " +
             "USING TTL ? " +
             "SET availability = ?, tags = ? " +
@@ -474,22 +530,58 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
+    public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint ->  {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(), dataPoint.getTimestamp(),
-                                ttl);
+                        return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(), dataPoint.getTimestamp());
                     } else {
                         return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(), dataPoint.getTags(),
-                                dataPoint.getTimestamp(), ttl);
+                                dataPoint.getTimestamp());
                     }
                 })
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
+    @Override
+    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
+        return Observable.from(gauge.getDataPoints())
+                .map(dataPoint ->  {
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
+                                dataPoint.getTimestamp(), ttl);
+                    } else {
+                        return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
+                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                    }
+                })
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    @Override
+    public Observable<Integer> insertStringData(Metric<String> metric, int maxSize) {
+        return Observable.from(metric.getDataPoints())
+                .map(dataPoint -> {
+                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
+                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
+                                " characters");
+                    }
+
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertStringData, metric, dataPoint.getValue(), dataPoint.getTimestamp());
+                    } else {
+                        return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
+                                dataPoint.getTags(), dataPoint.getTimestamp());
+                    }
+                })
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    @Override
+    public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> {
                     if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
@@ -498,11 +590,27 @@ public class DataAccessImpl implements DataAccess {
                     }
 
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertStringData, metric, dataPoint.getValue(), dataPoint.getTimestamp(),
-                                ttl);
+                        return bindDataPoint(insertStringDataUsingTTL, metric, dataPoint.getValue(),
+                                dataPoint.getTimestamp(), ttl);
                     } else {
-                        return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
+                        return bindDataPoint(insertStringDataWithTagsUsingTTL, metric, dataPoint.getValue(),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                    }
+                })
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    @Override
+    public Observable<Integer> insertCounterData(Metric<Long> counter) {
+        return Observable.from(counter.getDataPoints())
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
+                                dataPoint.getTimestamp());
+                    } else {
+                        return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
+                                dataPoint.getTags(), dataPoint.getTimestamp());
                     }
                 })
                 .compose(new BatchStatementTransformer())
@@ -514,10 +622,10 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertCounterData, counter, dataPoint.getValue(), dataPoint.getTimestamp(),
-                                ttl);
+                        return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
+                                dataPoint.getTimestamp(), ttl);
                     } else {
-                        return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
+                        return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
                     }
                 })
@@ -525,11 +633,24 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
+    private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value, long timestamp) {
+        MetricId<?> metricId = metric.getMetricId();
+        return statement.bind(value, metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(),
+                DPART, getTimeUUID(timestamp));
+    }
+
     private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value, long timestamp,
             int ttl) {
         MetricId<?> metricId = metric.getMetricId();
         return statement.bind(ttl, value, metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(),
                 DPART, getTimeUUID(timestamp));
+    }
+
+    private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value,
+            Map<String, String> tags, long timestamp) {
+        MetricId<?> metricId = metric.getMetricId();
+        return statement.bind(value, tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName(), DPART, getTimeUUID(timestamp));
     }
 
     private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value,
@@ -648,14 +769,29 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
+        return Observable.from(metric.getDataPoints())
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        return bindDataPoint(insertAvailability, metric, getBytes(dataPoint), dataPoint.getTimestamp());
+                    } else {
+                        return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
+                                dataPoint.getTags(), dataPoint.getTimestamp());
+                    }
+                })
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertAvailability, metric, getBytes(dataPoint), dataPoint.getTimestamp(),
+                        return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint), dataPoint.getTimestamp(),
                                 ttl);
                     } else {
-                        return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
+                        return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
                     }
                 })

@@ -60,9 +60,15 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
+    Observable<Integer> insertGaugeData(Metric<Double> metric);
+
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
+    Observable<Integer> insertStringData(Metric<String> metric, int maxSize);
+
     Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
+
+    Observable<Integer> insertCounterData(Metric<Long> counter);
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
@@ -80,8 +86,9 @@ public interface DataAccess {
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
+    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
 
+    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     <T> ResultSetFuture findDataRetentions(String tenantId, MetricType<T> type);
 

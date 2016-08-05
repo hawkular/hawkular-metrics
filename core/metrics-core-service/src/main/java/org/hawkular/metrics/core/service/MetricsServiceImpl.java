@@ -198,26 +198,33 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<Double> gauge = (Metric<Double>) metric;
+                    if (ttl == defaultTTL) {
+                        return dataAccess.insertGaugeData(gauge);
+                    }
                     return dataAccess.insertGaugeData(gauge, ttl);
                 })
                 .put(AVAILABILITY, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
+                    if (ttl == defaultTTL) {
+                        return dataAccess.insertAvailabilityData(avail);
+                    }
                     return dataAccess.insertAvailabilityData(avail, ttl);
                 })
                 .put(COUNTER, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<Long> counter = (Metric<Long>) metric;
+                    if (ttl == defaultTTL) {
+                        return dataAccess.insertCounterData(counter);
+                    }
                     return dataAccess.insertCounterData(counter, ttl);
-                })
-                .put(COUNTER_RATE, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<Double> gauge = (Metric<Double>) metric;
-                    return dataAccess.insertGaugeData(gauge, ttl);
                 })
                 .put(STRING, (metric, ttl) -> {
                     @SuppressWarnings("unchecked")
                     Metric<String> string = (Metric<String>) metric;
+                    if (ttl == defaultTTL) {
+                        return dataAccess.insertStringData(string, maxStringSize);
+                    }
                     return dataAccess.insertStringData(string, ttl, maxStringSize);
                 })
                 .build();
@@ -255,6 +262,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .build();
 
         initStringSize(session);
+        setDefaultTTL(session, keyspace);
         initMetrics();
     }
 
@@ -310,6 +318,21 @@ public class MetricsServiceImpl implements MetricsService {
         } else {
             maxStringSize = Integer.parseInt(configuration.get("string-size", "2048"));
         }
+    }
+
+    private void setDefaultTTL(Session session, String keyspace) {
+        ResultSet resultSet = session.execute("select default_time_to_live from system_schema.tables where " +
+                "keyspace_name = '" + keyspace + "' and table_name = 'data'");
+        List<Row> rows = resultSet.all();
+        if (rows.isEmpty()) {
+            throw new IllegalStateException("Failed to find " + keyspace + ".data in system_schema.tables. Default " +
+                    "data retention cannot be configured.");
+        }
+        int defaultTTL = rows.get(0).getInt(0);
+        if (defaultTTL != this.defaultTTL) {
+            session.execute("alter table " + keyspace + ".data with default_time_to_live = " + this.defaultTTL);
+        }
+        log.infoDefaultDataRetention(this.defaultTTL);
     }
 
     private class DataRetentionsLoadedCallback implements FutureCallback<Set<Retention>> {
