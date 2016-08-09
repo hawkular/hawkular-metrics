@@ -31,22 +31,50 @@ import com.google.common.base.MoreObjects;
 public class TimeRange {
     static final long EIGHT_HOURS = MILLISECONDS.convert(8, HOURS);
 
-    private final long start;
-    private final long end;
-    private final boolean valid;
-    private final String problem;
+    private long start;
+    private long end;
+    private boolean valid;
+    private String problem;
+
+    public TimeRange (String start, String end) {
+        long now = System.currentTimeMillis();
+
+        try {
+            this.start = (start == null || start.isEmpty()) ? now - EIGHT_HOURS : handleOffsets(start);
+            this.end = (end == null || end.isEmpty()) ? now : handleOffsets(end);
+            if (!isValidTimeRange(this.start, this.end)) {
+                valid = false;
+                problem = "Range end must be strictly greater than start";
+            } else {
+                valid = true;
+                problem = null;
+            }
+        } catch (NumberFormatException e) {
+            valid = false;
+            problem = "The start (" + start + ") or end (" + end + ") value does not correspond to a valid number.";
+        } catch (IllegalArgumentException e) {
+            valid = false;
+            problem = "The start (" + start + ") or end (" + end + ") value does not correspond to a valid duration.";
+        }
+    }
+
+    private Long handleOffsets(String number) throws NumberFormatException, IllegalArgumentException{
+        long now = System.currentTimeMillis();
+        if (number.startsWith("+")) {
+            String offset = number.substring(1).trim();
+            Duration duration = new Duration(offset);
+            return now + duration.toMillis();
+       } else if (number.startsWith("-")) {
+            String offset = number.substring(1).trim();
+            Duration duration = new Duration(offset);
+            return now - duration.toMillis();
+        } else {
+            return Long.parseLong(number);
+        }
+    }
 
     public TimeRange(Long start, Long end) {
-        long now = System.currentTimeMillis();
-        this.start = start == null ? now - EIGHT_HOURS : start;
-        this.end = end == null ? now : end;
-        if (!isValidTimeRange(this.start, this.end)) {
-            valid = false;
-            problem = "Range end must be strictly greater than start";
-        } else {
-            valid = true;
-            problem = null;
-        }
+        this(start == null? null: start.toString(), end == null ? null: end.toString());
     }
 
     public long getStart() {
