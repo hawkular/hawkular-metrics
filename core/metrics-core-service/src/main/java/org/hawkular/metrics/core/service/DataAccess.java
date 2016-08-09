@@ -70,6 +70,9 @@ public interface DataAccess {
 
     Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order);
 
+    Observable<Row> find5MinuteNumericStats(MetricId<? extends Number> id, long startTime, long endTime, int limit,
+            Order order);
+
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,

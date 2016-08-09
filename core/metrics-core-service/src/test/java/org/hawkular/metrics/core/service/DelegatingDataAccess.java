@@ -185,4 +185,10 @@ public class DelegatingDataAccess implements DataAccess {
     public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
         return delegate.findAvailabilityData(id, timestamp);
     }
+
+    @Override
+    public Observable<Row>
+    find5MinuteNumericStats(MetricId<? extends Number> id, long startTime, long endTime, int limit, Order order) {
+        return delegate.find5MinuteNumericStats(id, startTime, endTime, limit, order);
+    }
 }
