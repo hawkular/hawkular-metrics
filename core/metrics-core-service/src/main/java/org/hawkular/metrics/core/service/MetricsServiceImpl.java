@@ -27,6 +27,8 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
+import static org.joda.time.Duration.standardMinutes;
+import static org.joda.time.Duration.standardSeconds;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -43,6 +45,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -51,6 +54,7 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;
@@ -71,6 +75,8 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeComparator;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -800,8 +806,34 @@ public class MetricsServiceImpl implements MetricsService {
                 List<Percentile> percentiles) {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
-        return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
-                .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
+
+        DateTimeComparator comparator = DateTimeComparator.getInstance();
+        Duration ttl = standardSeconds(getTTL(metricId));
+
+        if (comparator.compare(DateTimeService.now.get().minus(ttl), new DateTime(timeRange.getStart())) < 0) {
+            return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
+                    .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
+        }
+        return dataAccess.find5MinuteNumericStats(metricId, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
+                .map(row -> {
+                    long start = row.getTimestamp(0).getTime();
+                    return new NumericBucketPoint(
+                            start,
+                            start + standardMinutes(5).getMillis(),
+                            row.getDouble(2),
+                            row.getDouble(3),
+                            row.getDouble(4),
+                            row.getDouble(1),
+                            row.getDouble(6),
+                            getPercentiles(row.getMap(7, Float.class, Double.class)),
+                            row.getInt(5));
+                })
+                .toList();
+    }
+
+    private List<Percentile> getPercentiles(Map<Float, Double> map) {
+        return map.entrySet().stream().map(entry -> new Percentile(entry.getKey().toString(), entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     @Override
