@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,13 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.joining;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableBiMap;
 
@@ -43,6 +46,15 @@ public class Duration {
             .put(DAYS, "d")
             .build();
 
+    private static final Pattern REGEXP = Pattern.compile(
+            "(\\d+)"
+                    + "("
+                    + Duration.UNITS.values().stream().collect(joining("|"))
+                    + ")"
+    );
+
+    private static final ImmutableBiMap<String, TimeUnit> STRING_UNITS = Duration.UNITS.inverse();
+
     private final long value;
     private final TimeUnit timeUnit;
 
@@ -60,6 +72,19 @@ public class Duration {
      * @param timeUnit time unit, cannot be null, must be one of the valid units
      */
     public Duration(long value, TimeUnit timeUnit) {
+        checkArgument(timeUnit != null, "timeUnit is null");
+        checkArgument(UNITS.containsKey(timeUnit), "Invalid unit %s", timeUnit);
+        this.value = value;
+        this.timeUnit = timeUnit;
+    }
+
+    public Duration(String duration) {
+        Matcher matcher = REGEXP.matcher(duration);
+        checkArgument(matcher.matches(), "Invalid duration %s", duration);
+
+        long value=Long.valueOf(matcher.group(1));
+        TimeUnit timeUnit=STRING_UNITS.get(matcher.group(2));
+
         checkArgument(timeUnit != null, "timeUnit is null");
         checkArgument(UNITS.containsKey(timeUnit), "Invalid unit %s", timeUnit);
         this.value = value;

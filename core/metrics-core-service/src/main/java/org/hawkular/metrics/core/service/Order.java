@@ -64,7 +64,7 @@ public enum Order {
      * @param end   time range end
      * @return {@link #ASC} if limit is positive, start is not null and end is null; {@link #DESC} otherwise
      */
-    public static Order defaultValue(int limit, Long start, Long end) {
+    public static Order defaultValue(int limit, Object start, Object end) {
         return limit > 0 && start != null && end == null ? ASC : DESC;
     }
 
