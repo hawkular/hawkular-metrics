@@ -288,8 +288,8 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     public void getMetricData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
