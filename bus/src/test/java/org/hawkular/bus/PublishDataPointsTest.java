@@ -50,6 +50,7 @@ import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.component.publish.AvailDataMessage;
 import org.hawkular.metrics.component.publish.MetricDataMessage;
+import org.hawkular.metrics.component.publish.PublishCommandTable;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -100,6 +101,9 @@ public class PublishDataPointsTest {
     @Inject
     Bus bus;
 
+    @Inject
+    PublishCommandTable publishCommandTable;
+
     @Resource(mappedName = "java:/topic/HawkularMetricData")
     Topic gaugeDataTopic;
 
@@ -123,6 +127,9 @@ public class PublishDataPointsTest {
                 new DataPoint<>(System.currentTimeMillis() - 1000, 9.0),
                 new DataPoint<>(System.currentTimeMillis() - 2000, 9.0)
         ));
+
+        publishCommandTable.add(tenantId, asList(gaugeId));
+
         Observable<Metric<?>> observable = Observable.just(gauge);
 
         MetricMessageListener<MetricDataMessage> listener = new MetricMessageListener<>(1, MetricDataMessage.class);
@@ -152,6 +159,8 @@ public class PublishDataPointsTest {
                 new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)
         ));
+
+        publishCommandTable.add(tenantId, asList(metricId));
 
         Observable<Metric<?>> observable = Observable.just(availability);
 

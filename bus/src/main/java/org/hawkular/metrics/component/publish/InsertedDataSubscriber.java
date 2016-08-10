@@ -64,6 +64,9 @@ public class InsertedDataSubscriber {
 
     private Subscription subscription;
 
+    @Inject
+    private PublishCommandTable publish;
+
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
         Observable<List<Metric<?>>> events = event.getInsertedData().buffer(50, TimeUnit.MILLISECONDS, 100)
                 .filter(list -> !list.isEmpty())
@@ -74,14 +77,16 @@ public class InsertedDataSubscriber {
 
     private void onInsertedData(Metric<?> metric) {
         log.tracef("Inserted metric: %s", metric);
-        if (metric.getMetricId().getType() == AVAILABILITY) {
-            @SuppressWarnings("unchecked")
-            Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-            publishAvailablility(avail);
-        } else {
-            @SuppressWarnings("unchecked")
-            Metric<? extends Number> numeric = (Metric<? extends Number>) metric;
-            publishNumeric(numeric);
+        if (publish.isPublished(metric.getTenantId(), metric.getId())) {
+            if (metric.getMetricId().getType() == AVAILABILITY) {
+                @SuppressWarnings("unchecked")
+                Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
+                publishAvailablility(avail);
+            } else {
+                @SuppressWarnings("unchecked")
+                Metric<? extends Number> numeric = (Metric<? extends Number>) metric;
+                publishNumeric(numeric);
+            }
         }
     }
 
