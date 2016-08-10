@@ -31,9 +31,9 @@ public class StatsQueryRequest {
 
     private Map<String, List<String>> metrics = new HashMap<>();
 
-    private Long start;
+    private String start;
 
-    private Long end;
+    private String end;
 
     private Integer buckets;
 
@@ -53,19 +53,19 @@ public class StatsQueryRequest {
         this.metrics = metrics;
     }
 
-    public Long getStart() {
+    public String getStart() {
         return start;
     }
 
-    public void setStart(Long start) {
+    public void setStart(String start) {
         this.start = start;
     }
 
-    public Long getEnd() {
+    public String getEnd() {
         return end;
     }
 
-    public void setEnd(Long end) {
+    public void setEnd(String end) {
         this.end = end;
     }
 
