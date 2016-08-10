@@ -1,0 +1,19 @@
+<infinispan
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:infinispan:config:8.1 http://www.infinispan.org/schemas/infinispan-config-8.1.xsd"
+    xmlns="urn:infinispan:config:8.1">
+
+  <cache-container default-cache="default">
+    <!--<local-cache name="rawData"/>-->
+
+    <local-cache name="rollups60"/>
+
+    <local-cache name="rollups300"/>
+
+    <transport cluster="WeatherApp"/>
+
+    <distributed-cache name="rawData" mode="SYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+  </cache-container>
+</infinispan>

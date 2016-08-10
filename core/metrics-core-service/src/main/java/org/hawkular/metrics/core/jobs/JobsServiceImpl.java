@@ -19,8 +19,6 @@ package org.hawkular.metrics.core.jobs;
 import static java.util.Collections.emptyMap;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
-import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
-import static org.joda.time.Duration.standardMinutes;
 
 import java.util.Date;
 import java.util.Map;
@@ -28,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
@@ -61,6 +60,8 @@ public class JobsServiceImpl implements JobsService {
 
     private ConfigurationService configService;
 
+    private CacheService cacheService;
+
     private DeleteTenant deleteTenant;
 
     private ComputeRollups computeRollups;
@@ -71,6 +72,10 @@ public class JobsServiceImpl implements JobsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         configService = configurationService;
+    }
+
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     public void setSession(RxSession session) {
@@ -99,7 +104,7 @@ public class JobsServiceImpl implements JobsService {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
-        computeRollups = new ComputeRollups(session, metricsService);
+        computeRollups = new ComputeRollups(session, metricsService, cacheService);
         scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
         maybeScheduleComputeRollups();
 
@@ -110,10 +115,10 @@ public class JobsServiceImpl implements JobsService {
         Configuration configuration = configService.load("org.hawkular.metrics.rollups").toBlocking()
                 .firstOrDefault(null);
         if (configuration == null || configuration.get("jobId") == null) {
-            DateTime nextTimeSlice = getTimeSlice(currentMinute(), standardMinutes(5)).plusMinutes(5);
+            DateTime nextTimeSlice = currentMinute().plusMinutes(1);
             Trigger trigger = new RepeatingTrigger.Builder()
                     .withTriggerTime(nextTimeSlice.getMillis())
-                    .withInterval(5, TimeUnit.MINUTES)
+                    .withInterval(1, TimeUnit.MINUTES)
                     .build();
             logger.debug("Scheduling " + ComputeRollups.JOB_NAME + " with start time [" +
                     new Date(trigger.getTriggerTime()) + "]");
