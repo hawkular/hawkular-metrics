@@ -38,6 +38,7 @@ import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.FakeCacheService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -100,6 +101,7 @@ public class DeleteTenantITest extends BaseITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
+        metricsService.setCacheService(new FakeCacheService());
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
     }
 
