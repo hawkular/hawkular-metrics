@@ -40,7 +40,9 @@ public enum ConfigurationKey {
             "CASSANDRA_MAX_REQUEST_CONN", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
-    DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true);
+    DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true),
+    METRICS_PUBLISH_DELAY("hawkular-metrics.publish-delay", "1000", "METRICS_PUBLISH_DELAY", false),
+    METRICS_PUBLISH_PERIOD("hawkular-metrics.publish-period", "2000", "METRICS_PUBLISH_PERIOD", false);
 
     private final String name;
     private final String env;

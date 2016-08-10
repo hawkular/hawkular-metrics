@@ -25,7 +25,6 @@
     </exclusions>
     <dependencies>
       <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.hawkular.bus"/>
       <module name="org.infinispan" export="true" />
     </dependencies>
   </deployment>

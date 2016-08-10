@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,8 +49,10 @@ import javax.jms.Topic;
 import org.hawkular.bus.common.AbstractMessage;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurableProducer;
 import org.hawkular.metrics.component.publish.AvailDataMessage;
 import org.hawkular.metrics.component.publish.MetricDataMessage;
+import org.hawkular.metrics.component.publish.PublishCommandTable;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -62,6 +65,7 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.Resolvers;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -92,6 +96,9 @@ public class PublishDataPointsTest {
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
                 .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish")
                 .addAsLibraries(dependencies)
+                .addClass(ConfigurableProducer.class)
+                .addAsWebInfResource(new File("src/test/resources/web.xml"))
+                .addAsWebInfResource(new File("src/test/resources/jboss-deployment-structure.xml"))
                 .setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: com.google.guava\n"));
 
         return archive;
@@ -99,6 +106,9 @@ public class PublishDataPointsTest {
 
     @Inject
     Bus bus;
+
+    @Inject
+    PublishCommandTable publishCommandTable;
 
     @Resource(mappedName = "java:/topic/HawkularMetricData")
     Topic gaugeDataTopic;
@@ -114,15 +124,25 @@ public class PublishDataPointsTest {
     @ServiceReady
     Event<ServiceReadyEvent> serviceReadyEvent;
 
+    @BeforeClass
+    public static void setupPublishing() {
+        System.setProperty("hawkular-metrics.publish-delay", "50");
+        System.setProperty("hawkular-metrics.publish-period", "100");
+    }
+
     @Test
     public void publishGaugeDataPoints() throws Exception {
         String tenantId = "gauge-tenant";
         String gaugeId = "G1";
-        Metric<Double> gauge = new Metric<>(new MetricId<>(tenantId, GAUGE, gaugeId), asList(
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, gaugeId);
+        Metric<Double> gauge = new Metric<>(metricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), 10.0),
                 new DataPoint<>(System.currentTimeMillis() - 1000, 9.0),
                 new DataPoint<>(System.currentTimeMillis() - 2000, 9.0)
         ));
+
+        publishCommandTable.add(asList(metricId));
+
         Observable<Metric<?>> observable = Observable.just(gauge);
 
         MetricMessageListener<MetricDataMessage> listener = new MetricMessageListener<>(1, MetricDataMessage.class);
@@ -133,7 +153,7 @@ public class PublishDataPointsTest {
         MetricDataMessage.MetricData data = new MetricDataMessage.MetricData();
         data.setTenantId(tenantId);
         data.setData(gauge.getDataPoints().stream()
-                .map(dataPoint -> new MetricDataMessage.SingleMetric(gaugeId, dataPoint.getTimestamp(),
+                .map(dataPoint -> new MetricDataMessage.SingleMetric(GAUGE.getText(), gaugeId, dataPoint.getTimestamp(),
                         dataPoint.getValue()))
                 .collect(toList()));
         List<MetricDataMessage> expected = Collections.singletonList(new MetricDataMessage(data));
@@ -145,13 +165,16 @@ public class PublishDataPointsTest {
     @Test
     public void publishAvailabilityDataPoints() throws Exception {
         String tenantId = "availability-tenant";
-        String metricId = "A1";
-        Metric<AvailabilityType> availability = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, metricId), asList(
+        String availabilityId = "A1";
+        MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, availabilityId);
+        Metric<AvailabilityType> availability = new Metric<>(metricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), UP),
                 new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
                 new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)
         ));
+
+        publishCommandTable.add(asList(metricId));
 
         Observable<Metric<?>> observable = Observable.just(availability);
 
@@ -162,7 +185,7 @@ public class PublishDataPointsTest {
 
         AvailDataMessage.AvailData data = new AvailDataMessage.AvailData();
         data.setData(availability.getDataPoints().stream()
-                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, metricId, dataPoint.getTimestamp(),
+                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, availabilityId, dataPoint.getTimestamp(),
                         dataPoint.getValue().getText().toUpperCase()))
                 .collect(toList()));
         List<AvailDataMessage> expected = Collections.singletonList(new AvailDataMessage(data));
