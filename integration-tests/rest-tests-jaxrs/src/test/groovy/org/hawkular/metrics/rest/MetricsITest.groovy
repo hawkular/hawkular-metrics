@@ -2336,4 +2336,150 @@ class MetricsITest extends RESTTest {
       assertEquals(400, exception.response.status)
     }
   }
+
+    @Test
+    void relativeTimeStamps() {
+        String tenantId = nextTenantId()
+        DateTime start = DateTime.now().minusMinutes(10)
+
+        def createResponse = hawkularMetrics.post(
+                path: "metrics/raw",
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        counters: [
+                                [
+                                        id: 'RC',
+                                        data: [
+                                                [timestamp: start.millis, value: 10],
+                                                [timestamp: start.plusMinutes(5).millis, value: 20]
+                                        ]
+                                ]
+                        ],
+                        gauges: [
+                                [
+                                        id: 'RG',
+                                        data: [
+                                                [timestamp: start.millis, value: 25.4],
+                                                [timestamp: start.plusMinutes(5).millis, value: 15.8]
+                                        ]
+                                ]
+                        ]
+                ]
+        )
+        assertEquals(200, createResponse.status)
+
+        // now query by tags instead of ids
+        def response = hawkularMetrics.post(
+                path: 'metrics/stats/query',
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        buckets: 1,
+                        start: "-11mn",
+                        end: "-9mn",
+                        metrics: [
+                                gauge: ['RG'],
+                                counter: ['RC']
+                        ]
+                ]
+        )
+
+        def expected = [
+                gauge: [
+                        RG: [
+                                [
+                                        start: start.minusMinutes(1).millis,
+                                        end: start.plusMinutes(1).millis,
+                                        max: 25.4,
+                                        min: 25.4,
+                                        avg: 25.4,
+                                        median: 25.4,
+                                        sum: 25.4,
+                                        samples: 1,
+                                        empty: false
+                                ]
+                        ]
+                ],
+                counter: [
+                        RC: [
+                                [
+                                        start: start.minusMinutes(1).millis,
+                                        end: start.plusMinutes(1).millis,
+                                        max: 10,
+                                        min: 10,
+                                        avg: 10,
+                                        median: 10,
+                                        sum: 10,
+                                        samples: 1,
+                                        empty: false
+                                ]
+                        ]
+                ]
+        ]
+
+        assertEquals(expected.gauge.size(), response.data.gauge.size())
+        assertEquals(expected.gauge.RG.size(), response.data.gauge.RG.size())
+        assertEquals(expected.gauge.RG[0].avg, response.data.gauge.RG[0].avg)
+        assertEquals(1, response.data.gauge.RG[0].samples)
+        assertEquals(expected.counter.size(), response.data.counter.size())
+        assertEquals(expected.counter.RC.size(), response.data.counter.RC.size())
+        assertEquals(expected.counter.RC[0].avg, response.data.counter.RC[0].avg, 0)
+        assertEquals(1, response.data.counter.RC[0].samples)
+
+        // now query by tags instead of ids
+        response = hawkularMetrics.post(
+                path: 'metrics/stats/query',
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        buckets: 1,
+                        start: "-6mn",
+                        end: "-4mn",
+                        metrics: [
+                                gauge: ['RG'],
+                                counter: ['RC']
+                        ]
+                ]
+        )
+
+        expected = [
+                gauge: [
+                        RG: [
+                                [
+                                        start: start.minusMinutes(1).millis,
+                                        end: start.plusMinutes(1).millis,
+                                        max: 15.8,
+                                        min: 15.8,
+                                        avg: 15.8,
+                                        median: 15.8,
+                                        sum: 15.8,
+                                        samples: 1,
+                                        empty: false
+                                ]
+                        ]
+                ],
+                counter: [
+                        RC: [
+                                [
+                                        start: start.minusMinutes(1).millis,
+                                        end: start.plusMinutes(1).millis,
+                                        max: 20,
+                                        min: 20,
+                                        avg: 20,
+                                        median: 20,
+                                        sum: 20,
+                                        samples: 1,
+                                        empty: false
+                                ]
+                        ]
+                ]
+        ]
+
+        assertEquals(expected.gauge.size(), response.data.gauge.size())
+        assertEquals(expected.gauge.RG.size(), response.data.gauge.RG.size())
+        assertEquals(expected.gauge.RG[0].avg, response.data.gauge.RG[0].avg)
+        assertEquals(1, response.data.gauge.RG[0].samples)
+        assertEquals(expected.counter.size(), response.data.counter.size())
+        assertEquals(expected.counter.RC.size(), response.data.counter.RC.size())
+        assertEquals(expected.counter.RC[0].avg, response.data.counter.RC[0].avg, 0)
+        assertEquals(1, response.data.counter.RC[0].samples)
+    }
 }
