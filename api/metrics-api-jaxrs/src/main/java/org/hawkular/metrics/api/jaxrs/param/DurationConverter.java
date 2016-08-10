@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,19 +16,9 @@
  */
 package org.hawkular.metrics.api.jaxrs.param;
 
-import static java.util.stream.Collectors.joining;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.ws.rs.ext.ParamConverter;
 
 import org.hawkular.metrics.model.param.Duration;
-
-import com.google.common.collect.ImmutableBiMap;
 
 /**
  * A JAX-RS {@link ParamConverter} for {@link Duration} parameters.
@@ -36,19 +26,10 @@ import com.google.common.collect.ImmutableBiMap;
  * @author Thomas Segismont
  */
 public class DurationConverter implements ParamConverter<Duration> {
-    private static final ImmutableBiMap<String, TimeUnit> STRING_UNITS = Duration.UNITS.inverse();
-    private static final Pattern REGEXP = Pattern.compile(
-            "(\\d+)"
-            + "("
-            + Duration.UNITS.values().stream().collect(joining("|"))
-            + ")"
-    );
 
     @Override
     public Duration fromString(String value) {
-        Matcher matcher = REGEXP.matcher(value);
-        checkArgument(matcher.matches(), "Invalid duration %s", value);
-        return new Duration(Long.valueOf(matcher.group(1)), STRING_UNITS.get(matcher.group(2)));
+        return new Duration(value);
     }
 
     @Override

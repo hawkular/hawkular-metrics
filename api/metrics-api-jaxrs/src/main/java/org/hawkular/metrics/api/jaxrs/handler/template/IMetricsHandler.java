@@ -59,6 +59,6 @@ public interface IMetricsHandler<T> {
 
     void addMetricData(AsyncResponse asyncResponse, String id, List<DataPoint<T>> data);
 
-    void getMetricData(AsyncResponse asyncResponse, String id, Long start, Long end, Boolean flag, Integer limit,
+    void getMetricData(AsyncResponse asyncResponse, String id, String start, String end, Boolean flag, Integer limit,
             Order order);
 }
