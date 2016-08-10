@@ -47,6 +47,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
@@ -96,6 +97,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
+import rx.Single;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func5;
@@ -152,6 +154,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private CacheService cacheService;
 
     private MetricRegistry metricRegistry;
 
@@ -387,6 +391,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
@@ -677,11 +685,21 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
+        Observable<DataPoint<? extends Number>> cacheUpdates;
+        if (metricType == GAUGE) {
+            cacheUpdates = metrics
+                    .flatMap(metric -> Observable.from(metric.getDataPoints())
+                            .map(dataPoint -> cacheService.put((MetricId<Double>) metric.getMetricId(),
+                                    (DataPoint<Double>) dataPoint)))
+                    .flatMap(Single::toObservable);
+        } else {
+            cacheUpdates = Observable.empty();
+        }
+
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        return updates.mergeWith(indexUpdates)
-                .map(i -> null);
+        return Observable.merge(updates, cacheUpdates, indexUpdates).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
