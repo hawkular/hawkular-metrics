@@ -355,8 +355,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void deprecatedFindGaugeData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Use data from earliest received, subject to retention period")
                 @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -462,8 +462,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Use data from earliest received, subject to retention period")
                 @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
@@ -507,8 +507,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricStats(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Use data from earliest received, subject to retention period")
                                                 @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
@@ -592,8 +592,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                     response = ApiError.class) })
     public void getStats(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
@@ -659,8 +659,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricStatsByTags(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "Tags") @PathParam("tags") Tags tags
     ) {
@@ -686,8 +686,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             response = NumericBucketPoint.class, responseContainer = "List")
     public void deprecatedFindData(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
@@ -711,8 +711,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricPeriods(
             @Suspended final AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "A threshold against which values are compared", required = true)
             @QueryParam("threshold") double threshold,
             @ApiParam(value = "A comparison operation to perform between values and the threshold.", required = true,
@@ -777,8 +777,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricRate(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
@@ -820,8 +820,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void getMetricRateStats(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles
@@ -873,8 +873,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                     response = ApiError.class)})
     public void getRateStats(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") final Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,

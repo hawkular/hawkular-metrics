@@ -326,8 +326,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     public void deprecatedFindAvailabilityData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
@@ -388,8 +388,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     public void getMetricData(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
                 @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
@@ -435,8 +435,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     public void getMetricStats(
             @Suspended AsyncResponse asyncResponse,
             @PathParam("id") String id,
-            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") Long start,
-            @ApiParam(value = "Defaults to now") @QueryParam("end") Long end,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
 
