@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.component.publish;
 
+import java.util.stream.Collectors;
+
 import static org.hawkular.metrics.component.publish.PublishCommandMessage.PUBLISH_COMMAND;
 import static org.hawkular.metrics.component.publish.PublishCommandMessage.UNPUBLISH_COMMAND;
 
@@ -34,6 +36,8 @@ import org.hawkular.bus.common.consumer.BasicMessageListener;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
 import org.jboss.logging.Logger;
 
 /**
@@ -78,10 +82,18 @@ public class PublishCommandListener {
                 }
                 if (message.getCommand().equals(PUBLISH_COMMAND)) {
                     log.debugf("Publish: %s", message);
-                    publishCommandTable.add(message.getTenantId(), message.getIds());
+                    publishCommandTable.add(message.getIds().stream()
+                            .map(metricKey -> new MetricId(message.getTenantId(),
+                                    MetricType.fromTextCode(metricKey.getType()),
+                                    metricKey.getId()))
+                            .collect(Collectors.toList()));
                 } else if  (message.getCommand().equals(UNPUBLISH_COMMAND)) {
                     log.debugf("Unpublishing: %s", message);
-                    publishCommandTable.remove(message.getTenantId(), message.getIds());
+                    publishCommandTable.remove(message.getIds().stream()
+                            .map(metricKey -> new MetricId(message.getTenantId(),
+                                    MetricType.fromTextCode(metricKey.getType()),
+                                    metricKey.getId()))
+                            .collect(Collectors.toList()));
                 } else {
                     log.warnf("Unrecognized command in message %s", message.toString());
                 }

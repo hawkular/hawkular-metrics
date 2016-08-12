@@ -20,6 +20,7 @@ package org.hawkular.metrics.component.publish;
 import static java.util.stream.Collectors.toList;
 
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -77,8 +78,10 @@ public class InsertedDataSubscriber {
 
     private void onInsertedData(Metric<?> metric) {
         log.tracef("Inserted metric: %s", metric);
-        if (publish.isPublished(metric.getTenantId(), metric.getId())) {
-            if (metric.getMetricId().getType() == AVAILABILITY) {
+        if (publish.isPublished(metric.getMetricId())) {
+            if (metric.getMetricId().getType() == STRING) {
+                log.warn("STRING type metrics are not yet supported for bus integration");
+            } else if (metric.getMetricId().getType() == AVAILABILITY) {
                 @SuppressWarnings("unchecked")
                 Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
                 publishAvailablility(avail);
@@ -101,8 +104,8 @@ public class InsertedDataSubscriber {
     private BasicMessage createNumericMessage(Metric<? extends Number> numeric) {
         MetricId<?> numericId = numeric.getMetricId();
         List<MetricDataMessage.SingleMetric> numericList = numeric.getDataPoints().stream()
-                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getName(), dataPoint.getTimestamp(),
-                        dataPoint.getValue().doubleValue()))
+                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getType().getText(), numericId.getName(),
+                        dataPoint.getTimestamp(), dataPoint.getValue().doubleValue()))
                 .collect(toList());
         MetricDataMessage.MetricData metricData = new MetricDataMessage.MetricData();
         metricData.setTenantId(numericId.getTenantId());

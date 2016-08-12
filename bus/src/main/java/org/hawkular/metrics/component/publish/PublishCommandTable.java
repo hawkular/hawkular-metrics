@@ -22,6 +22,7 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.hawkular.metrics.api.jaxrs.util.Eager;
+import org.hawkular.metrics.model.MetricId;
 
 /**
  * A table to store a cache of published metrics on the bus under hawkular-services context.
@@ -34,66 +35,21 @@ import org.hawkular.metrics.api.jaxrs.util.Eager;
 @Eager
 public class PublishCommandTable {
 
-    private HashSet<PublishKey> published = new HashSet<>();
+    private HashSet<MetricId> published = new HashSet<>();
 
-    public boolean isPublished(String tenantId, String id) {
-        return published.contains(new PublishKey(tenantId, id));
+    public boolean isPublished(MetricId id) {
+        return published.contains(id);
     }
 
-    public synchronized void add(String tenantId, List<String> ids) {
-        if (tenantId != null && ids != null) {
-            ids.stream().forEach(id -> published.add(new PublishKey(tenantId, id)));
-        }
-    }
-
-    public synchronized void remove(String tenantId, List<String> ids) {
-        if (tenantId != null && ids != null) {
-            ids.stream().forEach(id -> published.remove(new PublishKey(tenantId, id)));
+    public synchronized void add(List<MetricId> ids) {
+        if (ids != null) {
+            published.addAll(ids);
         }
     }
 
-    private class PublishKey {
-        private String tenantId;
-        private String id;
-
-        public PublishKey(String tenantId, String id) {
-            this.tenantId = tenantId;
-            this.id = id;
-        }
-
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public void setTenantId(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            PublishKey that = (PublishKey) o;
-
-            if (tenantId != null ? !tenantId.equals(that.tenantId) : that.tenantId != null) return false;
-            return id != null ? id.equals(that.id) : that.id == null;
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = tenantId != null ? tenantId.hashCode() : 0;
-            result = 31 * result + (id != null ? id.hashCode() : 0);
-            return result;
+    public synchronized void remove(List<MetricId> ids) {
+        if (ids != null) {
+            ids.removeAll(ids);
         }
     }
 }

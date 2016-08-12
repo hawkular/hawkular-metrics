@@ -23,6 +23,8 @@ import org.hawkular.bus.common.AbstractMessage;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
+ * A bus message that will indicate which metrics will be published/unpublished to the bus.
+ *
  * @author Lucas Ponce
  */
 public class PublishCommandMessage extends AbstractMessage {
@@ -37,12 +39,12 @@ public class PublishCommandMessage extends AbstractMessage {
     String tenantId;
 
     @JsonInclude
-    List<String> ids;
+    List<MetricKey> ids;
 
     protected PublishCommandMessage(){
     }
 
-    public PublishCommandMessage(String command, String tenantId, List<String> ids) {
+    public PublishCommandMessage(String command, String tenantId, List<MetricKey> ids) {
         this.command = command;
         this.tenantId = tenantId;
         this.ids = ids;
@@ -64,11 +66,11 @@ public class PublishCommandMessage extends AbstractMessage {
         this.tenantId = tenantId;
     }
 
-    public List<String> getIds() {
+    public List<MetricKey> getIds() {
         return ids;
     }
 
-    public void setIds(List<String> ids) {
+    public void setIds(List<MetricKey> ids) {
         this.ids = ids;
     }
 
@@ -93,5 +95,70 @@ public class PublishCommandMessage extends AbstractMessage {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "PublishCommandMessage{" +
+                "command='" + command + '\'' +
+                ", tenantId='" + tenantId + '\'' +
+                ", ids=" + ids +
+                '}';
+    }
 
+    public static class MetricKey {
+        @JsonInclude
+        private String type;
+        @JsonInclude
+        private String id;
+
+        public MetricKey() {
+        }
+
+        public MetricKey(String type, String id) {
+            this.type = type;
+            this.id = id;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            MetricKey metricKey = (MetricKey) o;
+
+            if (type != null ? !type.equals(metricKey.type) : metricKey.type != null) return false;
+            return id != null ? id.equals(metricKey.id) : metricKey.id == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = type != null ? type.hashCode() : 0;
+            result = 31 * result + (id != null ? id.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "MetricKey{" +
+                    "type='" + type + '\'' +
+                    ", id='" + id + '\'' +
+                    '}';
+        }
+    }
 }
