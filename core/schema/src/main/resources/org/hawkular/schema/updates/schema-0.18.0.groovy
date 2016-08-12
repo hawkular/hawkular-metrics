@@ -81,11 +81,12 @@ CREATE TABLE active_time_slices (
 """
 }
 
+// Explicitly specifying the keyspace below due to HWKMETRICS-458
 schemaChange {
   version '3.0'
   author 'jsanda'
   tags '0.18.x', '0.19.x'
   cql """
-ALTER TABLE data WITH COMPRESSION = {'sstable_compression': 'DeflateCompressor'};
+ALTER TABLE ${keyspace}.data WITH COMPRESSION = {'sstable_compression': 'DeflateCompressor'};
 """
 }
