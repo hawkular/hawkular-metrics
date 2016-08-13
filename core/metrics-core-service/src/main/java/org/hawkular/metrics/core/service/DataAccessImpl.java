@@ -390,12 +390,12 @@ public class DataAccessImpl implements DataAccess {
 
         find5MinStats = session.prepare(
                 "SELECT time, max, min, avg, median, samples, sum, percentiles " +
-                "FROM rollup5min " +
+                "FROM rollup300 " +
                 "WHERE tenant_id = ? AND metric = ? AND shard = 0");
 
         find5MinStatsDesc = session.prepare(
                 "SELECT time, max, min, avg, median, samples, sum, percentiles " +
-                "FROM rollup5min " +
+                "FROM rollup300 " +
                 "WHERE tenant_id = ? AND metric = ? AND shard = 0 " +
                 "ORDER BY time DESC");
     }

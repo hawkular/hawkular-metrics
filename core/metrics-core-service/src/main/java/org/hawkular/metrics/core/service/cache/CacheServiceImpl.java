@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.service.cache;
 
 import java.io.IOException;
 
+import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricId;
@@ -27,6 +28,7 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.joda.time.Duration;
 
+import rx.Completable;
 import rx.Single;
 
 /**
@@ -51,6 +53,11 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup) {
+        return cacheManager.getCache("rollup" + rollup);
+    }
+
+    @Override
     public Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId,
             DataPoint<? extends Number> dataPoint) {
         Cache<DataPointKey, DataPoint<? extends Number>> cache = getRawDataCache();
@@ -61,7 +68,21 @@ public class CacheServiceImpl implements CacheService {
         return from(future);
     }
 
-    private Single<DataPoint<? extends Number>> from(NotifyingFuture<DataPoint<? extends Number>> notifyingFuture) {
+    @Override
+    public Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup) {
+        Cache<DataPointKey, NumericDataPointCollector> cache = getRollupCache(rollup);
+        NotifyingFuture<NumericDataPointCollector> future = cache.putAsync(key, collector);
+        return from(future).toCompletable();
+    }
+
+    @Override
+    public Completable remove(DataPointKey key, int rollup) {
+        Cache<DataPointKey, NumericDataPointCollector> cache = getRollupCache(rollup);
+        NotifyingFuture<NumericDataPointCollector> future = cache.removeAsync(key);
+        return from(future).toCompletable();
+    }
+
+    private <T> Single<T> from(NotifyingFuture<T> notifyingFuture) {
         return Single.create(subscriber -> {
             notifyingFuture.attachListener(future -> {
                 try {

@@ -16,25 +16,28 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
+import java.util.Map;
+
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
-import org.hawkular.metrics.model.MetricId;
-import org.infinispan.Cache;
-
-import rx.Completable;
-import rx.Single;
 
 /**
  * @author jsanda
  */
-public interface CacheService {
-    Cache<DataPointKey, DataPoint<? extends Number>> getRawDataCache();
+public class CompositeCollector {
 
-    Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup);
+    private Map<RollupKey, NumericDataPointCollector> collectors;
 
-    Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
+    public CompositeCollector(Map<RollupKey, NumericDataPointCollector> collectors) {
+        this.collectors = collectors;
+    }
 
-    Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup);
+    public void increment(DataPoint<? extends Number> dataPoint) {
+        collectors.values().forEach(collector -> collector.increment(dataPoint));
+    }
 
-    Completable remove(DataPointKey key, int rollup);
+    public Map<RollupKey, NumericDataPointCollector> getCollectors() {
+        return collectors;
+    }
+
 }
