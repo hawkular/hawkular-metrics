@@ -16,10 +16,12 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
+import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricId;
 import org.infinispan.Cache;
 
+import rx.Completable;
 import rx.Single;
 
 /**
@@ -33,9 +35,23 @@ public class FakeCacheService implements CacheService {
     }
 
     @Override
+    public Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId,
             DataPoint<? extends Number> dataPoint) {
         return Single.just(dataPoint);
     }
 
+    @Override
+    public Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup) {
+        return Completable.complete();
+    }
+
+    @Override
+    public Completable remove(DataPointKey key, int rollup) {
+        return Completable.complete();
+    }
 }
