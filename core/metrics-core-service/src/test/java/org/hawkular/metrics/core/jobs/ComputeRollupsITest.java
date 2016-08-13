@@ -297,6 +297,10 @@ public class ComputeRollupsITest extends BaseITest {
 
         actual = getDataPointFromDB(m4, 300);
         assertNumericBucketPointEquals(actual, expected);
+
+        AdvancedCache<DataPointKey, NumericDataPointCollector> rollupCache = cacheService.getRollupCache(300)
+                .getAdvancedCache();
+        assertTrue(rollupCache.getGroup(Long.toString(currentHour().getMillis())).isEmpty());
     }
 
     private String nextTenantId() {
