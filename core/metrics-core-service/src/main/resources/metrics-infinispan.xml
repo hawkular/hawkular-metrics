@@ -4,15 +4,13 @@
     xmlns="urn:infinispan:config:8.1">
 
   <cache-container default-cache="default">
-    <!--<local-cache name="rawData"/>-->
+    <transport cluster="HawkularMetrics"/>
 
-    <local-cache name="rollups60"/>
+    <distributed-cache name="rollup300" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
 
-    <local-cache name="rollups300"/>
-
-    <transport cluster="WeatherApp"/>
-
-    <distributed-cache name="rawData" mode="SYNC">
+    <distributed-cache name="rawData" mode="ASYNC">
       <groups enabled="true"/>
     </distributed-cache>
   </cache-container>

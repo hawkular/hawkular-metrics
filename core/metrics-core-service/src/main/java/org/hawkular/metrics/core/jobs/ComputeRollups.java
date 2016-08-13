@@ -24,7 +24,6 @@ import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.Duration.standardMinutes;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -171,13 +170,11 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
             return insertDataPoint(key.getKey(), collector.toBucketPoint(), inserts.get(60));
         }
 
-        List<Completable> updates = new ArrayList<>();
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
-                updates.add(insertDataPoint(key.getKey(), collector.toBucketPoint(), inserts.get(key.getRollup())));
+            return insertDataPoint(key.getKey(), collector.toBucketPoint(), inserts.get(key.getRollup())).concatWith(
+                    cacheService.remove(key.getKey(), key.getRollup()));
         }
-        updates.add(cacheService.put(key.getKey(), collector, key.getRollup()));
-
-        return Completable.merge(updates);
+        return cacheService.put(key.getKey(), collector, key.getRollup());
     }
 
     private Completable insertDataPoint(DataPointKey key, NumericBucketPoint dataPoint,
