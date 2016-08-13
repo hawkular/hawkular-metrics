@@ -77,7 +77,7 @@ public class TestScheduler implements Scheduler {
     TestScheduler() {
     }
 
-    public TestScheduler(RxSession  session) {
+    public TestScheduler(RxSession session) {
         this.session = session;
 
         finishedTimeSlices = PublishSubject.create();

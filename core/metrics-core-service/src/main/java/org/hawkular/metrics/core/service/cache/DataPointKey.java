@@ -70,19 +70,22 @@ public class DataPointKey implements Serializable {
         DataPointKey that = (DataPointKey) o;
         return timestamp == that.timestamp &&
                 Objects.equals(tenantId, that.tenantId) &&
-                Objects.equals(metric, that.metric);
+                Objects.equals(metric, that.metric) &&
+                Objects.equals(timeSlice, that.timeSlice);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tenantId, metric, timestamp);
+        return Objects.hash(tenantId, metric, timestamp, timeSlice);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("tenantId", tenantId)
                 .add("metric", metric)
                 .add("timestamp", timestamp)
+                .add("timeSlice", timeSlice)
                 .toString();
     }
 }
