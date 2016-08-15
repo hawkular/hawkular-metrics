@@ -26,6 +26,27 @@ import rx.Observable;
  * @author jsanda
  */
 public interface RollupService {
+
+    enum RollupBucket {
+
+        ROLLUP60(60),       // 1 minute
+
+        ROLLUP300(300),     // 5 minutes
+
+        ROLLUP3600(3600);   // 1 hour
+
+        private int durationInSec;
+
+        RollupBucket(int duration) {
+            durationInSec = duration;
+        }
+
+        public int getDuration() {
+            return durationInSec;
+        }
+
+    }
+
     Completable insert(MetricId<Double> id, NumericBucketPoint dataPoint, int rollup);
 
     Observable<NumericBucketPoint> find(MetricId<Double> id, long start, long end, int rollup);

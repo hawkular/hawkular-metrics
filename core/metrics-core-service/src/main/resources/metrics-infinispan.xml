@@ -6,11 +6,15 @@
   <cache-container default-cache="default">
     <transport cluster="HawkularMetrics"/>
 
+    <distributed-cache name="rawData" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+
     <distributed-cache name="rollup300" mode="ASYNC">
       <groups enabled="true"/>
     </distributed-cache>
 
-    <distributed-cache name="rawData" mode="ASYNC">
+    <distributed-cache name="rollup3600" mode="ASYNC">
       <groups enabled="true"/>
     </distributed-cache>
   </cache-container>

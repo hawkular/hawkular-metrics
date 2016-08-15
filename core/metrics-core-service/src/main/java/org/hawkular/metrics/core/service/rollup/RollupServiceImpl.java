@@ -54,10 +54,12 @@ public class RollupServiceImpl implements RollupService {
     public void init() {
         inserts = ImmutableMap.of(
                 60, session.getSession().prepare(getInsertCQL(60)),
-                300, session.getSession().prepare(getInsertCQL(300)));
+                300, session.getSession().prepare(getInsertCQL(300)),
+                3600, session.getSession().prepare(getInsertCQL(3600)));
         finders = ImmutableMap.of(
                 60, session.getSession().prepare(getFinderCQL(60)),
-                300, session.getSession().prepare(getFinderCQL(300)));
+                300, session.getSession().prepare(getFinderCQL(300)),
+                3600, session.getSession().prepare(getFinderCQL(3600)));
     }
 
     private String getInsertCQL(int rollup) {
