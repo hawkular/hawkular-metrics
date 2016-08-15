@@ -31,11 +31,10 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.cache.CacheService;
-import org.hawkular.metrics.core.service.cache.CompositeCollector;
 import org.hawkular.metrics.core.service.cache.DataPointKey;
 import org.hawkular.metrics.core.service.cache.RollupKey;
+import org.hawkular.metrics.core.service.rollup.RollupService;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -67,26 +66,14 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     private RxSession session;
 
-    private MetricsService metricsService;
+    private RollupService rollupService;
 
     private CacheService cacheService;
 
-    private Map<Integer, PreparedStatement> inserts;
-
-    public ComputeRollups(RxSession session, MetricsService metricsService, CacheService cacheService) {
+    public ComputeRollups(RxSession session, RollupService rollupService, CacheService cacheService) {
         this.session = session;
-        this.metricsService = metricsService;
+        this.rollupService = rollupService;
         this.cacheService = cacheService;
-
-        inserts = ImmutableMap.of(
-                60, session.getSession().prepare(getInsertCQL(60)),
-                300, session.getSession().prepare(getInsertCQL(300))
-        );
-    }
-
-    private String getInsertCQL(int rollup) {
-        return "INSERT INTO rollup" + rollup + " (tenant_id, metric, shard, time, min, max, avg, median, sum, " +
-                "samples, percentiles) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     @Override
@@ -121,8 +108,10 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
                 .stream()
                 .map(entry -> entry.getValue().stream().map(Map.Entry::getValue)
                         .collect(
-                                () -> getCollector(entry.getKey(), start, end),
+                                () -> getCollector(entry.getKey(), start),
                                 CompositeCollector::increment,
+                                // TODO add support for parallel streams. The combiner arg is used with parallel streams
+                                // which is not currently used. That's why we use a no-op here for now.
                                 (c1, c2) -> {}))
                 .flatMap(collector -> collector.getCollectors().entrySet().stream())
                 .map(entry -> updateRollup(entry.getKey(), entry.getValue(), end))
@@ -132,11 +121,11 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
                 cache.removeGroup(Long.toString(start))));
     }
 
-    private CompositeCollector getCollector(MetricId<Double> metricId, long start, long timeSlice) {
+    private CompositeCollector getCollector(MetricId<Double> metricId, long start) {
         RollupKey rollup60Key = new RollupKey(new DataPointKey(metricId.getTenantId(), metricId.getName(), start,
                 start), 60);
 
-        long rollup300TimeSlice = getTimeSlice(new DateTime(timeSlice), standardMinutes(5)).minusMinutes(5).getMillis();
+        long rollup300TimeSlice = getTimeSlice(new DateTime(start), standardMinutes(5)).getMillis();
         RollupKey rollup300Key = new RollupKey(new DataPointKey(metricId.getTenantId(), metricId.getName(),
                 rollup300TimeSlice, rollup300TimeSlice), 300);
 
@@ -167,19 +156,22 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     private Completable updateRollup(RollupKey key, NumericDataPointCollector collector, long timeSlice) {
         if (key.getRollup() == 60) {
-            return insertDataPoint(key.getKey(), collector.toBucketPoint(), inserts.get(60));
+            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), 60);
         }
 
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
-            return insertDataPoint(key.getKey(), collector.toBucketPoint(), inserts.get(key.getRollup())).concatWith(
-                    cacheService.remove(key.getKey(), key.getRollup()));
+            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), key.getRollup())
+                    .concatWith(cacheService.remove(key.getKey(), key.getRollup()));
         }
         return cacheService.put(key.getKey(), collector, key.getRollup());
     }
 
+    private MetricId<Double> getGaugeId(DataPointKey key) {
+        return new MetricId<>(key.getTenantId(), GAUGE, key.getMetric());
+    }
+
     private Completable insertDataPoint(DataPointKey key, NumericBucketPoint dataPoint,
             PreparedStatement insert) {
-        logger.debug("Preparing to execute " + insert.getQueryString());
         return session.execute(insert.bind(key.getTenantId(), key.getMetric(), 0L, new Date(dataPoint.getStart()),
                 dataPoint.getMin(), dataPoint.getMax(), dataPoint.getAvg(), dataPoint.getMedian(), dataPoint.getSum(),
                 dataPoint.getSamples(), toMap(dataPoint.getPercentiles()))).toCompletable();
