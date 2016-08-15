@@ -69,3 +69,25 @@ CREATE TABLE rollup300 (
 )
 """
 }
+
+schemaChange {
+  version '3.2'
+  author 'jsanda'
+  tags '0.19.x'
+  cql """
+CREATE TABLE rollup3600 (
+    tenant_id text,
+    metric text,
+    shard  bigint,
+    time timestamp,
+    min double,
+    max double,
+    avg double,
+    median double,
+    sum double,
+    samples int,
+    percentiles frozen <map<float, double>>,
+    PRIMARY KEY ((tenant_id, metric, shard), time)
+)
+"""
+}

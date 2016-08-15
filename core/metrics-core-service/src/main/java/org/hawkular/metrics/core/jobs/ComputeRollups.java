@@ -22,9 +22,8 @@ import static java.util.stream.Collectors.toList;
 
 import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
-import static org.joda.time.Duration.standardMinutes;
+import static org.joda.time.Duration.standardSeconds;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,6 @@ import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.rx.cassandra.driver.RxSession;
@@ -47,9 +45,6 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
-
-import com.datastax.driver.core.PreparedStatement;
-import com.google.common.collect.ImmutableMap;
 
 import rx.Completable;
 import rx.functions.Func0;
@@ -78,6 +73,13 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails details) {
+        // TODO Handle scenario in which there is no raw data but rollups need to be updated
+        // While this scenario may seem somewhat contrived, I ran across it while writing a test and it is more likely
+        // to happen with less frequent sampling rates, e.g., every 2 or 3 minutes vs. every 20 or 30 seconds. When
+        // the 5 minute or 1 hour time slice is finished, we need to persist those data point regardless of whether or
+        // not the past minute has any raw data collected. The current implementation only updates the rollups if there
+        // is raw data for the past minute.
+
         DateTime time = new DateTime(details.getTrigger().getTriggerTime());
 
         long end = details.getTrigger().getTriggerTime();
@@ -122,32 +124,31 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
     }
 
     private CompositeCollector getCollector(MetricId<Double> metricId, long start) {
-        RollupKey rollup60Key = new RollupKey(new DataPointKey(metricId.getTenantId(), metricId.getName(), start,
-                start), 60);
-
-        long rollup300TimeSlice = getTimeSlice(new DateTime(start), standardMinutes(5)).getMillis();
-        RollupKey rollup300Key = new RollupKey(new DataPointKey(metricId.getTenantId(), metricId.getName(),
-                rollup300TimeSlice, rollup300TimeSlice), 300);
-
-        return new CompositeCollector(ImmutableMap.of(
-                rollup60Key, get1MinuteCollector(rollup60Key.getKey()),
-                rollup300Key, getRollupCollector(rollup300Key)
-        ));
-    }
-
-    private NumericDataPointCollector get1MinuteCollector(DataPointKey key) {
-        long end = new DateTime(key.getTimestamp()).plusMinutes(1).getMillis();
-        Buckets buckets = Buckets.fromCount(key.getTimestamp(), end, 1);
-        return new NumericDataPointCollector(buckets, 0, asList(new Percentile("90", 90.0), new Percentile("95", 95.0),
-                new Percentile("99", 99.0)));
+        Map<RollupKey, NumericDataPointCollector> collectors = new HashMap<>();
+        for (RollupService.RollupBucket bucket : RollupService.RollupBucket.values()) {
+            long timeSlice = getTimeSlice(start, standardSeconds(bucket.getDuration()));
+            RollupKey rollupKey = new RollupKey(new DataPointKey(metricId.getTenantId(), metricId.getName(),
+                    timeSlice, timeSlice), bucket.getDuration());
+            collectors.put(rollupKey, getRollupCollector(rollupKey));
+        }
+        return new CompositeCollector(collectors);
     }
 
     private NumericDataPointCollector getRollupCollector(RollupKey key) {
+        long end = new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis();
+        Buckets buckets = Buckets.fromCount(key.getKey().getTimestamp(), end, 1);
+
+        if (key.getRollup() == 60) {
+            // The 1 minute roll ups are a bit of a special case because we do not cache them. Raw data points are
+            // cached, aggregated, and persisted every minute so there is no need to cache the collectors like we do
+            // for other roll ups.
+            return new NumericDataPointCollector(buckets, 0, asList(new Percentile("90", 90.0),
+                    new Percentile("95", 95.0), new Percentile("99", 99.0)));
+        }
+
         Cache<DataPointKey, NumericDataPointCollector> cache = cacheService.getRollupCache(key.getRollup());
         NumericDataPointCollector collector = cache.remove(key.getKey());
         if (collector == null) {
-            long end = new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis();
-            Buckets buckets = Buckets.fromCount(key.getKey().getTimestamp(), end, 1);
             return new NumericDataPointCollector(buckets, 0, asList(new Percentile("90", 90.0),
                     new Percentile("95", 95.0), new Percentile("99", 99.0)));
         }
@@ -159,6 +160,8 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
             return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), 60);
         }
 
+        logger.debug("update rollup " + key);
+        logger.debug("time slice = " + timeSlice);
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
             return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), key.getRollup())
                     .concatWith(cacheService.remove(key.getKey(), key.getRollup()));
@@ -168,19 +171,6 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     private MetricId<Double> getGaugeId(DataPointKey key) {
         return new MetricId<>(key.getTenantId(), GAUGE, key.getMetric());
-    }
-
-    private Completable insertDataPoint(DataPointKey key, NumericBucketPoint dataPoint,
-            PreparedStatement insert) {
-        return session.execute(insert.bind(key.getTenantId(), key.getMetric(), 0L, new Date(dataPoint.getStart()),
-                dataPoint.getMin(), dataPoint.getMax(), dataPoint.getAvg(), dataPoint.getMedian(), dataPoint.getSum(),
-                dataPoint.getSamples(), toMap(dataPoint.getPercentiles()))).toCompletable();
-    }
-
-    private Map<Float, Double> toMap(List<Percentile> percentiles) {
-        Map<Float, Double> map = new HashMap<>();
-        percentiles.forEach(p -> map.put((float) p.getQuantile(), p.getValue()));
-        return map;
     }
 
 }
