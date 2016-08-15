@@ -27,7 +27,11 @@ import rx.Single;
 /**
  * @author jsanda
  */
+// TODO Should CacheService be combined with RollupService?
+// Right now, the cache API is solely in support of rollups. That may change in the future,
+// it might be more clear for now to make this API part of RollupService.
 public interface CacheService {
+
     Cache<DataPointKey, DataPoint<? extends Number>> getRawDataCache();
 
     Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup);
