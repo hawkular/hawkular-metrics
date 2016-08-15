@@ -17,6 +17,7 @@
 
 package org.hawkular.metrics.core.service.transformers;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -37,8 +38,9 @@ import org.hawkular.metrics.model.Percentile;
  *
  * @author Thomas Segismont
  */
-public final class NumericDataPointCollector {
+public final class NumericDataPointCollector implements Serializable {
 
+    private static final long serialVersionUID = 4829876933875549606L;
     /**
      * This is a test hook. See {@link Percentile} for details.
      */
@@ -60,8 +62,8 @@ public final class NumericDataPointCollector {
         }
     };
 
-    private final Buckets buckets;
-    private final int bucketIndex;
+    private Buckets buckets;
+    private int bucketIndex;
 
     private int samples = 0;
     private Min min = new Min();
@@ -71,12 +73,15 @@ public final class NumericDataPointCollector {
     private List<PercentileWrapper> percentiles;
     private List<Percentile> percentileList;
 
+    private NumericDataPointCollector() {
+    }
+
     public NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Percentile> percentilesList) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
         this.percentiles = new ArrayList<>(percentilesList.size() + 1);
         this.percentileList = percentilesList;
-        percentilesList.stream().forEach(d -> percentiles.add(createPercentile.apply(d.getQuantile())));
+        percentilesList.forEach(d -> percentiles.add(createPercentile.apply(d.getQuantile())));
         percentiles.add(createPercentile.apply(50.0)); // Important to be the last one
     }
 
@@ -87,7 +92,7 @@ public final class NumericDataPointCollector {
         max.increment(value.doubleValue());
         sum.increment(value.doubleValue());
         samples++;
-        percentiles.stream().forEach(p -> p.addValue(value.doubleValue()));
+        percentiles.forEach(p -> p.addValue(value.doubleValue()));
     }
 
     public NumericBucketPoint toBucketPoint() {

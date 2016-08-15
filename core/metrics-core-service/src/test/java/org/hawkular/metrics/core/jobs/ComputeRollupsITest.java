@@ -22,12 +22,10 @@ import static org.hawkular.metrics.datetime.DateTimeService.currentHour;
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.Duration.standardMinutes;
-import static org.joda.time.Duration.standardSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +39,7 @@ import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
 import org.hawkular.metrics.core.service.cache.DataPointKey;
+import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Buckets;
@@ -59,10 +58,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.ImmutableMap;
 
 import rx.Completable;
 import rx.Single;
@@ -78,6 +73,8 @@ public class ComputeRollupsITest extends BaseITest {
 
     private ConfigurationService configurationService;
 
+    private RollupServiceImpl rollupService;
+
     private TestScheduler jobScheduler;
 
     private JobsServiceImpl jobsService;
@@ -85,8 +82,6 @@ public class ComputeRollupsITest extends BaseITest {
     private CacheServiceImpl cacheService;
 
     private static AtomicInteger tenantCounter;
-
-    private Map<Integer, PreparedStatement> finders;
 
     @BeforeClass
     public void initClass() {
@@ -106,15 +101,8 @@ public class ComputeRollupsITest extends BaseITest {
         metricsService.setCacheService(cacheService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
-        finders = ImmutableMap.of(
-                60, session.prepare(getFindCQL(60)),
-                300, session.prepare(getFindCQL(300))
-        );
-    }
-
-    private String getFindCQL(int rollup) {
-        return "SELECT time, max, min, avg, median, samples, sum, percentiles FROM rollup" + rollup + " " +
-                "WHERE tenant_id = ? AND metric = ? AND shard = 0";
+        rollupService = new RollupServiceImpl(rxSession);
+        rollupService.init();
     }
 
     private void initJobService(long timeStamp) {
@@ -127,6 +115,7 @@ public class ComputeRollupsITest extends BaseITest {
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
         jobsService.setCacheService(cacheService);
+        jobsService.setRollupService(rollupService);
 
         jobScheduler.truncateTables(getKeyspace());
         jobsService.start();
@@ -159,96 +148,18 @@ public class ComputeRollupsITest extends BaseITest {
         MetricId<Double> m4 = new MetricId<>(tenant2, GAUGE, "G2");
 
         DataPoint<Double> d1 = new DataPoint<>(start.getMillis(), 1.1);
-        DataPoint<Double> d2 = new DataPoint<>(start.plusSeconds(10).getMillis(), 1.1);
+        DataPoint<Double> d2 = new DataPoint<>(start.plusSeconds(10).getMillis(), 1.5);
+        DataPoint<Double> d3 = new DataPoint<>(start.getMillis(), 3.22);
+        DataPoint<Double> d4 = new DataPoint<>(start.plusSeconds(10).getMillis(), 4.11);
+        DataPoint<Double> d5 = new DataPoint<>(start.getMillis(), 27.03);
+        DataPoint<Double> d6 = new DataPoint<>(start.plusSeconds(10).getMillis(), 25.55);
+        DataPoint<Double> d7 = new DataPoint<>(start.getMillis(), 39.12);
+        DataPoint<Double> d8 = new DataPoint<>(start.plusSeconds(10).getMillis(), 38.77);
 
-        Single.merge(
-                cacheService.put(m1, d1),
-                cacheService.put(m1, d2),
-                cacheService.put(m2, d1),
-                cacheService.put(m2, d2),
-                cacheService.put(m3, d1),
-                cacheService.put(m3, d2),
-                cacheService.put(m4, d1),
-                cacheService.put(m4, d2)
-        ).toCompletable().await(10, TimeUnit.SECONDS);
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(nextTimeSlice)) {
-                latch.countDown();
-            }
-        });
-
-        jobScheduler.advanceTimeTo(nextTimeSlice.getMillis());
-
-        assertTrue(latch.await(30, TimeUnit.SECONDS));
-
-        List<DataPoint<Double>> expectedDataPoints = asList(d1, d2);
-
-        NumericBucketPoint expected = getExpectedDataPoint(start, standardMinutes(1), expectedDataPoints);
-        NumericBucketPoint actual = getDataPointFromDB(m1, 60);
-        assertNumericBucketPointEquals(actual, expected);
-
-        expected = getExpectedDataPoint(start, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m2, 60);
-        assertNumericBucketPointEquals(actual, expected);
-
-        expected = getExpectedDataPoint(start, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m3, 60);
-        assertNumericBucketPointEquals(actual, expected);
-
-        expected = getExpectedDataPoint(start, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m4, 60);
-        assertNumericBucketPointEquals(actual, expected);
-
-        AdvancedCache<DataPointKey, DataPoint<? extends Number>> cache = cacheService.getRawDataCache()
-                .getAdvancedCache();
-        assertTrue(cache.getGroup(Long.toString(start.getMillis())).isEmpty());
-    }
-
-    @Test
-    public void compute1And5MinuteRollups() throws Exception {
-        DateTime timeSlice = currentHour().plusMinutes(4);
-        DateTime nextTimeSlice = timeSlice.plusMinutes(1);
-
-        initJobService(timeSlice.getMillis());
-
-        String tenant1 = nextTenantId();
-        String tenant2 = nextTenantId();
-
-        MetricId<Double> m1 = new MetricId<>(tenant1, GAUGE, "G1");
-        MetricId<Double> m2 = new MetricId<>(tenant1, GAUGE, "G2");
-        MetricId<Double> m3 = new MetricId<>(tenant2, GAUGE, "G1");
-        MetricId<Double> m4 = new MetricId<>(tenant2, GAUGE, "G2");
-
-        DataPoint<Double> d1 = new DataPoint<>(timeSlice.getMillis(), 1.1);
-        DataPoint<Double> d2 = new DataPoint<>(timeSlice.plusSeconds(10).getMillis(), 2.2);
-        DataPoint<Double> d3 = new DataPoint<>(timeSlice.plusSeconds(20).getMillis(), 3.3);
-        DataPoint<Double> d4 = new DataPoint<>(timeSlice.plusSeconds(30).getMillis(), 4.4);
-
-        Completable c1 = Single.merge(
-                cacheService.put(m1, d1),
-                cacheService.put(m1, d2),
-                cacheService.put(m1, d3),
-                cacheService.put(m1, d4)).toCompletable();
-
-        Completable c2 = Single.merge(
-                cacheService.put(m2, d1),
-                cacheService.put(m2, d2),
-                cacheService.put(m2, d3),
-                cacheService.put(m2, d4)).toCompletable();
-
-        Completable c3 = Single.merge(
-                cacheService.put(m3, d1),
-                cacheService.put(m3, d2),
-                cacheService.put(m3, d3),
-                cacheService.put(m3, d4)).toCompletable();
-
-        Completable c4 = Single.merge(
-                cacheService.put(m4, d1),
-                cacheService.put(m4, d2),
-                cacheService.put(m4, d3),
-                cacheService.put(m4, d4)).toCompletable();
+        Completable c1 = Single.merge(cacheService.put(m1, d1), cacheService.put(m1, d2)).toCompletable();
+        Completable c2 = Single.merge(cacheService.put(m2, d3), cacheService.put(m2, d4)).toCompletable();
+        Completable c3 = Single.merge(cacheService.put(m3, d5), cacheService.put(m3, d6)).toCompletable();
+        Completable c4 = Single.merge(cacheService.put(m4, d7), cacheService.put(m4, d8)).toCompletable();
 
         Completable.merge(c1, c2, c3, c4).await(10, TimeUnit.SECONDS);
 
@@ -263,48 +174,140 @@ public class ComputeRollupsITest extends BaseITest {
 
         assertTrue(latch.await(30, TimeUnit.SECONDS));
 
-        List<DataPoint<Double>> expectedDataPoints = asList(d1, d2, d3, d4);
+        List<DataPoint<Double>> expectedDataPoints = asList(d1, d2);
 
-        NumericBucketPoint expected = getExpectedDataPoint(timeSlice, standardMinutes(1), expectedDataPoints);
-        NumericBucketPoint actual = getDataPointFromDB(m1, 60);
-        assertNumericBucketPointEquals(actual, expected);
+        NumericBucketPoint actual = getDataPointFromDB(m1, start, 60);
+        assertNumericBucketPointEquals(actual, getExpected1MinuteDataPoint(start, asList(d1, d2)));
 
-        expected = getExpectedDataPoint(timeSlice, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m2, 60);
-        assertNumericBucketPointEquals(actual, expected);
+        actual = getDataPointFromDB(m2, start, 60);
+        assertNumericBucketPointEquals(actual, getExpected1MinuteDataPoint(start, asList(d3, d4)));
 
-        expected = getExpectedDataPoint(timeSlice, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m3, 60);
-        assertNumericBucketPointEquals(actual, expected);
+        actual = getDataPointFromDB(m3, start, 60);
+        assertNumericBucketPointEquals(actual, getExpected1MinuteDataPoint(start, asList(d5, d6)));
 
-        expected = getExpectedDataPoint(timeSlice, standardMinutes(1), expectedDataPoints);
-        actual = getDataPointFromDB(m4, 60);
-        assertNumericBucketPointEquals(actual, expected);
+        actual = getDataPointFromDB(m4, start, 60);
+        assertNumericBucketPointEquals(actual, getExpected1MinuteDataPoint(start, asList(d7, d8)));
 
         AdvancedCache<DataPointKey, DataPoint<? extends Number>> cache = cacheService.getRawDataCache()
                 .getAdvancedCache();
-        assertTrue(cache.getGroup(Long.toString(timeSlice.getMillis())).isEmpty());
+        assertTrue(cache.getGroup(Long.toString(start.getMillis())).isEmpty());
+    }
 
-        expected = getExpectedDataPoint(currentHour(), standardMinutes(5), expectedDataPoints);
-        actual = getDataPointFromDB(m1, 300);
-        assertNumericBucketPointEquals(actual, expected);
+    @Test
+    public void compute1And5MinuteRollups() throws Exception {
+        DateTime timeSlice = currentHour().plusMinutes(4);
+        DateTime nextTimeSlice = timeSlice.plusMinutes(1);
 
-        actual = getDataPointFromDB(m2, 300);
-        assertNumericBucketPointEquals(actual, expected);
+        initJobService(timeSlice.minusMinutes(1).getMillis());
 
-        actual = getDataPointFromDB(m3, 300);
-        assertNumericBucketPointEquals(actual, expected);
+        String tenant1 = nextTenantId();
+        String tenant2 = nextTenantId();
 
-        actual = getDataPointFromDB(m4, 300);
-        assertNumericBucketPointEquals(actual, expected);
+        MetricId<Double> m1 = new MetricId<>(tenant1, GAUGE, "G1");
+        MetricId<Double> m2 = new MetricId<>(tenant1, GAUGE, "G2");
+        MetricId<Double> m3 = new MetricId<>(tenant2, GAUGE, "G3");
+        MetricId<Double> m4 = new MetricId<>(tenant2, GAUGE, "G4");
+
+        DataPoint<Double> d1 = new DataPoint<>(timeSlice.minusMinutes(1).getMillis(), 2.75);
+        DataPoint<Double> d2 = new DataPoint<>(timeSlice.minusMinutes(1).plusSeconds(15).getMillis(), 2.85);
+        DataPoint<Double> d3 = new DataPoint<>(timeSlice.getMillis(), 1.1);
+        DataPoint<Double> d4 = new DataPoint<>(timeSlice.plusSeconds(10).getMillis(), 1.1);
+
+        Completable c1 = putInRawDataCache(m1, asList(d1, d2, d3, d4));
+
+        DataPoint<Double> d5 = new DataPoint<>(timeSlice.minusMinutes(1).getMillis(), 3.079);
+        DataPoint<Double> d6 = new DataPoint<>(timeSlice.minusMinutes(1).plusSeconds(15).getMillis(), 3.922);
+        DataPoint<Double> d7 = new DataPoint<>(timeSlice.getMillis(), 3.22);
+        DataPoint<Double> d8 = new DataPoint<>(timeSlice.plusSeconds(10).getMillis(), 4.11);
+
+        Completable c2 = putInRawDataCache(m2, asList(d5, d6, d7, d8));
+
+        DataPoint<Double> d9 = new DataPoint<>(timeSlice.minusMinutes(1).getMillis(), 29.76);
+        DataPoint<Double> d10 = new DataPoint<>(timeSlice.minusMinutes(1).plusSeconds(15).getMillis(), 30.12);
+        DataPoint<Double> d11 = new DataPoint<>(timeSlice.getMillis(), 27.03);
+        DataPoint<Double> d12 = new DataPoint<>(timeSlice.plusSeconds(10).getMillis(), 25.55);
+
+        Completable c3 = putInRawDataCache(m3, asList(d9, d10, d11, d12));
+
+        DataPoint<Double> d13 = new DataPoint<>(timeSlice.minusMinutes(1).getMillis(), 44.57);
+        DataPoint<Double> d14 = new DataPoint<>(timeSlice.minusMinutes(1).plusSeconds(15).getMillis(), 42.69);
+        DataPoint<Double> d15 = new DataPoint<>(timeSlice.getMillis(), 39.12);
+        DataPoint<Double> d16 = new DataPoint<>(timeSlice.plusSeconds(10).getMillis(), 38.77);
+
+        Completable c4 = putInRawDataCache(m4, asList(d13, d14, d15, d16));
+
+        Completable.merge(c1, c2, c3, c4).await(10, TimeUnit.SECONDS);
+
+        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
+            logger.debug("Finished time slice " + finishedTimeSlice.toDate());
+            if (finishedTimeSlice.equals(timeSlice)) {
+                firstTimeSliceFinished.countDown();
+            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
+                secondTimeSliceFinished.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+
+        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        jobScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis());
+
+        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        assertNumericBucketPointEquals(getDataPointFromDB(m1, timeSlice.minusMinutes(1), 60),
+                getExpected1MinuteDataPoint(timeSlice.minusMinutes(1), asList(d1, d2)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m2, timeSlice.minusMinutes(1), 60),
+                getExpected1MinuteDataPoint(timeSlice.minusMinutes(1), asList(d5, d6)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m3, timeSlice.minusMinutes(1), 60),
+                getExpected1MinuteDataPoint(timeSlice.minusMinutes(1), asList(d9, d10)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m4, timeSlice.minusMinutes(1), 60),
+                getExpected1MinuteDataPoint(timeSlice.minusMinutes(1), asList(d13, d14)));
+
+        assertNumericBucketPointEquals(getDataPointFromDB(m1, timeSlice, 60),
+                getExpected1MinuteDataPoint(timeSlice, asList(d3, d4)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m2, timeSlice, 60),
+                getExpected1MinuteDataPoint(timeSlice, asList(d7, d8)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m3, timeSlice, 60),
+                getExpected1MinuteDataPoint(timeSlice, asList(d11, d12)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m4, timeSlice, 60),
+                getExpected1MinuteDataPoint(timeSlice, asList(d15, d16)));
+
+        assertNumericBucketPointEquals(getDataPointFromDB(m1, currentHour(), 300),
+                getExpected5MinuteDataPoint(currentHour(), asList(d1, d2, d3, d4)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m2, currentHour(), 300),
+                getExpected5MinuteDataPoint(currentHour(), asList(d5, d6, d7, d8)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m3, currentHour(), 300),
+                getExpected5MinuteDataPoint(currentHour(), asList(d9, d10, d11, d12)));
+        assertNumericBucketPointEquals(getDataPointFromDB(m4, currentHour(), 300),
+                getExpected5MinuteDataPoint(currentHour(), asList(d13, d14, d15, d16)));
 
         AdvancedCache<DataPointKey, NumericDataPointCollector> rollupCache = cacheService.getRollupCache(300)
                 .getAdvancedCache();
         assertTrue(rollupCache.getGroup(Long.toString(currentHour().getMillis())).isEmpty());
     }
 
+    private Completable putInRawDataCache(MetricId<Double> metricId, List<DataPoint<Double>> dataPoints) {
+        if (dataPoints == null) {
+            return Completable.complete();
+        }
+        return Completable.merge(dataPoints.stream().map(d -> cacheService.put(metricId, d).toCompletable())
+                .collect(Collectors.toList()));
+    }
+
     private String nextTenantId() {
         return "T" + tenantCounter.getAndIncrement();
+    }
+
+    private NumericBucketPoint getExpected1MinuteDataPoint(DateTime start, List<DataPoint<Double>> rawData) {
+        return getExpectedDataPoint(start, standardMinutes(1), rawData);
+    }
+
+    private NumericBucketPoint getExpected5MinuteDataPoint(DateTime start, List<DataPoint<Double>> rawData) {
+        return getExpectedDataPoint(start, standardMinutes(5), rawData);
     }
 
     private NumericBucketPoint getExpectedDataPoint(DateTime start, Duration step, List<DataPoint<Double>> rawData) {
@@ -315,29 +318,11 @@ public class ComputeRollupsITest extends BaseITest {
         return collector.toBucketPoint();
     }
 
-    private NumericBucketPoint getDataPointFromDB(MetricId<Double> metricId, int rollup) {
-        PreparedStatement findDataPoint = finders.get(rollup);
-        ResultSet resultSet = session.execute(findDataPoint.bind(metricId.getTenantId(), metricId.getName()));
-        List<Row> rows = resultSet.all();
-        assertEquals(rows.size(), 1);
-        Row row = rows.get(0);
-        long start = row.getTimestamp(0).getTime();
-        return new NumericBucketPoint(
-                start,
-                start + standardSeconds(rollup).getMillis(),
-                row.getDouble(2),
-                row.getDouble(3),
-                row.getDouble(4),
-                row.getDouble(1),
-                row.getDouble(6),
-                getPercentiles(row.getMap(7, Float.class, Double.class)),
-                row.getInt(5)
-        );
-    }
-
-    private List<Percentile> getPercentiles(Map<Float, Double> map) {
-        return map.entrySet().stream().map(entry -> new Percentile(entry.getKey().toString(), entry.getValue()))
-                .collect(Collectors.toList());
+    private NumericBucketPoint getDataPointFromDB(MetricId<Double> metricId, DateTime time, int rollup) {
+        List<NumericBucketPoint> dataPoints = getOnNextEvents(() -> rollupService.find(metricId, time.getMillis(),
+                time.plusSeconds(rollup).getMillis(), rollup));
+        assertEquals(dataPoints.size(), 1);
+        return dataPoints.get(0);
     }
 
     private double median(double... values) {
