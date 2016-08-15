@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.io.Serializable;
+
 /**
  * We use the org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile class for computing percentiles. The
  * order in which values are added to PSquarePercentile can effect the results. This can make automated testing
@@ -26,7 +28,7 @@ package org.hawkular.metrics.core.service;
  *
  * @author jsanda
  */
-public interface PercentileWrapper {
+public interface PercentileWrapper extends Serializable {
 
     void addValue(double value);
 

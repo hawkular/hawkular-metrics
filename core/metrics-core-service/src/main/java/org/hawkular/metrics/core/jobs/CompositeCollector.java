@@ -14,17 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service.cache;
+package org.hawkular.metrics.core.jobs;
 
 import java.util.Map;
 
+import org.hawkular.metrics.core.service.cache.RollupKey;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
+import org.jboss.logging.Logger;
 
 /**
  * @author jsanda
  */
 public class CompositeCollector {
+
+    private static Logger logger = Logger.getLogger(CompositeCollector.class);
 
     private Map<RollupKey, NumericDataPointCollector> collectors;
 
@@ -33,6 +37,7 @@ public class CompositeCollector {
     }
 
     public void increment(DataPoint<? extends Number> dataPoint) {
+        logger.debug("DATA POINT = " + dataPoint);
         collectors.values().forEach(collector -> collector.increment(dataPoint));
     }
 

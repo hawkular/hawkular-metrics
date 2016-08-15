@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.cache.CacheService;
+import org.hawkular.metrics.core.service.rollup.RollupService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
@@ -58,6 +59,8 @@ public class JobsServiceImpl implements JobsService {
 
     private MetricsService metricsService;
 
+    private RollupService rollupService;
+
     private ConfigurationService configService;
 
     private CacheService cacheService;
@@ -72,6 +75,10 @@ public class JobsServiceImpl implements JobsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         configService = configurationService;
+    }
+
+    public void setRollupService(RollupService rollupService) {
+        this.rollupService = rollupService;
     }
 
     public void setCacheService(CacheService cacheService) {
@@ -104,7 +111,7 @@ public class JobsServiceImpl implements JobsService {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
-        computeRollups = new ComputeRollups(session, metricsService, cacheService);
+        computeRollups = new ComputeRollups(session, rollupService, cacheService);
         scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
         maybeScheduleComputeRollups();
 
