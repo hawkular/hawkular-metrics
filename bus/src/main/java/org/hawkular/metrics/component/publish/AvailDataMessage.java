@@ -104,6 +104,8 @@ public class AvailDataMessage extends AbstractMessage {
         @JsonInclude
         private String tenantId;
         @JsonInclude
+        private String type;
+        @JsonInclude
         private String id;
         @JsonInclude
         private long timestamp;
@@ -113,8 +115,9 @@ public class AvailDataMessage extends AbstractMessage {
         public SingleAvail() {
         }
 
-        public SingleAvail(String tenantId, String id, long timestamp, String avail) {
+        public SingleAvail(String tenantId, String type, String id, long timestamp, String avail) {
             this.tenantId = tenantId;
+            this.type = type;
             this.id = id;
             this.timestamp = timestamp;
             this.avail = avail;
@@ -126,6 +129,14 @@ public class AvailDataMessage extends AbstractMessage {
 
         public void setTenantId(String tenantId) {
             this.tenantId = tenantId;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
         }
 
         public String getId() {
@@ -153,26 +164,39 @@ public class AvailDataMessage extends AbstractMessage {
         }
 
         @Override
-        public String toString() {
-            return "SingleAvail [tenantId=" + tenantId + ", id=" + id + ", timestamp=" + timestamp + ", avail="
-                    + avail + "]";
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+
             SingleAvail that = (SingleAvail) o;
-            return Objects.equals(timestamp, that.timestamp) &&
-                    Objects.equals(tenantId, that.tenantId) &&
-                    Objects.equals(id, that.id) &&
-                    Objects.equals(avail, that.avail);
+
+            if (timestamp != that.timestamp) return false;
+            if (tenantId != null ? !tenantId.equals(that.tenantId) : that.tenantId != null) return false;
+            if (type != null ? !type.equals(that.type) : that.type != null) return false;
+            if (id != null ? !id.equals(that.id) : that.id != null) return false;
+            return avail != null ? avail.equals(that.avail) : that.avail == null;
+
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(tenantId, id, timestamp, avail);
+            int result = tenantId != null ? tenantId.hashCode() : 0;
+            result = 31 * result + (type != null ? type.hashCode() : 0);
+            result = 31 * result + (id != null ? id.hashCode() : 0);
+            result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
+            result = 31 * result + (avail != null ? avail.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "SingleAvail{" +
+                    "tenantId='" + tenantId + '\'' +
+                    ", type='" + type + '\'' +
+                    ", id='" + id + '\'' +
+                    ", timestamp=" + timestamp +
+                    ", avail='" + avail + '\'' +
+                    '}';
         }
     }
-
 }

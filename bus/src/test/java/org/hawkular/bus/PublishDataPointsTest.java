@@ -185,8 +185,8 @@ public class PublishDataPointsTest {
 
         AvailDataMessage.AvailData data = new AvailDataMessage.AvailData();
         data.setData(availability.getDataPoints().stream()
-                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, availabilityId, dataPoint.getTimestamp(),
-                        dataPoint.getValue().getText().toUpperCase()))
+                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, AVAILABILITY.getText(), availabilityId,
+                        dataPoint.getTimestamp(), dataPoint.getValue().getText().toUpperCase()))
                 .collect(toList()));
         List<AvailDataMessage> expected = Collections.singletonList(new AvailDataMessage(data));
         List<AvailDataMessage> actual = listener.getMessages(5, TimeUnit.SECONDS);

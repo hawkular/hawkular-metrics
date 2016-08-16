@@ -135,7 +135,8 @@ public class InsertedDataSubscriber {
     private BasicMessage createAvailMessage(Metric<AvailabilityType> avail) {
         MetricId<AvailabilityType> availId = avail.getMetricId();
         List<AvailDataMessage.SingleAvail> availList = avail.getDataPoints().stream()
-                .map(dataPoint -> new AvailDataMessage.SingleAvail(availId.getTenantId(), availId.getName(),
+                .map(dataPoint -> new AvailDataMessage.SingleAvail(availId.getTenantId(), avail.getType().getText(),
+                        availId.getName(),
                         dataPoint.getTimestamp(),
                         dataPoint.getValue().getText().toUpperCase()))
                 .collect(toList());
