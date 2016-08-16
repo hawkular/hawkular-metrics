@@ -106,6 +106,7 @@
     <!-- Taken from Wildfly BOM, keep in sync (core-impl cannot import Wildfly BOM) -->
     <version.org.jboss.logging>3.3.0.Final</version.org.jboss.logging>
     <version.org.jboss.logging.jboss-logging-tools>2.0.1.Final</version.org.jboss.logging.jboss-logging-tools>
+    <version.org.infinispan.wildfly>8.0.1.Final</version.org.infinispan.wildfly>
     <version.org.slf4j>1.7.7</version.org.slf4j>
     <version.io.reactivex.rxjava>1.1.7</version.io.reactivex.rxjava>
     <version.io.reactivex.rxjava-math>1.0.0</version.io.reactivex.rxjava-math>

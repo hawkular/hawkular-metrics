@@ -16,13 +16,15 @@
  */
 package org.hawkular.metrics.component.publish;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.model.MetricId;
+import org.infinispan.Cache;
 
 /**
  * A table to store a cache of published metrics on the bus under hawkular-services context.
@@ -35,21 +37,22 @@ import org.hawkular.metrics.model.MetricId;
 @Eager
 public class PublishCommandTable {
 
-    private HashSet<MetricId> published = new HashSet<>();
+    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/publish")
+    private Cache publishCache;
 
     public boolean isPublished(MetricId id) {
-        return published.contains(id);
+        return publishCache.containsKey(id);
     }
 
     public synchronized void add(List<MetricId> ids) {
         if (ids != null) {
-            published.addAll(ids);
+            publishCache.putAll(ids.stream().collect(Collectors.toMap(id -> id, id -> id)));
         }
     }
 
     public synchronized void remove(List<MetricId> ids) {
         if (ids != null) {
-            ids.removeAll(ids);
+            ids.stream().forEach(id -> publishCache.remove(id));
         }
     }
 }

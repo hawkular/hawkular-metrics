@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -96,6 +97,8 @@ public class PublishDataPointsTest {
                 .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish")
                 .addAsLibraries(dependencies)
                 .addClass(ConfigurableProducer.class)
+                .addAsWebInfResource(new File("src/test/resources/web.xml"))
+                .addAsWebInfResource(new File("src/test/resources/jboss-deployment-structure.xml"))
                 .setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: com.google.guava\n"));
 
         return archive;
