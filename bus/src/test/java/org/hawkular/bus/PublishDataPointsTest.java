@@ -48,6 +48,7 @@ import javax.jms.Topic;
 import org.hawkular.bus.common.AbstractMessage;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurableProducer;
 import org.hawkular.metrics.component.publish.AvailDataMessage;
 import org.hawkular.metrics.component.publish.MetricDataMessage;
 import org.hawkular.metrics.component.publish.PublishCommandTable;
@@ -63,6 +64,7 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.Resolvers;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -93,6 +95,7 @@ public class PublishDataPointsTest {
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
                 .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish")
                 .addAsLibraries(dependencies)
+                .addClass(ConfigurableProducer.class)
                 .setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: com.google.guava\n"));
 
         return archive;
@@ -117,6 +120,12 @@ public class PublishDataPointsTest {
     @Inject
     @ServiceReady
     Event<ServiceReadyEvent> serviceReadyEvent;
+
+    @BeforeClass
+    public static void setupPublishing() {
+        System.setProperty("hawkular-metrics.publish-delay", "50");
+        System.setProperty("hawkular-metrics.publish-period", "100");
+    }
 
     @Test
     public void publishGaugeDataPoints() throws Exception {
