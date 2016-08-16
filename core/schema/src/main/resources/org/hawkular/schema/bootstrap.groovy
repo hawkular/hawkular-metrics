@@ -29,9 +29,14 @@ import com.datastax.driver.core.SimpleStatement
  * what we expect it to be to ensure we are in a known, consistent state before we start managing it with cassalog.
  */
 
-def executeCQL(String cql) {
+def executeCQL(String cql, Integer readTimeoutMillis = null) {
   def statement = new SimpleStatement(cql)
   statement.consistencyLevel = ConsistencyLevel.LOCAL_QUORUM
+
+  if (readTimeoutMillis) {
+    statement.readTimeoutMillis = readTimeoutMillis
+  }
+
   return session.execute(statement)
 }
 
@@ -68,7 +73,7 @@ if (!reset && keyspaceExists(keyspace)) {
   // regardless of whether we are dealing with a new install or an upgrade.
 
   if (reset) {
-    executeCQL("DROP KEYSPACE IF EXISTS $keyspace")
+    executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
   }
 
   executeCQL("CREATE KEYSPACE $keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
