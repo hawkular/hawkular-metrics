@@ -310,7 +310,7 @@ public class GaugeITest extends BaseMetricsITest {
     @Test
     public void findPrecomputedGaugeStats() {
         PreparedStatement insertDataPoint = session.prepare(
-                "INSERT INTO rollup5min (tenant_id, metric, shard, time, min, max, avg, median, sum, samples, " +
+                "INSERT INTO rollup300 (tenant_id, metric, shard, time, min, max, avg, median, sum, samples, " +
                         "percentiles) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         String tenantId = "findPrecomputedGaugeStats";
         int retention = standardDays(1).toStandardSeconds().getSeconds();
@@ -330,10 +330,10 @@ public class GaugeITest extends BaseMetricsITest {
         Completable.merge(insert1.toCompletable(), insert2.toCompletable()).await(10, TimeUnit.SECONDS);
 
         List<List<NumericBucketPoint>> results = getOnNextEvents(() -> metricsService.findGaugeStats(
-                metric.getMetricId(), new BucketConfig(10, null, new TimeRange(start.getMillis(),
-                        start.plusMinutes(20).getMillis())), emptyList()));
+                metric.getMetricId(), new BucketConfig(null, null, new TimeRange(start.getMillis(),
+                        start.plusMinutes(20).getMillis()), 300), emptyList()));
 
-        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).size(), 2);
 
         List<NumericBucketPoint> actual = results.get(0);
         List<NumericBucketPoint> expected = asList(

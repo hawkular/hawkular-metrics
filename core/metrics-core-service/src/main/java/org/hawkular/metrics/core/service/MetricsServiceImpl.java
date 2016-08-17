@@ -27,7 +27,6 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
-import static org.joda.time.Duration.standardMinutes;
 import static org.joda.time.Duration.standardSeconds;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -50,6 +49,8 @@ import java.util.stream.Collectors;
 import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.rollup.Rollup;
+import org.hawkular.metrics.core.service.rollup.RollupService;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
@@ -154,6 +155,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private RollupService rollupService;
 
     private CacheService cacheService;
 
@@ -372,6 +375,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setCacheService(CacheService cacheService) {
         this.cacheService = cacheService;
+    }
+
+    public void setRollupService(RollupService rollupService) {
+        this.rollupService = rollupService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
@@ -802,28 +809,36 @@ public class MetricsServiceImpl implements MetricsService {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
 
-        DateTimeComparator comparator = DateTimeComparator.getInstance();
-        Duration ttl = standardSeconds(getTTL(metricId));
-
-        if (comparator.compare(DateTimeService.now.get().minus(ttl), new DateTime(timeRange.getStart())) < 0) {
+        if (bucketConfig.getBuckets() != null) {
             return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
                     .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
+        } else if (bucketConfig.getResolution() != null) {
+            return rollupService.find(metricId, timeRange.getStart(), timeRange.getEnd(), bucketConfig.getResolution())
+                    .toList();
+        } else {
+            DateTimeComparator comparator = DateTimeComparator.getInstance();
+            Duration rawTTL = standardSeconds(getTTL(metricId));
+            List<Rollup> rollups = rollupService.getRollups(metricId, (int) rawTTL.getStandardSeconds())
+                    .toBlocking().firstOrDefault(null);
+
+            if (isWithinRetentionPeriod((int) rawTTL.getStandardSeconds(), timeRange.getStart())) {
+                Buckets buckets = Buckets.fromCount(timeRange.getStart(), timeRange.getEnd(), 60);
+                return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
+            }
+            for (Rollup rollup : rollups) {
+                if (isWithinRetentionPeriod(rollup.getDefaultTTL(), timeRange.getStart())) {
+                    return rollupService.find(metricId, timeRange.getStart(), timeRange.getEnd(),
+                            rollup.getResolution()).toList();
+                }
+            }
+            return Observable.empty();
         }
-        return dataAccess.find5MinuteNumericStats(metricId, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
-                .map(row -> {
-                    long start = row.getTimestamp(0).getTime();
-                    return new NumericBucketPoint(
-                            start,
-                            start + standardMinutes(5).getMillis(),
-                            row.getDouble(2),
-                            row.getDouble(3),
-                            row.getDouble(4),
-                            row.getDouble(1),
-                            row.getDouble(6),
-                            getPercentiles(row.getMap(7, Float.class, Double.class)),
-                            row.getInt(5));
-                })
-                .toList();
+    }
+
+    private boolean isWithinRetentionPeriod(int ttl, long startTime) {
+        DateTimeComparator comparator = DateTimeComparator.getInstance();
+        return comparator.compare(DateTimeService.now.get().minusSeconds(ttl), new DateTime(startTime)) <= 0;
     }
 
     private List<Percentile> getPercentiles(Map<Float, Double> map) {

@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service.rollup;
 
+import static java.util.Arrays.asList;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Date;
@@ -110,4 +112,12 @@ public class RollupServiceImpl implements RollupService {
         return map;
     }
 
+    @Override
+    public Observable<List<Rollup>> getRollups(MetricId<Double> id, int rawTTL) {
+        return Observable.just(asList(
+                new Rollup(RollupBucket.ROLLUP60.getDuration(), rawTTL * 2),
+                new Rollup(RollupBucket.ROLLUP300.getDuration(), rawTTL * 4),
+                new Rollup(RollupBucket.ROLLUP3600.getDuration(), rawTTL * 6)
+        ));
+    }
 }
