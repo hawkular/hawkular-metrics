@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service.rollup;
 
+import java.util.List;
+
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.NumericBucketPoint;
 
@@ -50,4 +52,6 @@ public interface RollupService {
     Completable insert(MetricId<Double> id, NumericBucketPoint dataPoint, int rollup);
 
     Observable<NumericBucketPoint> find(MetricId<Double> id, long start, long end, int rollup);
+
+    Observable<List<Rollup>> getRollups(MetricId<Double> id, int rawTTL);
 }
