@@ -104,6 +104,8 @@ public abstract class BaseMetricsITest extends BaseITest {
                 .toCompletable()
                 .await(10, TimeUnit.SECONDS);
 
+        cacheService.resetCaches();
+
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }

@@ -70,6 +70,8 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails details) {
+        logger.debug("Executing " + details);
+
         String tenantId = details.getParameters().get("tenantId");
 
         // The concat operator is used instead of merge to ensure things execute in order. The deleteMetricData
