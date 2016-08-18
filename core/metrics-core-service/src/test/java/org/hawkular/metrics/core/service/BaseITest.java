@@ -22,6 +22,7 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -166,6 +167,31 @@ public abstract class BaseITest {
         assertEquals(actual.length, expected.length, msg + ": The array lengths are not the same.");
         for (int i = 0; i < expected.length; ++i) {
             assertEquals(actual[i], expected[i], msg + ": The elements at index " + i + " do not match.");
+        }
+    }
+
+    protected static class InMemoryPercentileWrapper implements PercentileWrapper {
+        List<Double> values = new ArrayList<>();
+        double percentile;
+
+        public InMemoryPercentileWrapper(double percentile) {
+            this.percentile = percentile;
+        }
+
+        @Override public void addValue(double value) {
+            values.add(value);
+        }
+
+        @Override public double getResult() {
+            org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
+                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
+            double[] array = new double[values.size()];
+            for (int i = 0; i < array.length; ++i) {
+                array[i] = values.get(i++);
+            }
+            percentileCalculator.setData(array);
+
+            return percentileCalculator.getQuantile();
         }
     }
 
