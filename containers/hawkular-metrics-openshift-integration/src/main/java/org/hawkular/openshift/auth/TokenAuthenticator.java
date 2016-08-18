@@ -213,7 +213,8 @@ class TokenAuthenticator implements Authenticator {
 
             // Note the path will be something like /foo/bar/baz and the first element will be "", we need to check 2 & 3
             String[] paths = serverExchange.getRelativePath().split("/");
-            if (paths.length >= 4 && (paths[2].equals("raw") || paths[2].equals("stats")) && paths[3].equals("query")) {
+            if (paths.length >= 4 && (paths[2].equals("raw") || paths[2].equals("stats") || paths[2].equals("rate")) &&
+                    paths[3].equals("query")) {
                 return true;
             } else {
                 return false;
