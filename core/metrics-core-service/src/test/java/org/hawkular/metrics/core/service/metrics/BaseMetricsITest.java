@@ -275,29 +275,4 @@ public abstract class BaseMetricsITest extends BaseITest {
             return super.insertAvailabilityData(metric, ttl);
         }
     }
-
-    protected static class InMemoryPercentileWrapper implements PercentileWrapper {
-        List<Double> values = new ArrayList<>();
-        double percentile;
-
-        public InMemoryPercentileWrapper(double percentile) {
-            this.percentile = percentile;
-        }
-
-        @Override public void addValue(double value) {
-            values.add(value);
-        }
-
-        @Override public double getResult() {
-            org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
-                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
-            double[] array = new double[values.size()];
-            for (int i = 0; i < array.length; ++i) {
-                array[i] = values.get(i++);
-            }
-            percentileCalculator.setData(array);
-
-            return percentileCalculator.getQuantile();
-        }
-    }
 }

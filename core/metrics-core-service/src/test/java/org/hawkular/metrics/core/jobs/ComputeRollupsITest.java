@@ -31,10 +31,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Max;
+import org.apache.commons.math3.stat.descriptive.rank.Min;
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.core.service.cache.DataPointKey;
 import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
@@ -80,6 +85,8 @@ public class ComputeRollupsITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
+
         tenantCounter = new AtomicInteger();
 
         DataAccess dataAccess = new DataAccessImpl(session);
@@ -302,13 +309,13 @@ public class ComputeRollupsITest extends BaseITest {
         DataPoint<Double> d8 = new DataPoint<>(timeSlice.plusMinutes(6).plusSeconds(15).getMillis(), 4.65);
 
         DataPoint<Double> d9 = new DataPoint<>(timeSlice.getMillis(), 24.75);
-        DataPoint<Double> d10 = new DataPoint<>(timeSlice.plusSeconds(15).getMillis(), 28.08);
+        DataPoint<Double> d10 = new DataPoint<>(timeSlice.plusSeconds(15).getMillis(), 31.08);
         DataPoint<Double> d11 = new DataPoint<>(timeSlice.plusMinutes(1).getMillis(), 21.45);
         DataPoint<Double> d12 = new DataPoint<>(timeSlice.plusMinutes(1).plusSeconds(10).getMillis(), 26.77);
         DataPoint<Double> d13 = new DataPoint<>(timeSlice.plusMinutes(3).getMillis(), 31.32);
         DataPoint<Double> d14 = new DataPoint<>(timeSlice.plusMinutes(3).plusSeconds(15).getMillis(), 27.39);
         DataPoint<Double> d15 = new DataPoint<>(timeSlice.plusMinutes(6).getMillis(), 23.99);
-        DataPoint<Double> d16 = new DataPoint<>(timeSlice.plusMinutes(6).plusSeconds(15).getMillis(), 32.06);
+        DataPoint<Double> d16 = new DataPoint<>(timeSlice.plusMinutes(6).plusSeconds(15).getMillis(), 39.06);
 
         Completable c1 = putInRawDataCache(m1, asList(d1, d2, d3, d4, d5, d6, d7, d8));
         Completable c2 = putInRawDataCache(m2, asList(d9, d10, d11, d12, d13, d14, d15, d16));
@@ -393,10 +400,31 @@ public class ComputeRollupsITest extends BaseITest {
 
     private NumericBucketPoint getExpectedDataPoint(DateTime start, Duration step, List<DataPoint<Double>> rawData) {
         Buckets buckets = new Buckets(start.getMillis(), step.getMillis(), 1);
-        NumericDataPointCollector collector = new NumericDataPointCollector(buckets, 0,
-                asList(new Percentile("90.0", 90.0), new Percentile("95.0", 95.0), new Percentile("99.0", 99.0)));
-        rawData.forEach(collector::increment);
-        return collector.toBucketPoint();
+        Max max = new Max();
+        Min min = new Min();
+        Mean avg = new Mean();
+        Sum sum = new Sum();
+        AtomicInteger samples = new AtomicInteger();
+        PercentileWrapper p50 = NumericDataPointCollector.createPercentile.apply(50.0);
+        PercentileWrapper p90 = NumericDataPointCollector.createPercentile.apply(90.0);
+        PercentileWrapper p95 = NumericDataPointCollector.createPercentile.apply(95.0);
+        PercentileWrapper p99 = NumericDataPointCollector.createPercentile.apply(99.0);
+
+        rawData.forEach(dataPoint -> {
+            sum.increment(dataPoint.getValue());
+            max.increment(dataPoint.getValue());
+            min.increment(dataPoint.getValue());
+            avg.increment(dataPoint.getValue());
+            p50.addValue(dataPoint.getValue());
+            p90.addValue(dataPoint.getValue());
+            p95.addValue(dataPoint.getValue());
+            p99.addValue(dataPoint.getValue());
+            samples.incrementAndGet();
+        });
+
+        return new NumericBucketPoint(start.getMillis(), start.plus(step).getMillis(), min.getResult(), avg.getResult(),
+                p50.getResult(), max.getResult(), sum.getResult(), asList(new Percentile("90.0", p90.getResult()),
+                new Percentile("95.0", p95.getResult()), new Percentile("99.0", p99.getResult())), samples.get());
     }
 
     private NumericBucketPoint getDataPointFromDB(MetricId<Double> metricId, DateTime time, int rollup) {
