@@ -35,7 +35,6 @@ import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
-import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
 import org.hawkular.metrics.core.service.cache.DataPointKey;
 import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
@@ -77,8 +76,6 @@ public class ComputeRollupsITest extends BaseITest {
 
     private JobsServiceImpl jobsService;
 
-    private CacheServiceImpl cacheService;
-
     private static AtomicInteger tenantCounter;
 
     @BeforeClass
@@ -89,9 +86,6 @@ public class ComputeRollupsITest extends BaseITest {
 
         configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
-
-        cacheService = new CacheServiceImpl();
-        cacheService.init();
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
@@ -130,7 +124,7 @@ public class ComputeRollupsITest extends BaseITest {
         jobsService.shutdown();
     }
 
-//    @Test
+    @Test
     public void compute1MinuteRollupsForGauges() throws Exception {
         initJobService(DateTimeService.currentHour().getMillis());
 
@@ -191,7 +185,7 @@ public class ComputeRollupsITest extends BaseITest {
         assertTrue(cache.getGroup(Long.toString(start.getMillis())).isEmpty());
     }
 
-//    @Test
+    @Test
     public void compute1And5MinuteRollups() throws Exception {
         DateTime timeSlice = currentHour().plusMinutes(4);
         DateTime nextTimeSlice = timeSlice.plusMinutes(1);

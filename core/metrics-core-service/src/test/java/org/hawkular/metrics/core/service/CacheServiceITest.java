@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,10 @@ import static org.testng.Assert.assertEquals;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
 import org.hawkular.metrics.core.service.cache.DataPointKey;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricId;
 import org.infinispan.Cache;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -38,15 +36,7 @@ import rx.Single;
 /**
  * @author jsanda
  */
-public class CacheServiceITest {
-
-    private CacheServiceImpl cacheService;
-
-    @BeforeClass
-    public void initClass() {
-        cacheService = new CacheServiceImpl();
-        cacheService.init();
-    }
+public class CacheServiceITest extends BaseITest {
 
     @Test
     public void storeGaugeDataPoints() {

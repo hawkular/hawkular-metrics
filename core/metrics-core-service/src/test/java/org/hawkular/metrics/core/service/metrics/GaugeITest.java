@@ -185,6 +185,35 @@ public class GaugeITest extends BaseMetricsITest {
     }
 
     @Test
+    public void fetchPercentiles() {
+        String tenantId = "fetchPercentiles";
+        DateTime start = now().minusMinutes(10);
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, "G1");
+
+        List<DataPoint<Double>> dataPoints = asList(
+                new DataPoint<>(start.getMillis(), 12.4),
+                new DataPoint<>(start.plusSeconds(10).getMillis(), 19.23),
+                new DataPoint<>(start.plusSeconds(20).getMillis(), 15.065),
+                new DataPoint<>(start.plusSeconds(30).getMillis(), 28.01),
+                new DataPoint<>(start.plusSeconds(40).getMillis(), 18.00),
+                new DataPoint<>(start.plusSeconds(50).getMillis(), 24.13),
+                new DataPoint<>(start.plusSeconds(60).getMillis(), 32.14)
+        );
+
+        Metric<Double> gauge = new Metric<>(metricId, dataPoints);
+
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(gauge)));
+
+        BucketConfig bucketConfig = new BucketConfig(1, null, new TimeRange(start.getMillis(),
+                start.plusHours(1).getMillis()));
+        List<List<NumericBucketPoint>> lists = getOnNextEvents(() -> metricsService.findGaugeStats(metricId,
+                bucketConfig, asList(new Percentile("75"), new Percentile("90"), new Percentile("95"),
+                        new Percentile("99"))));
+        List<NumericBucketPoint> actual = lists.get(0);
+        assertEquals(actual.size(), 1);
+    }
+
+    @Test
     public void findStackedGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
