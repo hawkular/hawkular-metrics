@@ -32,6 +32,7 @@ import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 import com.datastax.driver.core.Cluster;
@@ -56,6 +57,8 @@ public abstract class BaseITest {
 
     protected static RxSession rxSession;
 
+    protected static TestCacheService cacheService;
+
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
@@ -65,7 +68,6 @@ public abstract class BaseITest {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
         Cluster cluster = new Cluster.Builder()
                 .addContactPoints(nodeAddresses.split(","))
-//                .withProtocolVersion(ProtocolVersion.V4)
                 .build();
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
@@ -74,6 +76,15 @@ public abstract class BaseITest {
         schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
+
+        cacheService = new TestCacheService();
+        cacheService.init();
+    }
+
+    @AfterSuite
+    public void cleanUp() {
+        session.getCluster().close();
+        cacheService.shutdown();
     }
 
     protected void resetDB() {

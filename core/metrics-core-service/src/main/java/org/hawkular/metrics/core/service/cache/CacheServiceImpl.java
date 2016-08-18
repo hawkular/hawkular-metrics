@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ import rx.Single;
  */
 public class CacheServiceImpl implements CacheService {
 
-    private EmbeddedCacheManager cacheManager;
+    protected EmbeddedCacheManager cacheManager;
 
     public void init(){
         try {
@@ -45,6 +45,10 @@ public class CacheServiceImpl implements CacheService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void shutdown() {
+        cacheManager.stop();
     }
 
     @Override
