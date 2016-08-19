@@ -69,6 +69,8 @@ public class JobsServiceImpl implements JobsService {
 
     private ComputeRollups computeRollups;
 
+    private boolean rollupsEnabled = true;
+
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
     }
@@ -97,6 +99,10 @@ public class JobsServiceImpl implements JobsService {
         this.scheduler = scheduler;
     }
 
+    public void setRollupsEnabled(boolean rollupsEnabled) {
+        this.rollupsEnabled = rollupsEnabled;
+    }
+
     @Override
     public void start() {
         deleteTenant = new DeleteTenant(session, metricsService);
@@ -113,7 +119,9 @@ public class JobsServiceImpl implements JobsService {
 
         computeRollups = new ComputeRollups(session, rollupService, cacheService);
         scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
-        maybeScheduleComputeRollups();
+        if (rollupsEnabled) {
+            maybeScheduleComputeRollups();
+        }
 
         scheduler.start();
     }

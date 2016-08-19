@@ -404,6 +404,7 @@ public class MetricsServiceLifecycle {
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
         jobsService.setScheduler(scheduler);
+        jobsService.setRollupsEnabled(false);
         jobsService.start();
     }
 
