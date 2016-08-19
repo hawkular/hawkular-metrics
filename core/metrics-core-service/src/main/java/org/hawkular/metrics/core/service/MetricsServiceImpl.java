@@ -47,6 +47,8 @@ import java.util.regex.Pattern;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
@@ -475,14 +477,26 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
-        return dataAccess.findMetric(id)
-                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL));
+        return dataAccess.findMetricInMetricsIndex(id)
+                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))
+                .switchIfEmpty(dataAccess.findMetricInData(id)
+                        .compose(new MetricFromDataRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL)));
     }
 
     @Override
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
+        Observable<Metric<T>> setFromMetricsIndex = null;
+        Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
+                .compose(new MetricFromFullDataRowTransformer(defaultTTL))
+                .filter(m -> tenantId.equals(m.getTenantId()))
+                .map(m -> {
+                    @SuppressWarnings("unchecked")
+                    Metric<T> mt = (Metric<T>) m;
+                    return mt;
+                });
+
         if (metricType == null) {
-            return Observable.from(MetricType.userTypes())
+            setFromMetricsIndex = Observable.from(MetricType.userTypes())
                     .map(type -> {
                         @SuppressWarnings("unchecked")
                         MetricType<T> t = (MetricType<T>) type;
@@ -490,9 +504,14 @@ public class MetricsServiceImpl implements MetricsService {
                     })
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
                             .compose(new MetricsIndexRowTransformer<>(tenantId, type, defaultTTL)));
+        } else {
+            setFromMetricsIndex = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
+                    .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
+
+            setFromData = setFromData.filter(m -> metricType.equals(m.getMetricId().getType()));
         }
-        return dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
-                .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
+
+        return setFromMetricsIndex.concatWith(setFromData).distinct(m -> m.getMetricId());
     }
 
     private <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
@@ -671,11 +690,7 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
-                .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
-
-        return updates.mergeWith(indexUpdates)
-                .map(i -> null);
+        return updates.map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {

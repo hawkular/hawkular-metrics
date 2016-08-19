@@ -46,7 +46,9 @@ public interface DataAccess {
 
     <T> ResultSetFuture insertMetricInMetricsIndex(Metric<T> metric, boolean overwrite);
 
-    <T> Observable<Row> findMetric(MetricId<T> id);
+    <T> Observable<Row> findMetricInData(MetricId<T> id);
+
+    <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id);
 
     <T> Observable<ResultSet> addDataRetention(Metric<T> metric);
 
@@ -59,6 +61,8 @@ public interface DataAccess {
     <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
+
+    Observable<Row> findAllMetricsInData();
 
     Observable<Integer> insertGaugeData(Metric<Double> metric);
 

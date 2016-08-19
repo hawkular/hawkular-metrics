@@ -76,7 +76,9 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement insertIntoMetricsIndexOverwrite;
 
-    private PreparedStatement findMetric;
+    private PreparedStatement findMetricInData;
+
+    private PreparedStatement findMetricInMetricsIndex;
 
     private PreparedStatement getMetricTags;
 
@@ -158,6 +160,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement readMetricsIndex;
 
+    private PreparedStatement findAllMetricsInData;
+
     private PreparedStatement updateRetentionsIndex;
 
     private PreparedStatement findDataRetentions;
@@ -189,7 +193,13 @@ public class DataAccessImpl implements DataAccess {
 
         findTenant = session.prepare("SELECT id, retentions FROM tenants WHERE id = ?");
 
-        findMetric = session.prepare(
+        findMetricInData = session.prepare(
+            "SELECT DISTINCT tenant_id, metric " +
+            "FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart=? " +
+            "LIMIT 1");
+
+        findMetricInMetricsIndex = session.prepare(
             "SELECT metric, tags, data_retention " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
@@ -234,6 +244,10 @@ public class DataAccessImpl implements DataAccess {
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? " +
             "ORDER BY metric ASC");
+
+        findAllMetricsInData = session.prepare(
+            "SELECT DISTINCT tenant_id, metric, type, dpart " +
+            "FROM data");
 
         insertGaugeData = session.prepare(
             "UPDATE data " +
@@ -479,8 +493,15 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<Row> findMetric(MetricId<T> id) {
-        return rxSession.executeAndFetch(findMetric.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    public <T> Observable<Row> findMetricInData(MetricId<T> id) {
+        return rxSession.executeAndFetch(findMetricInData
+                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+    }
+
+    @Override
+    public <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id) {
+        return rxSession.executeAndFetch(findMetricInMetricsIndex
+                .bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     @Override
@@ -527,6 +548,12 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
         return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
+    }
+
+
+    @Override
+    public Observable<Row> findAllMetricsInData() {
+        return rxSession.executeAndFetch(findAllMetricsInData.bind());
     }
 
     @Override
