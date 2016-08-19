@@ -98,6 +98,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
+import rx.Single;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func5;
@@ -669,16 +670,15 @@ public class MetricsServiceImpl implements MetricsService {
                 .doOnNext(meter::mark);
 
         Observable<DataPoint<? extends Number>> cacheUpdates;
-//        if (metricType == GAUGE) {
-//            cacheUpdates = metrics
-//                    .flatMap(metric -> Observable.from(metric.getDataPoints())
-//                            .map(dataPoint -> cacheService.put((MetricId<Double>) metric.getMetricId(),
-//                                    (DataPoint<Double>) dataPoint)))
-//                    .flatMap(Single::toObservable);
-//        } else {
-//            cacheUpdates = Observable.empty();
-//        }
-        cacheUpdates = Observable.empty();
+        if (metricType == GAUGE) {
+            cacheUpdates = metrics
+                    .flatMap(metric -> Observable.from(metric.getDataPoints())
+                            .map(dataPoint -> cacheService.put((MetricId<Double>) metric.getMetricId(),
+                                    (DataPoint<Double>) dataPoint)))
+                    .flatMap(Single::toObservable);
+        } else {
+            cacheUpdates = Observable.empty();
+        }
 
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));

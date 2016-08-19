@@ -30,6 +30,7 @@ import org.joda.time.Duration;
 
 import rx.Completable;
 import rx.Single;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -88,7 +89,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     private <T> Single<T> from(NotifyingFuture<T> notifyingFuture) {
-        return Single.create(subscriber -> {
+        Single<T> single = Single.create(subscriber -> {
             notifyingFuture.attachListener(future -> {
                 try {
                     subscriber.onSuccess(future.get());
@@ -97,6 +98,8 @@ public class CacheServiceImpl implements CacheService {
                 }
             });
         });
+        single = single.subscribeOn(Schedulers.io());
+        return single;
     }
 
 }
