@@ -28,6 +28,8 @@ import com.google.common.base.MoreObjects;
  */
 public class DataPointKey implements Serializable {
 
+    private static final long serialVersionUID = 5285838073841938813L;
+
     private String tenantId;
 
     private String metric;

@@ -24,11 +24,6 @@ import org.infinispan.Cache;
  */
 public class TestCacheService extends CacheServiceImpl {
 
-    @Override public void init() {
-        super.init();
-        cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
-    }
-
     public void resetCaches() {
         cacheManager.getCacheNames().stream().map(cacheManager::getCache).forEach(Cache::clear);
     }
