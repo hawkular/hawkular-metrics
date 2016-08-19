@@ -42,6 +42,7 @@ public class CacheServiceImpl implements CacheService {
         try {
             cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
                     "/metrics-infinispan.xml"));
+            cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
