@@ -19,9 +19,14 @@ package org.hawkular.metrics.component.publish;
 
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_PERIOD;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.STRING;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
@@ -35,6 +40,8 @@ import org.hawkular.bus.Bus;
 import org.hawkular.bus.common.BasicMessage;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
@@ -64,24 +71,35 @@ public class InsertedDataSubscriber {
 
     private Subscription subscription;
 
+    @Inject
+    private PublishCommandTable publish;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_PUBLISH_PERIOD)
+    private String publishPeriodProperty;
+    private int publishPeriod;
+
+    private final List<Metric> pendingMetrics = new ArrayList<>();
+
+    private final Timer publishTimer = new Timer("PublishTimer");
+    private PublishTask publishTask;
+
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
         Observable<List<Metric<?>>> events = event.getInsertedData().buffer(50, TimeUnit.MILLISECONDS, 100)
                 .filter(list -> !list.isEmpty())
                 .onBackpressureBuffer()
                 .observeOn(Schedulers.io());
         subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+        publishPeriod = getPublishPeriod();
+        publishTask = new PublishTask();
+        publishTimer.schedule(publishTask, 1000, publishPeriod);
     }
 
     private void onInsertedData(Metric<?> metric) {
         log.tracef("Inserted metric: %s", metric);
-        if (metric.getMetricId().getType() == AVAILABILITY) {
-            @SuppressWarnings("unchecked")
-            Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-            publishAvailablility(avail);
-        } else {
-            @SuppressWarnings("unchecked")
-            Metric<? extends Number> numeric = (Metric<? extends Number>) metric;
-            publishNumeric(numeric);
+        if (publish.isPublished(metric.getMetricId())) {
+            pendingMetrics.add(metric);
         }
     }
 
@@ -96,8 +114,8 @@ public class InsertedDataSubscriber {
     private BasicMessage createNumericMessage(Metric<? extends Number> numeric) {
         MetricId<?> numericId = numeric.getMetricId();
         List<MetricDataMessage.SingleMetric> numericList = numeric.getDataPoints().stream()
-                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getName(), dataPoint.getTimestamp(),
-                        dataPoint.getValue().doubleValue()))
+                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getType().getText(), numericId.getName(),
+                        dataPoint.getTimestamp(), dataPoint.getValue().doubleValue()))
                 .collect(toList());
         MetricDataMessage.MetricData metricData = new MetricDataMessage.MetricData();
         metricData.setTenantId(numericId.getTenantId());
@@ -131,5 +149,43 @@ public class InsertedDataSubscriber {
         if (subscription != null) {
             subscription.unsubscribe();
         }
+        publishTask.cancel();
+        publishTimer.cancel();
+    }
+
+    private int getPublishPeriod() {
+        try {
+            return Integer.parseInt(publishPeriodProperty);
+        } catch (NumberFormatException e) {
+            log.warnf("Invalid publish period. Setting default value %s", METRICS_PUBLISH_PERIOD.defaultValue());
+            return Integer.parseInt(METRICS_PUBLISH_PERIOD.defaultValue());
+        }
+    }
+
+    private class PublishTask extends TimerTask {
+        @Override
+        public void run() {
+            if (!pendingMetrics.isEmpty()) {
+                getAndClearPendingMetrics().stream().forEach(metric -> {
+                    if (metric.getMetricId().getType() == STRING) {
+                        log.warn("STRING type metrics are not yet supported for bus integration");
+                    } else if (metric.getMetricId().getType() == AVAILABILITY) {
+                        @SuppressWarnings("unchecked")
+                        Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
+                        publishAvailablility(avail);
+                    } else {
+                        @SuppressWarnings("unchecked")
+                        Metric<? extends Number> numeric = (Metric<? extends Number>) metric;
+                        publishNumeric(numeric);
+                    }
+                });
+            }
+        }
+    }
+
+    private synchronized List<Metric> getAndClearPendingMetrics() {
+        ArrayList<Metric> result = new ArrayList<>(pendingMetrics);
+        pendingMetrics.clear();
+        return result;
     }
 }

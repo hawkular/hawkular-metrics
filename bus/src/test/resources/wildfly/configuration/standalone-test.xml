@@ -284,6 +284,9 @@
         </local-cache>
         <local-cache name="timestamps"/>
       </cache-container>
+      <cache-container name="hawkular-metrics" default-cache="publish" statistics-enabled="true">
+        <local-cache name="publish"/>
+      </cache-container>
     </subsystem>
     <subsystem xmlns="urn:jboss:domain:jaxrs:1.0"/>
     <subsystem xmlns="urn:jboss:domain:jca:4.0">
@@ -340,6 +343,7 @@
         <jms-queue name="ExpiryQueue" entries="java:/jms/queue/ExpiryQueue"/>
         <jms-queue name="DLQ" entries="java:/jms/queue/DLQ"/>
         <jms-queue name="TestQueue" entries="java:/jms/queue/TestQueue"/>
+        <jms-queue name="MetricsPublish" entries="java:/queue/hawkular/metrics/publish"/>
         <jms-topic name="TestTopic" entries="java:/jms/topic/TestTopic"/>
         <jms-topic name="HawkularAvailData" entries="java:/topic/HawkularAvailData"/>
         <jms-topic name="HawkularMetricData" entries="java:/topic/HawkularMetricData"/>

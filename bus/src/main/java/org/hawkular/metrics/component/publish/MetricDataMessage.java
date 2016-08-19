@@ -121,6 +121,8 @@ public class MetricDataMessage extends AbstractMessage {
      */
     public static class SingleMetric {
         @JsonInclude
+        private String type;
+        @JsonInclude
         private String source;
         @JsonInclude
         private long timestamp;
@@ -130,10 +132,19 @@ public class MetricDataMessage extends AbstractMessage {
         public SingleMetric() {
         }
 
-        public SingleMetric(String source, long timestamp, double value) {
+        public SingleMetric(String type, String source, long timestamp, double value) {
+            this.type = type;
             this.source = source;
             this.timestamp = timestamp;
             this.value = value;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
         }
 
         public String getSource() {
@@ -161,23 +172,39 @@ public class MetricDataMessage extends AbstractMessage {
         }
 
         @Override
-        public String toString() {
-            return "SingleMetric [source=" + source + ", timestamp=" + timestamp + ", value=" + value + "]";
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+
             SingleMetric that = (SingleMetric) o;
-            return Objects.equals(timestamp, that.timestamp) &&
-                    Objects.equals(value, that.value) &&
-                    Objects.equals(source, that.source);
+
+            if (timestamp != that.timestamp) return false;
+            if (Double.compare(that.value, value) != 0) return false;
+            if (type != null ? !type.equals(that.type) : that.type != null) return false;
+            return source != null ? source.equals(that.source) : that.source == null;
+
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(source, timestamp, value);
+            int result;
+            long temp;
+            result = type != null ? type.hashCode() : 0;
+            result = 31 * result + (source != null ? source.hashCode() : 0);
+            result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
+            temp = Double.doubleToLongBits(value);
+            result = 31 * result + (int) (temp ^ (temp >>> 32));
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "SingleMetric{" +
+                    "type='" + type + '\'' +
+                    ", source='" + source + '\'' +
+                    ", timestamp=" + timestamp +
+                    ", value=" + value +
+                    '}';
         }
     }
 }
