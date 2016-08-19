@@ -126,7 +126,6 @@ public class PublishDataPointsTest {
 
     @BeforeClass
     public static void setupPublishing() {
-        System.setProperty("hawkular-metrics.publish-delay", "50");
         System.setProperty("hawkular-metrics.publish-period", "100");
     }
 
