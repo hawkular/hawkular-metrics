@@ -132,17 +132,25 @@ public class PublishDataPointsTest {
     @Test
     public void publishGaugeDataPoints() throws Exception {
         String tenantId = "gauge-tenant";
-        String gaugeId = "G1";
-        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, gaugeId);
-        Metric<Double> gauge = new Metric<>(metricId, asList(
+        String gauge1Id = "G1";
+        String gauge2Id = "G2";
+        MetricId<Double> filteredMetricId = new MetricId<>(tenantId, GAUGE, gauge1Id);
+        Metric<Double> gauge1 = new Metric<>(filteredMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), 10.0),
                 new DataPoint<>(System.currentTimeMillis() - 1000, 9.0),
                 new DataPoint<>(System.currentTimeMillis() - 2000, 9.0)
         ));
 
-        publishCommandTable.add(asList(metricId));
+        MetricId<Double> ignoredMetricId = new MetricId<>(tenantId, GAUGE, gauge2Id);
+        Metric<Double> gauge2 = new Metric<>(ignoredMetricId, asList(
+                new DataPoint<>(System.currentTimeMillis(), 110.0),
+                new DataPoint<>(System.currentTimeMillis() - 1000, 19.0),
+                new DataPoint<>(System.currentTimeMillis() - 2000, 19.0)
+        ));
 
-        Observable<Metric<?>> observable = Observable.just(gauge);
+        publishCommandTable.add(asList(filteredMetricId));
+
+        Observable<Metric<?>> observable = Observable.just(gauge1, gauge2);
 
         MetricMessageListener<MetricDataMessage> listener = new MetricMessageListener<>(1, MetricDataMessage.class);
         context.createConsumer(gaugeDataTopic).setMessageListener(listener);
@@ -151,8 +159,8 @@ public class PublishDataPointsTest {
 
         MetricDataMessage.MetricData data = new MetricDataMessage.MetricData();
         data.setTenantId(tenantId);
-        data.setData(gauge.getDataPoints().stream()
-                .map(dataPoint -> new MetricDataMessage.SingleMetric(GAUGE.getText(), gaugeId, dataPoint.getTimestamp(),
+        data.setData(gauge1.getDataPoints().stream()
+                .map(dataPoint -> new MetricDataMessage.SingleMetric(GAUGE.getText(), gauge1Id, dataPoint.getTimestamp(),
                         dataPoint.getValue()))
                 .collect(toList()));
         List<MetricDataMessage> expected = Collections.singletonList(new MetricDataMessage(data));
@@ -164,18 +172,27 @@ public class PublishDataPointsTest {
     @Test
     public void publishAvailabilityDataPoints() throws Exception {
         String tenantId = "availability-tenant";
-        String availabilityId = "A1";
-        MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, availabilityId);
-        Metric<AvailabilityType> availability = new Metric<>(metricId, asList(
+        String availability1Id = "A1";
+        String availability2Id = "A2";
+        MetricId<AvailabilityType> filteredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability1Id);
+        Metric<AvailabilityType> availability1 = new Metric<>(filteredMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), UP),
                 new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
                 new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)
         ));
 
-        publishCommandTable.add(asList(metricId));
+        MetricId<AvailabilityType> ignoredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability2Id);
+        Metric<AvailabilityType> availability2 = new Metric<>(ignoredMetricId, asList(
+                new DataPoint<>(System.currentTimeMillis(), UP),
+                new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
+                new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
+                new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)
+        ));
 
-        Observable<Metric<?>> observable = Observable.just(availability);
+        publishCommandTable.add(asList(filteredMetricId));
+
+        Observable<Metric<?>> observable = Observable.just(availability1, availability2);
 
         MetricMessageListener<AvailDataMessage> listener = new MetricMessageListener<>(1, AvailDataMessage.class);
         context.createConsumer(availabilityDataTopic).setMessageListener(listener);
@@ -183,8 +200,8 @@ public class PublishDataPointsTest {
         serviceReadyEvent.fire(new ServiceReadyEvent(observable));
 
         AvailDataMessage.AvailData data = new AvailDataMessage.AvailData();
-        data.setData(availability.getDataPoints().stream()
-                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, availabilityId, dataPoint.getTimestamp(),
+        data.setData(availability1.getDataPoints().stream()
+                .map(dataPoint -> new AvailDataMessage.SingleAvail(tenantId, availability1Id, dataPoint.getTimestamp(),
                         dataPoint.getValue().getText().toUpperCase()))
                 .collect(toList()));
         List<AvailDataMessage> expected = Collections.singletonList(new AvailDataMessage(data));

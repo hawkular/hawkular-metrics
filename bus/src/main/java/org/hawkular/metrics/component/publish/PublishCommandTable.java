@@ -43,15 +43,13 @@ public class PublishCommandTable {
         return publishCache.containsKey(id);
     }
 
+    /*
+        This add() method is added as a helper for PublishDataPointsTest scenarios.
+        Entries on PublishCommandTable.publishCache are handled externally.
+     */
     public synchronized void add(List<MetricId> ids) {
         if (ids != null) {
             publishCache.putAll(ids.stream().collect(Collectors.toMap(id -> id, id -> id)));
-        }
-    }
-
-    public synchronized void remove(List<MetricId> ids) {
-        if (ids != null) {
-            ids.stream().forEach(id -> publishCache.remove(id));
         }
     }
 }
