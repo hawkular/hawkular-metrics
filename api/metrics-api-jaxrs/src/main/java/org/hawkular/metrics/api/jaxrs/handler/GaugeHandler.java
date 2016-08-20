@@ -513,6 +513,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                                                 @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
+            @ApiParam(value = "Resolution") @QueryParam("resolution") Integer resolution,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles) {
 
         MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);

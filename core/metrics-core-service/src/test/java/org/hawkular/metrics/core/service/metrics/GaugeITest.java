@@ -24,12 +24,14 @@ import static java.util.Collections.singletonList;
 
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
+import static org.joda.time.Duration.standardDays;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,12 +45,18 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.Tenant;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.testng.annotations.Test;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.google.common.collect.ImmutableMap;
 
+import rx.Completable;
 import rx.Observable;
 
 /**
@@ -177,6 +185,35 @@ public class GaugeITest extends BaseMetricsITest {
     }
 
     @Test
+    public void fetchPercentiles() {
+        String tenantId = "fetchPercentiles";
+        DateTime start = now().minusMinutes(10);
+        MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, "G1");
+
+        List<DataPoint<Double>> dataPoints = asList(
+                new DataPoint<>(start.getMillis(), 12.4),
+                new DataPoint<>(start.plusSeconds(10).getMillis(), 19.23),
+                new DataPoint<>(start.plusSeconds(20).getMillis(), 15.065),
+                new DataPoint<>(start.plusSeconds(30).getMillis(), 28.01),
+                new DataPoint<>(start.plusSeconds(40).getMillis(), 18.00),
+                new DataPoint<>(start.plusSeconds(50).getMillis(), 24.13),
+                new DataPoint<>(start.plusSeconds(60).getMillis(), 32.14)
+        );
+
+        Metric<Double> gauge = new Metric<>(metricId, dataPoints);
+
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(gauge)));
+
+        BucketConfig bucketConfig = new BucketConfig(1, null, new TimeRange(start.getMillis(),
+                start.plusHours(1).getMillis()));
+        List<List<NumericBucketPoint>> lists = getOnNextEvents(() -> metricsService.findGaugeStats(metricId,
+                bucketConfig, asList(new Percentile("75"), new Percentile("90"), new Percentile("95"),
+                        new Percentile("99"))));
+        List<NumericBucketPoint> actual = lists.get(0);
+        assertEquals(actual.size(), 1);
+    }
+
+    @Test
     public void findStackedGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
@@ -297,6 +334,60 @@ public class GaugeITest extends BaseMetricsITest {
         assertEquals(actual.get(0).get(0).getMax(), max.getResult());
         assertEquals(actual.get(0).get(0).getMedian(), median.getResult());
         assertEquals(actual.get(0).get(0).getAvg(), average.getResult());
+    }
+
+    @Test
+    public void findPrecomputedGaugeStats() {
+        PreparedStatement insertDataPoint = session.prepare(
+                "INSERT INTO rollup300 (tenant_id, metric, shard, time, min, max, avg, median, sum, samples, " +
+                        "percentiles) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        String tenantId = "findPrecomputedGaugeStats";
+        int retention = standardDays(1).toStandardSeconds().getSeconds();
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"), retention);
+
+        doAction(() -> metricsService.createMetric(metric, true));
+
+        DateTime start = new DateTime(now()).minusDays(3);
+
+        Observable<ResultSet> insert1 = rxSession.execute(insertDataPoint.bind(metric.getMetricId().getTenantId(),
+                metric.getMetricId().getName(), 0L, start.toDate(), 1.0, 5.5, 4.4, 3.3, 6.6, 5,
+                ImmutableMap.of(90.0f, 1.0, 95.0f, 1.4, 99.0f, 2.2)));
+        Observable<ResultSet> insert2 = rxSession.execute(insertDataPoint.bind(metric.getMetricId().getTenantId(),
+                metric.getMetricId().getName(), 0L, start.plusMinutes(5).toDate(), 6.0, 13.3, 9.4, 8.7, 21.2, 5,
+                ImmutableMap.of(90.0f, 11.4, 95.0f, 9.6, 99.0f, 8.9)));
+
+        Completable.merge(insert1.toCompletable(), insert2.toCompletable()).await(10, TimeUnit.SECONDS);
+
+        List<List<NumericBucketPoint>> results = getOnNextEvents(() -> metricsService.findGaugeStats(
+                metric.getMetricId(), new BucketConfig(null, null, new TimeRange(start.getMillis(),
+                        start.plusMinutes(20).getMillis()), 300), emptyList()));
+
+        assertEquals(results.get(0).size(), 2);
+
+        List<NumericBucketPoint> actual = results.get(0);
+        List<NumericBucketPoint> expected = asList(
+                new NumericBucketPoint(
+                        start.getMillis(),
+                        start.plusMinutes(5).getMillis(),
+                        1.0,
+                        4.4,
+                        3.3,
+                        5.5,
+                        6.6,
+                        asList(new Percentile("90.0", 1.0), new Percentile("95.0", 1.4), new Percentile("99.0", 2.2)),
+                        5),
+                new NumericBucketPoint(
+                        start.plusMinutes(5).getMillis(),
+                        start.plusMinutes(10).getMillis(),
+                        6.0,
+                        9.4,
+                        8.7,
+                        13.3,
+                        21.2,
+                        asList(new Percentile("90.0", 11.4), new Percentile("95.0", 9.6), new Percentile("99.0", 8.9)),
+                        5));
+
+        assertNumericBucketsEquals(actual, expected);
     }
 
     @Test

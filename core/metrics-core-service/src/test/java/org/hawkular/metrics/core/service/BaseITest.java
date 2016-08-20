@@ -22,6 +22,7 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,7 @@ import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 import com.datastax.driver.core.Cluster;
@@ -56,6 +58,8 @@ public abstract class BaseITest {
 
     protected static RxSession rxSession;
 
+    protected static TestCacheService cacheService;
+
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
@@ -65,7 +69,6 @@ public abstract class BaseITest {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
         Cluster cluster = new Cluster.Builder()
                 .addContactPoints(nodeAddresses.split(","))
-//                .withProtocolVersion(ProtocolVersion.V4)
                 .build();
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
@@ -74,6 +77,15 @@ public abstract class BaseITest {
         schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
+
+        cacheService = new TestCacheService();
+        cacheService.init();
+    }
+
+    @AfterSuite
+    public void cleanUp() {
+        session.getCluster().close();
+        cacheService.shutdown();
     }
 
     protected void resetDB() {
@@ -155,6 +167,31 @@ public abstract class BaseITest {
         assertEquals(actual.length, expected.length, msg + ": The array lengths are not the same.");
         for (int i = 0; i < expected.length; ++i) {
             assertEquals(actual[i], expected[i], msg + ": The elements at index " + i + " do not match.");
+        }
+    }
+
+    protected static class InMemoryPercentileWrapper implements PercentileWrapper {
+        List<Double> values = new ArrayList<>();
+        double percentile;
+
+        public InMemoryPercentileWrapper(double percentile) {
+            this.percentile = percentile;
+        }
+
+        @Override public void addValue(double value) {
+            values.add(value);
+        }
+
+        @Override public double getResult() {
+            org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
+                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
+            double[] array = new double[values.size()];
+            for (int i = 0; i < array.length; ++i) {
+                array[i] = values.get(i++);
+            }
+            percentileCalculator.setData(array);
+
+            return percentileCalculator.getQuantile();
         }
     }
 

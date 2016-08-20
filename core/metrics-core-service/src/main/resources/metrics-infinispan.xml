@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
@@ -17,16 +16,24 @@
     limitations under the License.
 
 -->
-<jboss-deployment-structure>
-  <deployment>
-    <exclusions>
-      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
-      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
-    </exclusions>
-    <dependencies>
-      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.infinispan"/>
-      <module name="org.infinispan.commons"/>
-    </dependencies>
-  </deployment>
-</jboss-deployment-structure>
+<infinispan
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:infinispan:config:8.1 http://www.infinispan.org/schemas/infinispan-config-8.1.xsd"
+    xmlns="urn:infinispan:config:8.1">
+
+  <cache-container default-cache="default">
+    <transport cluster="HawkularMetrics"/>
+
+    <distributed-cache name="rawData" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+
+    <distributed-cache name="rollup300" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+
+    <distributed-cache name="rollup3600" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+  </cache-container>
+</infinispan>

@@ -29,13 +29,19 @@ import com.google.common.base.MoreObjects;
  */
 public class BucketConfig {
     private final Buckets buckets;
+    private final Integer resolution;
     private final TimeRange timeRange;
     private final boolean valid;
     private final String problem;
 
     public BucketConfig(Integer bucketsCount, Duration bucketDuration, TimeRange timeRange) {
+        this(bucketsCount, bucketDuration, timeRange, null);
+    }
+
+    public BucketConfig(Integer bucketsCount, Duration bucketDuration, TimeRange timeRange, Integer resolution) {
         checkArgument(timeRange != null, "Time range is null");
         this.timeRange = timeRange;
+        this.resolution = resolution;
 
         if (!timeRange.isValid()) {
             throw new IllegalArgumentException("Invalid time range: " + timeRange.getProblem());
@@ -75,6 +81,10 @@ public class BucketConfig {
         return buckets;
     }
 
+    public Integer getResolution() {
+        return resolution;
+    }
+
     public TimeRange getTimeRange() {
         return timeRange;
     }
@@ -95,6 +105,8 @@ public class BucketConfig {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("buckets", buckets)
+                .add("resolution", resolution)
+                .add("timeRange", timeRange)
                 .add("valid", valid)
                 .add("problem", problem)
                 .omitNullValues()

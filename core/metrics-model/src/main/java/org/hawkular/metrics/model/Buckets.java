@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,8 @@
 package org.hawkular.metrics.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.Serializable;
 
 /**
  * Bucket configuration attributes. The configuration determines:
@@ -36,10 +38,15 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  * @author Thomas Segismont
  */
-public final class Buckets {
-    private final long start;
-    private final long step;
-    private final int count;
+public final class Buckets implements Serializable {
+
+    private static final long serialVersionUID = 6560237542879817364L;
+
+    private long start;
+    private long step;
+    private int count;
+
+    private Buckets() {}
 
     public Buckets(long start, long step, int count) {
         checkArgument(start > 0, "start is not positive");

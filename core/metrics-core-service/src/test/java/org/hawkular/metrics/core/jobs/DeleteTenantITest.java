@@ -38,6 +38,8 @@ import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.FakeCacheService;
+import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -70,6 +72,10 @@ public class DeleteTenantITest extends BaseITest {
 
     private MetricsServiceImpl metricsService;
 
+    private ConfigurationService configurationService;
+
+    private RollupServiceImpl rollupService;
+
     private TestScheduler jobScheduler;
 
     private JobsServiceImpl jobsService;
@@ -92,28 +98,37 @@ public class DeleteTenantITest extends BaseITest {
 
         DataAccess dataAccess = new DataAccessImpl(session);
 
-        ConfigurationService configurationService = new ConfigurationService() ;
+        configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
+
+        rollupService = new RollupServiceImpl(rxSession);
+        rollupService.init();
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
+        metricsService.setCacheService(new FakeCacheService());
+        metricsService.setRollupService(rollupService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
-
-        jobScheduler = new TestScheduler(rxSession);
-
-        jobsService = new JobsServiceImpl();
-        jobsService.setSession(rxSession);
-        jobsService.setScheduler(jobScheduler);
-        jobsService.setMetricsService(metricsService);
     }
 
     @BeforeMethod
     public void initTest(Method method) {
         logger.debug("Starting [" + method.getName() + "]");
+
+        jobScheduler = new TestScheduler(rxSession);
+        jobScheduler.truncateTables(getKeyspace());
+
+        jobsService = new JobsServiceImpl();
+        jobsService.setSession(rxSession);
+        jobsService.setScheduler(jobScheduler);
+        jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setRollupService(rollupService);
+        jobsService.setCacheService(cacheService);
+
         jobName = method.getName();
         jobsService.start();
-        jobScheduler.advanceTimeBy(1);
     }
 
     @AfterMethod(alwaysRun = true)
@@ -136,16 +151,10 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + details);
-            latch.countDown();
-        });
+        CountDownLatch jobFinished = getJobFinishedNotification(details);
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
-
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(jobFinished.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(g1, start, start.plusMinutes(3));
         assertDataEmpty(g2, start, start.plusMinutes(3));
@@ -173,16 +182,11 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + details);
-            latch.countDown();
-        });
+        CountDownLatch jobFinished = getJobFinishedNotification(details);
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(jobFinished.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(g1, start, start.plusMinutes(3));
         assertDataEmpty(g2, start, start.plusMinutes(3));
@@ -195,22 +199,18 @@ public class DeleteTenantITest extends BaseITest {
         assertTrue(metrics.isEmpty());
     }
 
+
     @Test
     public void deleteTenantWithSettings() throws Exception {
         Tenant tenant = new Tenant(nextTenantId(), ImmutableMap.of(GAUGE, 10, COUNTER, 15, STRING, 20));
         doAction(() -> metricsService.createTenant(tenant, true));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenant.getId(), jobName).toBlocking().value();
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + details);
-            latch.countDown();
-        });
+        CountDownLatch jobFinished = getJobFinishedNotification(details);
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(jobFinished.await(10, TimeUnit.SECONDS));
 
         assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
         assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
@@ -263,16 +263,11 @@ public class DeleteTenantITest extends BaseITest {
         doAction(() -> metricsService.addDataPoints(STRING, Observable.just(s1, s2)));
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + details);
-            latch.countDown();
-        });
+        CountDownLatch jobFinished = getJobFinishedNotification(details);
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(jobFinished.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(s1, start, start.plusMinutes(3));
         assertDataEmpty(s2, start, start.plusMinutes(3));
@@ -325,15 +320,13 @@ public class DeleteTenantITest extends BaseITest {
         assertEquals(details1.getTrigger().getTriggerTime(), details2.getTrigger().getTriggerTime(),
                 "The jobs should be scheduled to execute at the same time");
 
-        CountDownLatch latch = new CountDownLatch(2);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + jobDetails);
-            latch.countDown();
-        });
+        CountDownLatch job1Finished = getJobFinishedNotification(details1);
+        CountDownLatch job2Finished = getJobFinishedNotification(details2);
 
         jobScheduler.advanceTimeTo(details1.getTrigger().getTriggerTime());
 
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(job1Finished.await(10, TimeUnit.SECONDS));
+        assertTrue(job2Finished.await(10, TimeUnit.SECONDS));
 
         assertDataEmpty(s1, start, start.plusMinutes(3));
         assertDataEmpty(s2, start, start.plusMinutes(3));
@@ -345,16 +338,22 @@ public class DeleteTenantITest extends BaseITest {
         DateTime start = new DateTime(jobScheduler.now());
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
-
-        CountDownLatch latch = new CountDownLatch(1);
-        jobScheduler.onJobFinished(jobDetails -> {
-            logger.debug("Finished " + details);
-            latch.countDown();
-        });
+        CountDownLatch jobFinished = getJobFinishedNotification(details);
 
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertTrue(jobFinished.await(10, TimeUnit.SECONDS));
+    }
+
+    private CountDownLatch getJobFinishedNotification(JobDetails details) {
+        CountDownLatch latch = new CountDownLatch(1);
+        jobScheduler.onJobFinished(jobDetails -> {
+            if (jobDetails.getJobId().equals(details.getJobId())) {
+                logger.debug("Finished " + details);
+                latch.countDown();
+            }
+        });
+        return latch;
     }
 
     private String nextTenantId() {
