@@ -37,7 +37,6 @@ import javax.jms.Queue;
 import org.hawkular.bus.common.consumer.BasicMessageListener;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
-import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.component.publish.AvailDataMessage;
 import org.hawkular.metrics.component.publish.AvailDataMessage.AvailData;
 import org.hawkular.metrics.component.publish.MetricDataMessage;
@@ -58,7 +57,6 @@ import rx.Subscriber;
  * @author Thomas Segismont
  */
 @ApplicationScoped
-@Eager
 public class NewDataListener {
     private static final Logger LOG = Logger.getLogger(NewDataListener.class);
 

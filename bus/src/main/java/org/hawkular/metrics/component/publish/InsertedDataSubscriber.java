@@ -35,7 +35,6 @@ import org.hawkular.bus.Bus;
 import org.hawkular.bus.common.BasicMessage;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
-import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
@@ -49,7 +48,6 @@ import rx.schedulers.Schedulers;
  * @author Thomas Segismont
  */
 @ApplicationScoped
-@Eager
 public class InsertedDataSubscriber {
     private static final Logger log = Logger.getLogger(InsertedDataSubscriber.class);
 
