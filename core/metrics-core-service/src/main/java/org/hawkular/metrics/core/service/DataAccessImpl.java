@@ -531,17 +531,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
-        return Observable.from(gauge.getDataPoints())
-                .map(dataPoint ->  {
-                    if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(), dataPoint.getTimestamp());
-                    } else {
-                        return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(), dataPoint.getTags(),
-                                dataPoint.getTimestamp());
-                    }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+        return insertGaugeData(gauge, -1);
     }
 
     @Override
@@ -549,11 +539,21 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(gauge.getDataPoints())
                 .map(dataPoint ->  {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
                                 dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
+                                    dataPoint.getTimestamp());
+                        }
                     } else {
-                        return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
                     }
                 })
                 .compose(new BatchStatementTransformer())
@@ -562,22 +562,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertStringData(Metric<String> metric, int maxSize) {
-        return Observable.from(metric.getDataPoints())
-                .map(dataPoint -> {
-                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
-                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
-                                " characters");
-                    }
-
-                    if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertStringData, metric, dataPoint.getValue(), dataPoint.getTimestamp());
-                    } else {
-                        return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
-                                dataPoint.getTags(), dataPoint.getTimestamp());
-                    }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+        return insertStringData(metric, -1, maxSize);
     }
 
     @Override
@@ -590,11 +575,21 @@ public class DataAccessImpl implements DataAccess {
                     }
 
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertStringDataUsingTTL, metric, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertStringDataUsingTTL, metric, dataPoint.getValue(),
                                 dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertStringData, metric, dataPoint.getValue(),
+                                    dataPoint.getTimestamp());
+                        }
                     } else {
-                        return bindDataPoint(insertStringDataWithTagsUsingTTL, metric, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertStringDataWithTagsUsingTTL, metric, dataPoint.getValue(),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
                     }
                 })
                 .compose(new BatchStatementTransformer())
@@ -603,18 +598,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter) {
-        return Observable.from(counter.getDataPoints())
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
-                                dataPoint.getTimestamp());
-                    } else {
-                        return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
-                                dataPoint.getTags(), dataPoint.getTimestamp());
-                    }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+        return insertCounterData(counter, -1);
     }
 
     @Override
@@ -622,11 +606,22 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(counter.getDataPoints())
                 .map(dataPoint -> {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
                                 dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
+                                    dataPoint.getTimestamp());
+
+                        }
                     } else {
-                        return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
                     }
                 })
                 .compose(new BatchStatementTransformer())
@@ -770,17 +765,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
-        return Observable.from(metric.getDataPoints())
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertAvailability, metric, getBytes(dataPoint), dataPoint.getTimestamp());
-                    } else {
-                        return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
-                                dataPoint.getTags(), dataPoint.getTimestamp());
-                    }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+        return insertAvailabilityData(metric, -1);
     }
 
     @Override
@@ -788,11 +773,22 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> {
                     if (dataPoint.getTags().isEmpty()) {
-                        return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint), dataPoint.getTimestamp(),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint),
+                                    dataPoint.getTimestamp(),
                                 ttl);
+                        } else{
+                            return bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
+                                    dataPoint.getTimestamp());
+                        }
                     } else {
-                        return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
                                 dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
                     }
                 })
                 .compose(new BatchStatementTransformer())
