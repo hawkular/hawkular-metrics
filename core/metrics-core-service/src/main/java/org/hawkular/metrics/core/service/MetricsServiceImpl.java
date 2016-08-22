@@ -483,25 +483,18 @@ public class MetricsServiceImpl implements MetricsService {
                         .compose(new MetricFromDataRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL)));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
         Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
+                .filter(row -> tenantId.equals(row.getString(0)))
                 .compose(new MetricFromFullDataRowTransformer(defaultTTL))
-                .filter(m -> tenantId.equals(m.getTenantId()))
-                .map(m -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<T> mt = (Metric<T>) m;
-                    return mt;
-                });
+                .map(m -> (Metric<T>) m);
 
         if (metricType == null) {
             setFromMetricsIndex = Observable.from(MetricType.userTypes())
-                    .map(type -> {
-                        @SuppressWarnings("unchecked")
-                        MetricType<T> t = (MetricType<T>) type;
-                        return t;
-                    })
+                    .map(type -> (MetricType<T>) type)
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
                             .compose(new MetricsIndexRowTransformer<>(tenantId, type, defaultTTL)));
         } else {
