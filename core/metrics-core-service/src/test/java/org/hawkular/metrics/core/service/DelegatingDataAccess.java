@@ -100,6 +100,11 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<Integer> insertGaugeData(Metric<Double> metric) {
+        return delegate.insertGaugeData(metric);
+    }
+
+    @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
         return delegate.insertGaugeData(gauge, ttl);
     }
@@ -120,7 +125,18 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findGaugeData(id, startTime, endTime, 0, order);
     }
 
-    @Override public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
+    @Override
+    public Observable<Integer> insertStringData(Metric<String> metric, int maxSize) {
+        return delegate.insertStringData(metric, maxSize);
+    }
+
+    @Override
+    public Observable<Integer> insertCounterData(Metric<Long> counter) {
+        return null;
+    }
+
+    @Override
+    public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return delegate.insertStringData(metric, ttl, maxSize);
     }
 
@@ -138,6 +154,11 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
         return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
+    }
+
+    @Override
+    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
+        return delegate.insertAvailabilityData(metric);
     }
 
     @Override

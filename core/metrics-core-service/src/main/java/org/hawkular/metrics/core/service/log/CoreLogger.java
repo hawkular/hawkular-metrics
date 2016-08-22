@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,4 +59,8 @@ public interface CoreLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 100006, value = "There was an error persisting rates for {tenant= %s, start= %d, end= %d}")
     void warnFailedToPersistRates(String tenantId, Long start, Long end, @Cause Throwable t);
+
+    @LogMessage(level = INFO)
+    @Message(id = 100007, value = "Using default data retention of %d seconds")
+    void infoDefaultDataRetention(int defaultTTL);
 }
