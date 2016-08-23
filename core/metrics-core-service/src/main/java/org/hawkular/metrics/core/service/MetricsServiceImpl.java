@@ -963,11 +963,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Boolean> idExists(final MetricId<?> metricId) {
-        return this.findMetrics(metricId.getTenantId(), metricId.getType())
-                .filter(m -> {
-                    return metricId.getName().equals(m.getMetricId().getName());
-                })
-                .take(1)
+        return this.findMetric(metricId)
                 .map(m -> Boolean.TRUE)
                 .defaultIfEmpty(Boolean.FALSE);
     }
