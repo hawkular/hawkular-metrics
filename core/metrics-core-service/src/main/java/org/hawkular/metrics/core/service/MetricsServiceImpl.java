@@ -880,32 +880,31 @@ public class MetricsServiceImpl implements MetricsService {
         if (!stacked) {
             if (COUNTER == metricType || GAUGE == metricType) {
                 return Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
+                        .flatMap(metricName -> findDataPoints(new MetricId<>(tenantId, metricType, metricName), start,
+                                end, 0, Order.DESC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 return Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
-                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, ASC))
+                        .flatMap(metricName -> findRateData(new MetricId<>(tenantId, mtype, metricName), start, end, 0,
+                                ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
             if (COUNTER == metricType || GAUGE == metricType) {
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .map(metric -> {
-                            return findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                        .map(metricName -> {
+                            return findDataPoints(new MetricId<>(tenantId, metricType, metricName), start, end, 0,
+                                    Order.DESC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
             } else {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
-                        .map(metric -> {
-                            return findRateData(metric.getMetricId(), start, end, 0, ASC)
+                        .map(metricName -> {
+                            return findRateData(new MetricId<>(tenantId, mtype, metricName), start, end, 0, ASC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
