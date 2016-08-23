@@ -22,6 +22,7 @@ import static org.testng.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -34,6 +35,7 @@ import org.hawkular.metrics.core.service.DataRetentionsMapper;
 import org.hawkular.metrics.core.service.DelegatingDataAccess;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.PercentileWrapper;
+import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -77,23 +79,31 @@ public abstract class BaseMetricsITest extends BaseITest {
         ConfigurationService configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
 
+        RollupServiceImpl rollupService = new RollupServiceImpl(rxSession);
+        rollupService.init();
+
         defaultCreatePercentile = NumericDataPointCollector.createPercentile;
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
+        metricsService.setCacheService(cacheService);
+        metricsService.setRollupService(rollupService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
     }
 
     @BeforeMethod(alwaysRun = true)
     public void initMethod() {
-        session.execute("TRUNCATE tenants");
-        session.execute("TRUNCATE data");
-        session.execute("TRUNCATE metrics_idx");
-        session.execute("TRUNCATE retentions_idx");
-        session.execute("TRUNCATE metrics_tags_idx");
-        session.execute("TRUNCATE leases");
+        String keyspace = getKeyspace();
+        rxSession.execute("select table_name from system_schema.tables where keyspace_name = '" + keyspace + "'")
+                .flatMap(Observable::from)
+                .filter(row -> !row.getString(0).equals("cassalog"))
+                .flatMap(row -> rxSession.execute("truncate " + row.getString(0)))
+                .toCompletable()
+                .await(10, TimeUnit.SECONDS);
+
+        cacheService.resetCaches();
 
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
@@ -262,31 +272,6 @@ public abstract class BaseMetricsITest extends BaseITest {
             assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
                 "inserting data");
             return super.insertAvailabilityData(metric, ttl);
-        }
-    }
-
-    protected static class InMemoryPercentileWrapper implements PercentileWrapper {
-        List<Double> values = new ArrayList<>();
-        double percentile;
-
-        public InMemoryPercentileWrapper(double percentile) {
-            this.percentile = percentile;
-        }
-
-        @Override public void addValue(double value) {
-            values.add(value);
-        }
-
-        @Override public double getResult() {
-            org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
-                    new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
-            double[] array = new double[values.size()];
-            for (int i = 0; i < array.length; ++i) {
-                array[i] = values.get(i++);
-            }
-            percentileCalculator.setData(array);
-
-            return percentileCalculator.getQuantile();
         }
     }
 }

@@ -62,6 +62,8 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
+import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -79,6 +81,7 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
@@ -109,6 +112,12 @@ public class MetricsServiceLifecycle {
     private Scheduler scheduler;
 
     private JobsServiceImpl jobsService;
+
+    private ConfigurationService configurationService;
+
+    private CacheServiceImpl cacheService;
+
+    private RollupServiceImpl rollupService;
 
     @Inject
     @Configurable
@@ -246,12 +255,20 @@ public class MetricsServiceLifecycle {
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
-            ConfigurationService configurationService = new ConfigurationService();
+            configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
+
+            rollupService = new RollupServiceImpl(new RxSessionImpl(session));
+            rollupService.init();
+
+            cacheService = new CacheServiceImpl();
+            cacheService.init();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setConfigurationService(configurationService);
+            metricsService.setRollupService(rollupService);
+            metricsService.setCacheService(cacheService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
@@ -345,10 +362,11 @@ public class MetricsServiceLifecycle {
         }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
-        );
+        ).withSocketOptions(new SocketOptions().setReadTimeoutMillis(20000));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
@@ -381,6 +399,9 @@ public class MetricsServiceLifecycle {
     private void initJobsService() {
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
+        jobsService.setCacheService(cacheService);
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setRollupService(rollupService);
         jobsService.setMetricsService(metricsService);
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
