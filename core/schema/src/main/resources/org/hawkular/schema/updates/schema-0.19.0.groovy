@@ -34,7 +34,7 @@ schemaChange {
 }
 
 schemaChange {
-  version '3.1'
+  version '3.2'
   author 'jsanda'
   tags '0.19.x'
   cql """
@@ -56,7 +56,7 @@ CREATE TABLE rollup60 (
 }
 
 schemaChange {
-  version '3.2'
+  version '3.3'
   author 'jsanda'
   tags '0.19.x'
   cql """
@@ -78,7 +78,7 @@ CREATE TABLE rollup300 (
 }
 
 schemaChange {
-  version '3.2'
+  version '3.4'
   author 'jsanda'
   tags '0.19.x'
   cql """
