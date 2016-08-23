@@ -185,15 +185,27 @@ public class MetricHandler {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Func1<Metric<T>, Boolean>[] metricFuncs = ObjectArrays.newArray(Func1.class, 0);
-        if(!Strings.isNullOrEmpty(id)) {
-            metricFuncs = ObjectArrays.concat(metricFuncs, metricsService.idFilter(id));
-        }
+        Observable<Metric<T>> metricObservable;
 
-        Observable<Metric<T>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), metricType)
-                : metricsService.findMetricsWithFilters(getTenant(), metricType, tags.getTags(), metricFuncs);
+        if(tags == null) {
+            if(!Strings.isNullOrEmpty(id)) {
+                // HWKMETRICS-461
+                String[] ids = id.split("|");
+                metricObservable = Observable.from(ids)
+                        .map(idPart -> new MetricId(getTenant(), metricType, idPart))
+                        .flatMap(mId -> (Observable<Metric<T>>) metricsService.findMetric(mId));
+            } else {
+                metricObservable = metricsService.findMetrics(getTenant(), metricType);
+            }
+        } else {
+            @SuppressWarnings("unchecked")
+            Func1<Metric<T>, Boolean>[] metricFuncs = ObjectArrays.newArray(Func1.class, 0);
+            if(!Strings.isNullOrEmpty(id)) {
+                metricFuncs = ObjectArrays.concat(metricFuncs, metricsService.idFilter(id));
+            }
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), metricType, tags.getTags(),
+                    metricFuncs);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))

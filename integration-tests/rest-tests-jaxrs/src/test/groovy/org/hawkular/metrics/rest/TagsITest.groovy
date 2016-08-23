@@ -378,4 +378,50 @@ class TagsITest extends RESTTest {
       assertEquals(expectedData, response.data)
     }
   }
+
+  @Test
+  void findDefinitionsWithIdFiltering() {
+    metricTypes.each {
+      def tenantId = nextTenantId()
+
+      // Create metric
+      def response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N1',
+          tags: ['a1': 'A', 'd1': 'B'],
+          dataRetention: 7
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N2',
+          tags: ['a1': 'A2'],
+          dataRetention: 7
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.get(path: it.path,
+          query: [id: 'N1|N2', type: it.type],
+          headers: [(tenantHeaderName): tenantId])
+
+      [response].each { lresponse ->
+        assertEquals(200, lresponse.status)
+        assertTrue(lresponse.data instanceof List)
+        assertEquals(2, lresponse.data.size())
+        assertTrue((lresponse.data ?: []).contains([
+            dataRetention: 7,
+            tenantId: tenantId,
+            id      : 'N1',
+            tags    : ['a1': 'A', 'd1': 'B'],
+            type: it.type
+        ]))
+        assertTrue((lresponse.data ?: []).contains([
+            dataRetention: 7,
+            tenantId: tenantId,
+            id      : 'N2',
+            tags    : ['a1': 'A2'],
+            type: it.type
+        ]))
+      }
+    }
+  }
 }
