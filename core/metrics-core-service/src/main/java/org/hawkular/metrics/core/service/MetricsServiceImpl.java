@@ -962,13 +962,6 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Boolean> idExists(final MetricId<?> metricId) {
-        return this.findMetric(metricId)
-                .map(m -> Boolean.TRUE)
-                .defaultIfEmpty(Boolean.FALSE);
-    }
-
-    @Override
     public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end,
             Buckets buckets, List<Percentile> percentiles) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
