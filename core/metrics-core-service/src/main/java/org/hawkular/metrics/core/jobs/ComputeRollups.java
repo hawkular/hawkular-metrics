@@ -27,6 +27,7 @@ import static org.joda.time.Duration.standardSeconds;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -45,6 +46,8 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
+
+import com.google.common.base.Stopwatch;
 
 import rx.Completable;
 import rx.functions.Func0;
@@ -73,6 +76,10 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails details) {
+//        if (true) return Completable.complete();
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         // TODO Handle scenario in which there is no raw data but rollups need to be updated
         // While this scenario may seem somewhat contrived, I ran across it while writing a test and it is more likely
         // to happen with less frequent sampling rates, e.g., every 2 or 3 minutes vs. every 20 or 30 seconds. When
@@ -119,8 +126,12 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
                 .map(entry -> updateRollup(entry.getKey(), entry.getValue(), end))
                 .collect(toList());
 
-        return Completable.merge(updates).andThen(Completable.fromAction(() ->
-                cache.removeGroup(Long.toString(start))));
+        return Completable.merge(updates)
+                .andThen(Completable.fromAction(() -> cache.removeGroup(Long.toString(start))))
+                .doOnCompleted(() -> {
+                    stopwatch.stop();
+                    logger.debug("Finished in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
+                });
     }
 
     private CompositeCollector getCollector(MetricId<Double> metricId, long start) {
@@ -160,11 +171,10 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
             return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), 60);
         }
 
-        logger.debug("update rollup " + key);
-        logger.debug("time slice = " + timeSlice);
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
             return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), key.getRollup())
                     .concatWith(cacheService.remove(key.getKey(), key.getRollup()));
+//            return cacheService.remove(key.getKey(), key.getRollup());
         }
         return cacheService.put(key.getKey(), collector, key.getRollup());
     }

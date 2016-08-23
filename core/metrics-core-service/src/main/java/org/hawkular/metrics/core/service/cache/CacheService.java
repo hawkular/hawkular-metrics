@@ -16,8 +16,11 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
+import java.util.List;
+
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.infinispan.Cache;
 
@@ -37,6 +40,10 @@ public interface CacheService {
     Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup);
 
     Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
+
+    <T> Completable putAll(List<Metric<T>> metrics);
+
+    <T> Completable putAllAsync(List<Metric<T>> metrics);
 
     Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup);
 
