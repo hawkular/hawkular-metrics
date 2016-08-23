@@ -472,10 +472,28 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
 
         MetricId<Double> metricId = new MetricId<>(getTenant(), GAUGE, id);
 
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
+        Observable<TimeRange> observableConfig;
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                asyncResponse.resume(badRequest(new ApiError("fromEarliest can only be used without start & end")));
+                return;
+            }
+
+            observableConfig = metricsService.findMetric(metricId).map((metric) -> {
+                long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
+                long now = System.currentTimeMillis();
+                long earliest = now - dataRetention;
+
+                return new TimeRange(earliest, now);
+            });
+        } else {
+            TimeRange timeRange = new TimeRange(start, end);
+            if (!timeRange.isValid()) {
+                asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+                return;
+            }
+
+            observableConfig = Observable.just(timeRange);
         }
 
         if (limit == null) {
@@ -485,7 +503,12 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             order = Order.defaultValue(limit, start, end);
         }
 
-        metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), limit, order)
+        Integer fLimit = new Integer(limit);
+        Order fOrder = order;
+
+        observableConfig
+                .flatMap(timeRange -> metricsService.findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(),
+                        fLimit, fOrder))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
