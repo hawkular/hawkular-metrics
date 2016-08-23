@@ -116,7 +116,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
 
         Set<DateTime> activeTimeSlices = getActiveTimeSlices();
-        assertFalse(activeTimeSlices.contains(timeSlice), "Did not expecte " + timeSlice + " to be in active " +
+        assertFalse(activeTimeSlices.contains(timeSlice), "Did not expect " + timeSlice + " to be in active " +
                 "time slices");
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
@@ -155,7 +155,9 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         assertEquals(executionCountRef.get(), 1, jobDetails + " should have been executed once");
 
-        assertEquals(getActiveTimeSlices(), emptySet());
+        Set<DateTime> activeTimeSlices = getActiveTimeSlices();
+        assertFalse(activeTimeSlices.contains(timeSlice), "Did not expect " + timeSlice + " to be in active time " +
+                "slices");
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
     }
