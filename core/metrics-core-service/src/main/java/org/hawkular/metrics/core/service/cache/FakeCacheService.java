@@ -16,8 +16,11 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
+import java.util.List;
+
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.infinispan.Cache;
 
@@ -48,6 +51,16 @@ public class FakeCacheService implements CacheService {
     @Override
     public Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup) {
         return Completable.complete();
+    }
+
+    @Override
+    public <T> Completable putAll(List<Metric<T>> metrics) {
+        return null;
+    }
+
+    @Override
+    public <T> Completable putAllAsync(List<Metric<T>> metrics) {
+        return null;
     }
 
     @Override

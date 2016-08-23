@@ -35,7 +35,6 @@ import org.hawkular.metrics.core.service.DataRetentionsMapper;
 import org.hawkular.metrics.core.service.DelegatingDataAccess;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.PercentileWrapper;
-import org.hawkular.metrics.core.service.cache.FakeCacheService;
 import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -88,7 +87,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
-        metricsService.setCacheService(new FakeCacheService());
+        metricsService.setCacheService(cacheService);
         metricsService.setRollupService(rollupService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());

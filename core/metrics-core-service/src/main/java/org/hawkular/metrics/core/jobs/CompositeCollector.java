@@ -37,7 +37,6 @@ public class CompositeCollector {
     }
 
     public void increment(DataPoint<? extends Number> dataPoint) {
-        logger.debug("DATA POINT = " + dataPoint);
         collectors.values().forEach(collector -> collector.increment(dataPoint));
     }
 

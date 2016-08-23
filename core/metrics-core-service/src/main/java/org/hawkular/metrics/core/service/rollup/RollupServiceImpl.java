@@ -34,6 +34,7 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 
 import rx.Completable;
 import rx.Observable;
@@ -49,6 +50,8 @@ public class RollupServiceImpl implements RollupService {
 
     private Map<Integer, PreparedStatement> finders;
 
+    private RateLimiter writePermits;
+
     public RollupServiceImpl(RxSession session) {
         this.session = session;
     }
@@ -62,6 +65,7 @@ public class RollupServiceImpl implements RollupService {
                 60, session.getSession().prepare(getFinderCQL(60)),
                 300, session.getSession().prepare(getFinderCQL(300)),
                 3600, session.getSession().prepare(getFinderCQL(3600)));
+        writePermits = RateLimiter.create(200.0);
     }
 
     private String getInsertCQL(int rollup) {
@@ -78,9 +82,18 @@ public class RollupServiceImpl implements RollupService {
     public Completable insert(MetricId<Double> id, NumericBucketPoint dataPoint, int rollup) {
         PreparedStatement insert = inserts.get(rollup);
         checkNotNull(insert, "There is no " + rollup + " rollup");
+        // TODO implement some form of back pressure
+        // Computing rollups introduces substantial overhead in terms of Cassandra requests. Suppose with each request
+        // to insert data points we have 1 data per per metric and that we have N metrics. By default as of right now
+        // we compute 1 minute, 5 minute, and 1 hour rollups. This can result in doing 2N writes each minute, 3N writes
+        // every 5 minutes, and 4N writes every hour. In performance/stress testing I have done this far, this spike
+        // in requests can easily result in NoHostAvailableExceptions from the driver. We want ingestion of data to
+        // be as fast as it can, but writing rollups which happen in background job do not have to be as fast.
+        writePermits.acquire();
         return session.execute(insert.bind(id.getTenantId(), id.getName(), 0L, new Date(dataPoint.getStart()),
-                dataPoint.getMin(), dataPoint.getMax(), dataPoint.getAvg(), dataPoint.getMedian(), dataPoint.getSum(),
-                dataPoint.getSamples(), toMap(dataPoint.getPercentiles()))).toCompletable();
+                dataPoint.getMin(), dataPoint.getMax(), dataPoint.getAvg(), dataPoint.getMedian(),
+                dataPoint.getSum(), dataPoint.getSamples(), toMap(dataPoint.getPercentiles()))).toCompletable();
+
     }
 
     @Override

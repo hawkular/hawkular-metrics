@@ -81,6 +81,7 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
@@ -361,10 +362,11 @@ public class MetricsServiceLifecycle {
         }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
-        );
+        ).withSocketOptions(new SocketOptions().setReadTimeoutMillis(20000));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
