@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.service.cache;
 
 import static org.joda.time.Duration.standardMinutes;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,6 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.commons.util.concurrent.NotifyingFuture;
 import org.infinispan.context.Flag;
-import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 
 import rx.Completable;
@@ -49,16 +47,16 @@ public class CacheServiceImpl implements CacheService {
     AdvancedCache<DataPointKey, DataPoint<? extends Number>> rawDataCache;
 
     public void init(){
-        try {
-            cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
-                    "/metrics-infinispan.xml"));
-            cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
-            Cache<DataPointKey, DataPoint<? extends Number>> cache = cacheManager.getCache("rawData");
-//            rawDataCache = cache.getAdvancedCache();
-            rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
+//                    "/metrics-infinispan.xml"));
+//            cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
+//            Cache<DataPointKey, DataPoint<? extends Number>> cache = cacheManager.getCache("rawData");
+////            rawDataCache = cache.getAdvancedCache();
+//            rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public void shutdown() {
