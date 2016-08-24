@@ -84,6 +84,7 @@ public class JobsServiceImpl implements JobsService {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
+        scheduler.register("NoOp", new NoOp());
         JobDetails details = scheduler.scheduleJob("NoOp", "NoOp", emptyMap(), new RepeatingTrigger.Builder()
                 .withInterval(1, TimeUnit.MINUTES)
                 .withDelay(1, TimeUnit.MINUTES)
