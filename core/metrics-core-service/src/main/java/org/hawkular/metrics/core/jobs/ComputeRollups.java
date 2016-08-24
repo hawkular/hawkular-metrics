@@ -172,9 +172,9 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
         }
 
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
-            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), key.getRollup())
-                    .concatWith(cacheService.remove(key.getKey(), key.getRollup()));
-//            return cacheService.remove(key.getKey(), key.getRollup());
+//            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), key.getRollup())
+//                    .concatWith(cacheService.remove(key.getKey(), key.getRollup()));
+            return cacheService.remove(key.getKey(), key.getRollup());
         }
         return cacheService.put(key.getKey(), collector, key.getRollup());
     }
