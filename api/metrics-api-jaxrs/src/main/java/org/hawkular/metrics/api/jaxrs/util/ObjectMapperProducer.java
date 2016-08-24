@@ -23,6 +23,7 @@ import javax.enterprise.inject.Produces;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeDeserializer;
+import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeKeySerializer;
 import org.hawkular.metrics.model.fasterxml.jackson.AvailabilityTypeSerializer;
 import org.hawkular.metrics.model.fasterxml.jackson.MetricTypeDeserializer;
 
@@ -55,6 +56,7 @@ public class ObjectMapperProducer {
         module.addDeserializer(AvailabilityType.class, new AvailabilityTypeDeserializer());
         module.addDeserializer(MetricType.class, new MetricTypeDeserializer());
         module.addSerializer(AvailabilityType.class, new AvailabilityTypeSerializer());
+        module.addKeySerializer(AvailabilityType.class, new AvailabilityTypeKeySerializer());
         mapper.registerModule(module);
     }
 

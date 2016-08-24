@@ -221,6 +221,7 @@ Actual: ${actual}
       assertEquals(msg, expected.unknownDuration, actual.unknownDuration)
       assertEquals(msg, expected.upDuration, actual.upDuration)
       assertEquals(msg, expected.notUpDuration, actual.notUpDuration)
+      assertEquals(msg, expected.durationMap, actual.durationMap)
     }
   }
 
