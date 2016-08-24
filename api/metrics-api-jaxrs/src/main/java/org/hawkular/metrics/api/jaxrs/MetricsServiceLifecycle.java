@@ -32,6 +32,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import java.io.File;
+import java.io.PrintStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Locale;
@@ -70,8 +72,10 @@ import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.ScheduledReporter;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
@@ -178,6 +182,7 @@ public class MetricsServiceLifecycle {
     private int connectionAttempts;
     private Session session;
     private JmxReporter jmxReporter;
+    private ScheduledReporter reporter;
 
     private DataAccess dataAcces;
 
@@ -278,6 +283,25 @@ public class MetricsServiceLifecycle {
                 jmxReporter.start();
             }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
+
+            try {
+                MetricRegistry driverMetrics = session.getCluster().getMetrics().getRegistry();
+                metricRegistry.registerAll(driverMetrics);
+//            reporter = Slf4jReporter.forRegistry(metricRegistry)
+//                    .convertRatesTo(SECONDS)
+//                    .convertDurationsTo(MILLISECONDS)
+//                    .withLoggingLevel(Slf4jReporter.LoggingLevel.INFO)
+//                    .build();
+
+                File metrics = new File(System.getProperty("java.io.tmpdir"), "metrics.txt");
+                reporter = ConsoleReporter.forRegistry(metricRegistry)
+                        .convertRatesTo(TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS)
+                        .outputTo(new PrintStream(metrics)).build();
+
+                reporter.start(5, SECONDS);
+            }  catch (Exception e) {
+                log.warn("Failed to start metrics reporter", e);
+            }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
@@ -434,6 +458,8 @@ public class MetricsServiceLifecycle {
     private void stopServices() {
         state = State.STOPPING;
         try {
+            reporter.stop();
+
             // The order here is important. We need to shutdown jobsService first so that any running jobs can finish
             // gracefully.
             if (jobsService != null) {
