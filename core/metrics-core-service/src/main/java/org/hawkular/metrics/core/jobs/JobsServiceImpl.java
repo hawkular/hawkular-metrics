@@ -16,12 +16,15 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
@@ -80,6 +83,13 @@ public class JobsServiceImpl implements JobsService {
                     return Minutes.minutes(5).toStandardDuration().getMillis();
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
+
+        JobDetails details = scheduler.scheduleJob("NoOp", "NoOp", emptyMap(), new RepeatingTrigger.Builder()
+                .withInterval(1, TimeUnit.MINUTES)
+                .withDelay(1, TimeUnit.MINUTES)
+                .build())
+                .toBlocking().value();
+        logger.info("Scheduled " + details);
     }
 
     @Override
