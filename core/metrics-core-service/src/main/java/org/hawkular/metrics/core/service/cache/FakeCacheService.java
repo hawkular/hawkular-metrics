@@ -55,12 +55,12 @@ public class FakeCacheService implements CacheService {
 
     @Override
     public <T> Completable putAll(List<Metric<T>> metrics) {
-        return null;
+        return Completable.complete();
     }
 
     @Override
     public <T> Completable putAllAsync(List<Metric<T>> metrics) {
-        return null;
+        return Completable.complete();
     }
 
     @Override
