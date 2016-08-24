@@ -65,7 +65,7 @@ public class RollupServiceImpl implements RollupService {
                 60, session.getSession().prepare(getFinderCQL(60)),
                 300, session.getSession().prepare(getFinderCQL(300)),
                 3600, session.getSession().prepare(getFinderCQL(3600)));
-        writePermits = RateLimiter.create(50.0);
+        writePermits = RateLimiter.create(50D);
     }
 
     private String getInsertCQL(int rollup) {
