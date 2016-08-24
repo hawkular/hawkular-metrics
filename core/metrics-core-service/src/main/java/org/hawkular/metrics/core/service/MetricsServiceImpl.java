@@ -692,12 +692,12 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Completable cacheUpdates;
-        if (metricType == GAUGE) {
-            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
-        } else {
-            cacheUpdates = Completable.complete();
-        }
+        Completable cacheUpdates = Completable.complete();
+//        if (metricType == GAUGE) {
+//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+//        } else {
+//            cacheUpdates = Completable.complete();
+//        }
 
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
