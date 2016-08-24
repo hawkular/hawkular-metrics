@@ -434,6 +434,62 @@ class CountersITest extends RESTTest {
   }
 
   @Test
+  void fromEarliestQueryGaugeData() {
+    String tenantId = nextTenantId()
+    String counter = "c1001"
+    DateTime start = now().minusHours(10).plusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "counters/$counter/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100],
+            [timestamp: start.plusHours(1).millis, value: 202],
+            [timestamp: start.plusHours(2).millis, value: 303],
+            [timestamp: start.plusHours(3).millis, value: 404],
+            [timestamp: start.plusHours(4).millis, value: 505],
+            [timestamp: start.plusHours(5).millis, value: 606],
+            [timestamp: now().plusHours(6).millis, value: 757]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/raw",
+        headers: [(tenantHeaderName): tenantId],
+        query: [order: 'asc']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusHours(2).millis, value: 303],
+        [timestamp: start.plusHours(3).millis, value: 404],
+        [timestamp: start.plusHours(4).millis, value: 505],
+        [timestamp: start.plusHours(5).millis, value: 606],
+    ]
+
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "counters/$counter/raw",
+        headers: [(tenantHeaderName): tenantId],
+        query: [fromEarliest: true, order: 'asc']
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100],
+        [timestamp: start.plusHours(1).millis, value: 202],
+        [timestamp: start.plusHours(2).millis, value: 303],
+        [timestamp: start.plusHours(3).millis, value: 404],
+        [timestamp: start.plusHours(4).millis, value: 505],
+        [timestamp: start.plusHours(5).millis, value: 606],
+    ]
+
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
   void findWhenThereIsNoData() {
     String counter1 = "C1"
     String counter2 = "C2"

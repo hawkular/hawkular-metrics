@@ -116,6 +116,62 @@ class GaugesITest extends RESTTest {
   }
 
   @Test
+  void fromEarliestQueryGaugeData() {
+    String tenantId = nextTenantId()
+    String gauge = "G1000"
+    DateTime start = now().minusHours(10).plusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start.millis, value: 100.1],
+            [timestamp: start.plusHours(1).millis, value: 200.2],
+            [timestamp: start.plusHours(2).millis, value: 300.3],
+            [timestamp: start.plusHours(3).millis, value: 400.4],
+            [timestamp: start.plusHours(4).millis, value: 500.5],
+            [timestamp: start.plusHours(5).millis, value: 600.6],
+            [timestamp: now().plusHours(6).millis, value: 750.7]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        query: [order: 'asc']
+    )
+    assertEquals(200, response.status)
+
+    def expectedData = [
+        [timestamp: start.plusHours(2).millis, value: 300.3],
+        [timestamp: start.plusHours(3).millis, value: 400.4],
+        [timestamp: start.plusHours(4).millis, value: 500.5],
+        [timestamp: start.plusHours(5).millis, value: 600.6],
+    ]
+
+    assertEquals(expectedData, response.data)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        query: [fromEarliest: true, order: 'asc']
+    )
+    assertEquals(200, response.status)
+
+    expectedData = [
+        [timestamp: start.millis, value: 100.1],
+        [timestamp: start.plusHours(1).millis, value: 200.2],
+        [timestamp: start.plusHours(2).millis, value: 300.3],
+        [timestamp: start.plusHours(3).millis, value: 400.4],
+        [timestamp: start.plusHours(4).millis, value: 500.5],
+        [timestamp: start.plusHours(5).millis, value: 600.6],
+    ]
+
+    assertEquals(expectedData, response.data)
+  }
+
+  @Test
   void addDataForSingleGaugeAndFindWithLimitAndSort() {
     String gauge = "G1"
     DateTime start = now().minusHours(1)
