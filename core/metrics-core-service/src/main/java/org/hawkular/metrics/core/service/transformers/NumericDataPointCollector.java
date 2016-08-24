@@ -41,10 +41,8 @@ import org.hawkular.metrics.model.Percentile;
 public final class NumericDataPointCollector implements Serializable {
 
     private static final long serialVersionUID = 4829876933875549606L;
-    /**
-     * This is a test hook. See {@link Percentile} for details.
-     */
-    public static Function<Double, PercentileWrapper> createPercentile = p -> new PercentileWrapper() {
+
+    public static Function<Double, PercentileWrapper> defaultCreatePercentile = p -> new PercentileWrapper() {
 
         PSquarePercentile percentile = new PSquarePercentile(p);
 
@@ -61,6 +59,11 @@ public final class NumericDataPointCollector implements Serializable {
             return percentile.getResult();
         }
     };
+
+    /**
+     * This is a test hook. See {@link PercentileWrapper} for details.
+     */
+    public static Function<Double, PercentileWrapper> createPercentile = defaultCreatePercentile;
 
     private Buckets buckets;
     private int bucketIndex;
