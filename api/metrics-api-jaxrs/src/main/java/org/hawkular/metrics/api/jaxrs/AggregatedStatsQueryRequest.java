@@ -16,20 +16,18 @@
  */
 package org.hawkular.metrics.api.jaxrs;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.base.MoreObjects;
 
 /**
- * @author jsanda
+ * Request object used to provide stats on multiple metrics that are aggregated
+ * @author Joel Takvorian
  */
-public class StatsQueryRequest {
+public class AggregatedStatsQueryRequest {
 
-    private Map<String, List<String>> metrics = new HashMap<>();
+    private List<String> metrics;
 
     private String start;
 
@@ -43,13 +41,13 @@ public class StatsQueryRequest {
 
     private String tags;
 
-    private List<String> types = new ArrayList<>();
+    private boolean stacked;
 
-    public Map<String, List<String>> getMetrics() {
+    public List<String> getMetrics() {
         return metrics;
     }
 
-    public void setMetrics(Map<String, List<String>> metrics) {
+    public void setMetrics(List<String> metrics) {
         this.metrics = metrics;
     }
 
@@ -101,19 +99,19 @@ public class StatsQueryRequest {
         this.tags = tags;
     }
 
-    public List<String> getTypes() {
-        return types;
+    public boolean isStacked() {
+        return stacked;
     }
 
-    public void setTypes(List<String> types) {
-        this.types = types;
+    public void setStacked(boolean stacked) {
+        this.stacked = stacked;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        StatsQueryRequest that = (StatsQueryRequest) o;
+        AggregatedStatsQueryRequest that = (AggregatedStatsQueryRequest) o;
         return Objects.equals(metrics, that.metrics) &&
                 Objects.equals(tags, that.tags) &&
                 Objects.equals(start, that.start) &&
@@ -121,12 +119,12 @@ public class StatsQueryRequest {
                 Objects.equals(buckets, that.buckets) &&
                 Objects.equals(bucketDuration, that.bucketDuration) &&
                 Objects.equals(percentiles, that.percentiles) &&
-                Objects.equals(types, that.types);
+                Objects.equals(stacked, that.stacked);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metrics, tags, start, end, buckets, bucketDuration, percentiles, types);
+        return Objects.hash(metrics, tags, start, end, buckets, bucketDuration, percentiles, stacked);
     }
 
     @Override public String toString() {
@@ -138,7 +136,7 @@ public class StatsQueryRequest {
                 .add("buckets", buckets)
                 .add("bucketDuration", bucketDuration)
                 .add("percentiles", percentiles)
-                .add("types", types)
+                .add("stacked", stacked)
                 .toString();
     }
 }
