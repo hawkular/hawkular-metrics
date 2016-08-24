@@ -76,7 +76,7 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails details) {
-//        if (true) return Completable.complete();
+        if (true) return Completable.complete();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
