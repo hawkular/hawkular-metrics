@@ -46,7 +46,6 @@ public enum AvailabilityType {
         return code;
     }
 
-//    @JsonValue
     public String getText() {
         return text;
     }

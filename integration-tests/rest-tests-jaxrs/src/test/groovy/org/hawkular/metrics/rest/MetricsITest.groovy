@@ -674,8 +674,8 @@ class MetricsITest extends RESTTest {
                       start: 200,
                       end: 350,
                       durationMap: [
-                          "AvailabilityType{code=1, text=down}": 50,
-                          "AvailabilityType{code=0, text=up}": 100
+                          "down": 50,
+                          "up": 100
                       ],
                       lastNotUptime: 350,
                       uptimeRatio: 100 / 150,
@@ -692,7 +692,7 @@ class MetricsITest extends RESTTest {
                       start: 350,
                       end: 500,
                       durationMap: [
-                          "AvailabilityType{code=0, text=up}": 150
+                          "up": 150
                       ],
                       lastNotUptime: 0,
                       uptimeRatio: 1.0,
@@ -711,7 +711,7 @@ class MetricsITest extends RESTTest {
                       start: 200,
                       end: 350,
                       durationMap: [
-                          "AvailabilityType{code=1, text=down}": 150
+                          "down": 150
                       ],
                       lastNotUptime: 350,
                       uptimeRatio: 0.0,
@@ -728,7 +728,7 @@ class MetricsITest extends RESTTest {
                       start: 350,
                       end: 500,
                       durationMap: [
-                          "AvailabilityType{code=0, text=up}": 150
+                          "up": 150
                       ],
                       lastNotUptime: 0,
                       uptimeRatio: 1.0,
@@ -1684,8 +1684,8 @@ class MetricsITest extends RESTTest {
                       start: 200,
                       end: 350,
                       durationMap: [
-                          "AvailabilityType{code=1, text=down}": 50,
-                          "AvailabilityType{code=0, text=up}": 100
+                          "down": 50,
+                          "up": 100
                       ],
                       lastNotUptime: 350,
                       uptimeRatio: 100 / 150,
@@ -1702,7 +1702,7 @@ class MetricsITest extends RESTTest {
                       start: 350,
                       end: 500,
                       durationMap: [
-                          "AvailabilityType{code=0, text=up}": 150
+                          "up": 150
                       ],
                       lastNotUptime: 0,
                       uptimeRatio: 1.0,
@@ -1721,7 +1721,7 @@ class MetricsITest extends RESTTest {
                       start: 200,
                       end: 350,
                       durationMap: [
-                          "AvailabilityType{code=1, text=down}": 150
+                          "down": 150
                       ],
                       lastNotUptime: 350,
                       uptimeRatio: 0.0,
@@ -1738,7 +1738,7 @@ class MetricsITest extends RESTTest {
                       start: 350,
                       end: 500,
                       durationMap: [
-                          "AvailabilityType{code=0, text=up}": 150
+                          "up": 150
                       ],
                       lastNotUptime: 0,
                       uptimeRatio: 1.0,
