@@ -97,7 +97,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -692,7 +691,7 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Completable cacheUpdates = Completable.complete();
+//        Completable cacheUpdates = Completable.complete();
 //        if (metricType == GAUGE) {
 //            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
 //        } else {
@@ -702,7 +701,7 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        return Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
+        return Observable.merge(updates, indexUpdates).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
