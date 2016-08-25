@@ -170,7 +170,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
 
     @GET
     @Path("/tags/{tags}")
-    @ApiOperation(value = "Retrieve gauge type's tag values", response = Map.class)
+    @ApiOperation(value = "Retrieve availability type's tag values", response = Map.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Tags successfully retrieved."),
             @ApiResponse(code = 204, message = "No matching tags were found"),
