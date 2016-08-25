@@ -113,7 +113,7 @@ public class JobsServiceImpl implements JobsService {
 
         computeRollups = new ComputeRollups(session, rollupService, cacheService);
         scheduler.register(ComputeRollups.JOB_NAME, computeRollups);
-        maybeScheduleComputeRollups();
+//        maybeScheduleComputeRollups();
 
         scheduler.start();
     }
