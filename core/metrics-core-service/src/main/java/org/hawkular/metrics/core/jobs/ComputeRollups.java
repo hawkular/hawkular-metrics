@@ -168,7 +168,8 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
     private Completable updateRollup(RollupKey key, NumericDataPointCollector collector, long timeSlice) {
         if (key.getRollup() == 60) {
-            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), 60);
+//            return rollupService.insert(getGaugeId(key.getKey()), collector.toBucketPoint(), 60);
+            return Completable.complete();
         }
 
         if (new DateTime(key.getKey().getTimestamp()).plusSeconds(key.getRollup()).getMillis() == timeSlice) {
