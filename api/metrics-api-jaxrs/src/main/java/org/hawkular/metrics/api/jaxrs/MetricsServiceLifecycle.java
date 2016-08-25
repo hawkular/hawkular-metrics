@@ -61,6 +61,7 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -106,6 +107,8 @@ public class MetricsServiceLifecycle {
     private Scheduler scheduler;
 
     private JobsServiceImpl jobsService;
+
+    private CacheServiceImpl cacheService;
 
     @Inject
     @Configurable
@@ -248,6 +251,9 @@ public class MetricsServiceLifecycle {
 
             ConfigurationService configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
+
+            cacheService = new CacheServiceImpl();
+            cacheService.init();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
