@@ -16,17 +16,6 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
-import java.util.List;
-
-import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
-import org.hawkular.metrics.model.DataPoint;
-import org.hawkular.metrics.model.Metric;
-import org.hawkular.metrics.model.MetricId;
-import org.infinispan.Cache;
-
-import rx.Completable;
-import rx.Single;
-
 /**
  * @author jsanda
  */
@@ -35,17 +24,17 @@ import rx.Single;
 // it might be more clear for now to make this API part of RollupService.
 public interface CacheService {
 
-    Cache<DataPointKey, DataPoint<? extends Number>> getRawDataCache();
-
-    Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup);
-
-    Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
-
-    <T> Completable putAll(List<Metric<T>> metrics);
-
-    <T> Completable putAllAsync(List<Metric<T>> metrics);
-
-    Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup);
-
-    Completable remove(DataPointKey key, int rollup);
+//    Cache<DataPointKey, DataPoint<? extends Number>> getRawDataCache();
+//
+//    Cache<DataPointKey, NumericDataPointCollector> getRollupCache(int rollup);
+//
+//    Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
+//
+//    <T> Completable putAll(List<Metric<T>> metrics);
+//
+//    <T> Completable putAllAsync(List<Metric<T>> metrics);
+//
+//    Completable put(DataPointKey key, NumericDataPointCollector collector, int rollup);
+//
+//    Completable remove(DataPointKey key, int rollup);
 }

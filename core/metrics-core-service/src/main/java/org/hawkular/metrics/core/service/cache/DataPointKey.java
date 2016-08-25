@@ -19,8 +19,6 @@ package org.hawkular.metrics.core.service.cache;
 import java.io.Serializable;
 import java.util.Objects;
 
-import org.infinispan.distribution.group.Group;
-
 import com.google.common.base.MoreObjects;
 
 /**
@@ -60,7 +58,7 @@ public class DataPointKey implements Serializable {
         return timestamp;
     }
 
-    @Group
+//    @Group
     public String getTimeSlice() {
         return timeSlice;
     }

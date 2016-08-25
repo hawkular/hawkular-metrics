@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.service;
 
 import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
-import org.infinispan.Cache;
 
 /**
  * @author jsanda
@@ -25,7 +24,7 @@ import org.infinispan.Cache;
 public class TestCacheService extends CacheServiceImpl {
 
     public void resetCaches() {
-        cacheManager.getCacheNames().stream().map(cacheManager::getCache).forEach(Cache::clear);
+//        cacheManager.getCacheNames().stream().map(cacheManager::getCache).forEach(Cache::clear);
     }
 
 }

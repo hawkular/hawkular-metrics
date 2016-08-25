@@ -106,12 +106,12 @@
       <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.infinispan</groupId>
-      <artifactId>infinispan-core</artifactId>
-      <version>${version.org.infinispan.wildfly}</version>
-      <scope>provided</scope>
-    </dependency>
+    <!--<dependency>-->
+      <!--<groupId>org.infinispan</groupId>-->
+      <!--<artifactId>infinispan-core</artifactId>-->
+      <!--<version>${version.org.infinispan.wildfly}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
   </dependencies>
 
   <build>
