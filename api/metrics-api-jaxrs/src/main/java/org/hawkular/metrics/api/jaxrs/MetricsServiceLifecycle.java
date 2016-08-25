@@ -32,6 +32,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import java.io.File;
+import java.io.PrintStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Locale;
@@ -39,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -61,6 +64,8 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
+import org.hawkular.metrics.core.service.rollup.RollupServiceImpl;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -68,8 +73,10 @@ import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.ScheduledReporter;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
@@ -77,6 +84,7 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -106,6 +114,12 @@ public class MetricsServiceLifecycle {
     private Scheduler scheduler;
 
     private JobsServiceImpl jobsService;
+
+    private ConfigurationService configurationService;
+
+    private CacheServiceImpl cacheService;
+
+    private RollupServiceImpl rollupService;
 
     @Inject
     @Configurable
@@ -168,6 +182,7 @@ public class MetricsServiceLifecycle {
     private int connectionAttempts;
     private Session session;
     private JmxReporter jmxReporter;
+    private ScheduledReporter reporter;
 
     private DataAccess dataAcces;
 
@@ -246,12 +261,20 @@ public class MetricsServiceLifecycle {
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
-            ConfigurationService configurationService = new ConfigurationService();
+            configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
+
+            rollupService = new RollupServiceImpl(new RxSessionImpl(session));
+            rollupService.init();
+
+            cacheService = new CacheServiceImpl();
+            cacheService.init();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setConfigurationService(configurationService);
+            metricsService.setRollupService(rollupService);
+            metricsService.setCacheService(cacheService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
@@ -260,6 +283,25 @@ public class MetricsServiceLifecycle {
                 jmxReporter.start();
             }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
+
+            try {
+                MetricRegistry driverMetrics = session.getCluster().getMetrics().getRegistry();
+                metricRegistry.registerAll(driverMetrics);
+//            reporter = Slf4jReporter.forRegistry(metricRegistry)
+//                    .convertRatesTo(SECONDS)
+//                    .convertDurationsTo(MILLISECONDS)
+//                    .withLoggingLevel(Slf4jReporter.LoggingLevel.INFO)
+//                    .build();
+
+                File metrics = new File(System.getProperty("java.io.tmpdir"), "metrics.txt");
+                reporter = ConsoleReporter.forRegistry(metricRegistry)
+                        .convertRatesTo(TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS)
+                        .outputTo(new PrintStream(metrics)).build();
+
+                reporter.start(5, SECONDS);
+            }  catch (Exception e) {
+                log.warn("Failed to start metrics reporter", e);
+            }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
@@ -331,10 +373,11 @@ public class MetricsServiceLifecycle {
         }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
-        );
+        ).withSocketOptions(new SocketOptions().setReadTimeoutMillis(20000));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
@@ -367,6 +410,9 @@ public class MetricsServiceLifecycle {
     private void initJobsService() {
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
+        jobsService.setCacheService(cacheService);
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setRollupService(rollupService);
         jobsService.setMetricsService(metricsService);
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
@@ -412,6 +458,8 @@ public class MetricsServiceLifecycle {
     private void stopServices() {
         state = State.STOPPING;
         try {
+            reporter.stop();
+
             // The order here is important. We need to shutdown jobsService first so that any running jobs can finish
             // gracefully.
             if (jobsService != null) {

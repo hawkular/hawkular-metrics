@@ -27,6 +27,7 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
+import static org.joda.time.Duration.standardSeconds;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -43,14 +44,19 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.rollup.Rollup;
+import org.hawkular.metrics.core.service.rollup.RollupService;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;
@@ -71,6 +77,8 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeComparator;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -146,6 +154,10 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private RollupService rollupService;
+
+    private CacheService cacheService;
 
     private MetricRegistry metricRegistry;
 
@@ -381,6 +393,14 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
+    }
+
+    public void setRollupService(RollupService rollupService) {
+        this.rollupService = rollupService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
@@ -671,11 +691,17 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
+//        Completable cacheUpdates = Completable.complete();
+//        if (metricType == GAUGE) {
+//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+//        } else {
+//            cacheUpdates = Completable.complete();
+//        }
+
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        return updates.mergeWith(indexUpdates)
-                .map(i -> null);
+        return Observable.merge(updates, indexUpdates).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
@@ -800,8 +826,42 @@ public class MetricsServiceImpl implements MetricsService {
                 List<Percentile> percentiles) {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
-        return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
-                .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
+
+        if (bucketConfig.getBuckets() != null) {
+            return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
+                    .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
+        } else if (bucketConfig.getResolution() != null) {
+            return rollupService.find(metricId, timeRange.getStart(), timeRange.getEnd(), bucketConfig.getResolution())
+                    .toList();
+        } else {
+            DateTimeComparator comparator = DateTimeComparator.getInstance();
+            Duration rawTTL = standardSeconds(getTTL(metricId));
+            List<Rollup> rollups = rollupService.getRollups(metricId, (int) rawTTL.getStandardSeconds())
+                    .toBlocking().firstOrDefault(null);
+
+            if (isWithinRetentionPeriod((int) rawTTL.getStandardSeconds(), timeRange.getStart())) {
+                Buckets buckets = Buckets.fromCount(timeRange.getStart(), timeRange.getEnd(), 60);
+                return findDataPoints(metricId, timeRange.getStart(), timeRange.getEnd(), 0, Order.DESC)
+                        .compose(new NumericBucketPointTransformer(buckets, percentiles));
+            }
+            for (Rollup rollup : rollups) {
+                if (isWithinRetentionPeriod(rollup.getDefaultTTL(), timeRange.getStart())) {
+                    return rollupService.find(metricId, timeRange.getStart(), timeRange.getEnd(),
+                            rollup.getResolution()).toList();
+                }
+            }
+            return Observable.empty();
+        }
+    }
+
+    private boolean isWithinRetentionPeriod(int ttl, long startTime) {
+        DateTimeComparator comparator = DateTimeComparator.getInstance();
+        return comparator.compare(DateTimeService.now.get().minusSeconds(ttl), new DateTime(startTime)) <= 0;
+    }
+
+    private List<Percentile> getPercentiles(Map<Float, Double> map) {
+        return map.entrySet().stream().map(entry -> new Percentile(entry.getKey().toString(), entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     @Override

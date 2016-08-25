@@ -39,9 +39,9 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -190,16 +190,19 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void testBucketPercentiles() {
+        NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
+
         String tenantId = "counter-stats-test";
 
         int testSize = 100;
         List<DataPoint<Long>> counterList = new ArrayList<>(testSize);
 
-        PSquarePercentile top = new PSquarePercentile(99.9);
+//        PSquarePercentile top = new PSquarePercentile(99.9);
+        PercentileWrapper top = NumericDataPointCollector.createPercentile.apply(99.9);
 
         for (long i = 0; i < testSize; i++) {
-            counterList.add(new DataPoint<Long>((long) 60000 + i, i));
-            top.increment(i);
+            counterList.add(new DataPoint<>((long) 60000 + i, i));
+            top.addValue(i);
         }
 
         List<Percentile> percentiles = asList(new Percentile("50.0"), new Percentile("90.0"), new Percentile("99.0"),

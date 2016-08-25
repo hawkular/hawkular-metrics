@@ -424,6 +424,8 @@ public class TagsITest extends BaseMetricsITest {
 
     @Test
     public void findCounterStats() {
+        NumericDataPointCollector.createPercentile = NumericDataPointCollector.defaultCreatePercentile;
+
         String tenantId = "counter-stats-test";
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(

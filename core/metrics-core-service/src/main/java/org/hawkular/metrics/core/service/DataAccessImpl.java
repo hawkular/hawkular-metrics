@@ -170,6 +170,10 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
+    private PreparedStatement find5MinStats;
+
+    private PreparedStatement find5MinStatsDesc;
+
     public DataAccessImpl(Session session) {
         this.session = session;
         rxSession = new RxSessionImpl(session);
@@ -439,6 +443,17 @@ public class DataAccessImpl implements DataAccess {
                 "SELECT tenant_id, type, metric " +
                 "FROM metrics_tags_idx " +
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
+
+        find5MinStats = session.prepare(
+                "SELECT time, max, min, avg, median, samples, sum, percentiles " +
+                "FROM rollup300 " +
+                "WHERE tenant_id = ? AND metric = ? AND shard = 0");
+
+        find5MinStatsDesc = session.prepare(
+                "SELECT time, max, min, avg, median, samples, sum, percentiles " +
+                "FROM rollup300 " +
+                "WHERE tenant_id = ? AND metric = ? AND shard = 0 " +
+                "ORDER BY time DESC");
     }
 
     @Override
@@ -701,6 +716,16 @@ public class DataAccessImpl implements DataAccess {
                         GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
                         limit));
             }
+        }
+    }
+
+    @Override
+    public Observable<Row> find5MinuteNumericStats(MetricId<? extends Number> id, long startTime, long endTime,
+            int limit, Order order) {
+        if (order == Order.ASC) {
+            return rxSession.executeAndFetch(find5MinStats.bind(id.getTenantId(), id.getName()));
+        } else {
+            return rxSession.executeAndFetch(find5MinStatsDesc.bind(id.getTenantId(), id.getName()));
         }
     }
 
