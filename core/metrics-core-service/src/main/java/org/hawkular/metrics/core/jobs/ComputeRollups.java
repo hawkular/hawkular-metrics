@@ -16,14 +16,10 @@
  */
 package org.hawkular.metrics.core.jobs;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.cache.CacheService;
-import org.hawkular.metrics.core.service.cache.DataPointKey;
-import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.scheduler.api.JobDetails;
-import org.infinispan.AdvancedCache;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 
@@ -56,12 +52,7 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
 
         logger.debug("Preparing to compute roll ups for time range {start=" + start + ", end=" + end + "}");
 
-        return Completable.fromAction(() -> {
-            AdvancedCache<DataPointKey, DataPoint<? extends Number>> cache = cacheService.getRawDataCache()
-                    .getAdvancedCache();
-            Map<DataPointKey, DataPoint<? extends Number>> group = cache.getGroup(Long.toString(start));
-            cache.removeGroup(Long.toString(start));
-        }).doOnCompleted(() -> {
+        return cacheService.removeFromRawDataCache(start).doOnCompleted(() -> {
             stopwatch.stop();
             logger.debug("Finished rollups in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
         });

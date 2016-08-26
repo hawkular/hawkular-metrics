@@ -19,15 +19,14 @@ package org.hawkular.metrics.core.service.cache;
 import static org.joda.time.Duration.standardMinutes;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
-import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
-import org.hawkular.metrics.model.MetricId;
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.commons.util.concurrent.NotifyingFuture;
@@ -35,6 +34,7 @@ import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.logging.Logger;
+import org.msgpack.MessagePack;
 
 import com.google.common.base.Stopwatch;
 
@@ -50,7 +50,9 @@ public class CacheServiceImpl implements CacheService {
 
     protected EmbeddedCacheManager cacheManager;
 
-    AdvancedCache<DataPointKey, DataPoint<? extends Number>> rawDataCache;
+    private MessagePack messagePack = new MessagePack();
+
+    AdvancedCache<DataPointKey, Double> rawDataCache;
 
     public void init(){
         try {
@@ -58,7 +60,7 @@ public class CacheServiceImpl implements CacheService {
             cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
                     "/metrics-infinispan.xml"));
             cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
-            Cache<DataPointKey, DataPoint<? extends Number>> cache = cacheManager.getCache("rawData");
+            Cache<DataPointKey, Double> cache = cacheManager.getCache("rawData");
             rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -71,30 +73,39 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    public AdvancedCache<DataPointKey, DataPoint<? extends Number>> getRawDataCache() {
+    public AdvancedCache<DataPointKey, Double> getRawDataCache() {
         return rawDataCache;
     }
 
     @Override
-    public Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId,
-            DataPoint<? extends Number> dataPoint) {
-        long timeSlice = DateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(1));
-        DataPointKey key = new DataPointKey(metricId.getTenantId(), metricId.getName(), dataPoint.getTimestamp(),
-                timeSlice);
-        NotifyingFuture<DataPoint<? extends Number>> future = rawDataCache.putAsync(key, dataPoint);
-        return from(future);
+    public Completable removeFromRawDataCache(long timeSlice) {
+        return Completable.fromAction(() -> {
+            String group = Long.toString(timeSlice / 1000);
+            rawDataCache.removeGroup(group);
+        });
     }
+
+//    @Override
+//    public Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId,
+//            DataPoint<? extends Number> dataPoint) {
+//        long timeSlice = DateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(1));
+//        DataPointKey key = new DataPointKey(metricId.getTenantId(), metricId.getName(), dataPoint.getTimestamp(),
+//                timeSlice);
+//        NotifyingFuture<Double> future = rawDataCache.putAsync(key, dataPoint.getValue());
+//        return from(future);
+//    }
 
     @Override
     public <T> Completable putAll(List<Metric<T>> metrics) {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Map<DataPointKey, DataPoint<? extends Number>> map = new HashMap<>();
+        Map<DataPointKey, Double> map = new HashMap<>();
         metrics.forEach(metric -> {
             metric.getDataPoints().forEach(dataPoint -> {
-                long timeSlice = DateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(1));
-                DataPointKey key = new DataPointKey(metric.getMetricId().getTenantId(),
-                        metric.getMetricId().getName(), dataPoint.getTimestamp(), timeSlice);
-                map.put(key, (DataPoint<? extends Number>) dataPoint);
+                long minute = DateTimeService.getTimeSlice(dataPoint.getTimestamp(), standardMinutes(1));
+                String timeSlice = Long.toString(minute / 1000);
+                DataPointKey key = new DataPointKey(encode(metric.getMetricId().getTenantId(),
+                        metric.getMetricId().getName(), timeSlice), timeSlice);
+                map.put(key, (Double) dataPoint.getValue());
             });
         });
         NotifyingFuture<Void> future = rawDataCache.putAllAsync(map);
@@ -103,6 +114,20 @@ public class CacheServiceImpl implements CacheService {
             logger.info("Inserted " + map.size() + " cache entries in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                     " ms");
         });
+    }
+
+    private byte[] encode(String tenantId, String metric, String timeSlice) {
+        try {
+            List<String> src = new ArrayList<>(3);
+            src.add(tenantId);
+            src.add(metric);
+            src.add(timeSlice);
+
+            MessagePack messagePack = new MessagePack();
+            return messagePack.write(src);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private <T> Single<T> from(NotifyingFuture<T> notifyingFuture) {
