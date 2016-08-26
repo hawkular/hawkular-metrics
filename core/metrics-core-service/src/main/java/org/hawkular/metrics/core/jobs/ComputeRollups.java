@@ -51,6 +51,8 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
         long start = new DateTime(end).minusMinutes(1).getMillis();
 
         logger.info("Preparing to compute roll ups for time range {start=" + start + ", end=" + end + "}");
+        logger.info("Total number of cache entries: " + cacheService.getRawDataCache().getStats()
+                .getTotalNumberOfEntries());
 
         return cacheService.removeFromRawDataCache(start).doOnCompleted(() -> {
             stopwatch.stop();

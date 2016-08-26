@@ -27,10 +27,6 @@
 
     <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
-      <persistence passivation="true">
-        <file-store path="/tmp/hawkular-metrics/cache/raw"/>
-      </persistence>
-      <eviction max-entries="100000" type="COUNT"/>
     </distributed-cache>
 
     <distributed-cache name="rollup300" mode="ASYNC">
