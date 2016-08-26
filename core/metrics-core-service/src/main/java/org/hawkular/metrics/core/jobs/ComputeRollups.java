@@ -50,11 +50,11 @@ public class ComputeRollups implements Func1<JobDetails, Completable> {
         long end = details.getTrigger().getTriggerTime();
         long start = new DateTime(end).minusMinutes(1).getMillis();
 
-        logger.debug("Preparing to compute roll ups for time range {start=" + start + ", end=" + end + "}");
+        logger.info("Preparing to compute roll ups for time range {start=" + start + ", end=" + end + "}");
 
         return cacheService.removeFromRawDataCache(start).doOnCompleted(() -> {
             stopwatch.stop();
-            logger.debug("Finished rollups in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
+            logger.info("Finished rollups in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
         });
     }
 }
