@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.DataPoint;
@@ -34,6 +35,8 @@ import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.logging.Logger;
+
+import com.google.common.base.Stopwatch;
 
 import rx.Completable;
 import rx.Single;
@@ -84,6 +87,7 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public <T> Completable putAll(List<Metric<T>> metrics) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         Map<DataPointKey, DataPoint<? extends Number>> map = new HashMap<>();
         metrics.forEach(metric -> {
             metric.getDataPoints().forEach(dataPoint -> {
@@ -94,7 +98,11 @@ public class CacheServiceImpl implements CacheService {
             });
         });
         NotifyingFuture<Void> future = rawDataCache.putAllAsync(map);
-        return from(future).toCompletable();
+        return from(future).toCompletable().doOnCompleted(() -> {
+            stopwatch.stop();
+            logger.info("Inserted " + map.size() + " cache entries in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
+                    " ms");
+        });
     }
 
     private <T> Single<T> from(NotifyingFuture<T> notifyingFuture) {

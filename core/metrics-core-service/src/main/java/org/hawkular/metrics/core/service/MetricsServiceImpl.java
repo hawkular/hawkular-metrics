@@ -41,6 +41,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -83,6 +84,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -92,6 +94,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -662,6 +665,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
         // We write to both the data and the metrics_idx tables. Each metric can have one or more data points. We
         // currently write a separate batch statement for each metric.
@@ -690,17 +694,21 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-//        Completable cacheUpdates;
-//        if (metricType == GAUGE) {
-//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
-//        } else {
-//            cacheUpdates = Completable.complete();
-//        }
+        Completable cacheUpdates;
+        if (metricType == GAUGE) {
+            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+        } else {
+            cacheUpdates = Completable.complete();
+        }
 
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        return Observable.merge(updates, indexUpdates).map(i -> null);
+        Observable<Void> result = Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
+        return result.doOnCompleted(() -> {
+            stopwatch.stop();
+            log.info("Finished inserting data points in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
+        });
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
