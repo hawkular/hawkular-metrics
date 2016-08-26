@@ -16,25 +16,15 @@
  */
 package org.hawkular.metrics.core.service.cache;
 
-import java.util.List;
-
-import org.hawkular.metrics.model.DataPoint;
-import org.hawkular.metrics.model.Metric;
-import org.hawkular.metrics.model.MetricId;
-import org.infinispan.AdvancedCache;
-
-import rx.Completable;
-import rx.Single;
+import org.infinispan.Cache;
 
 /**
  * @author jsanda
  */
-public interface CacheService {
+public class TestCacheService extends CacheServiceImpl {
 
-    AdvancedCache<DataPointKey, DataPoint<? extends Number>> getRawDataCache();
-
-    Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
-
-    <T> Completable putAll(List<Metric<T>> metrics);
+    public void resetCaches() {
+        cacheManager.getCacheNames().stream().map(cacheManager::getCache).forEach(Cache::clear);
+    }
 
 }

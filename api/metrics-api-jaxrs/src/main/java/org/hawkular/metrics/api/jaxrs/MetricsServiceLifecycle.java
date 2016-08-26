@@ -108,6 +108,8 @@ public class MetricsServiceLifecycle {
 
     private JobsServiceImpl jobsService;
 
+    private ConfigurationService configurationService;
+
     private CacheServiceImpl cacheService;
 
     @Inject
@@ -249,7 +251,7 @@ public class MetricsServiceLifecycle {
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
-            ConfigurationService configurationService = new ConfigurationService();
+            configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
 
             cacheService = new CacheServiceImpl();
@@ -258,6 +260,7 @@ public class MetricsServiceLifecycle {
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setConfigurationService(configurationService);
+            metricsService.setCacheService(cacheService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
@@ -373,6 +376,8 @@ public class MetricsServiceLifecycle {
     private void initJobsService() {
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setCacheService(cacheService);
         jobsService.setMetricsService(metricsService);
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);

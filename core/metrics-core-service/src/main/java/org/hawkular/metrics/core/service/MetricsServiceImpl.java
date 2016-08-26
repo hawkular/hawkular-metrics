@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
@@ -91,6 +92,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -148,6 +150,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private CacheService cacheService;
 
     private MetricRegistry metricRegistry;
 
@@ -383,6 +387,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
@@ -683,7 +691,17 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        return updates.map(i -> null);
+        Completable cacheUpdates;
+        if (metricType == GAUGE) {
+            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+        } else {
+            cacheUpdates = Completable.complete();
+        }
+
+        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
+                .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
+
+        return Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {

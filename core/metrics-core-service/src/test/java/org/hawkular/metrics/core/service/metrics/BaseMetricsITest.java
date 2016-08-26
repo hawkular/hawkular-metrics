@@ -82,6 +82,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
+        metricsService.setCacheService(cacheService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
     }
