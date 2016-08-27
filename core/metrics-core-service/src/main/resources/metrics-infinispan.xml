@@ -17,10 +17,6 @@
     limitations under the License.
 
 -->
-<!--<infinispan-->
-    <!--xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"-->
-    <!--xsi:schemaLocation="urn:infinispan:config:8.1 http://www.infinispan.org/schemas/infinispan-config-8.1.xsd"-->
-    <!--xmlns="urn:infinispan:config:8.1">-->
 <infinispan>
 
   <cache-container default-cache="default">
@@ -29,10 +25,6 @@
     <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
       <eviction size="10000" strategy="LRU" type="COUNT"/>
-      <!--<persistence passivation="true">-->
-        <!--<file-store path="/tmp/hawkular-metrics/caches/raw"/>-->
-      <!--</persistence>-->
-
       <persistence passivation="true">
         <leveldb-store path="/tmp/hawkular-metrics/raw/data" shared="true" preload="true">
           <expiration path="/tmp/hawkular-metrics/raw/expired"/>
