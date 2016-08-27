@@ -114,6 +114,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-cachestore-leveldb</artifactId>
+      <version>${version.org.infinispan.wildfly}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.msgpack</groupId>
       <artifactId>msgpack</artifactId>
       <version>0.6.12</version>
