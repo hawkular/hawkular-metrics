@@ -25,8 +25,10 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.PatternSyntaxException;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -46,11 +48,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.AggregationQueryRequest;
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
+import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
@@ -62,6 +66,7 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.hawkular.metrics.model.RatioMap;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.TagNames;
@@ -465,5 +470,127 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
         metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+    }
+
+    @GET
+    @Path("/aggregated")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics and convert them into a single, aggregated " +
+            "availability series in the form of a map of ratios.", response = DataPoint.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metrics data points."),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "Either tags or metric ids is required but not both.",
+                    response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                    response = ApiError.class) })
+    public void getAggregated(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") final String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") final String end,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order) {
+
+        TimeRange timeRange = new TimeRange(start, end);
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        if (limit == null) {
+            limit = 0;
+        }
+        if (order == null) {
+            order = Order.defaultValue(limit, start, end);
+        }
+
+        Map<String, String> mapTags = Optional.ofNullable(tags)
+                .map(Tags::getTags)
+                .orElseGet(Collections::emptyMap);
+        List<String> metrics = Optional.ofNullable(metricNames).orElseGet(Collections::emptyList);
+        if (metrics.isEmpty() && mapTags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metrics.isEmpty() && !mapTags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        final Observable<DataPoint<RatioMap>> result;
+        if (metrics.isEmpty()) {
+            result = metricsService.findAvailabilityRatioMap(getTenant(), mapTags, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order);
+        } else {
+            result = metricsService.findAvailabilityRatioMap(getTenant(), metrics, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order);
+        }
+        result.toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @POST
+    @Path("/aggregated/query")
+    @ApiOperation(value = "Fetch raw data points for multiple metrics and convert them into a single, aggregated " +
+            "availability series in the form of a map of ratios.", response = DataPoint.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metrics data points."),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "Either tags or metric ids is required but not both.", response =
+                    ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching availability data.",
+                    response = ApiError.class)
+    })
+    public void getAggregated(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
+                    "The standard start, end, order, and limit query parameters are supported as well.")
+                    AggregationQueryRequest query) {
+        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+
+        int limit;
+        if (query.getLimit() == null) {
+            limit = 0;
+        } else {
+            limit = query.getLimit();
+        }
+        Order order;
+        if (query.getOrder() == null) {
+            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
+        } else {
+            order = Order.fromText(query.getOrder());
+        }
+
+        Map<String, String> tags = Optional.ofNullable(query.getTags())
+                .map(strTags -> new TagsConverter().fromString(strTags).getTags())
+                .orElseGet(Collections::emptyMap);
+        List<String> metrics = Optional.ofNullable(query.getMetrics())
+                .orElseGet(Collections::emptyList);
+        if (metrics.isEmpty() && tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!metrics.isEmpty() && !tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        final Observable<DataPoint<RatioMap>> result;
+        if (metrics.isEmpty()) {
+            result = metricsService.findAvailabilityRatioMap(getTenant(), tags, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order);
+        } else {
+            result = metricsService.findAvailabilityRatioMap(getTenant(), metrics, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order);
+        }
+        result.toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 }

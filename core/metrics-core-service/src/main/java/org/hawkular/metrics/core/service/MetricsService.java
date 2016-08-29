@@ -32,6 +32,7 @@ import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
+import org.hawkular.metrics.model.RatioMap;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
@@ -236,11 +237,41 @@ public interface MetricsService {
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
             boolean distinct, int limit, Order order);
 
+    /**
+     * Fetches availability data points from multiple metrics. All metrics are aggregated to produce a single series of
+     * {@link DataPoint} with {@link RatioMap} information.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param metrics The names of the availability metrics that will be queried
+     * @param start The start time inclusive as a Unix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     * @param limit Limit the number of data points
+     * @param order The sort order for the results
+     * @return An {@link Observable} that emits {@link DataPoint}s
+     */
+    Observable<DataPoint<RatioMap>> findAvailabilityRatioMap(String tenantId, List<String> metrics,
+           long start, long end, int limit, Order order);
+
+    /**
+     * Fetches availability data points from multiple metrics that are determined by a tags filter query. All
+     * metrics are aggregated to produce a single series of {@link DataPoint} with {@link RatioMap} information.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param tagFilters The metric tag filter used to query for metrics
+     * @param start The start time inclusive as a Unix timestamp in milliseconds
+     * @param end The end time exclusive as a Unix timestamp in milliseconds
+     * @param limit Limit the number of data points
+     * @param order The sort order for the results
+     * @return An {@link Observable} that emits {@link DataPoint}s
+     */
+    Observable<DataPoint<RatioMap>> findAvailabilityRatioMap(String tenantId, Map<String, String>
+            tagFilters, long start, long end, int limit, Order order);
+
     Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
                                                                     long end, Buckets buckets);
 
     Observable<DataPoint<String>> findStringData(MetricId<String> id, long start, long end, boolean distinct,
-            int limit, Order order);
+             int limit, Order order);
 
     /**
      * Computes stats on a counter.
