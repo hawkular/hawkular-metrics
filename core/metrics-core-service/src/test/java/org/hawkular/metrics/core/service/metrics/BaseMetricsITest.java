@@ -51,7 +51,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -164,9 +164,9 @@ public abstract class BaseMetricsITest extends BaseITest {
 
     protected void assertMetricIndexMatches(String tenantId, MetricType<?> type, List<Metric<?>> expected)
         throws Exception {
-        List<Metric<?>> actualIndex = ImmutableList.copyOf(metricsService.findMetrics(tenantId, type).toBlocking()
-                .toIterable());
-        assertEquals(actualIndex, expected, "The metrics index results do not match");
+        Set<Metric<?>> actualIndex = Sets
+                .newHashSet(metricsService.findMetrics(tenantId, type).toBlocking().toIterable());
+        assertEquals(actualIndex, Sets.newHashSet(expected), "The metrics index results do not match");
     }
 
     protected class MetricsTagsIndexEntry {

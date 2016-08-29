@@ -47,6 +47,8 @@ import java.util.regex.Pattern;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
@@ -475,24 +477,34 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
-        return dataAccess.findMetric(id)
-                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL));
+        return dataAccess.findMetricInMetricsIndex(id)
+                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))
+                .switchIfEmpty(dataAccess.findMetricInData(id)
+                        .compose(new MetricFromDataRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL)));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
+        Observable<Metric<T>> setFromMetricsIndex = null;
+        Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
+                .filter(row -> tenantId.equals(row.getString(0)))
+                .compose(new MetricFromFullDataRowTransformer(defaultTTL))
+                .map(m -> (Metric<T>) m);
+
         if (metricType == null) {
-            return Observable.from(MetricType.userTypes())
-                    .map(type -> {
-                        @SuppressWarnings("unchecked")
-                        MetricType<T> t = (MetricType<T>) type;
-                        return t;
-                    })
+            setFromMetricsIndex = Observable.from(MetricType.userTypes())
+                    .map(type -> (MetricType<T>) type)
                     .flatMap(type -> dataAccess.findMetricsInMetricsIndex(tenantId, type)
                             .compose(new MetricsIndexRowTransformer<>(tenantId, type, defaultTTL)));
+        } else {
+            setFromMetricsIndex = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
+                    .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
+
+            setFromData = setFromData.filter(m -> metricType.equals(m.getMetricId().getType()));
         }
-        return dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
-                .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
+
+        return setFromMetricsIndex.concatWith(setFromData).distinct(m -> m.getMetricId());
     }
 
     private <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
@@ -671,11 +683,7 @@ public class MetricsServiceImpl implements MetricsService {
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
-                .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
-
-        return updates.mergeWith(indexUpdates)
-                .map(i -> null);
+        return updates.map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
@@ -872,32 +880,31 @@ public class MetricsServiceImpl implements MetricsService {
         if (!stacked) {
             if (COUNTER == metricType || GAUGE == metricType) {
                 return Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .flatMap(metric -> findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC))
+                        .flatMap(metricName -> findDataPoints(new MetricId<>(tenantId, metricType, metricName), start,
+                                end, 0, Order.DESC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 return Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
-                        .flatMap(metric -> findRateData(metric.getMetricId(), start, end, 0, ASC))
+                        .flatMap(metricName -> findRateData(new MetricId<>(tenantId, mtype, metricName), start, end, 0,
+                                ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
             if (COUNTER == metricType || GAUGE == metricType) {
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, metricType, metricName)))
-                        .map(metric -> {
-                            return findDataPoints(metric.getMetricId(), start, end, 0, Order.DESC)
+                        .map(metricName -> {
+                            return findDataPoints(new MetricId<>(tenantId, metricType, metricName), start, end, 0,
+                                    Order.DESC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
             } else {
                 MetricType<? extends Number> mtype = metricType == GAUGE_RATE ? GAUGE : COUNTER;
                 individualStats = Observable.from(metrics)
-                        .flatMap(metricName -> findMetric(new MetricId<>(tenantId, mtype, metricName)))
-                        .map(metric -> {
-                            return findRateData(metric.getMetricId(), start, end, 0, ASC)
+                        .map(metricName -> {
+                            return findRateData(new MetricId<>(tenantId, mtype, metricName), start, end, 0, ASC)
                                     .compose(new NumericBucketPointTransformer(buckets, percentiles))
                                     .flatMap(Observable::from);
                         });
@@ -952,17 +959,6 @@ public class MetricsServiceImpl implements MetricsService {
         } else {
             return findDataPoints(id, start, end, limit, order);
         }
-    }
-
-    @Override
-    public Observable<Boolean> idExists(final MetricId<?> metricId) {
-        return this.findMetrics(metricId.getTenantId(), metricId.getType())
-                .filter(m -> {
-                    return metricId.getName().equals(m.getMetricId().getName());
-                })
-                .take(1)
-                .map(m -> Boolean.TRUE)
-                .defaultIfEmpty(Boolean.FALSE);
     }
 
     @Override

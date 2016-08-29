@@ -65,8 +65,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<Row> findMetric(MetricId<T> id) {
-        return delegate.findMetric(id);
+    public <T> Observable<Row> findMetricInData(MetricId<T> id) {
+        return delegate.findMetricInData(id);
+    }
+
+    @Override
+    public <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id) {
+        return delegate.findMetricInMetricsIndex(id);
     }
 
     @Override
@@ -97,6 +102,11 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type) {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
+    }
+
+    @Override
+    public Observable<Row> findAllMetricsInData() {
+        return delegate.findAllMetricsInData();
     }
 
     @Override

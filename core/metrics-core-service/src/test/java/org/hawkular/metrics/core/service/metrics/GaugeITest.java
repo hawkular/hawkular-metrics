@@ -134,7 +134,6 @@ public class GaugeITest extends BaseMetricsITest {
         assertMetricIndexMatches(tenantId, GAUGE, asList(
                 new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7),
                 new Metric<>(m2.getMetricId(), m2.getDataPoints(), 7),
-                new Metric<>(m3.getMetricId(), 7),
                 m4));
     }
 

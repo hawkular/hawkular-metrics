@@ -113,10 +113,9 @@ public class AvailabilityITest extends BaseMetricsITest {
         assertEquals(actual, expected.getDataPoints(), "The availability data does not match expected values");
 
         assertMetricIndexMatches(tenantId, AVAILABILITY, asList(
-                new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7),
-                new Metric<>(m2.getMetricId(), m2.getDataPoints(), 7),
-                new Metric<>(m3.getMetricId(), 7),
-                m4));
+                new Metric<>(m1.getMetricId(), 7),
+                new Metric<>(m2.getMetricId(), 7),
+                new Metric<>(m4.getMetricId(), 24)));
     }
 
     @Test
