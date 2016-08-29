@@ -704,11 +704,7 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
                 .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
 
-        Observable<Void> result = Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
-        return result.doOnCompleted(() -> {
-            stopwatch.stop();
-            log.info("Finished inserting data points in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
-        });
+        return Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
