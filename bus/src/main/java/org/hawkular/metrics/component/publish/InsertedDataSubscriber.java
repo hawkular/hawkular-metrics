@@ -19,6 +19,8 @@ package org.hawkular.metrics.component.publish;
 
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_FORWARDING;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_PUBLISH_FILTERING;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_PERIOD;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 
@@ -75,16 +77,35 @@ public class InsertedDataSubscriber {
     private String publishPeriodProperty;
     private int publishPeriod;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DISABLE_METRICS_FORWARDING)
+    private String disableMetricsForwarding;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DISABLE_PUBLISH_FILTERING)
+    private String disablePublishFiltering;
+
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
-        publishPeriod = getPublishPeriod();
-        Observable<List<Metric<?>>> events = event.getInsertedData()
-                .filter(m -> m.getType() != MetricType.STRING)
-                .filter(m -> publish.isPublished(m.getMetricId()))
-                .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
-                .filter(list -> !list.isEmpty())
-                .onBackpressureBuffer()
-                .observeOn(Schedulers.io());
-        subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+        if (!Boolean.parseBoolean(disableMetricsForwarding)) {
+            publishPeriod = getPublishPeriod();
+            Observable<List<Metric<?>>> events;
+            if (Boolean.parseBoolean(disablePublishFiltering)) {
+                events = event.getInsertedData()
+                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                        .filter(list -> !list.isEmpty());
+            } else {
+                events = event.getInsertedData()
+                        .filter(m -> m.getType() != MetricType.STRING)
+                        .filter(m -> publish.isPublished(m.getMetricId()))
+                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                        .filter(list -> !list.isEmpty());
+            }
+            events = events.onBackpressureBuffer()
+                    .observeOn(Schedulers.io());
+            subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+        }
     }
 
     private void onInsertedData(Metric<?> metric) {
