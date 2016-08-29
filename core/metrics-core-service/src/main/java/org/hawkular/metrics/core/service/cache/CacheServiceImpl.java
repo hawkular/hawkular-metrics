@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Metric;
@@ -109,11 +108,7 @@ public class CacheServiceImpl implements CacheService {
             });
         });
         NotifyingFuture<Void> future = rawDataCache.putAllAsync(map);
-        return from(future).toCompletable().doOnCompleted(() -> {
-            stopwatch.stop();
-            logger.info("Inserted " + map.size() + " cache entries in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
-                    " ms");
-        });
+        return from(future).toCompletable();
     }
 
     private byte[] encode(String tenantId, String metric, String timeSlice) {

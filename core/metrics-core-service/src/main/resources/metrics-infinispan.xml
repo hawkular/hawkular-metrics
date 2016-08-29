@@ -24,7 +24,7 @@
 
     <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
-      <eviction size="10000" strategy="LRU" type="COUNT"/>
+      <eviction size="5000" strategy="LRU" type="COUNT"/>
       <persistence passivation="true">
         <leveldb-store path="/tmp/hawkular-metrics/raw/data" shared="true" preload="true">
           <expiration path="/tmp/hawkular-metrics/raw/expired"/>
