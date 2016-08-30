@@ -45,7 +45,7 @@ import javax.inject.Qualifier;
  * </ul>
  * Any field or parameter annotated with {@link Configurable} must also be annotated with {@link ConfigurationProperty}.
  * The value of the latter specifies the configuration property key. Otherwise the configuration producer method will
- * throw an instance of {@link java.lang.IllegalArgumentException}. In most cases, a configuration property should at
+ * throw an instance of {@link IllegalArgumentException}. In most cases, a configuration property should at
  * least be defined in the internal properties file, in order to provide a default value.<br>
  * <br>
  * Configuration values may be modified at runtime (through JMX). When a bean can/should adapt to such changes, the

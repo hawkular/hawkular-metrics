@@ -108,6 +108,13 @@
       <scope>provided</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
+      <scope>provided</scope>
+      <version>${version.org.infinispan.wildfly}</version>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>

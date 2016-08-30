@@ -19,6 +19,9 @@ package org.hawkular.metrics.component.publish;
 
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_FORWARDING;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_PUBLISH_FILTERING;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_PERIOD;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 
 import java.util.List;
@@ -35,9 +38,12 @@ import org.hawkular.bus.Bus;
 import org.hawkular.bus.common.BasicMessage;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
 import org.jboss.logging.Logger;
 
 import rx.Observable;
@@ -62,12 +68,44 @@ public class InsertedDataSubscriber {
 
     private Subscription subscription;
 
+    @Inject
+    private PublishCommandTable publish;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_PUBLISH_PERIOD)
+    private String publishPeriodProperty;
+    private int publishPeriod;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DISABLE_METRICS_FORWARDING)
+    private String disableMetricsForwarding;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(DISABLE_PUBLISH_FILTERING)
+    private String disablePublishFiltering;
+
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
-        Observable<List<Metric<?>>> events = event.getInsertedData().buffer(50, TimeUnit.MILLISECONDS, 100)
-                .filter(list -> !list.isEmpty())
-                .onBackpressureBuffer()
-                .observeOn(Schedulers.io());
-        subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+        if (!Boolean.parseBoolean(disableMetricsForwarding)) {
+            publishPeriod = getPublishPeriod();
+            Observable<List<Metric<?>>> events;
+            if (Boolean.parseBoolean(disablePublishFiltering)) {
+                events = event.getInsertedData()
+                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                        .filter(list -> !list.isEmpty());
+            } else {
+                events = event.getInsertedData()
+                        .filter(m -> m.getType() != MetricType.STRING)
+                        .filter(m -> publish.isPublished(m.getMetricId()))
+                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                        .filter(list -> !list.isEmpty());
+            }
+            events = events.onBackpressureBuffer()
+                    .observeOn(Schedulers.io());
+            subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+        }
     }
 
     private void onInsertedData(Metric<?> metric) {
@@ -94,8 +132,8 @@ public class InsertedDataSubscriber {
     private BasicMessage createNumericMessage(Metric<? extends Number> numeric) {
         MetricId<?> numericId = numeric.getMetricId();
         List<MetricDataMessage.SingleMetric> numericList = numeric.getDataPoints().stream()
-                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getName(), dataPoint.getTimestamp(),
-                        dataPoint.getValue().doubleValue()))
+                .map(dataPoint -> new MetricDataMessage.SingleMetric(numericId.getType().getText(), numericId.getName(),
+                        dataPoint.getTimestamp(), dataPoint.getValue().doubleValue()))
                 .collect(toList());
         MetricDataMessage.MetricData metricData = new MetricDataMessage.MetricData();
         metricData.setTenantId(numericId.getTenantId());
@@ -128,6 +166,15 @@ public class InsertedDataSubscriber {
     void shutdown() {
         if (subscription != null) {
             subscription.unsubscribe();
+        }
+    }
+
+    private int getPublishPeriod() {
+        try {
+            return Integer.parseInt(publishPeriodProperty);
+        } catch (NumberFormatException e) {
+            log.warnf("Invalid publish period. Setting default value %s", METRICS_PUBLISH_PERIOD.defaultValue());
+            return Integer.parseInt(METRICS_PUBLISH_PERIOD.defaultValue());
         }
     }
 }
