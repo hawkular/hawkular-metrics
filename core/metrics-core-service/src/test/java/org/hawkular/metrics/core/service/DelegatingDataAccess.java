@@ -80,11 +80,6 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> addDataRetention(Metric<T> metric) {
-        return delegate.addDataRetention(metric);
-    }
-
-    @Override
     public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
         return delegate.addTags(metric, tags);
     }

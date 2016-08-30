@@ -50,8 +50,6 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id);
 
-    <T> Observable<ResultSet> addDataRetention(Metric<T> metric);
-
     <T> Observable<Row> getMetricTags(MetricId<T> id);
 
     <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags);

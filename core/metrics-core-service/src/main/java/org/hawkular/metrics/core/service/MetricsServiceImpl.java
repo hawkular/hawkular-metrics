@@ -454,7 +454,6 @@ public class MetricsServiceImpl implements MetricsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.addDataRetention(metric));
                 updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
 
                 if (metric.getDataRetention() != null) {

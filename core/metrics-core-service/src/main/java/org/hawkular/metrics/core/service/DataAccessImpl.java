@@ -82,8 +82,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement getMetricTags;
 
-    private PreparedStatement addDataRetention;
-
     private PreparedStatement insertGaugeData;
 
     private PreparedStatement insertGaugeDataUsingTTL;
@@ -209,14 +207,6 @@ public class DataAccessImpl implements DataAccess {
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
-        // TODO I am not sure if we want the data_retention columns in the data table
-        // Everything else in a partition will have a TTL set on it, so I fear that these columns
-        // might cause problems with compaction.
-        addDataRetention = session.prepare(
-            "UPDATE data " +
-            "SET data_retention = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
-
         insertIntoMetricsIndex = session.prepare(
             "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) " +
@@ -316,67 +306,67 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data " +
+            "SELECT time, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findGaugeDataByDateRangeExclusiveWithLimit = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data " +
+            "SELECT time, n_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
             " LIMIT ?");
 
         findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data " +
+            "SELECT time, n_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
         findGaugeDataByDateRangeExclusiveWithLimitASC = session.prepare(
-            "SELECT time, data_retention, n_value, tags FROM data" +
+            "SELECT time, n_value, tags FROM data" +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC" +
             " LIMIT ?");
 
         findStringDataByDateRangeExclusive = session.prepare(
-            "SELECT time, data_retention, s_value, tags FROM data " +
+            "SELECT time, s_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findStringDataByDateRangeExclusiveWithLimit = session.prepare(
-            "SELECT time, data_retention, s_value, tags FROM data " +
+            "SELECT time, s_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
             " LIMIT ?");
 
         findStringDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, data_retention, s_value, tags FROM data " +
+            "SELECT time, s_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
             " AND time < ? ORDER BY time ASC");
 
         findStringDataByDateRangeExclusiveWithLimitASC = session.prepare(
-            "SELECT time, data_retention, s_value, tags FROM data" +
+            "SELECT time, s_value, tags FROM data" +
              " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
              " AND time < ? ORDER BY time ASC" +
              " LIMIT ?");
 
         findCounterDataExclusive = session.prepare(
-            "SELECT time, data_retention, l_value, tags FROM data " +
+            "SELECT time, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
 
         findCounterDataExclusiveWithLimit = session.prepare(
-            "SELECT time, data_retention, l_value, tags FROM data " +
+            "SELECT time, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " LIMIT ?");
 
         findCounterDataExclusiveASC = session.prepare(
-            "SELECT time, data_retention, l_value, tags FROM data " +
+            "SELECT time, l_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             "ORDER BY time ASC");
 
         findCounterDataExclusiveWithLimitASC = session.prepare(
-            "SELECT time, data_retention, l_value, tags FROM data " +
+            "SELECT time, l_value, tags FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " ORDER BY time ASC" +
             " LIMIT ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT time, data_retention, availability, WRITETIME(availability) FROM data " +
+            "SELECT time, availability, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
 
         deleteGaugeMetric = session.prepare(
@@ -406,24 +396,24 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
 
         findAvailabilities = session.prepare(
-            "SELECT time, data_retention, availability, tags " +
+            "SELECT time, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
 
         findAvailabilitiesWithLimit = session.prepare(
-            "SELECT time, data_retention, availability, tags " +
+            "SELECT time, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " LIMIT ?");
 
         findAvailabilitiesASC = session.prepare(
-            "SELECT time, data_retention, availability, tags " +
+            "SELECT time, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " ORDER BY time ASC");
 
         findAvailabilitiesWithLimitASC = session.prepare(
-            "SELECT time, data_retention, availability, tags " +
+            "SELECT time, availability, tags " +
             " FROM data " +
             " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
             " ORDER BY time ASC" +
@@ -507,18 +497,6 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<Row> getMetricTags(MetricId<T> id) {
         return rxSession.executeAndFetch(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
-    }
-
-    // This method updates the metric tags and data retention in the data table. In the
-    // long term after we add support for bucketing/date partitioning I am not sure that we
-    // will store metric tags and data retention in the data table. We would have to
-    // determine when we start writing data to a new partition, e.g., the start of the next
-    // day, and then add the tags and retention to the new partition.
-    @Override
-    public <T> Observable<ResultSet> addDataRetention(Metric<T> metric) {
-        MetricId<T> metricId = metric.getMetricId();
-        return rxSession.execute(addDataRetention.bind(metric.getDataRetention(),
-                metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(), DPART));
     }
 
     @Override
