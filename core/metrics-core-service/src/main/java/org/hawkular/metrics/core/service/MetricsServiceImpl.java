@@ -700,10 +700,7 @@ public class MetricsServiceImpl implements MetricsService {
             cacheUpdates = Completable.complete();
         }
 
-        Observable<Integer> indexUpdates = dataAccess.updateMetricsIndex(metrics)
-                .doOnNext(batchSize -> log.tracef("Inserted %d %s metrics into metrics_idx", batchSize, metricType));
-
-        return Observable.merge(updates, cacheUpdates.toObservable(), indexUpdates).map(i -> null);
+        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
