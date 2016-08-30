@@ -136,8 +136,6 @@ public class DataAccessITest extends BaseITest {
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"),
                 ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
 
-        dataAccess.addDataRetention(metric).toBlocking().last();
-
         metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),

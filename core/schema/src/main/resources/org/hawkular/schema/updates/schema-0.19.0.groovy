@@ -32,3 +32,39 @@ schemaChange {
   tags '0.19.x'
   cql "ALTER TABLE data WITH compaction = {'class': 'DateTieredCompactionStrategy'} AND default_time_to_live = 604800"
 }
+
+schemaChange {
+  version '3.2'
+  author 'snegre'
+  tags '0.19.x'
+  cql "ALTER TABLE data DROP aggregates"
+}
+
+schemaChange {
+  version '3.3'
+  author 'snegrea'
+  tags '0.19.x'
+  cql "DROP TYPE aggregate_data"
+}
+
+
+schemaChange {
+  version '3.4'
+  author 'snegrea'
+  tags '0.19.x'
+  cql "ALTER TABLE data DROP data_retention"
+}
+
+schemaChange {
+  version '3.5'
+  author 'snegrea'
+  tags '0.19.x'
+  cql "DROP TYPE aggregation_template"
+}
+
+schemaChange {
+  version '3.6'
+  author 'snegrea'
+  tags '0.19.x'
+  cql "DROP TABLE tenants_by_time"
+}
