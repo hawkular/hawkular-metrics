@@ -20,6 +20,7 @@ package org.hawkular.metrics.core.service;
 import java.util.Map;
 import java.util.Set;
 
+import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Interval;
 import org.hawkular.metrics.model.Metric;
@@ -76,6 +77,9 @@ public interface DataAccess {
 
     Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order);
 
+    Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
+            order);
+
     Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order);
 
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order);
@@ -84,7 +88,6 @@ public interface DataAccess {
             Order order);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
-
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
 
@@ -106,4 +109,8 @@ public interface DataAccess {
     Observable<Row> findMetricsByTagName(String tenantId, String tag);
 
     Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
+
+    <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
+                                                             CompressedPointContainer cpc,
+                                                             long sliceStart, long sliceEnd, int ttl);
 }

@@ -16,21 +16,28 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
+import org.hawkular.metrics.sysconfig.Configuration;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
 import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
 
+import rx.Observable;
 import rx.Single;
 import rx.functions.Func2;
 
@@ -49,12 +56,18 @@ public class JobsServiceImpl implements JobsService {
 
     private DeleteTenant deleteTenant;
 
+    private ConfigurationService configurationService;
+
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
     }
 
     public void setSession(RxSession session) {
         this.session = session;
+    }
+
+    public void setConfigurationService(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
     }
 
     /**
@@ -69,6 +82,9 @@ public class JobsServiceImpl implements JobsService {
     public void start() {
         scheduler.start();
 
+        Configuration configuration = configurationService.load("org.hawkular.metrics.jobs")
+                .toBlocking().lastOrDefault(null);
+
         deleteTenant = new DeleteTenant(session, metricsService);
         Map<JobDetails, Integer> deleteTenantAttempts = new ConcurrentHashMap<>();
         // Use a simple retry policy to make sure tenant deletion does complete in the event of failure. For now
@@ -80,6 +96,13 @@ public class JobsServiceImpl implements JobsService {
                     return Minutes.minutes(5).toStandardDuration().getMillis();
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
+
+        Boolean compressionEnabled = Boolean.valueOf(configuration.get(CompressData.ENABLED_CONFIG, "true"));
+        if(compressionEnabled) {
+            CompressData compressDataJob = new CompressData(metricsService);
+            scheduler.register(CompressData.JOB_NAME, compressDataJob, deleteTenantRetryPolicy);
+            submitCompressDataJob().toBlocking().value();
+        }
     }
 
     @Override
@@ -91,6 +114,26 @@ public class JobsServiceImpl implements JobsService {
     public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
+    }
+
+    @Override
+    public Single<JobDetails> submitCompressDataJob() {
+        // Get next start of odd hour
+        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
+                .with(DateTimeService.startOfNextOddHour())
+                .toInstant(ZoneOffset.UTC).toEpochMilli();
+
+        return scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+                ImmutableMap.of(),
+                new RepeatingTrigger.Builder()
+                        .withTriggerTime(nextStart)
+                        .withInterval(2, TimeUnit.HOURS)
+                        .build());
+    }
+
+    @Override
+    public Observable<JobDetails> getJobDetails() {
+        return scheduler.getAllJobs();
     }
 
 }

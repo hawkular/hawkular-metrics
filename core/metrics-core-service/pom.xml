@@ -87,6 +87,11 @@
       <artifactId>rxjava-math</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>fi.iki.yak</groupId>
+      <artifactId>compression-gorilla</artifactId>
+    </dependency>
+
     <!-- JBoss Logging Annotations Processor -->
 
     <dependency>

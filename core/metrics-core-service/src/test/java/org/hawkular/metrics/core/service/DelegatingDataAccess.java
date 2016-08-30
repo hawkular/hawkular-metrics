@@ -20,6 +20,7 @@ package org.hawkular.metrics.core.service;
 import java.util.Map;
 import java.util.Set;
 
+import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Interval;
 import org.hawkular.metrics.model.Metric;
@@ -126,8 +127,13 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order order) {
+        return delegate.findCompressedData(id, startTime, endTime, limit, order);
+    }
+
+    @Override
     public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order) {
-        return delegate.findGaugeData(id, startTime, endTime, 0, order);
+        return delegate.findGaugeData(id, startTime, endTime, limit, order);
     }
 
     @Override
@@ -210,5 +216,12 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
         return delegate.findAvailabilityData(id, timestamp);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
+                                                                    CompressedPointContainer cpc,
+                                                              long sliceStart, long sliceEnd, int ttl) {
+        return delegate.deleteAndInsertCompressedGauge(id, timeslice, cpc, sliceStart, sliceEnd, ttl);
     }
 }

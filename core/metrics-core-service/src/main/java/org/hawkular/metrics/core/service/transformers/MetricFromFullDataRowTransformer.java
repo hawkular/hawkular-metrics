@@ -43,8 +43,8 @@ public class MetricFromFullDataRowTransformer implements Transformer<Row, Metric
     @Override
     public Observable<Metric<?>> call(Observable<Row> rows) {
         return rows.map(row -> {
-            MetricId<?> metricId = new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(2)),
-                    row.getString(1));
+            MetricId<?> metricId = new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)),
+                    row.getString(2));
             return new Metric<>(metricId, defaultDataRetention);
         });
     }

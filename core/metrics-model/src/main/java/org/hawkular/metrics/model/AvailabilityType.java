@@ -75,4 +75,19 @@ public enum AvailabilityType {
         default: throw new IllegalArgumentException(bytes.array()[0] + " is not a recognized availability type");
         }
     }
+
+    public static AvailabilityType fromByte(byte value) {
+        switch (value) {
+            case 0:
+                return UP;
+            case 1:
+                return DOWN;
+            case 2:
+                return UNKNOWN;
+            case 3:
+                return ADMIN;
+            default:
+                throw new IllegalArgumentException(value + " is not a recognized availability type");
+        }
+    }
 }

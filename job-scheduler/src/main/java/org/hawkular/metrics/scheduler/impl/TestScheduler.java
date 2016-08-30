@@ -150,6 +150,11 @@ public class TestScheduler implements Scheduler {
         scheduler.shutdown();
     }
 
+    @Override
+    public Observable<JobDetails> getAllJobs() {
+        return scheduler.getAllJobs();
+    }
+
     public void onTimeSliceFinished(Action1<DateTime> callback) {
         finishedTimeSlicesSubscriptions.add(finishedTimeSlices.subscribe(timeSlice ->
                 callback.call(new DateTime(timeSlice))));

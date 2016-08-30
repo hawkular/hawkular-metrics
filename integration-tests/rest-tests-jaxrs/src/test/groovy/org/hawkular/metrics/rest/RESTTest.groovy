@@ -31,7 +31,7 @@ import org.junit.BeforeClass
 import java.util.concurrent.atomic.AtomicInteger
 
 import static junit.framework.Assert.assertNull
-import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.MAX_BATCH_SIZE
+import static org.hawkular.metrics.core.service.transformers.BatchStatementTransformer.DEFAULT_BATCH_SIZE
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
@@ -42,7 +42,7 @@ class RESTTest {
   static final double DELTA = 0.001
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
-  static final int LARGE_PAYLOAD_SIZE = MAX_BATCH_SIZE
+  static final int LARGE_PAYLOAD_SIZE = DEFAULT_BATCH_SIZE
   static ObjectMapper objectMapper = new ObjectMapper()
   static RESTClient hawkularMetrics
 

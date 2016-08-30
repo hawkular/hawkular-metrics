@@ -28,12 +28,14 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
+import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -59,17 +61,21 @@ public class DataAccessITest extends BaseITest {
 
     private PreparedStatement truncateGaugeData;
 
+    private PreparedStatement truncateCompressedData;
+
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
+        truncateCompressedData = session.prepare("TRUNCATE data_compressed");
     }
 
     @BeforeMethod
     public void initMethod() {
         session.execute(truncateTenants.bind());
         session.execute(truncateGaugeData.bind());
+        session.execute(truncateCompressedData.bind());
     }
 
     @Test
@@ -133,10 +139,7 @@ public class DataAccessITest extends BaseITest {
         DateTime end = start.plusMinutes(6);
         String tenantId = "tenant-1";
 
-        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"),
-                ImmutableMap.of("units", "KB", "env", "test"), DEFAULT_TTL);
-
-        metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
+        Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
                 new DataPoint<>(start.plusMinutes(2).getMillis(), 1.234),
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 1.234),
@@ -182,4 +185,23 @@ public class DataAccessITest extends BaseITest {
         assertEquals(actual, expected, "The availability data does not match the expected values");
     }
 
+    @Test
+    public void findAllMetricsPartitionKeys() throws Exception {
+        long start = now().getMillis();
+
+        Observable.from(asList(
+                new Metric<>(new MetricId<>("t1", GAUGE, "m1"), singletonList(new DataPoint<>(start, 0.1))),
+                new Metric<>(new MetricId<>("t1", GAUGE, "m2"), singletonList(new DataPoint<>(start+1, 0.1))),
+                new Metric<>(new MetricId<>("t1", GAUGE, "m3"), singletonList(new DataPoint<>(start+2, 0.1))),
+                new Metric<>(new MetricId<>("t1", GAUGE, "m4"), singletonList(new DataPoint<>(start+3, 0.1)))))
+                .flatMap(m -> dataAccess.insertGaugeData(m, DEFAULT_TTL))
+                .toBlocking().lastOrDefault(null);
+
+        List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
+                .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
+                        ()))
+                .map(m -> (Metric<Double>) m));
+
+        assertEquals(metrics.size(), 4);
+    }
 }
