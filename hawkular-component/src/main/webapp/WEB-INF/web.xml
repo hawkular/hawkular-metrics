@@ -35,6 +35,11 @@
     <url-pattern>/static/*</url-pattern>
   </servlet-mapping>
 
+  <resource-env-ref>
+    <resource-env-ref-name>cache/publish</resource-env-ref-name>
+    <lookup-name>java:jboss/infinispan/cache/hawkular-metrics/publish</lookup-name>
+  </resource-env-ref>
+
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>Unsecured endpoints</web-resource-name>
