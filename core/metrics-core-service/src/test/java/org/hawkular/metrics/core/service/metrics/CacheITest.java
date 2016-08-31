@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,10 +77,10 @@ public class CacheITest extends BaseMetricsITest {
     public void populateCache() {
         String tenant = "CacheTest";
         List<Metric<Double>> metrics = new ArrayList<>();
-        DateTime end = now().plusMinutes(5);
+        DateTime end = now().plusMinutes(10);
 
         while (now().isBefore(end)) {
-            for (int i = 0; i < 100; ++i) {
+            for (int i = 0; i < 1000; ++i) {
                 MetricId<Double> id = new MetricId<>(tenant, GAUGE, "G" + i);
                 metrics.add(new Metric<>(id, singletonList(new DataPoint<>(System.currentTimeMillis(), 3.14))));
             }
