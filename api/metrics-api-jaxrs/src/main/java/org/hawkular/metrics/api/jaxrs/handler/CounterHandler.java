@@ -514,7 +514,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
     @Path("/{id}/stats")
     @ApiOperation(value = "Retrieve counter data points.", notes = "When buckets or bucketDuration query parameter " +
             "is used, the time range between start and end will be divided in buckets of equal duration, and metric " +
-            "statistics will be computed for each bucket.", response = DataPoint.class, responseContainer =
+            "statistics will be computed for each bucket.", response = NumericBucketPoint.class, responseContainer =
             "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
@@ -610,7 +610,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             "used, the time range between start and end will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
-            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
+            "rates when resets occur.", response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -681,7 +681,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             "will be divided in buckets of equal duration, and metric " +
             "statistics will be computed for each bucket. Reset events are detected and data points that immediately " +
             "follow such events are filtered out prior to calculating the rates. This avoid misleading or inaccurate " +
-            "rates when resets occur.", response = DataPoint.class, responseContainer = "List")
+            "rates when resets occur.", response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),

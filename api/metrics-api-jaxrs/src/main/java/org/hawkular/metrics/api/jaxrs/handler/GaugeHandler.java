@@ -64,6 +64,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
+import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
@@ -518,7 +519,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     @Path("/{id}/stats")
     @ApiOperation(value = "Retrieve gauge data.", notes = "The time range between start and end will be divided "
             + "in buckets of equal duration, and metric statistics will be computed for each bucket.",
-                    response = DataPoint.class, responseContainer = "List")
+                    response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -670,7 +671,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     @Path("/{id}/stats/tags/{tags}")
     @ApiOperation(value = "Fetches data points and groups them into buckets based on one or more tag filters. The " +
             "data points in each bucket are then transformed into aggregated (i.e., bucket) data points.",
-            response = DataPoint.class, responseContainer = "Map")
+            response = TaggedBucketPoint.class, responseContainer = "Map")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),
@@ -831,7 +832,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     @ApiOperation(
             value = "Retrieve stats for gauge rate data points.", notes = "The time range between start and end " +
             "will be divided in buckets of equal duration, and metric statistics will be computed for each bucket.",
-            response = DataPoint.class, responseContainer = "List")
+            response = NumericBucketPoint.class, responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched metric data."),
             @ApiResponse(code = 204, message = "No metric data was found."),

@@ -55,6 +55,7 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -422,7 +423,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     @Path("/{id}/stats")
     @ApiOperation(value = "Retrieve availability data.", notes = "Based on buckets or bucketDuration query parameter" +
             ", the time range between start and end will be divided in buckets of equal duration, and " +
-            "availability statistics will be computed for each bucket.", response = DataPoint.class,
+            "availability statistics will be computed for each bucket.", response = AvailabilityBucketPoint.class,
             responseContainer = "List")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successfully fetched availability data."),
