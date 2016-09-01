@@ -61,6 +61,8 @@ public class CacheServiceImpl implements CacheService {
             cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
             Cache<DataPointKey, Double> cache = cacheManager.getCache("rawData");
             rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
+            // Clear cache for now to reset it for perf tests
+            rawDataCache.clear();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

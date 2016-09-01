@@ -26,8 +26,8 @@
       <groups enabled="true"/>
       <eviction size="2000000" strategy="LRU" type="COUNT"/>
       <persistence passivation="true">
-        <leveldb-store path="/tmp/hawkular-metrics/raw/data" shared="false" preload="false">
-          <expiration path="/tmp/hawkular-metrics/raw/expired"/>
+        <leveldb-store path="/tmp/hawkular-metrics/jni/raw/data" shared="false" preload="false">
+          <expiration path="/tmp/hawkular-metrics/jni/raw/expired"/>
           <compression type="NONE" />
           <implementation type="JNI"/>
           <write-behind/>
