@@ -94,7 +94,8 @@ public class PublishDataPointsTest {
                 .withoutTransitivity().as(JavaArchive.class)));
 
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
-                .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish")
+                .addPackages(true, "org.hawkular.bus", "org.hawkular.metrics.component.publish",
+                        "org.hawkular.metrics.component.insert")
                 .addAsLibraries(dependencies)
                 .addClass(ConfigurableProducer.class)
                 .addAsWebInfResource(new File("src/test/resources/web.xml"))

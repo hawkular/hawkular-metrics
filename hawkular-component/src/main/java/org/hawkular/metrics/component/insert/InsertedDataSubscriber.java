@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.hawkular.metrics.component.publish;
+package org.hawkular.metrics.component.insert;
 
 import static java.util.stream.Collectors.toList;
 
@@ -40,6 +40,9 @@ import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.component.publish.AvailDataMessage;
+import org.hawkular.metrics.component.publish.MetricDataMessage;
+import org.hawkular.metrics.component.publish.PublishCommandTable;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;

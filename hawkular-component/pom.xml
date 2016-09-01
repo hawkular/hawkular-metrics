@@ -36,6 +36,7 @@
 
   <properties>
     <!-- For tests -->
+    <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
     <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
     <cassandra.keyspace>hawkular_metrics_component_integration_tests</cassandra.keyspace>
   </properties>
@@ -48,6 +49,14 @@
         <version>${version.org.wildfly}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.arquillian</groupId>
+        <artifactId>arquillian-bom</artifactId>
+        <version>${version.org.jboss.arquillian}</version>
+        <scope>import</scope>
+        <type>pom</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -105,15 +114,68 @@
       <artifactId>cdi-api</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <!-- Test dependencies -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.arquillian.junit</groupId>
+      <artifactId>arquillian-junit-container</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.wildfly.arquillian</groupId>
+      <artifactId>wildfly-arquillian-container-managed</artifactId>
+      <version>1.0.2.Final</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.shrinkwrap.resolver</groupId>
+      <artifactId>shrinkwrap-resolver-api-maven</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.shrinkwrap.resolver</groupId>
+      <artifactId>shrinkwrap-resolver-depchain</artifactId>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <includes>
+          <include>*.*</include>
+        </includes>
+        <excludes>
+          <exclude>wildfly</exclude>
+        </excludes>
+        <filtering>true</filtering>
+      </testResource>
+      <testResource>
+        <directory>src/test/resources/wildfly/configuration</directory>
+        <targetPath>${wildfly.dir}/standalone/configuration</targetPath>
+      </testResource>
+    </testResources>
+
     <finalName>hawkular-metrics-component</finalName>
     <plugins>
       <plugin>
@@ -134,6 +196,72 @@
           </overlays>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-wildfly</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.wildfly</groupId>
+                  <artifactId>wildfly-dist</artifactId>
+                  <version>${version.org.wildfly}</version>
+                  <type>zip</type>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.directory}</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <version.org.hawkular.metrics>${project.version}</version.org.hawkular.metrics>
+            <version.org.hawkular.commons>${version.org.hawkular.commons}</version.org.hawkular.commons>
+            <version.io.reactivex.rxjava>${version.io.reactivex.rxjava}</version.io.reactivex.rxjava>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>travis-build</id>
+      <activation>
+        <property>
+          <name>travis</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <systemPropertyVariables>
+                <!--
+                  This needs to be set for travis builds otherwise Shrinkwrap, which is used in Arquillian tests, is
+                  not able to resolve Maven dependencies. See http://goo.gl/cVf6uI for details.
+                -->
+                <org.apache.maven.user-settings>nonExistentSetting.xml</org.apache.maven.user-settings>
+                <version.org.hawkular.metrics>${project.version}</version.org.hawkular.metrics>
+                <version.org.hawkular.commons>${version.org.hawkular.commons}</version.org.hawkular.commons>
+                <version.io.reactivex.rxjava>${version.io.reactivex.rxjava}</version.io.reactivex.rxjava>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
