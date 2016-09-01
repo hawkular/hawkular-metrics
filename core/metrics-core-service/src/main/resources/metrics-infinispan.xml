@@ -24,12 +24,12 @@
 
     <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
-      <eviction size="10000000" strategy="LRU" type="COUNT"/>
+      <eviction size="2000000" strategy="LRU" type="COUNT"/>
       <persistence passivation="true">
-        <leveldb-store path="/tmp/hawkular-metrics/raw/data" shared="true" preload="true">
+        <leveldb-store path="/tmp/hawkular-metrics/raw/data" shared="false" preload="false">
           <expiration path="/tmp/hawkular-metrics/raw/expired"/>
           <compression type="NONE" />
-          <implementation type="JAVA"/>
+          <implementation type="JNI"/>
           <write-behind/>
         </leveldb-store>
       </persistence>

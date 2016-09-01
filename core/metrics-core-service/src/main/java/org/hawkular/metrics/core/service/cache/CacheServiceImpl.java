@@ -118,7 +118,6 @@ public class CacheServiceImpl implements CacheService {
             src.add(metric);
             src.add(timeSlice);
 
-            MessagePack messagePack = new MessagePack();
             return messagePack.write(src);
         } catch (IOException e) {
             throw new RuntimeException(e);
