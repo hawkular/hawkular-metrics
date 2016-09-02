@@ -22,7 +22,7 @@
   <cache-container default-cache="default">
     <transport cluster="HawkularMetrics"/>
 
-    <distributed-cache name="rawData" mode="SYNC" >
+    <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
       <!--<store-as-binary/>-->
       <!--<eviction size="2576980377" strategy="LRU" type="MEMORY"/>-->
