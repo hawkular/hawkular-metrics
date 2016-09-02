@@ -22,7 +22,7 @@
   <cache-container default-cache="default">
     <transport cluster="HawkularMetrics"/>
 
-    <distributed-cache name="rawData" mode="ASYNC" >
+    <distributed-cache name="rawData" mode="SYNC">
       <groups enabled="true"/>
       <!--<store-as-binary/>-->
       <!--<eviction size="2576980377" strategy="LRU" type="MEMORY"/>-->
@@ -32,7 +32,7 @@
         <leveldb-store path="/tmp/hawkular-metrics/jni/raw/data" shared="false" preload="false">
           <expiration path="/tmp/hawkular-metrics/jni/raw/expired"/>
           <compression type="NONE" />
-          <implementation type="JAVA"/>
+          <implementation type="JNI"/>
           <write-behind/>
         </leveldb-store>
       </persistence>
