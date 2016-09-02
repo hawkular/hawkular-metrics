@@ -34,7 +34,10 @@ import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.logging.Logger;
 import org.msgpack.MessagePack;
+import org.msgpack.template.ListTemplate;
+import org.msgpack.template.StringTemplate;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 
 import rx.Completable;
@@ -50,12 +53,22 @@ public class CacheServiceImpl implements CacheService {
     protected EmbeddedCacheManager cacheManager;
 
     private MessagePack messagePack = new MessagePack();
+    private ListTemplate<String> template;
 
     AdvancedCache<DataPointKey, Double> rawDataCache;
+
+    private MetricRegistry metricRegistry;
+
+    public void setMetricRegistry(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
+    }
 
     public void init(){
         try {
             logger.info("Initializing caches");
+
+            template = new ListTemplate<>(StringTemplate.getInstance());
+
             cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
                     "/metrics-infinispan.xml"));
             cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
@@ -120,7 +133,7 @@ public class CacheServiceImpl implements CacheService {
             src.add(metric);
             src.add(timeSlice);
 
-            return messagePack.write(src);
+            return messagePack.write(src, template);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
