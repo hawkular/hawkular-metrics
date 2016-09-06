@@ -177,9 +177,8 @@ public class MetricHandler {
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
             @QueryParam("type") MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Regexp to match metricId, requires tags filtering", required = false) @QueryParam("id")
-            String id
-    ) {
+            @ApiParam(value = "Regexp to match metricId if tags filtering is used, otherwise exact matching",
+                    required = false) @QueryParam("id") String id) {
         if (metricType != null && !metricType.isUserType()) {
             asyncResponse.resume(badRequest(new ApiError("Incorrect type param " + metricType.toString())));
             return;
@@ -190,7 +189,7 @@ public class MetricHandler {
         if(tags == null) {
             if(!Strings.isNullOrEmpty(id)) {
                 // HWKMETRICS-461
-                String[] ids = id.split("|");
+                String[] ids = id.split("\\|");
                 metricObservable = Observable.from(ids)
                         .map(idPart -> new MetricId(getTenant(), metricType, idPart))
                         .flatMap(mId -> (Observable<Metric<T>>) metricsService.findMetric(mId));
