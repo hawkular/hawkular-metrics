@@ -549,6 +549,7 @@ public class MetricsServiceImpl implements MetricsService {
         return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
     }
 
+    @Override
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = PatternUtil.filterPattern(regexp);

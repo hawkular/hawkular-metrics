@@ -26,8 +26,6 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.RatioMap;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
 import rx.Observable;
 
 /**
@@ -40,21 +38,18 @@ public class MetricsServiceImplTest {
 
     @Test
     public void shouldBuildRatioMapSeries() throws Exception {
-        List<DataPoint<AvailabilityType>> serie1 = ImmutableList.of(
-                new DataPoint<>(0L, AvailabilityType.UP),
-                new DataPoint<>(5L, AvailabilityType.DOWN),
-                new DataPoint<>(10L, AvailabilityType.UP));
-        List<DataPoint<AvailabilityType>> serie2 = ImmutableList.of(
-                new DataPoint<>(0L, AvailabilityType.UP),
-                new DataPoint<>(7L, AvailabilityType.DOWN),
-                new DataPoint<>(10L, AvailabilityType.ADMIN));
-        List<DataPoint<AvailabilityType>> serie3 = ImmutableList.of(
-                new DataPoint<>(1L, AvailabilityType.UP),
-                new DataPoint<>(7L, AvailabilityType.DOWN));
         Observable<Observable<DataPoint<AvailabilityType>>> allSeries = Observable.just(
-                Observable.from(serie1),
-                Observable.from(serie2),
-                Observable.from(serie3));
+                Observable.just(
+                        new DataPoint<>(0L, AvailabilityType.UP),
+                        new DataPoint<>(5L, AvailabilityType.DOWN),
+                        new DataPoint<>(10L, AvailabilityType.UP)),
+                Observable.just(
+                        new DataPoint<>(0L, AvailabilityType.UP),
+                        new DataPoint<>(7L, AvailabilityType.DOWN),
+                        new DataPoint<>(10L, AvailabilityType.ADMIN)),
+                Observable.just(
+                        new DataPoint<>(1L, AvailabilityType.UP),
+                        new DataPoint<>(7L, AvailabilityType.DOWN)));
         List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.ASC, AvailabilityType::getText)
                 .toList()
                 .toBlocking()
@@ -79,21 +74,18 @@ public class MetricsServiceImplTest {
 
     @Test
     public void shouldBuildRatioMapSeriesDescendingOrder() throws Exception {
-        List<DataPoint<AvailabilityType>> serie1 = ImmutableList.of(
-                new DataPoint<>(10L, AvailabilityType.UP),
-                new DataPoint<>(5L, AvailabilityType.DOWN),
-                new DataPoint<>(0L, AvailabilityType.UP));
-        List<DataPoint<AvailabilityType>> serie2 = ImmutableList.of(
-                new DataPoint<>(10L, AvailabilityType.ADMIN),
-                new DataPoint<>(7L, AvailabilityType.DOWN),
-                new DataPoint<>(0L, AvailabilityType.UP));
-        List<DataPoint<AvailabilityType>> serie3 = ImmutableList.of(
-                new DataPoint<>(7L, AvailabilityType.DOWN),
-                new DataPoint<>(1L, AvailabilityType.UP));
         Observable<Observable<DataPoint<AvailabilityType>>> allSeries = Observable.just(
-                Observable.from(serie1),
-                Observable.from(serie2),
-                Observable.from(serie3));
+                Observable.just(
+                        new DataPoint<>(10L, AvailabilityType.UP),
+                        new DataPoint<>(5L, AvailabilityType.DOWN),
+                        new DataPoint<>(0L, AvailabilityType.UP)),
+                Observable.just(
+                        new DataPoint<>(10L, AvailabilityType.ADMIN),
+                        new DataPoint<>(7L, AvailabilityType.DOWN),
+                        new DataPoint<>(0L, AvailabilityType.UP)),
+                Observable.just(
+                        new DataPoint<>(7L, AvailabilityType.DOWN),
+                        new DataPoint<>(1L, AvailabilityType.UP)));
         List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.DESC, AvailabilityType::getText)
                 .toList()
                 .toBlocking()
