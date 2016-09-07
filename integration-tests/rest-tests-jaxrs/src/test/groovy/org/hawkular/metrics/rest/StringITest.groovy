@@ -396,4 +396,58 @@ class StringITest extends RESTTest {
     ]))
   }
 
+  @Test
+  void fetchRawStringWithQueryParamsLimitAndOrder() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(4)
+
+    def response = hawkularMetrics.post(
+        path: "strings/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'St1',
+                data: [
+                    [timestamp: start.millis, value: 'running1'],
+                    [timestamp: start.plusHours(1).millis, value: 'running2'],
+                    [timestamp: start.plusHours(2).millis, value: 'maintenance1'],
+                    [timestamp: start.plusHours(3).millis, value: 'maintenance2'],
+                    [timestamp: start.plusHours(4).millis, value: 'down']
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+          path: "strings/St1/raw",
+          headers: [(tenantHeaderName): tenantId],
+          query: [
+              limit: 2,
+              order: 'asc'
+          ]
+      )
+
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+
+    assertEquals([timestamp: start.millis, value: 'running1'], response.data[0])
+    assertEquals([timestamp: start.plusHours(1).millis, value: 'running2'], response.data[1])
+
+    response = hawkularMetrics.get(
+          path: "strings/St1/raw",
+          headers: [(tenantHeaderName): tenantId],
+          query: [
+              limit: 2,
+              order: 'desc'
+          ]
+      )
+
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+
+    assertEquals([timestamp: start.plusHours(4).millis, value: 'down'], response.data[0])
+    assertEquals([timestamp: start.plusHours(3).millis, value: 'maintenance2'], response.data[1])
+   }
+
 }
