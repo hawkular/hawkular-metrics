@@ -907,7 +907,7 @@ public class MetricsServiceImpl implements MetricsService {
             if (limit <= 0) {
                 return availabilityData;
             } else {
-                return availabilityData.limit(limit);
+                return availabilityData.take(limit);
             }
         } else {
             return findDataPoints(id, start, end, limit, order);
@@ -926,7 +926,7 @@ public class MetricsServiceImpl implements MetricsService {
         if (limit > 0) {
             // Limit already applied on C* query, but might be exceeded after aggregation
             // So it's applied again
-            result = result.limit(limit);
+            result = result.take(limit);
         }
         return result;
     }
@@ -941,7 +941,7 @@ public class MetricsServiceImpl implements MetricsService {
         if (limit > 0) {
             // Limit already applied on C* query, but might be exceeded after aggregation
             // So it's applied again
-            result = result.limit(limit);
+            result = result.take(limit);
         }
         return result;
     }

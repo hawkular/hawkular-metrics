@@ -51,11 +51,11 @@ public class MetricsServiceImplTest {
         List<DataPoint<AvailabilityType>> serie3 = ImmutableList.of(
                 new DataPoint<>(1L, AvailabilityType.UP),
                 new DataPoint<>(7L, AvailabilityType.DOWN));
-        Observable<Observable<DataPoint<AvailabilityType>>> observable = Observable.just(
+        Observable<Observable<DataPoint<AvailabilityType>>> allSeries = Observable.just(
                 Observable.from(serie1),
                 Observable.from(serie2),
                 Observable.from(serie3));
-        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(observable, Order.ASC, AvailabilityType::getText)
+        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.ASC, AvailabilityType::getText)
                 .toList()
                 .toBlocking()
                 .single();
@@ -90,11 +90,11 @@ public class MetricsServiceImplTest {
         List<DataPoint<AvailabilityType>> serie3 = ImmutableList.of(
                 new DataPoint<>(7L, AvailabilityType.DOWN),
                 new DataPoint<>(1L, AvailabilityType.UP));
-        Observable<Observable<DataPoint<AvailabilityType>>> observable = Observable.just(
+        Observable<Observable<DataPoint<AvailabilityType>>> allSeries = Observable.just(
                 Observable.from(serie1),
                 Observable.from(serie2),
                 Observable.from(serie3));
-        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(observable, Order.DESC, AvailabilityType::getText)
+        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.DESC, AvailabilityType::getText)
                 .toList()
                 .toBlocking()
                 .single();
