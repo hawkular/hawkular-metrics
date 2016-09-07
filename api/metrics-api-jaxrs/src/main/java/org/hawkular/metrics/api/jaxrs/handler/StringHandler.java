@@ -270,8 +270,8 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     })
     public void getData(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
-                    "The standard start, end, order, and limit query parameters are supported as well.")
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
+                    "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
         findRawDataPointsForMetrics(asyncResponse, query, STRING);
     }

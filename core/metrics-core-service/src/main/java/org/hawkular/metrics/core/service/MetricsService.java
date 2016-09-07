@@ -167,6 +167,22 @@ public interface MetricsService {
             Order order);
 
     /**
+     * Fetch data points for multiple metrics searched by tag.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param metricType The type of the metrics
+     * @param tagFilters The metric tag filter used to query for metrics
+     * @param start      start time inclusive as a Unix timestamp in milliseconds
+     * @param end        end time exclusive as a Unix timestamp in milliseconds
+     * @param limit      limit the number of data points
+     * @param order      the sort order for the results
+     *
+     * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
+     */
+    <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
+         Map<String, String> tagFilters, long start, long end, int limit, Order order);
+
+    /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
      * points Observable is asynchronous. The functions however, are applied serially in the order specified.
      *
@@ -290,6 +306,22 @@ public interface MetricsService {
 
     Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start, long end,
             int limit, Order order);
+
+    /**
+     * Fetches gauge or counter data points for multiple metrics searched by tag and calculates per-minute rates.
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param metricType The type of the metrics
+     * @param tagFilters The metric tag filter used to query for metrics
+     * @param start      start time inclusive as a Unix timestamp in milliseconds
+     * @param end        end time exclusive as a Unix timestamp in milliseconds
+     * @param limit      limit the number of data points
+     * @param order      the sort order for the results
+     *
+     * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
+     */
+    Observable<NamedDataPoint<Double>> findRateData(String tenantId, MetricType<? extends Number> metricType,
+            Map<String, String> tagFilters, long start, long end, int limit, Order order);
 
     /**
      * Computes stats on a counter or gauge rate.

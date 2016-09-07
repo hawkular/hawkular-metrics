@@ -301,7 +301,7 @@ class AvailabilityITest extends RESTTest {
   @Test
   void fetchMRawDataFromMultipleAvailabilityMetricsWithQueryParams() {
     String tenantId = nextTenantId()
-    DateTime start = DateTime.now().minusHours(4)
+    DateTime start = now().minusHours(4)
 
     def response = hawkularMetrics.post(
         path: "availability/raw",
@@ -378,6 +378,102 @@ class AvailabilityITest extends RESTTest {
             [timestamp: start.plusHours(3).millis, value: 'up'],
             [timestamp: start.plusHours(2).millis, value: 'up']
         ]
+    ]))
+  }
+
+  @Test
+  void fetchMRawDataFromMultipleAvailabilityMetricsByTag() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(4)
+
+    // Define tags
+    def response = hawkularMetrics.post(path: 'availability', body: [id: 'A1', tags: [letter: 'A', number: '1']],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+    response = hawkularMetrics.post(path: 'availability', body: [id: 'A2', tags: [letter: 'A', number: '2']],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+            path: "availability/raw",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    [
+                            id: 'A1',
+                            data: [
+                                    [timestamp: start.millis, value: 'up'],
+                                    [timestamp: start.plusHours(1).millis, value: 'up'],
+                                    [timestamp: start.plusHours(2).millis, value: 'down'],
+                                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                                    [timestamp: start.plusHours(4).millis, value: 'up']
+                            ]
+                    ],
+                    [
+                            id: 'A2',
+                            data: [
+                                    [timestamp: start.millis, value: 'up'],
+                                    [timestamp: start.plusHours(1).millis, value: 'down'],
+                                    [timestamp: start.plusHours(2).millis, value: 'up'],
+                                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                                    [timestamp: start.plusHours(4).millis, value: 'down']
+                            ]
+                    ]
+            ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+            path: "availability/raw/query",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    tags: "letter:A",
+                    start: start.plusHours(1).millis,
+                    end: start.plusHours(4).millis,
+                    limit: 2,
+                    order: 'desc'
+            ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+
+    assertTrue(response.data.contains([
+            id: 'A1',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                    [timestamp: start.plusHours(2).millis, value: 'down']
+            ]
+    ]))
+
+    assertTrue(response.data.contains([
+            id: 'A2',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                    [timestamp: start.plusHours(2).millis, value: 'up']
+            ]
+    ]))
+
+    response = hawkularMetrics.post(
+            path: "availability/raw/query",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    tags: "letter:A,number:1",
+                    start: start.plusHours(1).millis,
+                    end: start.plusHours(4).millis,
+                    limit: 2,
+                    order: 'desc'
+            ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(1, response.data.size)
+
+    assertTrue(response.data.contains([
+            id: 'A1',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 'down'],
+                    [timestamp: start.plusHours(2).millis, value: 'down']
+            ]
     ]))
   }
 

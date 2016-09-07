@@ -33,6 +33,8 @@ public class QueryRequest {
 
     private String order;
 
+    private String tags;
+
     public List<String> getIds() {
         return ids;
     }
@@ -73,6 +75,14 @@ public class QueryRequest {
         this.order = order;
     }
 
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
     @Override public String toString() {
         return "QueryRequest{" +
                 "ids=" + ids +
@@ -80,6 +90,7 @@ public class QueryRequest {
                 ", end=" + end +
                 ", limit=" + limit +
                 ", order=" + order +
+                ", tags=" + tags +
                 '}';
     }
 }

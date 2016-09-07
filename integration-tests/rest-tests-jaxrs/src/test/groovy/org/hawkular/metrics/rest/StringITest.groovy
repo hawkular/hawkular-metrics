@@ -450,4 +450,100 @@ class StringITest extends RESTTest {
     assertEquals([timestamp: start.plusHours(3).millis, value: 'maintenance2'], response.data[1])
    }
 
+    @Test
+    void fetchMRawDataFromMultipleStringsMetricsByTag() {
+        String tenantId = nextTenantId()
+        DateTime start = now().minusHours(4)
+
+        // Define tags
+        def response = hawkularMetrics.post(path: 'strings', body: [id: 'A1', tags: [letter: 'A', number: '1']],
+                headers: [(tenantHeaderName): tenantId])
+        assertEquals(201, response.status)
+        response = hawkularMetrics.post(path: 'strings', body: [id: 'A2', tags: [letter: 'A', number: '2']],
+                headers: [(tenantHeaderName): tenantId])
+        assertEquals(201, response.status)
+
+        response = hawkularMetrics.post(
+                path: "strings/raw",
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        [
+                                id: 'A1',
+                                data: [
+                                        [timestamp: start.millis, value: 'red'],
+                                        [timestamp: start.plusHours(1).millis, value: 'red'],
+                                        [timestamp: start.plusHours(2).millis, value: 'green'],
+                                        [timestamp: start.plusHours(3).millis, value: 'green'],
+                                        [timestamp: start.plusHours(4).millis, value: 'red']
+                                ]
+                        ],
+                        [
+                                id: 'A2',
+                                data: [
+                                        [timestamp: start.millis, value: 'red'],
+                                        [timestamp: start.plusHours(1).millis, value: 'green'],
+                                        [timestamp: start.plusHours(2).millis, value: 'red'],
+                                        [timestamp: start.plusHours(3).millis, value: 'blue'],
+                                        [timestamp: start.plusHours(4).millis, value: 'blue']
+                                ]
+                        ]
+                ]
+        )
+        assertEquals(200, response.status)
+
+        response = hawkularMetrics.post(
+                path: "strings/raw/query",
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        tags: "letter:A",
+                        start: start.plusHours(1).millis,
+                        end: start.plusHours(4).millis,
+                        limit: 2,
+                        order: 'desc'
+                ]
+        )
+
+        assertEquals(200, response.status)
+        assertEquals(2, response.data.size)
+
+        assertTrue(response.data.contains([
+                id: 'A1',
+                data: [
+                        [timestamp: start.plusHours(3).millis, value: 'green'],
+                        [timestamp: start.plusHours(2).millis, value: 'green']
+                ]
+        ]))
+
+        assertTrue(response.data.contains([
+                id: 'A2',
+                data: [
+                        [timestamp: start.plusHours(3).millis, value: 'blue'],
+                        [timestamp: start.plusHours(2).millis, value: 'red']
+                ]
+        ]))
+
+        response = hawkularMetrics.post(
+                path: "strings/raw/query",
+                headers: [(tenantHeaderName): tenantId],
+                body: [
+                        tags: "letter:A,number:1",
+                        start: start.plusHours(1).millis,
+                        end: start.plusHours(4).millis,
+                        limit: 2,
+                        order: 'desc'
+                ]
+        )
+
+        assertEquals(200, response.status)
+        assertEquals(1, response.data.size)
+
+        assertTrue(response.data.contains([
+                id: 'A1',
+                data: [
+                        [timestamp: start.plusHours(3).millis, value: 'green'],
+                        [timestamp: start.plusHours(2).millis, value: 'green']
+                ]
+        ]))
+    }
+
 }

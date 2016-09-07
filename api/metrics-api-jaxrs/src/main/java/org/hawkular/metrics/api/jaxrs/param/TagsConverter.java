@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,6 +43,17 @@ public class TagsConverter implements ParamConverter<Tags> {
 
     @Override
     public Tags fromString(String value) {
+        return convert(value);
+    }
+
+    public static Tags fromNullable(String value) {
+        if (value == null) {
+            return new Tags(Collections.emptyMap());
+        }
+        return convert(value);
+    }
+
+    private static Tags convert(String value) {
         if (value.isEmpty()) {
             return new Tags(Collections.emptyMap());
         }
@@ -74,7 +85,7 @@ public class TagsConverter implements ParamConverter<Tags> {
         return new Tags(tags);
     }
 
-    private boolean hasExpectedForm(String token, int colonIndex) {
+    private static boolean hasExpectedForm(String token, int colonIndex) {
         return colonIndex > 0 && colonIndex < token.length();
     }
 
