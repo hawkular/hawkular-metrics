@@ -717,7 +717,7 @@ public class DataAccessImpl implements DataAccess {
                         STRING.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)));
             } else {
                 return rxSession.executeAndFetch(findStringDataByDateRangeExclusiveWithLimitASC.bind(
-                        id.getTenantId(), GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                        id.getTenantId(), STRING.getCode(), id.getName(), DPART, getTimeUUID(startTime),
                         getTimeUUID(endTime), limit));
             }
         } else {
