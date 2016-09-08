@@ -27,6 +27,7 @@ import org.hawkular.metrics.model.RatioMap;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 /**
  * @author Joel Takvorian
@@ -50,24 +51,26 @@ public class MetricsServiceImplTest {
                 Observable.just(
                         new DataPoint<>(1L, AvailabilityType.UP),
                         new DataPoint<>(7L, AvailabilityType.DOWN)));
-        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.ASC, AvailabilityType::getText)
-                .toList()
-                .toBlocking()
-                .single();
+        Observable<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.ASC, AvailabilityType::getText);
+        TestSubscriber<DataPoint<RatioMap>> testSubscriber = new TestSubscriber<>();
+        result.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        List<DataPoint<RatioMap>> emitedDataPoints = testSubscriber.getOnNextEvents();
 
-        assertThat(result).extracting(DataPoint::getTimestamp).containsExactly(0L, 1L, 5L, 7L, 10L);
-        assertThat(result).extracting(dp -> dp.getValue().getSamples())
+        assertThat(emitedDataPoints).extracting(DataPoint::getTimestamp).containsExactly(0L, 1L, 5L, 7L, 10L);
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getSamples())
                 .containsExactly(2, 3, 3, 3, 3);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("up"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("up"))
                 .usingElementComparator(dc)
                 .containsExactly(1d, 1d, 0.6667, 0d, 0.3333);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("down"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("down"))
                 .usingElementComparator(dc)
                 .containsExactly(0d, 0d, 0.3333, 1d, 0.3333);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("admin"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("admin"))
                 .usingElementComparator(dc)
                 .containsExactly(0d, 0d, 0d, 0d, 0.3333);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("unknown"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("unknown"))
                 .usingElementComparator(dc)
                 .containsExactly(0d, 0d, 0d, 0d, 0d);
     }
@@ -86,24 +89,26 @@ public class MetricsServiceImplTest {
                 Observable.just(
                         new DataPoint<>(7L, AvailabilityType.DOWN),
                         new DataPoint<>(1L, AvailabilityType.UP)));
-        List<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.DESC, AvailabilityType::getText)
-                .toList()
-                .toBlocking()
-                .single();
+        Observable<DataPoint<RatioMap>> result = service.buildRatioMapSeries(allSeries, Order.DESC, AvailabilityType::getText);
+        TestSubscriber<DataPoint<RatioMap>> testSubscriber = new TestSubscriber<>();
+        result.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        List<DataPoint<RatioMap>> emitedDataPoints = testSubscriber.getOnNextEvents();
 
-        assertThat(result).extracting(DataPoint::getTimestamp).containsExactly(10L, 7L, 5L, 1L, 0L);
-        assertThat(result).extracting(dp -> dp.getValue().getSamples())
+        assertThat(emitedDataPoints).extracting(DataPoint::getTimestamp).containsExactly(10L, 7L, 5L, 1L, 0L);
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getSamples())
                 .containsExactly(3, 3, 3, 3, 2);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("up"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("up"))
                 .usingElementComparator(dc)
                 .containsExactly(0.3333, 0d, 0.6667, 1d, 1d);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("down"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("down"))
                 .usingElementComparator(dc)
                 .containsExactly(0.3333, 1d, 0.3333, 0d, 0d);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("admin"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("admin"))
                 .usingElementComparator(dc)
                 .containsExactly(0.3333, 0d, 0d, 0d, 0d);
-        assertThat(result).extracting(dp -> dp.getValue().getRatio("unknown"))
+        assertThat(emitedDataPoints).extracting(dp -> dp.getValue().getRatio("unknown"))
                 .usingElementComparator(dc)
                 .containsExactly(0d, 0d, 0d, 0d, 0d);
     }
