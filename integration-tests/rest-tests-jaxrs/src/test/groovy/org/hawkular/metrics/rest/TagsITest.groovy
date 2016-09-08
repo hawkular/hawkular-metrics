@@ -399,7 +399,14 @@ class TagsITest extends RESTTest {
       ], headers: [(tenantHeaderName): tenantId])
       assertEquals(201, response.status)
 
-      response = hawkularMetrics.get(path: it.path,
+      response = hawkularMetrics.post(path: it.path, body: [
+          id  : '91c171ed-0294-44b3-bcdb-42253b58aa5a',
+          tags: ['c1': 'C'],
+          dataRetention: 7
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.get(path: 'metrics',
           query: [id: 'N1|N2', type: it.type],
           headers: [(tenantHeaderName): tenantId])
 
@@ -422,6 +429,30 @@ class TagsITest extends RESTTest {
             type: it.type
         ]))
       }
+
+      // Create metric with uuid, detect issue with regexp |
+      response = hawkularMetrics.get(path: 'metrics',
+          query: [id: '91c171ed-0294-44b3-bcdb-42253b58aa5a', type: it.type],
+          headers: [(tenantHeaderName): tenantId])
+
+        assertEquals(response.data, [[
+            dataRetention: 7,
+            tenantId: tenantId,
+            id      : '91c171ed-0294-44b3-bcdb-42253b58aa5a',
+            tags    : ['c1': 'C'],
+            type: it.type
+        ]])
+
+        assertEquals(200, response.status)
+        assertTrue(response.data instanceof List)
+        assertEquals(1, response.data.size())
+        assertTrue((response.data ?: []).contains([
+            dataRetention: 7,
+            tenantId: tenantId,
+            id      : '91c171ed-0294-44b3-bcdb-42253b58aa5a',
+            tags    : ['c1': 'C'],
+            type: it.type
+        ]))
     }
   }
 }
