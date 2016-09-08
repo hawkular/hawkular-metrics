@@ -25,6 +25,7 @@ import javax.enterprise.context.ApplicationScoped;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.model.MetricId;
 import org.infinispan.Cache;
+import org.jboss.logging.Logger;
 
 /**
  * A table to store a cache of published metrics on the bus under hawkular-services context.
@@ -35,12 +36,18 @@ import org.infinispan.Cache;
 @ApplicationScoped
 @Eager
 public class PublishCommandTable {
+    private static final Logger LOG = Logger.getLogger(PublishCommandTable.class);
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/publish")
     private Cache publishCache;
 
     public boolean isPublished(MetricId id) {
-        return publishCache.containsKey(id);
+        if (id == null) {
+            return false;
+        }
+        boolean isPublished = publishCache.containsKey(convert(id));
+        LOG.debugf("isPublished( %s ) = %s Publish Cache size: %s", id, isPublished, publishCache.size());
+        return isPublished;
     }
 
     /*
@@ -49,7 +56,13 @@ public class PublishCommandTable {
      */
     public synchronized void add(List<MetricId> ids) {
         if (ids != null) {
-            publishCache.putAll(ids.stream().collect(Collectors.toMap(id -> id, id -> id)));
+            publishCache.putAll(ids.stream().collect(Collectors.toMap(id -> convert(id), id -> convert(id))));
         }
+    }
+
+    private String convert(MetricId id) {
+        return new StringBuilder(id.getTenantId() == null ? "" : id.getTenantId()).append("-")
+                .append((id.getType() == null ? "" : id.getType().getText())).append("-")
+                .append((id.getName() == null ? "" : id.getName())).toString();
     }
 }
