@@ -24,6 +24,8 @@ import static org.joda.time.Duration.standardMinutes;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import org.joda.time.Minutes;
+
 /**
  * @author jsanda
  */
@@ -58,6 +60,7 @@ public class SingleExecutionTrigger implements Trigger {
             if (triggerTime != null) {
                 this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));
             } else {
+                long actualDelay = delay == null ? Minutes.ONE.toStandardDuration().getMillis() : delay;
                 this.triggerTime = getTimeSlice(now.get().getMillis() + delay, standardMinutes(1));
             }
         }
