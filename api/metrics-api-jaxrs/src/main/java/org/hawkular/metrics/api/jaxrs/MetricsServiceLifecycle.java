@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TOKEN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_CONN_HOST;
@@ -77,7 +78,9 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
+import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -158,6 +161,11 @@ public class MetricsServiceLifecycle {
     private String disableMetricsJmxReporting;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(ADMIN_TOKEN)
+    private String adminToken;
+
+    @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
@@ -168,7 +176,7 @@ public class MetricsServiceLifecycle {
     private int connectionAttempts;
     private Session session;
     private JmxReporter jmxReporter;
-
+    private ConfigurationService configurationService;
     private DataAccess dataAcces;
 
     MetricsServiceLifecycle() {
@@ -246,8 +254,10 @@ public class MetricsServiceLifecycle {
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
-            ConfigurationService configurationService = new ConfigurationService();
+            configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
+
+            persistAdminToken();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
@@ -374,6 +384,14 @@ public class MetricsServiceLifecycle {
         jobsService.start();
     }
 
+    private void persistAdminToken() {
+        if (adminToken != null && !adminToken.trim().isEmpty()) {
+            String hashedAdminToken = Hashing.sha256().newHasher().putString(adminToken, Charsets.UTF_8).hash()
+                    .toString();
+            configurationService.save("org.hawkular.metrics", "admin.token", hashedAdminToken);
+        }
+    }
+
     /**
      * @return a {@link MetricsService} instance to share in application scope
      */
@@ -387,6 +405,12 @@ public class MetricsServiceLifecycle {
     @ApplicationScoped
     public JobsService getJobsService() {
         return jobsService;
+    }
+
+    @Produces
+    @ApplicationScoped
+    public ConfigurationService getConfigurationService() {
+        return configurationService;
     }
 
     @Produces

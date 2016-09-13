@@ -21,6 +21,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
 
 import java.io.IOException;
 
+import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
@@ -32,6 +33,10 @@ import javax.ws.rs.ext.Provider;
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
+
+import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 
 /**
  * @author Stefan Negrea
@@ -40,21 +45,45 @@ import org.hawkular.metrics.model.ApiError;
 @PreMatching
 public class TenantFilter implements ContainerRequestFilter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
+    public static final String ADMIN_TOKEN_HEADER_NAME = "Hawkular-Admin-Token";
 
     private static final String MISSING_TENANT_MSG;
+    private static final String WRONG_ADMIN_TOKEN_MSG;
 
     static {
         MISSING_TENANT_MSG = "Tenant is not specified. Use '"
                              + TENANT_HEADER_NAME
                              + "' header.";
+
+        WRONG_ADMIN_TOKEN_MSG = "Admin token is wrong or not specified.";
     }
+
+    @Inject
+    private ConfigurationService configurationService;
+
+    private String savedAdminToken;
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
+        if (path.startsWith("/tenants")) {
+            String adminToken = requestContext.getHeaders().getFirst(ADMIN_TOKEN_HEADER_NAME);
+            if (adminToken != null && !adminToken.trim().isEmpty() && validAdminToken(adminToken)) {
+                return;
+            } else {
+                // Fail on bad admin token
+                Response response = Response.status(Status.BAD_REQUEST)
+                        .type(APPLICATION_JSON_TYPE)
+                        .entity(new ApiError(WRONG_ADMIN_TOKEN_MSG))
+                        .build();
+                requestContext.abortWith(response);
+                return;
+            }
+        }
+
+        if (path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
             // Some handlers do not check the tenant header
             return;
         }
@@ -70,5 +99,20 @@ public class TenantFilter implements ContainerRequestFilter {
                                     .entity(new ApiError(MISSING_TENANT_MSG))
                                     .build();
         requestContext.abortWith(response);
+    }
+
+    private boolean validAdminToken(String adminToken) {
+        if (savedAdminToken == null) {
+            savedAdminToken = configurationService.load("org.hawkular.metrics", "admin.token").toBlocking()
+                    .firstOrDefault("");
+        }
+
+        adminToken = Hashing.sha256().newHasher().putString(adminToken, Charsets.UTF_8).hash().toString();
+
+        if (adminToken.equals(savedAdminToken)) {
+            return true;
+        }
+
+        return false;
     }
 }

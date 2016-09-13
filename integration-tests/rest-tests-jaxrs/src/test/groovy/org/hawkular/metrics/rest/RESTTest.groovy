@@ -43,9 +43,11 @@ class RESTTest {
   static final String TENANT_PREFIX = UUID.randomUUID().toString()
   static final AtomicInteger TENANT_ID_COUNTER = new AtomicInteger(0)
   static final int LARGE_PAYLOAD_SIZE = MAX_BATCH_SIZE
-  static String tenantHeaderName = "Hawkular-Tenant";
   static ObjectMapper objectMapper = new ObjectMapper()
   static RESTClient hawkularMetrics
+
+  static String tenantHeaderName = "Hawkular-Tenant"
+  static String adminTokenHeaderName = "Hawkular-Admin-Token"
 
   static metricTypes =  [
     ["path": "gauges", "type": "gauge"],

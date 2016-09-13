@@ -358,14 +358,7 @@ class GaugesITest extends RESTTest {
   void findRate() {
     String gauge = "G1"
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: "tenants",
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
@@ -410,14 +403,7 @@ Actual:   ${response.data}
   void findRateStats() {
     String gauge = "G1"
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: "tenants",
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [

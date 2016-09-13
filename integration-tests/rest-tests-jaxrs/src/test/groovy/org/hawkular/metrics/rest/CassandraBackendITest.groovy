@@ -206,13 +206,9 @@ class CassandraBackendITest extends RESTTest {
     DateTime start = now().minusMinutes(10)
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(201, response.status)
-    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
-
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
-    response = hawkularMetrics.post(path: "gauges", body: [
+    def response = hawkularMetrics.post(path: "gauges", body: [
         id: 'm2',
         tags: [a: '1', b: '2'],
         dataRetention: 24
@@ -261,13 +257,9 @@ class CassandraBackendITest extends RESTTest {
     DateTime start = now().minusMinutes(10)
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(201, response.status)
-    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
-
     // Let's explicitly create one of the metrics with some tags and a data retention
     // so that we can verify we get back that info along with the data.
-    response = hawkularMetrics.post(path: "availability", body: [
+    def response = hawkularMetrics.post(path: "availability", body: [
         id         : 'm2',
         tags         : [a: '1', b: '2'],
         dataRetention: 12
@@ -620,13 +612,9 @@ class CassandraBackendITest extends RESTTest {
   void insertMetricsWithOverwriteViaTypeEndpoint() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(201, response.status)
-    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
-
     for (metricType in metricTypes) {
       //create metric
-      response = hawkularMetrics.post(path: metricType.path, body: [
+      def response = hawkularMetrics.post(path: metricType.path, body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24
@@ -678,13 +666,9 @@ class CassandraBackendITest extends RESTTest {
   void insertMetricsWithOverwriteViaMetricsEndpoint() {
     def tenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
-    assertEquals(201, response.status)
-    assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
-
     for (metricType in metricTypes) {
       //create metric
-      response = hawkularMetrics.post(path: 'metrics', body: [
+      def response = hawkularMetrics.post(path: 'metrics', body: [
           id: 'm2',
           tags: [a: '1', b: '2'],
           dataRetention: 24,
