@@ -17,6 +17,7 @@
 
 package org.hawkular.metrics.core.service.transformers;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -37,8 +38,9 @@ import org.hawkular.metrics.model.Percentile;
  *
  * @author Thomas Segismont
  */
-public final class NumericDataPointCollector {
+public final class NumericDataPointCollector implements Serializable {
 
+    private static final long serialVersionUID = -2141924463214793318L;
     /**
      * This is a test hook. See {@link Percentile} for details.
      */
@@ -58,10 +60,15 @@ public final class NumericDataPointCollector {
         public synchronized double getResult() {
             return percentile.getResult();
         }
+
+        @Override
+        public void clear() {
+            percentile.clear();
+        }
     };
 
-    private final Buckets buckets;
-    private final int bucketIndex;
+    private Buckets buckets;
+    private int bucketIndex;
 
     private int samples = 0;
     private Min min = new Min();
@@ -71,6 +78,9 @@ public final class NumericDataPointCollector {
     private List<PercentileWrapper> percentiles;
     private List<Percentile> percentileList;
 
+    NumericDataPointCollector() {
+    }
+
     public NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Percentile> percentilesList) {
         this.buckets = buckets;
         this.bucketIndex = bucketIndex;
@@ -78,6 +88,20 @@ public final class NumericDataPointCollector {
         this.percentileList = percentilesList;
         percentilesList.stream().forEach(d -> percentiles.add(createPercentile.apply(d.getQuantile())));
         percentiles.add(createPercentile.apply(50.0)); // Important to be the last one
+    }
+
+    public void reset(Buckets buckets) {
+        this.buckets = buckets;
+        samples = 0;
+        min.clear();
+        average.clear();
+        max.clear();
+        sum.clear();
+        percentiles.forEach(PercentileWrapper::clear);
+    }
+
+    public Buckets getBuckets() {
+        return buckets;
     }
 
     public void increment(DataPoint<? extends Number> dataPoint) {

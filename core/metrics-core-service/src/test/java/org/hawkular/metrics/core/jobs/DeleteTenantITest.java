@@ -98,6 +98,7 @@ public class DeleteTenantITest extends BaseITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
+        metricsService.setCacheService(cacheService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
 
         jobScheduler = new TestScheduler(rxSession);
@@ -106,6 +107,8 @@ public class DeleteTenantITest extends BaseITest {
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setCacheService(cacheService);
     }
 
     @BeforeMethod

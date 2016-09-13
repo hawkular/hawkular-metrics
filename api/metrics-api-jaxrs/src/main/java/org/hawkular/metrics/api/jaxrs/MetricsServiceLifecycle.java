@@ -61,6 +61,7 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.cache.CacheServiceImpl;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -106,6 +107,10 @@ public class MetricsServiceLifecycle {
     private Scheduler scheduler;
 
     private JobsServiceImpl jobsService;
+
+    private ConfigurationService configurationService;
+
+    private CacheServiceImpl cacheService;
 
     @Inject
     @Configurable
@@ -246,12 +251,16 @@ public class MetricsServiceLifecycle {
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
-            ConfigurationService configurationService = new ConfigurationService();
+            configurationService = new ConfigurationService();
             configurationService.init(new RxSessionImpl(session));
+
+            cacheService = new CacheServiceImpl();
+            cacheService.init();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
             metricsService.setConfigurationService(configurationService);
+            metricsService.setCacheService(cacheService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
             MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
@@ -367,6 +376,8 @@ public class MetricsServiceLifecycle {
     private void initJobsService() {
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
+        jobsService.setConfigurationService(configurationService);
+        jobsService.setCacheService(cacheService);
         jobsService.setMetricsService(metricsService);
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);

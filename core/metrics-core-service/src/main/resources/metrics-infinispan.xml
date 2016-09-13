@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<infinispan>
+
+  <cache-container default-cache="default">
+    <transport cluster="HawkularMetrics"/>
+
+    <distributed-cache name="rawData" mode="ASYNC" >
+      <groups enabled="true"/>
+      <store-as-binary/>
+      <eviction size="2576980377" strategy="LRU" type="MEMORY"/>
+      <!--<eviction size="5000000" strategy="LRU" type="COUNT"/>-->
+      <!--<eviction size="1000000" strategy="LRU" type="COUNT"/>-->
+      <persistence passivation="true">
+        <leveldb-store path="/tmp/hawkular-metrics/jni/raw/data" shared="false" preload="false">
+          <expiration path="/tmp/hawkular-metrics/jni/raw/expired"/>
+          <compression type="NONE" />
+          <implementation type="JAVA"/>
+          <write-behind/>
+        </leveldb-store>
+      </persistence>
+    </distributed-cache>
+
+    <distributed-cache name="rollup300" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+
+    <distributed-cache name="rollup3600" mode="ASYNC">
+      <groups enabled="true"/>
+    </distributed-cache>
+  </cache-container>
+</infinispan>

@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.cache.CacheService;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
@@ -82,6 +83,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -148,6 +150,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private CacheService cacheService;
 
     private MetricRegistry metricRegistry;
 
@@ -383,6 +387,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
@@ -654,6 +662,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
         // We write to both the data and the metrics_idx tables. Each metric can have one or more data points. We
         // currently write a separate batch statement for each metric.
@@ -676,12 +685,36 @@ public class MetricsServiceImpl implements MetricsService {
         Meter meter = getInsertMeter(metricType);
         Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
 
+        if (metricType == GAUGE) {
+            Observable<Integer> updates = metrics
+                    .filter(metric -> !metric.getDataPoints().isEmpty())
+                    .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                            .mergeWith(cacheService.update(metric).toObservable())
+                            .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(meter::mark);
+        } else {
+            Observable<Integer> updates = metrics
+                    .filter(metric -> !metric.getDataPoints().isEmpty())
+                    .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                            .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(meter::mark);
+        }
+
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
                 .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                        .mergeWith(cacheService.update(metric).toObservable())
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
+//        Completable cacheUpdates;
+//        if (metricType == GAUGE) {
+//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+//        } else {
+//            cacheUpdates = Completable.complete();
+//        }
+
+//        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
         return updates.map(i -> null);
     }
 

@@ -16,13 +16,20 @@
  */
 package org.hawkular.metrics.model;
 
+import java.io.Serializable;
+
 /**
  * @author Michael Burman
  */
-public class Percentile {
+public class Percentile implements Serializable {
+
+    private static final long serialVersionUID = 530087318050783677L;
     private double target;
     private double value = 0.0;
     private String originalQuantile;
+
+    private Percentile() {
+    }
 
     public Percentile(String quantile) {
         this.originalQuantile = quantile;
