@@ -686,27 +686,22 @@ public class MetricsServiceImpl implements MetricsService {
         Meter meter = getInsertMeter(metricType);
         Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
 
+        Observable<Integer> updates;
         if (metricType == GAUGE) {
-            Observable<Integer> updates = metrics
+            updates = metrics
                     .filter(metric -> !metric.getDataPoints().isEmpty())
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
                             .mergeWith(cacheService.update(metric).toObservable())
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(i -> log.info("Inserted data points"))
                     .doOnNext(meter::mark);
         } else {
-            Observable<Integer> updates = metrics
+            updates = metrics
                     .filter(metric -> !metric.getDataPoints().isEmpty())
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                     .doOnNext(meter::mark);
         }
-
-        Observable<Integer> updates = metrics
-                .filter(metric -> !metric.getDataPoints().isEmpty())
-                .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
-                        .mergeWith(cacheService.update(metric).toObservable())
-                        .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
-                .doOnNext(meter::mark);
 
 //        Completable cacheUpdates;
 //        if (metricType == GAUGE) {

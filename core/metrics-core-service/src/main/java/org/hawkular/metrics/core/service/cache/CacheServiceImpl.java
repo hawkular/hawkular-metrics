@@ -117,33 +117,6 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public <T> Completable update(Metric<T> metric) {
-//        try {
-//            List<String> src = new ArrayList<>(2);
-//            src.add(metric.getMetricId().getTenantId());
-//            src.add(metric.getMetricId().getName());
-//            MetricKey key = new MetricKey(messagePack.write(src, template));
-//
-//            MetricValue value = rawDataCache.get(key);
-//            if (value == null) {
-//                Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
-//                        currentMinute().plusMinutes(1).getMillis(), 1);
-//                value = new MetricValue(buckets, asList(new Percentile("90", 90.0), new Percentile("95", 95.0),
-//                        new Percentile("99", 99.0)));
-//            } else if (isTimeSliceFinished(value)) {
-//                // TODO write stats to cassandra and reset collector
-//                Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
-//                        currentMinute().plusMinutes(1).getMillis(), 1);
-//                value.reset(buckets);
-//            }
-//            for (DataPoint<T> dataPoint : metric.getDataPoints()) {
-//                value.increment((DataPoint<Double>) dataPoint);
-//            }
-//            NotifyingFuture<MetricValue> future = rawDataCache.putAsync(key, value);
-//            return from(future).toCompletable();
-//        } catch (IOException e) {
-//            return Completable.error(e);
-//        }
-
         try {
             List<String> src = new ArrayList<>(2);
             src.add(metric.getMetricId().getTenantId());
@@ -165,12 +138,39 @@ public class CacheServiceImpl implements CacheService {
             for (DataPoint<T> dataPoint : metric.getDataPoints()) {
                 value.increment((DataPoint<Double>) dataPoint);
             }
-            rawDataCache.put(key, value);
-
-            return Completable.complete();
+            NotifyingFuture<MetricValue> future = rawDataCache.putAsync(key, value);
+            return from(future).toCompletable();
         } catch (IOException e) {
             return Completable.error(e);
         }
+
+//        try {
+//            List<String> src = new ArrayList<>(2);
+//            src.add(metric.getMetricId().getTenantId());
+//            src.add(metric.getMetricId().getName());
+//            MetricKey key = new MetricKey(messagePack.write(src, template));
+//
+//            MetricValue value = rawDataCache.get(key);
+//            if (value == null) {
+//                Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
+//                        currentMinute().plusMinutes(1).getMillis(), 1);
+//                value = new MetricValue(buckets, asList(new Percentile("90", 90.0), new Percentile("95", 95.0),
+//                        new Percentile("99", 99.0)));
+//            } else if (isTimeSliceFinished(value)) {
+//                // TODO write stats to cassandra and reset collector
+//                Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
+//                        currentMinute().plusMinutes(1).getMillis(), 1);
+//                value.reset(buckets);
+//            }
+//            for (DataPoint<T> dataPoint : metric.getDataPoints()) {
+//                value.increment((DataPoint<Double>) dataPoint);
+//            }
+//            rawDataCache.put(key, value);
+//
+//            return Completable.complete();
+//        } catch (IOException e) {
+//            return Completable.error(e);
+//        }
     }
 
     private boolean isTimeSliceFinished(MetricValue value) {
