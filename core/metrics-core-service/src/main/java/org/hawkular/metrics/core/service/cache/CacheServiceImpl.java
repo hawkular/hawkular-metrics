@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -58,7 +57,7 @@ public class CacheServiceImpl implements CacheService {
     private ListTemplate<String> template;
 
 //    AdvancedCache<DataPointKey, Double> rawDataCache;
-    AdvancedCache<MetricKey, NumericDataPointCollector> rawDataCache;
+    AdvancedCache<MetricKey, MetricValue> rawDataCache;
 
     private MetricRegistry metricRegistry;
 
@@ -75,7 +74,7 @@ public class CacheServiceImpl implements CacheService {
             cacheManager = new DefaultCacheManager(CacheServiceImpl.class.getResourceAsStream(
                     "/metrics-infinispan.xml"));
             cacheManager.startCaches(cacheManager.getCacheNames().toArray(new String[0]));
-            Cache<MetricKey, NumericDataPointCollector> cache = cacheManager.getCache("rawData");
+            Cache<MetricKey, MetricValue> cache = cacheManager.getCache("rawData");
             rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
             // Clear cache for now to reset it for perf tests
             rawDataCache.clear();
@@ -90,7 +89,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    public AdvancedCache<MetricKey, NumericDataPointCollector> getRawDataCache() {
+    public AdvancedCache<MetricKey, MetricValue> getRawDataCache() {
         return rawDataCache;
     }
 
@@ -124,30 +123,30 @@ public class CacheServiceImpl implements CacheService {
             src.add(metric.getMetricId().getName());
             MetricKey key = new MetricKey(messagePack.write(src, template));
 
-            NumericDataPointCollector collector = rawDataCache.get(key);
-            if (collector == null) {
+            MetricValue value = rawDataCache.get(key);
+            if (value == null) {
                 Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
                         currentMinute().plusMinutes(1).getMillis(), 1);
-                collector = new NumericDataPointCollector(buckets, 0,  asList(new Percentile("90", 90.0),
-                        new Percentile("95", 95.0), new Percentile("99", 99.0)));
-            } else if (isTimeSliceFinished(collector)) {
+                value = new MetricValue(buckets, asList(new Percentile("90", 90.0), new Percentile("95", 95.0),
+                        new Percentile("99", 99.0)));
+            } else if (isTimeSliceFinished(value)) {
                 // TODO write stats to cassandra and reset collector
                 Buckets buckets = Buckets.fromCount(currentMinute().getMillis(),
                         currentMinute().plusMinutes(1).getMillis(), 1);
-                collector.reset(buckets);
+                value.reset(buckets);
             }
             for (DataPoint<T> dataPoint : metric.getDataPoints()) {
-                collector.increment((DataPoint<Double>) dataPoint);
+                value.increment((DataPoint<Double>) dataPoint);
             }
-            NotifyingFuture<NumericDataPointCollector> future = rawDataCache.putAsync(key, collector);
+            NotifyingFuture<MetricValue> future = rawDataCache.putAsync(key, value);
             return from(future).toCompletable();
         } catch (IOException e) {
             return Completable.error(e);
         }
     }
 
-    private boolean isTimeSliceFinished(NumericDataPointCollector collector) {
-        return collector.getBuckets().getStart() + collector.getBuckets().getStep() >= System.currentTimeMillis();
+    private boolean isTimeSliceFinished(MetricValue value) {
+        return value.getBuckets().getStart() + value.getBuckets().getStep() >= System.currentTimeMillis();
     }
 
     @Override

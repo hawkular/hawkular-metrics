@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.service.cache;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.Metric;
 import org.infinispan.AdvancedCache;
 
@@ -30,7 +29,7 @@ import rx.Completable;
 public interface CacheService {
 
 //    AdvancedCache<DataPointKey, Double> getRawDataCache();
-    AdvancedCache<MetricKey, NumericDataPointCollector> getRawDataCache();
+    AdvancedCache<MetricKey, MetricValue> getRawDataCache();
 
     <T> Completable update(Metric<T> metric);
 
