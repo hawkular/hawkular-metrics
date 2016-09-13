@@ -74,6 +74,17 @@ public class CacheITest extends BaseMetricsITest {
     }
 
     @Test
+    public void updateCache() {
+        String tenant = "UpdateCacheTest";
+        List<Metric<Double>> metrics = new ArrayList<>();
+        for (int i = 0; i < 1000; ++i) {
+            MetricId<Double> id = new MetricId<>(tenant, GAUGE, "G" + i);
+            metrics.add(new Metric<>(id, singletonList(new DataPoint<>(System.currentTimeMillis(), 3.14))));
+        }
+        metrics.forEach(metric -> cacheService.update(metric));
+    }
+
+//    @Test
     public void populateCache() {
         String tenant = "CacheTest";
         List<Metric<Double>> metrics = new ArrayList<>();
