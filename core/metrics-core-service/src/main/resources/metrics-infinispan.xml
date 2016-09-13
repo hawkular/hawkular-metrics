@@ -26,7 +26,7 @@
       <groups enabled="true"/>
       <!--<store-as-binary/>-->
       <!--<eviction size="3006477107" strategy="LRU" type="MEMORY"/>-->
-      <eviction size="11000000" strategy="LRU" type="COUNT"/>
+      <eviction size="15000000" strategy="LRU" type="COUNT"/>
       <!--<eviction size="1000000" strategy="LRU" type="COUNT"/>-->
       <persistence passivation="true">
         <leveldb-store path="/tmp/hawkular-metrics/jni/raw/data" shared="false" preload="false">
