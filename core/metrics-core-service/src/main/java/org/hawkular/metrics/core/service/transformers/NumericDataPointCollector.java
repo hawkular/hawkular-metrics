@@ -17,6 +17,7 @@
 
 package org.hawkular.metrics.core.service.transformers;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -37,8 +38,9 @@ import org.hawkular.metrics.model.Percentile;
  *
  * @author Thomas Segismont
  */
-public final class NumericDataPointCollector {
+public final class NumericDataPointCollector implements Serializable {
 
+    private static final long serialVersionUID = -2141924463214793318L;
     /**
      * This is a test hook. See {@link Percentile} for details.
      */
@@ -66,7 +68,7 @@ public final class NumericDataPointCollector {
     };
 
     private Buckets buckets;
-    private final int bucketIndex;
+    private int bucketIndex;
 
     private int samples = 0;
     private Min min = new Min();
@@ -75,6 +77,9 @@ public final class NumericDataPointCollector {
     private Sum sum = new Sum();
     private List<PercentileWrapper> percentiles;
     private List<Percentile> percentileList;
+
+    NumericDataPointCollector() {
+    }
 
     public NumericDataPointCollector(Buckets buckets, int bucketIndex, List<Percentile> percentilesList) {
         this.buckets = buckets;
