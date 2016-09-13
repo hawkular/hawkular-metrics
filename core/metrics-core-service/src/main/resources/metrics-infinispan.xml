@@ -25,7 +25,7 @@
     <distributed-cache name="rawData" mode="ASYNC" >
       <groups enabled="true"/>
       <store-as-binary/>
-      <eviction size="2576980377" strategy="LRU" type="MEMORY"/>
+      <eviction size="1073741824" strategy="LRU" type="MEMORY"/>
       <!--<eviction size="5000000" strategy="LRU" type="COUNT"/>-->
       <!--<eviction size="1000000" strategy="LRU" type="COUNT"/>-->
       <persistence passivation="true">
