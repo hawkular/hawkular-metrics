@@ -219,6 +219,10 @@
                 <keyspace>${test.keyspace}</keyspace>
                 <nodes>${nodes}</nodes>
               </systemPropertyVariables>
+              <!--<argLine>-Xms2048M -Xmx2048M -Xloggc:target/gc.log</argLine>-->
+              <argLine>-Xms2048M -Xmx2048M -Xloggc:target/gc.log -XX:+UnlockCommercialFeatures -XX:+FlightRecorder
+                -XX:FlightRecorderOptions=settings=default,dumponexit=true,dumponexitpath=/tmp/metrics.jfr</argLine>
+              <!--<argLine>-Xms2048M -Xmx2048M -Xloggc:target/gc.log -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6</argLine>-->
             </configuration>
             <executions>
               <execution>

@@ -58,9 +58,14 @@ public final class NumericDataPointCollector {
         public synchronized double getResult() {
             return percentile.getResult();
         }
+
+        @Override
+        public void clear() {
+            percentile.clear();
+        }
     };
 
-    private final Buckets buckets;
+    private Buckets buckets;
     private final int bucketIndex;
 
     private int samples = 0;
@@ -78,6 +83,20 @@ public final class NumericDataPointCollector {
         this.percentileList = percentilesList;
         percentilesList.stream().forEach(d -> percentiles.add(createPercentile.apply(d.getQuantile())));
         percentiles.add(createPercentile.apply(50.0)); // Important to be the last one
+    }
+
+    public void reset(Buckets buckets) {
+        this.buckets = buckets;
+        samples = 0;
+        min.clear();
+        average.clear();
+        max.clear();
+        sum.clear();
+        percentiles.forEach(PercentileWrapper::clear);
+    }
+
+    public Buckets getBuckets() {
+        return buckets;
     }
 
     public void increment(DataPoint<? extends Number> dataPoint) {

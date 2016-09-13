@@ -77,7 +77,7 @@ public class CacheITest extends BaseMetricsITest {
     public void populateCache() {
         String tenant = "CacheTest";
         List<Metric<Double>> metrics = new ArrayList<>();
-        DateTime end = now().plusMinutes(10);
+        DateTime end = now().plusMinutes(1);
 
         while (now().isBefore(end)) {
             for (int i = 0; i < 1000; ++i) {

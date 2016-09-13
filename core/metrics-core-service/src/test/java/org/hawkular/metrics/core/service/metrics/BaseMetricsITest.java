@@ -274,11 +274,13 @@ public abstract class BaseMetricsITest extends BaseITest {
             this.percentile = percentile;
         }
 
-        @Override public void addValue(double value) {
+        @Override
+        public void addValue(double value) {
             values.add(value);
         }
 
-        @Override public double getResult() {
+        @Override
+        public double getResult() {
             org.apache.commons.math3.stat.descriptive.rank.Percentile percentileCalculator =
                     new org.apache.commons.math3.stat.descriptive.rank.Percentile(percentile);
             double[] array = new double[values.size()];
@@ -288,6 +290,12 @@ public abstract class BaseMetricsITest extends BaseITest {
             percentileCalculator.setData(array);
 
             return percentileCalculator.getQuantile();
+        }
+
+        @Override
+        public void clear() {
+            percentile = Double.NaN;
+            values.clear();
         }
     }
 }

@@ -93,7 +93,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -687,20 +686,37 @@ public class MetricsServiceImpl implements MetricsService {
         Meter meter = getInsertMeter(metricType);
         Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
 
+        if (metricType == GAUGE) {
+            Observable<Integer> updates = metrics
+                    .filter(metric -> !metric.getDataPoints().isEmpty())
+                    .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                            .mergeWith(cacheService.update(metric).toObservable())
+                            .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(meter::mark);
+        } else {
+            Observable<Integer> updates = metrics
+                    .filter(metric -> !metric.getDataPoints().isEmpty())
+                    .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                            .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(meter::mark);
+        }
+
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
                 .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                        .mergeWith(cacheService.update(metric).toObservable())
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
-        Completable cacheUpdates;
-        if (metricType == GAUGE) {
-            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
-        } else {
-            cacheUpdates = Completable.complete();
-        }
+//        Completable cacheUpdates;
+//        if (metricType == GAUGE) {
+//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
+//        } else {
+//            cacheUpdates = Completable.complete();
+//        }
 
-        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
+//        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
+        return updates.map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
