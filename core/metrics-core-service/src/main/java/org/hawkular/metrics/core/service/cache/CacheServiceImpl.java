@@ -17,12 +17,15 @@
 package org.hawkular.metrics.core.service.cache;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toMap;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -181,6 +184,31 @@ public class CacheServiceImpl implements CacheService {
 //        } catch (IOException e) {
 //            return Completable.error(e);
 //        }
+    }
+
+    @Override
+    public <T> Completable updateAll(List<Metric<T>> metrics) {
+        Map<MetricKey, Metric<T>> metricsMap = metrics.stream().collect(toMap(this::getKey, Function.identity()));
+//        Set<MetricKey> keys = metrics.stream().map(this::getKey).collect(toSet());
+        Map<MetricKey, MetricValue> map = rawDataCache.getAll(metricsMap.keySet());
+        metricsMap.entrySet().forEach(entry -> {
+            MetricValue value = map.get(entry.getKey());
+            entry.getValue().getDataPoints().forEach(dataPoint -> value.increment((DataPoint<Double>) dataPoint));
+        });
+        NotifyingFuture<Void> future = rawDataCache.putAllAsync(map);
+        return from(future).toCompletable();
+//        return Completable.complete();
+    }
+
+    private <T> MetricKey getKey(Metric<T> metric) {
+        try {
+            List<String> src = new ArrayList<>(2);
+            src.add(metric.getMetricId().getTenantId());
+            src.add(metric.getMetricId().getName());
+            return new MetricKey(messagePack.write(src, template));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean isTimeSliceFinished(MetricValue value) {

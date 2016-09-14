@@ -37,6 +37,8 @@ public interface CacheService {
 
 //    Single<DataPoint<? extends Number>> put(MetricId<? extends Number> metricId, DataPoint<? extends Number> dataPoint);
 
+    <T> Completable updateAll(List<Metric<T>> metrics);
+
     <T> Completable putAll(List<Metric<T>> metrics);
 
 }

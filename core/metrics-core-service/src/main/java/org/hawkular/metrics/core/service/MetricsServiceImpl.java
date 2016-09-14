@@ -93,6 +93,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -688,15 +689,18 @@ public class MetricsServiceImpl implements MetricsService {
         Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
 
         Observable<Integer> updates;
+        Completable cacheUpdates = rx.Completable.complete();
         if (metricType == GAUGE) {
             updates = metrics
                     .filter(metric -> !metric.getDataPoints().isEmpty())
                     .flatMap(Observable::just)
                     .subscribeOn(Schedulers.computation())
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
-                            .mergeWith(cacheService.update(metric).toObservable())
+//                            .mergeWith(cacheService.update(metric).toObservable())
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                     .doOnNext(meter::mark);
+
+            cacheUpdates = cacheService.updateAll(metrics.toList().toBlocking().first());
         } else {
             updates = metrics
                     .filter(metric -> !metric.getDataPoints().isEmpty())
@@ -705,7 +709,8 @@ public class MetricsServiceImpl implements MetricsService {
                     .doOnNext(meter::mark);
         }
 
-        return updates.map(i -> null);
+//        return updates.map(i -> null);
+        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
@@ -1059,4 +1064,5 @@ public class MetricsServiceImpl implements MetricsService {
             throw new RuntimeException("There was an error during a timed event", e);
         }
     }
+
 }
