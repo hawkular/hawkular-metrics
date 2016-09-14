@@ -696,7 +696,6 @@ public class MetricsServiceImpl implements MetricsService {
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
                             .mergeWith(cacheService.update(metric).toObservable())
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
-                    .doOnNext(i -> log.info("Inserted data"))
                     .doOnNext(meter::mark);
         } else {
             updates = metrics
