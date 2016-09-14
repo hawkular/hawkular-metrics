@@ -693,7 +693,6 @@ public class MetricsServiceImpl implements MetricsService {
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
                             .mergeWith(cacheService.update(metric).toObservable())
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
-                    .doOnNext(i -> log.info("Inserted data points"))
                     .doOnNext(meter::mark);
         } else {
             updates = metrics
@@ -703,14 +702,6 @@ public class MetricsServiceImpl implements MetricsService {
                     .doOnNext(meter::mark);
         }
 
-//        Completable cacheUpdates;
-//        if (metricType == GAUGE) {
-//            cacheUpdates = cacheService.putAll(metrics.toList().toBlocking().first());
-//        } else {
-//            cacheUpdates = Completable.complete();
-//        }
-
-//        return updates.mergeWith(cacheUpdates.toObservable()).map(i -> null);
         return updates.map(i -> null);
     }
 
