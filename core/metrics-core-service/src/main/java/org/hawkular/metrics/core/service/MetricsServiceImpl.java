@@ -98,6 +98,7 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func5;
 import rx.observable.ListenableFutureObservable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 /**
@@ -690,9 +691,12 @@ public class MetricsServiceImpl implements MetricsService {
         if (metricType == GAUGE) {
             updates = metrics
                     .filter(metric -> !metric.getDataPoints().isEmpty())
+                    .flatMap(Observable::just)
+                    .subscribeOn(Schedulers.computation())
                     .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
                             .mergeWith(cacheService.update(metric).toObservable())
                             .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                    .doOnNext(i -> log.info("Inserted data"))
                     .doOnNext(meter::mark);
         } else {
             updates = metrics
