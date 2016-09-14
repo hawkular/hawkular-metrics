@@ -19,6 +19,8 @@ package org.hawkular.metrics.core.service.cache;
 import java.io.Serializable;
 import java.util.Arrays;
 
+import com.google.common.base.MoreObjects;
+
 /**
  * @author jsanda
  */
@@ -46,5 +48,10 @@ public class MetricKey implements Serializable {
     @Override
     public int hashCode() {
         return Arrays.hashCode(id);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).add("id", id).toString();
     }
 }

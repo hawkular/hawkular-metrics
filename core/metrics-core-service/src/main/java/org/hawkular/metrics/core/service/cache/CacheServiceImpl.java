@@ -34,6 +34,9 @@ import org.infinispan.commons.util.concurrent.NotifyingFuture;
 import org.infinispan.context.Flag;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.notifications.Listener;
+import org.infinispan.notifications.cachelistener.annotation.CacheEntriesEvicted;
+import org.infinispan.notifications.cachelistener.event.Event;
 import org.jboss.logging.Logger;
 import org.msgpack.MessagePack;
 import org.msgpack.template.ListTemplate;
@@ -47,6 +50,7 @@ import rx.Single;
 /**
  * @author jsanda
  */
+@Listener
 public class CacheServiceImpl implements CacheService {
 
     private static final Logger logger = Logger.getLogger(CacheServiceImpl.class);
@@ -78,9 +82,15 @@ public class CacheServiceImpl implements CacheService {
             rawDataCache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES, Flag.SKIP_LOCKING);
             // Clear cache for now to reset it for perf tests
             rawDataCache.clear();
+            rawDataCache.addListener(this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @CacheEntriesEvicted
+    public void onEviction(Event event) {
+        logger.info("Entries evicted: " + event);
     }
 
     public void shutdown() {

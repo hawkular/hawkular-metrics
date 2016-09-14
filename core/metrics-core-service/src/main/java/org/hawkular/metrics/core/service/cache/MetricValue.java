@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.service.cache;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.hawkular.metrics.model.Buckets;
@@ -89,4 +90,24 @@ public class MetricValue implements Serializable {
             p.increment(value);
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricValue that = (MetricValue) o;
+        return samples == that.samples &&
+                Double.compare(that.min, min) == 0 &&
+                Double.compare(that.max, max) == 0 &&
+                Double.compare(that.sum, sum) == 0 &&
+                Objects.equals(buckets, that.buckets) &&
+                Objects.equals(median, that.median) &&
+                Arrays.equals(percentiles, that.percentiles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(buckets, samples, min, max, sum, median, percentiles);
+    }
+
 }
