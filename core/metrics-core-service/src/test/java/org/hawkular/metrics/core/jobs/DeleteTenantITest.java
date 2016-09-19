@@ -70,6 +70,8 @@ public class DeleteTenantITest extends BaseITest {
 
     private MetricsServiceImpl metricsService;
 
+    private ConfigurationService configurationService;
+
     private TestScheduler jobScheduler;
 
     private JobsServiceImpl jobsService;
@@ -92,28 +94,29 @@ public class DeleteTenantITest extends BaseITest {
 
         DataAccess dataAccess = new DataAccessImpl(session);
 
-        ConfigurationService configurationService = new ConfigurationService() ;
+        configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
-
-        jobScheduler = new TestScheduler(rxSession);
-
-        jobsService = new JobsServiceImpl();
-        jobsService.setSession(rxSession);
-        jobsService.setScheduler(jobScheduler);
-        jobsService.setMetricsService(metricsService);
     }
 
     @BeforeMethod
     public void initTest(Method method) {
         logger.debug("Starting [" + method.getName() + "]");
+
+        jobScheduler = new TestScheduler(rxSession);
+        jobScheduler.truncateTables(getKeyspace());
+
+        jobsService = new JobsServiceImpl();
+        jobsService.setSession(rxSession);
+        jobsService.setScheduler(jobScheduler);
+        jobsService.setMetricsService(metricsService);
+
         jobName = method.getName();
         jobsService.start();
-        jobScheduler.advanceTimeBy(1);
     }
 
     @AfterMethod(alwaysRun = true)
