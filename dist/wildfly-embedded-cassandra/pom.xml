@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-dist</artifactId>
-    <version>0.19.2.Final</version>
+    <version>0.19.3.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-wildfly-embedded-cassandra</artifactId>
