@@ -17,13 +17,11 @@
 package org.hawkular.metrics.scheduler.impl;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
-import static org.testng.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
@@ -35,7 +33,6 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.joda.time.DateTime;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 
 import rx.Completable;
 import rx.Observable;
@@ -80,7 +77,7 @@ public class TestScheduler implements Scheduler {
     TestScheduler() {
     }
 
-    public TestScheduler(RxSession  session) {
+    public TestScheduler(RxSession session) {
         this.session = session;
 
         finishedTimeSlices = PublishSubject.create();
@@ -93,6 +90,9 @@ public class TestScheduler implements Scheduler {
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         updateJobQueue = session.getSession().prepare(
                 "INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+
+        initTickScheduler();
+        initJobScheduler();
     }
 
     @Override
@@ -105,51 +105,45 @@ public class TestScheduler implements Scheduler {
         scheduler.register(jobType, factory);
     }
 
-    @Override public void register(String jobType, Func1<JobDetails, Completable> jobProducer,
+    @Override
+    public void register(String jobType, Func1<JobDetails, Completable> jobProducer,
             Func2<JobDetails, Throwable, RetryPolicy> retryFunction) {
         scheduler.register(jobType, jobProducer, retryFunction);
     }
 
     @Override
     public void start() {
-        try {
-            CountDownLatch truncationFinished = new CountDownLatch(1);
-            Observable<ResultSet> o1 = session.execute("TRUNCATE jobs");
-            Observable<ResultSet> o2 = session.execute("TRUNCATE scheduled_jobs_idx");
-            Observable<ResultSet> o3 = session.execute("TRUNCATE finished_jobs_idx");
-            Observable<ResultSet> o4 = session.execute("TRUNCATE active_time_slices");
-            Observable<ResultSet> o5 = session.execute("TRUNCATE locks");
-
-            Observable.merge(o1, o2, o3, o4, o5).subscribe(
-                    resultSet -> {},
-                    t -> fail("Truncating tables failed", t),
-                    truncationFinished::countDown
-            );
-
-            finishedTimeSlicesSubscriptions.forEach(Subscription::unsubscribe);
-            jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
-
-            truncationFinished.await();
-
-            DateTimeService.now = DateTime::now;
-            tickScheduler = Schedulers.test();
-            tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
-
-            DateTimeService.now = () -> new DateTime(tickScheduler.now());
-
-            scheduler = new SchedulerImpl(session);
-            scheduler.setTickScheduler(tickScheduler);
-            scheduler.setTimeSlicesSubject(finishedTimeSlices);
-            scheduler.setJobFinishedSubject(jobFinished);
             scheduler.start();
-            advanceTimeBy(1);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    }
+
+    public void truncateTables(String keyspace) {
+        session.execute("select table_name from system_schema.tables where keyspace_name = '" + keyspace + "'")
+                .flatMap(Observable::from)
+                .filter(row -> !row.getString(0).equals("cassalog"))
+                .flatMap(row -> session.execute("truncate " + row.getString(0)))
+                .toCompletable()
+                .await(10, TimeUnit.SECONDS);
+    }
+
+    private void initJobScheduler() {
+        scheduler = new SchedulerImpl(session);
+        scheduler.setTickScheduler(tickScheduler);
+        scheduler.setTimeSlicesSubject(finishedTimeSlices);
+        scheduler.setJobFinishedSubject(jobFinished);
+    }
+
+    private void initTickScheduler() {
+        DateTimeService.now = DateTime::now;
+        tickScheduler = Schedulers.test();
+        tickScheduler.advanceTimeTo(currentMinute().getMillis(), TimeUnit.MILLISECONDS);
+
+        DateTimeService.now = () -> new DateTime(tickScheduler.now());
     }
 
     @Override
     public void shutdown() {
+        finishedTimeSlicesSubscriptions.forEach(Subscription::unsubscribe);
+        jobFinishedSubscriptions.forEach(Subscription::unsubscribe);
         Schedulers.reset();
         scheduler.shutdown();
     }
