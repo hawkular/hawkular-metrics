@@ -555,7 +555,6 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                 return;
             }
 
-
             observableConfig = metricsService.findMetric(metricId).map((metric) -> {
                 long dataRetention = metric.getDataRetention() * 24 * 60 * 60 * 1000L;
                 long now = System.currentTimeMillis();

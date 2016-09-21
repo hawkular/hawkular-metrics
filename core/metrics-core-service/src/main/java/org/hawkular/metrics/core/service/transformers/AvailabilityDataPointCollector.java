@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.transformers;
 
 import static org.hawkular.metrics.model.AvailabilityType.UP;
 
@@ -31,7 +31,7 @@ import org.hawkular.metrics.model.DataPoint;
  *
  * @author Thomas Segismont
  */
-final class AvailabilityDataPointCollector {
+public final class AvailabilityDataPointCollector {
 
     private final Buckets buckets;
     private final long bucketStart;
@@ -41,14 +41,14 @@ final class AvailabilityDataPointCollector {
     private long lastNotUptime;
     private long notUpCount;
 
-    AvailabilityDataPointCollector(Buckets buckets, int bucketIndex) {
+    public AvailabilityDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
         this.bucketStart = buckets.getBucketStart(bucketIndex);
 
         this.durationMap = new HashMap<>();
     }
 
-    void increment(DataPoint<AvailabilityType> dataPoint) {
+    public void increment(DataPoint<AvailabilityType> dataPoint) {
         long timestamp = dataPoint.getTimestamp();
         AvailabilityType availType = dataPoint.getValue();
 
@@ -85,7 +85,7 @@ final class AvailabilityDataPointCollector {
         previous = dataPoint;
     }
 
-    AvailabilityBucketPoint toBucketPoint() {
+    public AvailabilityBucketPoint toBucketPoint() {
         long to = bucketStart + buckets.getStep();
 
         Long availTypeDuration = durationMap.getOrDefault(previous.getValue(), 0L);

@@ -41,16 +41,19 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.transformers.AvailabilityDataPointCollector;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
+import org.hawkular.metrics.core.service.transformers.RatioMapCollector;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
@@ -64,6 +67,7 @@ import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
+import org.hawkular.metrics.model.RatioMap;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
@@ -82,6 +86,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -544,6 +549,7 @@ public class MetricsServiceImpl implements MetricsService {
         return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
     }
 
+    @Override
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = PatternUtil.filterPattern(regexp);
@@ -902,11 +908,43 @@ public class MetricsServiceImpl implements MetricsService {
             if (limit <= 0) {
                 return availabilityData;
             } else {
-                return availabilityData.limit(limit);
+                return availabilityData.take(limit);
             }
         } else {
             return findDataPoints(id, start, end, limit, order);
         }
+    }
+
+    @Override
+    public Observable<DataPoint<RatioMap>> findAvailabilityRatioMap(
+            String tenantId, List<String> metrics, long start, long end, int limit, Order order) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        Observable<DataPoint<RatioMap>> result = Observable.from(metrics)
+                .map(id -> new MetricId<>(tenantId, MetricType.AVAILABILITY, id))
+                .flatMap(this::findMetric)
+                .map(metric -> findDataPoints(metric.getMetricId(), start, end, limit, order))
+                .compose(o -> buildRatioMapSeries(o, order, AvailabilityType::getText));
+        if (limit > 0) {
+            // Limit already applied on C* query, but might be exceeded after aggregation
+            // So it's applied again
+            result = result.take(limit);
+        }
+        return result;
+    }
+
+    @Override
+    public Observable<DataPoint<RatioMap>> findAvailabilityRatioMap(
+            String tenantId, Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        Observable<DataPoint<RatioMap>> result = findMetricsWithFilters(tenantId, AVAILABILITY, tagFilters)
+                .map(metric -> findDataPoints(metric.getMetricId(), start, end, limit, order))
+                .compose(o -> buildRatioMapSeries(o, order, AvailabilityType::getText));
+        if (limit > 0) {
+            // Limit already applied on C* query, but might be exceeded after aggregation
+            // So it's applied again
+            result = result.take(limit);
+        }
+        return result;
     }
 
     @Override
@@ -920,6 +958,16 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(AvailabilityDataPointCollector::toBucketPoint)
                 .toMap(AvailabilityBucketPoint::getStart)
                 .map(pointMap -> AvailabilityBucketPoint.toList(pointMap, buckets));
+    }
+
+    @VisibleForTesting
+    <T> Observable<DataPoint<RatioMap>> buildRatioMapSeries(Observable<Observable<DataPoint<T>>>
+                   metricsDataPoints, Order order, Function<T, String> valueToString) {
+        final RatioMapCollector<T> collector = new RatioMapCollector<>(order, valueToString);
+        return metricsDataPoints.flatMap(dataPoints -> dataPoints.collect(collector::start, collector::increment))
+                .reduce(collector.aggregator(), (p, s) -> p.aggregate(s))
+                .map(RatioMapCollector.Aggregator::done)
+                .flatMap(RatioMapCollector.Aggregated::toDataPoints);
     }
 
     @Override

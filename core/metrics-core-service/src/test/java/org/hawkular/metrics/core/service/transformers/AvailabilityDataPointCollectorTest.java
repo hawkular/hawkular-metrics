@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.transformers;
 
 import static org.hawkular.metrics.core.service.AvailabilityBucketPointMatcher.matchesAvailabilityBucketPoint;
 import static org.hawkular.metrics.model.AvailabilityType.ADMIN;
