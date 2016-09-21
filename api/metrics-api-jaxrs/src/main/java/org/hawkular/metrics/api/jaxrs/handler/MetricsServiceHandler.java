@@ -24,7 +24,9 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -35,6 +37,7 @@ import javax.ws.rs.core.HttpHeaders;
 
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
+import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
@@ -88,15 +91,28 @@ public abstract class MetricsServiceHandler {
             order = Order.fromText(query.getOrder());
         }
 
-        if (query.getIds().isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Metric ids must be specified")));
+        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
+        List<String> ids = query.getIds() == null ? Collections.emptyList() : query.getIds();
+
+        if (ids.isEmpty() && tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!ids.isEmpty() && !tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
             return;
         }
 
-        List<MetricId<T>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type, id))
-                .collect(toList());
-        Observable<NamedDataPoint<T>> dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
-                timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        final Observable<NamedDataPoint<T>> dataPoints;
+        if (tags.isEmpty()) {
+            List<MetricId<T>> metricIds = ids.stream().map(id -> new MetricId<>(getTenant(), type, id))
+                    .collect(toList());
+            dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        } else {
+            dataPoints = metricsService.findDataPoints(getTenant(), type, tags, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        }
 
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
@@ -125,15 +141,28 @@ public abstract class MetricsServiceHandler {
             order = Order.fromText(query.getOrder());
         }
 
-        if (query.getIds().isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Metric ids must be specified")));
+        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
+        List<String> ids = query.getIds() == null ? Collections.emptyList() : query.getIds();
+
+        if (ids.isEmpty() && tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!ids.isEmpty() && !tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
             return;
         }
 
-        List<MetricId<? extends Number>> metricIds = query.getIds().stream().map(id -> new MetricId<>(getTenant(), type,
-                id)).collect(toList());
-        Observable<NamedDataPoint<Double>> dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
-                timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        final Observable<NamedDataPoint<Double>> dataPoints;
+        if (tags.isEmpty()) {
+            List<MetricId<? extends Number>> metricIds = ids.stream().map(id -> new MetricId<>(getTenant(), type, id))
+                    .collect(toList());
+            dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        } else {
+            dataPoints = metricsService.findRateData(getTenant(), type, tags, timeRange.getStart(),
+                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
+        }
 
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);

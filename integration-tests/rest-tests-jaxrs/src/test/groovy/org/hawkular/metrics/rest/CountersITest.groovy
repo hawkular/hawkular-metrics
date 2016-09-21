@@ -2010,4 +2010,100 @@ Actual:   ${response.data}
     }
   }
 
+  @Test
+  void fetchMRawDataFromMultipleCountersByTag() {
+    String tenantId = nextTenantId()
+    DateTime start = now().minusHours(4)
+
+    // Define tags
+    def response = hawkularMetrics.post(path: 'counters', body: [id: 'A1', tags: [letter: 'A', number: '1']],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+    response = hawkularMetrics.post(path: 'counters', body: [id: 'A2', tags: [letter: 'A', number: '2']],
+            headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(
+            path: "counters/raw",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    [
+                            id: 'A1',
+                            data: [
+                                    [timestamp: start.millis, value: 10],
+                                    [timestamp: start.plusHours(1).millis, value: 20],
+                                    [timestamp: start.plusHours(2).millis, value: 30],
+                                    [timestamp: start.plusHours(3).millis, value: 20],
+                                    [timestamp: start.plusHours(4).millis, value: 10]
+                            ]
+                    ],
+                    [
+                            id: 'A2',
+                            data: [
+                                    [timestamp: start.millis, value: 1],
+                                    [timestamp: start.plusHours(1).millis, value: 0],
+                                    [timestamp: start.plusHours(2).millis, value: 1],
+                                    [timestamp: start.plusHours(3).millis, value: 0],
+                                    [timestamp: start.plusHours(4).millis, value: 1]
+                            ]
+                    ]
+            ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+            path: "counters/raw/query",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    tags: "letter:A",
+                    start: start.plusHours(1).millis,
+                    end: start.plusHours(4).millis,
+                    limit: 2,
+                    order: 'desc'
+            ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+
+    assertTrue(response.data.contains([
+            id: 'A1',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 20],
+                    [timestamp: start.plusHours(2).millis, value: 30]
+            ]
+    ]))
+
+    assertTrue(response.data.contains([
+            id: 'A2',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 0],
+                    [timestamp: start.plusHours(2).millis, value: 1]
+            ]
+    ]))
+
+    response = hawkularMetrics.post(
+            path: "counters/raw/query",
+            headers: [(tenantHeaderName): tenantId],
+            body: [
+                    tags: "letter:A,number:1",
+                    start: start.plusHours(1).millis,
+                    end: start.plusHours(4).millis,
+                    limit: 2,
+                    order: 'desc'
+            ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(1, response.data.size)
+
+    assertTrue(response.data.contains([
+            id: 'A1',
+            data: [
+                    [timestamp: start.plusHours(3).millis, value: 20],
+                    [timestamp: start.plusHours(2).millis, value: 30]
+            ]
+    ]))
+  }
+
 }

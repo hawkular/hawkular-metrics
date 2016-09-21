@@ -723,6 +723,15 @@ public class MetricsServiceImpl implements MetricsService {
                         .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
     }
 
+    @Override
+    public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
+            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+        return findMetricsWithFilters(tenantId, metricType, tagFilters)
+                .map(Metric::getMetricId)
+                .concatMap(id -> findDataPoints(id, start, end, limit, order)
+                        .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
+    }
+
     private <T> Timer getDataPointFindTimer(MetricType<T> metricType) {
         Timer timer = dataPointReadTimers.get(metricType);
         if (timer == null) {
@@ -780,10 +789,20 @@ public class MetricsServiceImpl implements MetricsService {
         return limit <= 0 ? dataPoints : dataPoints.take(limit);
     }
 
+    @Override
     public Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start,
-            long end, int limit, Order order) {
+                                                                     long end, int limit, Order order) {
         return Observable.from(ids).concatMap(id -> findRateData(id, start, end, limit, order)
                 .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
+    }
+
+    @Override
+    public Observable<NamedDataPoint<Double>> findRateData(String tenantId, MetricType<? extends Number> metricType,
+            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+        return findMetricsWithFilters(tenantId, metricType, tagFilters)
+                .map(Metric::getMetricId)
+                .concatMap(id -> findRateData(id, start, end, limit, order)
+                        .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
     }
 
     @Override
