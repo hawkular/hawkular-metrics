@@ -28,14 +28,11 @@
     <version>0.20.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-bus</artifactId>
+  <artifactId>hawkular-metrics-alerting</artifactId>
+  <packaging>jar</packaging>
 
-  <name>Hawkular Metrics Bus</name>
-  <description>Metrics bus for integrating with other Hawkular components</description>
-
-  <properties>
-    <wildfly.dir>${project.build.directory}/wildfly-${version.org.wildfly}</wildfly.dir>
-  </properties>
+  <name>Hawkular Metrics Alerting</name>
+  <description>For integrating with Hawkular Alerting</description>
 
   <dependencyManagement>
     <dependencies>
@@ -46,37 +43,26 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-
-      <dependency>
-        <groupId>org.jboss.arquillian</groupId>
-        <artifactId>arquillian-bom</artifactId>
-        <version>${version.org.jboss.arquillian}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-model</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-api-util</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-model</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
+    <!-- Hawkular Alerting dependencies -->
     <dependency>
-      <groupId>org.hawkular.commons</groupId>
-      <artifactId>hawkular-bus-common</artifactId>
-      <version>${version.org.hawkular.commons}</version>
-      <scope>provided</scope>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-api</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
     </dependency>
 
     <dependency>
@@ -84,35 +70,30 @@
       <artifactId>rxjava</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
+    <!-- Provided by container -->
     <dependency>
       <groupId>org.jboss.spec.javax.jms</groupId>
       <artifactId>jboss-jms-api_2.0_spec</artifactId>
       <scope>provided</scope>
     </dependency>
-
-    <dependency>
-      <groupId>org.jboss.spec.javax.enterprise.concurrent</groupId>
-      <artifactId>jboss-concurrency-api_1.0_spec</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <dependency>
       <groupId>javax.enterprise</groupId>
       <artifactId>cdi-api</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <dependency>
-      <groupId>org.jboss.logging</groupId>
-      <artifactId>jboss-logging</artifactId>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jaxrs</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
+      <scope>provided</scope>
+      <version>${version.org.infinispan.wildfly}</version>
+    </dependency>
+
 
   </dependencies>
+
 </project>
