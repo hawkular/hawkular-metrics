@@ -455,13 +455,12 @@ public class SchedulerImpl implements Scheduler {
     private Completable scheduleImmediateJobExecution(JobDetails details, Set<UUID> activeJobs) {
         rx.Scheduler.Worker worker = Schedulers.io().createWorker();
         worker.schedule(() -> {
-            try {
-                String jobLock = "org.hawkular.metrics.scheduler.job." + details.getJobId();
-                lockManager.renewLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC).toCompletable()
-                        .concatWith(doJobExecution(details, activeJobs)).await();
-            } catch (Exception e) {
-                logger.warn("Exceution of " + details + " was interrupted", e);
-            }
+            String jobLock = "org.hawkular.metrics.scheduler.job." + details.getJobId();
+            lockManager.renewLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC).toCompletable()
+                    .concatWith(doJobExecution(details, activeJobs)).subscribe(
+                            () -> logger.debug("Finished executing " + details),
+                            t -> logger.warn("There was an error executing " + details)
+            );
         });
         return Completable.complete();
     }
