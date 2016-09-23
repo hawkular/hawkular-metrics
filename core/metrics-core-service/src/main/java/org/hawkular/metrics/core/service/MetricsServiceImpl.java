@@ -466,12 +466,9 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private Observable<ResultSet> updateRetentionsIndex(Metric<?> metric) {
-        ResultSetFuture dataRetentionFuture = dataAccess.updateRetentionsIndex(metric);
-        Observable<ResultSet> dataRetentionUpdated = ListenableFutureObservable.from(dataRetentionFuture, metricsTasks);
-        // TODO Shouldn't we only update dataRetentions map when the retentions index update succeeds?
-        dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention());
-
-        return dataRetentionUpdated;
+        return ListenableFutureObservable.from(dataAccess.updateRetentionsIndex(metric), metricsTasks)
+                .doOnCompleted(() ->
+                        dataRetentions.put(new DataRetentionKey(metric), metric.getDataRetention()));
     }
 
     @Override
@@ -990,6 +987,8 @@ public class MetricsServiceImpl implements MetricsService {
         if (ttl == null) {
             ttl = dataRetentions.getOrDefault(new DataRetentionKey(metricId.getTenantId(), metricId.getType()),
                     defaultTTL);
+        } else {
+            ttl = Duration.standardDays(ttl).toStandardSeconds().getSeconds();
         }
         return ttl;
     }
