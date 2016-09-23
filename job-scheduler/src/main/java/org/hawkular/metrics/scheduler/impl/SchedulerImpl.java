@@ -18,6 +18,7 @@ package org.hawkular.metrics.scheduler.impl;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 import static org.hawkular.metrics.datetime.DateTimeService.getTimeSlice;
+import static org.hawkular.metrics.datetime.DateTimeService.now;
 import static org.joda.time.Minutes.minutes;
 
 import java.util.Date;
@@ -201,7 +202,7 @@ public class SchedulerImpl implements Scheduler {
 
     @Override
     public Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameter, Trigger trigger) {
-        if (System.currentTimeMillis() >= trigger.getTriggerTime()) {
+        if (now.get().getMillis() >= trigger.getTriggerTime()) {
             return Single.error(new RuntimeException("Trigger time has already passed"));
         }
         String lockName = QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
