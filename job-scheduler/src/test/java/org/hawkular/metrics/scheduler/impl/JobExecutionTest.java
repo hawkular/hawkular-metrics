@@ -286,6 +286,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch thirdTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch jobExecutions = new CountDownLatch(3);
 
         List<Date> executions = new ArrayList<>();
 
@@ -298,6 +299,7 @@ public class JobExecutionTest extends JobSchedulerTest {
                     jobRunning.await();
                 }
                 logger.debug("Finished job execution for " + details);
+                jobExecutions.countDown();
             } catch (InterruptedException e) {
                 logger.warn(details + " was interrupted");
             } catch (Exception e) {
@@ -331,7 +333,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         jobRunning.countDown();
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-
+        assertTrue(jobExecutions.await(10, TimeUnit.SECONDS));
+        
         logger.debug("All executions for " + job.getJobType() + " should be done");
 
         List<Date> expectedExecutions = asList(timeSlice.toDate(), timeSlice.plusMinutes(1).toDate(),
