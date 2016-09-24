@@ -334,7 +334,6 @@ public class JobExecutionTest extends JobSchedulerTest {
         jobRunning.countDown();
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertTrue(jobExecutions.await(10, TimeUnit.SECONDS));
-        
         logger.debug("All executions for " + job.getJobType() + " should be done");
 
         List<Date> expectedExecutions = asList(timeSlice.toDate(), timeSlice.plusMinutes(1).toDate(),
