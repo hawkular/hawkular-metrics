@@ -183,7 +183,7 @@ public class SchedulerImpl implements Scheduler {
 
     // TODO make configurable
     private int getQueryThreadPoolSize() {
-        return Runtime.getRuntime().availableProcessors() / 2;
+        return Math.min(Runtime.getRuntime().availableProcessors() / 2, 1);
     }
 
     /**
@@ -249,7 +249,7 @@ public class SchedulerImpl implements Scheduler {
             logger.debug("Activating scheduler for [" + currentMinute().toDate() + "]");
 
             Date timeSlice = currentMinute().toDate();
-            updateActiveTimeSlicesX(timeSlice)
+            updateActiveTimeSlices(timeSlice)
                     .flatMap(aVoid -> findTimeSlices())
                     .filter(d -> {
                         synchronized (lock) {
@@ -265,7 +265,8 @@ public class SchedulerImpl implements Scheduler {
                     })
                     .flatMap(this::acquireTimeSliceLock)
                     .flatMap(timeSliceLock -> findScheduledJobs(timeSliceLock.getTimeSlice())
-                            .map(scheduledJobs -> computeRemainingJobs(scheduledJobs, timeSliceLock.getTimeSlice(),
+                            .flatMap(scheduledJobs -> computeRemainingJobs(scheduledJobs, timeSliceLock
+                                            .getTimeSlice(),
                                     activeJobs))
                             .flatMap(Observable::from)
                             .flatMap(this::acquireJobLock).filter(JobLock::isAcquired)
@@ -542,17 +543,6 @@ public class SchedulerImpl implements Scheduler {
         queryScheduler = Schedulers.from(queryExecutor);
     }
 
-    private Set<UUID> findScheduledJobsBlocking(Date timeSlice) {
-        logger.debug("Fetching scheduled jobs for [" + timeSlice + "]");
-        return session.execute(findScheduledJobs.bind(timeSlice))
-                .flatMap(Observable::from)
-                .map(row -> row.getUUID(0))
-                .doOnNext(uuid -> logger.debug("Scheduled job [" + uuid + "]"))
-                .collect(HashSet<UUID>::new, HashSet::add)
-                .toBlocking()
-                .firstOrDefault(new HashSet<>());
-    }
-
     private Observable<? extends Set<UUID>> findScheduledJobs(Date timeSlice) {
         logger.debug("Fetching scheduled jobs for [" + timeSlice + "]");
         return session.execute(findScheduledJobs.bind(timeSlice), queryScheduler)
@@ -561,20 +551,16 @@ public class SchedulerImpl implements Scheduler {
                 .collect(HashSet<UUID>::new, HashSet::add);
     }
 
-    private Set<UUID> computeRemainingJobs(Set<UUID> scheduledJobs, Date timeSlice, Set<UUID> activeJobs) {
-        Set<UUID> finishedJobs = findFinishedJobsBlocking(timeSlice);
-        activeJobs.removeAll(finishedJobs);
-        Set<UUID> jobs = Sets.difference(scheduledJobs, finishedJobs);
-        return Sets.difference(jobs, activeJobs);
-    }
-
-    private Set<UUID> findFinishedJobsBlocking(Date timeSlice) {
-        return session.execute(findFinishedJobs.bind(timeSlice), queryScheduler)
-                .flatMap(Observable::from)
-                .map(row -> row.getUUID(0))
-                .collect(HashSet<UUID>::new, HashSet::add)
-                .toBlocking()
-                .firstOrDefault(new HashSet<>());
+    private Observable<Set<UUID>> computeRemainingJobs(Set<UUID> scheduledJobs, Date timeSlice,
+            Set<UUID> activeJobs) {
+        Observable<? extends Set<UUID>> finished = findFinishedJobs(timeSlice);
+        Observable<? extends Set<UUID>> scheduled = Observable.just(scheduledJobs);
+        return finished.map(finishedJobs -> {
+            Set<UUID> active = new HashSet<>(activeJobs);
+            active.removeAll(finishedJobs);
+            Set<UUID> jobs = Sets.difference(scheduledJobs, finishedJobs);
+            return Sets.difference(jobs, active);
+        });
     }
 
     private Observable<? extends Set<UUID>> findFinishedJobs(Date timeSlice) {
@@ -647,11 +633,7 @@ public class SchedulerImpl implements Scheduler {
                 .subscribe(tick -> wrapper.call(), t -> logger.warn(t));
     }
 
-    private Completable updateActiveTimeSlices(Date timeSlice) {
-            return session.execute(addActiveTimeSlice.bind(timeSlice)).toCompletable();
-    }
-
-    private Observable<Void> updateActiveTimeSlicesX(Date timeSlice) {
+    private Observable<Void> updateActiveTimeSlices(Date timeSlice) {
         return session.execute(addActiveTimeSlice.bind(timeSlice)).map(resultSet -> null);
     }
 
