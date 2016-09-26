@@ -183,7 +183,7 @@ public class SchedulerImpl implements Scheduler {
 
     // TODO make configurable
     private int getQueryThreadPoolSize() {
-        return Math.min(Runtime.getRuntime().availableProcessors() / 2, 1);
+        return Math.max(Runtime.getRuntime().availableProcessors() / 2, 1);
     }
 
     /**
