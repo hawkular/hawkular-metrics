@@ -275,6 +275,73 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(getFinishedJobs(timeSlice.plusMinutes(1)), emptySet());
     }
 
+    @Test
+    public void executeLongRunningRepeatingJob() throws Exception {
+        final DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
+        JobDetails job = new JobDetails(randomUUID(), "Long Repeating Job", "Long Repeating Job", emptyMap(),
+                new RepeatingTrigger.Builder().withInterval(1, TimeUnit.MINUTES).build());
+
+        CountDownLatch jobStarted = new CountDownLatch(1);
+        CountDownLatch jobRunning = new CountDownLatch(1);
+
+        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch thirdTimeSliceFinished = new CountDownLatch(1);
+        CountDownLatch jobExecutions = new CountDownLatch(3);
+
+        List<Date> executions = new ArrayList<>();
+
+        jobScheduler.register(job.getJobType(), details -> Completable.fromAction(() -> {
+            try {
+                logger.debug("Executing " + details);
+                executions.add(new Date(details.getTrigger().getTriggerTime()));
+                if (details.getTrigger().getTriggerTime() == job.getTrigger().getTriggerTime()) {
+                    jobStarted.countDown();
+                    jobRunning.await();
+                }
+                logger.debug("Finished job execution for " + details);
+                jobExecutions.countDown();
+            } catch (InterruptedException e) {
+                logger.warn(details + " was interrupted");
+            } catch (Exception e) {
+                logger.warn("Job execution for " + details + " failed", e);
+            }
+        }));
+
+        scheduleJob(job);
+
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                firstTimeSliceFinished.countDown();
+            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
+                secondTimeSliceFinished.countDown();
+            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(2))) {
+                thirdTimeSliceFinished.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(job.getTrigger().getTriggerTime());
+        assertTrue(jobStarted.await(10, TimeUnit.SECONDS));
+
+        // At this point the job is running. We advance the clock ahead by two minutes to
+        // simulate a long running job.
+
+        jobScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis());
+        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        jobScheduler.advanceTimeTo(timeSlice.plusMinutes(2).getMillis());
+        assertTrue(thirdTimeSliceFinished.await(10, TimeUnit.SECONDS));
+
+        jobRunning.countDown();
+        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
+        assertTrue(jobExecutions.await(10, TimeUnit.SECONDS));
+        logger.debug("All executions for " + job.getJobType() + " should be done");
+
+        List<Date> expectedExecutions = asList(timeSlice.toDate(), timeSlice.plusMinutes(1).toDate(),
+                timeSlice.plusMinutes(2).toDate());
+        assertEquals(executions, expectedExecutions);
+    }
+
     /**
      * This test schedules and executes a job that repeats every minute. The test runs over a two minute interval.
      */
@@ -680,7 +747,6 @@ public class JobExecutionTest extends JobSchedulerTest {
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
         String jobType = "Lots of Jobs";
         int numJobs = Runtime.getRuntime().availableProcessors() * 2;
-//        int numJobs = 5;
         Random random = new Random();
 
         logger.debug("Creating and scheduling " + numJobs + " jobs");
