@@ -97,7 +97,7 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
-    <version.org.cassalog>0.2.1</version.org.cassalog>
+    <version.org.cassalog>0.3.1</version.org.cassalog>
     <version.org.hawkular.accounts>2.0.26.Final</version.org.hawkular.accounts>
     <version.org.hawkular.commons>0.7.1.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
