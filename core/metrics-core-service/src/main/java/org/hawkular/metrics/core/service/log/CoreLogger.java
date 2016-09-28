@@ -63,4 +63,8 @@ public interface CoreLogger extends BasicLogger {
     @LogMessage(level = INFO)
     @Message(id = 100007, value = "Using default data retention of %d seconds")
     void infoDefaultDataRetention(int defaultTTL);
+
+    @LogMessage(level = INFO)
+    @Message(id = 100008, value = "Using max size of %d for string metrics")
+    void infoMaxSizeStringMetrics(int maxStringSize);
 }

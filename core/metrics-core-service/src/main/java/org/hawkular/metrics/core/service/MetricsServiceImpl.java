@@ -319,6 +319,7 @@ public class MetricsServiceImpl implements MetricsService {
         } else {
             maxStringSize = Integer.parseInt(configMaxStringSize);
         }
+        log.infoMaxSizeStringMetrics(this.maxStringSize);
     }
 
     private void setDefaultTTL(Session session, String keyspace) {
