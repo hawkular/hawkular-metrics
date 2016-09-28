@@ -284,9 +284,6 @@
         </local-cache>
         <local-cache name="timestamps"/>
       </cache-container>
-      <cache-container name="hawkular-alerts" default-cache="publish" statistics-enabled="true">
-        <local-cache name="publish"/>
-      </cache-container>
     </subsystem>
     <subsystem xmlns="urn:jboss:domain:jaxrs:1.0"/>
     <subsystem xmlns="urn:jboss:domain:jca:4.0">

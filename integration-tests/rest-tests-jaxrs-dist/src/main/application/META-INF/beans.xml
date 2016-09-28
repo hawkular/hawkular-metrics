@@ -17,15 +17,8 @@
     limitations under the License.
 
 -->
-<jboss-deployment-structure>
-  <deployment>
-    <exclusions>
-      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
-      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
-    </exclusions>
-    <dependencies>
-      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.infinispan" export="true" />
-    </dependencies>
-  </deployment>
-</jboss-deployment-structure>
+<beans xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
+       version="1.1" bean-discovery-mode="all">
+</beans>

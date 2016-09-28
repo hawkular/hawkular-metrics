@@ -42,6 +42,7 @@
       </activation>
       <modules>
         <module>metrics-api-jaxrs-test</module>
+        <module>rest-tests-jaxrs-dist</module>
         <module>rest-tests-jaxrs</module>
         <!--module>hawkular-server-tests</module-->
         <module>load-tests</module>

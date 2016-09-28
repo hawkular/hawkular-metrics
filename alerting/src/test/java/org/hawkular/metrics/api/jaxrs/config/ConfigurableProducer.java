@@ -74,7 +74,7 @@ public class ConfigurableProducer {
         ConfigurationProperty configProp = injectionPoint.getAnnotated().getAnnotation(ConfigurationProperty.class);
         if (configProp == null) {
             String message = "Any field or parameter annotated with @" + Configurable.class.getSimpleName()
-                             + " must also be annotated with @" + ConfigurationProperty.class.getSimpleName();
+                    + " must also be annotated with @" + ConfigurationProperty.class.getSimpleName();
             throw new IllegalArgumentException(message);
         }
         return effectiveConfig.get(configProp.value());

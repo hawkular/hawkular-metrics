@@ -18,39 +18,30 @@
 
 -->
 <jboss-deployment-structure>
-  <!-- Do not isolate the WAR sub deployments, allow them to see each others classes without a Class-Path entry
-  <ear-subdeployments-isolated>false</ear-subdeployments-isolated>
-  -->
   <deployment>
     <dependencies>
+      <module name="org.hawkular.bus" export="true" />
     </dependencies>
   </deployment>
+
+  <sub-deployment name="hawkular-alerts.war">
+    <dependencies>
+      <module name="com.google.guava" export="true" />
+      <module name="org.infinispan" export="true" />
+    </dependencies>
+  </sub-deployment>
+
   <sub-deployment name="hawkular-metrics.war">
     <exclusions>
       <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
       <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
     </exclusions>
     <dependencies>
-      <module name="org.hawkular.bus" export="true" />
       <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.infinispan" export="true" />
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
     </dependencies>
   </sub-deployment>
-  <sub-deployment name="hawkular-alerts.war">
-    <dependencies>
-      <module name="org.hawkular.bus" export="true" />
-      <module name="org.hawkular.commons.cassandra-driver" export="true" />
-      <module name="com.google.guava" export="true" />
-      <module name="org.infinispan" export="true" />
-    </dependencies>
-    <!-- Set's local resources to have the lowest priority -->
-    <!-- If the same class is both in the sub deployment and in another sub deployment that -->
-    <!-- is visible to the war, then the Class from the other deployment will be loaded,  -->
-    <!-- rather than the class actually packaged in the war. -->
-    <!-- This can be used to resolve ClassCastExceptions  if the same class is in multiple sub deployments-->
-    <!--  <local-last value="true" /> -->
-  </sub-deployment>
+
   <sub-deployment name="hawkular-alerter-metrics.war">
     <dependencies>
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />

@@ -52,6 +52,22 @@
       <version>${version.org.hawkular.alerts}</version>
       <type>war</type>
     </dependency>
+    <!-- Because metrics war has a dependency on alerting war (to inject AlertsService) and both components
+         use cassalog, we hit an issue such that the metrics schema file resources could not be located, the CL
+         was tied to the alerting war. To make them available we are placing the schema jar in the ear's lib,
+         which is available to every deployment's CL. We may not need this if we have a better solution resulting
+         from: https://github.com/hawkular/cassalog/issues/4   -->
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-schema</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
   <build>
@@ -62,18 +78,19 @@
           <version>7</version>
           <initializeInOrder>true</initializeInOrder>
           <fileNameMapping>no-version</fileNameMapping>
+          <defaultLibBundleDir>lib/</defaultLibBundleDir>
           <modules>
-            <webModule>
-              <groupId>org.hawkular.metrics</groupId>
-              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
-              <bundleFileName>hawkular-metrics.war</bundleFileName>
-              <contextRoot>/hawkular/metrics</contextRoot>
-            </webModule>
             <webModule>
               <groupId>org.hawkular.alerts</groupId>
               <artifactId>hawkular-alerts-rest-standalone</artifactId>
               <bundleFileName>hawkular-alerts.war</bundleFileName>
               <contextRoot>/hawkular/alerts</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>org.hawkular.metrics</groupId>
+              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+              <bundleFileName>hawkular-metrics.war</bundleFileName>
+              <contextRoot>/hawkular/metrics</contextRoot>
             </webModule>
             <webModule>
               <groupId>org.hawkular.alerts</groupId>
