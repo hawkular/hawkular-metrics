@@ -36,6 +36,8 @@ class LockManager {
 
     private PreparedStatement acquireLock;
 
+    private PreparedStatement acquireExclusiveLock;
+
     private PreparedStatement releaseLock;
 
     private PreparedStatement renewLock;
@@ -44,18 +46,24 @@ class LockManager {
         this.session = session;
         acquireLock = session.getSession().prepare(
                 "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value IN (NULL, ?)");
+        acquireExclusiveLock = session.getSession().prepare(
+                "UPDATE locks USING TTL? SET value = ? WHERE name = ? IF value = NULL");
         releaseLock = session.getSession().prepare(
                 "UPDATE locks SET value = NULL WHERE name = ? IF value = ?");
         renewLock = session.getSession().prepare(
                 "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value = ?");
     }
 
-    public Observable<Boolean> acquireLock(String name, String value, int timeout) {
+    public Observable<Boolean> acquireSharedLock(String name, String value, int timeout) {
         return session.execute(acquireLock.bind(timeout, value, name, value)).map(ResultSet::wasApplied);
     }
 
-    public Observable<Boolean> acquireLock(String name, String value, int timeout, Scheduler scheduler) {
+    public Observable<Boolean> acquireSharedLock(String name, String value, int timeout, Scheduler scheduler) {
         return session.execute(acquireLock.bind(timeout, value, name), scheduler).map(ResultSet::wasApplied);
+    }
+
+    public Observable<Boolean> acquireExclusiveLock(String name, String value, int timeout) {
+        return session.execute(acquireExclusiveLock.bind(timeout, value, name)).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> releaseLock(String name, String value) {

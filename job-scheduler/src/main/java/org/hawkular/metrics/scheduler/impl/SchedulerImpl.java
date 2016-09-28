@@ -226,7 +226,7 @@ public class SchedulerImpl implements Scheduler {
             return Single.error(new RuntimeException("Trigger time has already passed"));
         }
         String lockName = QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
-        return lockManager.acquireLock(lockName, SCHEDULING_LOCK, SCHEDULING_LOCK_TIMEOUT_IN_SEC)
+        return lockManager.acquireSharedLock(lockName, SCHEDULING_LOCK, SCHEDULING_LOCK_TIMEOUT_IN_SEC)
                 .map(acquired -> {
                     if (acquired) {
                         UUID jobId = UUID.randomUUID();
@@ -269,6 +269,7 @@ public class SchedulerImpl implements Scheduler {
                                             .getTimeSlice(),
                                     activeJobs))
                             .flatMap(Observable::from)
+                            .filter(jobId -> !activeJobs.contains(jobId))
                             .flatMap(this::acquireJobLock).filter(JobLock::isAcquired)
                             .flatMap(jobLock -> findJob(jobLock.getJobId()))
                             .flatMap(details -> doJobExecution(details, activeJobs).toObservable()
@@ -308,7 +309,7 @@ public class SchedulerImpl implements Scheduler {
         String lockName = QUEUE_LOCK_PREFIX + timeSlice.getTime();
         int delay = 5;
         Observable<TimeSliceLock> observable = Observable.create(subscriber -> {
-            lockManager.acquireLock(lockName, TIME_SLICE_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
+            lockManager.acquireSharedLock(lockName, TIME_SLICE_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
                     .map(acquired -> {
                         if (!acquired) {
                             logger.debug("Failed to acquire time slice lock for ["  + timeSlice + "]. Will attempt " +
@@ -329,7 +330,7 @@ public class SchedulerImpl implements Scheduler {
 
     private Observable<JobLock> acquireJobLock(UUID jobId) {
         String jobLock = "org.hawkular.metrics.scheduler.job." + jobId;
-        return lockManager.acquireLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
+        return lockManager.acquireExclusiveLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
                 .map(acquired -> new JobLock(jobId, acquired));
     }
 
@@ -426,10 +427,10 @@ public class SchedulerImpl implements Scheduler {
 
         if (nextTrigger.getTriggerTime() <= now.get().getMillis()) {
             logger.info(details + " missed its next execution at " + nextTrigger.getTriggerTime() +
-                    ". It will scheduled for immediate execution.");
+                    ". It will be scheduled for immediate execution.");
             AtomicLong nextTimeSlice = new AtomicLong(currentMinute().getMillis());
             Observable<Boolean> scheduled = Observable.defer(() ->
-                    lockManager.acquireLock(QUEUE_LOCK_PREFIX + nextTimeSlice.addAndGet(60000L), SCHEDULING_LOCK,
+                    lockManager.acquireSharedLock(QUEUE_LOCK_PREFIX + nextTimeSlice.addAndGet(60000L), SCHEDULING_LOCK,
                             SCHEDULING_LOCK_TIMEOUT_IN_SEC))
                     .map(acquired -> {
                         if (!acquired) {

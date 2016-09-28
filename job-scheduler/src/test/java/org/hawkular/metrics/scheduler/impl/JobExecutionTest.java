@@ -811,18 +811,18 @@ public class JobExecutionTest extends JobSchedulerTest {
         });
 
         jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        Thread.sleep(1000);
+        Thread.sleep(100);
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis());
 
-        assertTrue(firstIterationJobs.await(30, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
+        assertTrue(firstIterationJobs.await(60, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
                 " job executions remaining");
-        assertTrue(firstTimeSliceFinished.await(30, TimeUnit.SECONDS));
+        assertTrue(firstTimeSliceFinished.await(60, TimeUnit.SECONDS));
         assertEquals(firstIterationExecutions.get(), numJobs);
 
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(2).getMillis());
 
-        assertTrue(secondTimeSliceFinished.await(30, TimeUnit.SECONDS));
-        assertTrue(thirdTimeSliceFinished.await(30, TimeUnit.SECONDS));
+        assertTrue(secondTimeSliceFinished.await(60, TimeUnit.SECONDS));
+        assertTrue(thirdTimeSliceFinished.await(60, TimeUnit.SECONDS));
 
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(3).getMillis());
         assertTrue(secondIterationJobs.await(60, TimeUnit.SECONDS), "There are " + secondIterationJobs.getCount() +
