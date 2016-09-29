@@ -193,8 +193,6 @@ public class MetricsServiceImpl implements MetricsService {
 
         this.metricRegistry = metricRegistry;
 
-        initStringSize(session);
-
         dataPointInserters = ImmutableMap
                 .<MetricType<?>, Func2<? extends Metric<?>, Integer,
                 Observable<Integer>>>builder()
@@ -264,6 +262,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
+        initStringSize(session);
         setDefaultTTL(session, keyspace);
         initMetrics();
     }

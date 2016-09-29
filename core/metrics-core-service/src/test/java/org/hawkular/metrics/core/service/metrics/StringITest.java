@@ -88,7 +88,7 @@ public class StringITest extends BaseMetricsITest {
                     exceptionRef.set(t);
                     latch.countDown();
                 });
-        latch.await(50, SECONDS);
+        latch.await(10, SECONDS);
 
         assertNotNull(exceptionRef.get());
         assertTrue(exceptionRef.get() instanceof IllegalArgumentException);
