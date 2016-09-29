@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import org.hawkular.metrics.core.service.log.CoreLogger;
+import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -56,6 +58,8 @@ import rx.Observable;
  * @author John Sanda
  */
 public class DataAccessImpl implements DataAccess {
+
+    private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
     public static final long DPART = 0;
     private Session session;
@@ -574,6 +578,8 @@ public class DataAccessImpl implements DataAccess {
     public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return Observable.from(metric.getDataPoints())
                 .map(dataPoint -> {
+                    log.infoMaxSizeStringMetrics(maxSize);
+
                     if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
                         throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
                             " characters");
