@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-integration-tests</artifactId>
-    <version>0.18.3.Final</version>
+    <version>0.18.4.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-rest-tests-jaxrs</artifactId>
