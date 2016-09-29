@@ -738,7 +738,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertTrue(executed.get());
     }
 
-    @Test
+//    @Test
     public void executeLotsOfJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
