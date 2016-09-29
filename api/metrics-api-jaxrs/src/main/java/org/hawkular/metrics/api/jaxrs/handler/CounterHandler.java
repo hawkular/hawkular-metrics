@@ -47,6 +47,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.hawkular.metrics.api.jaxrs.AggregatedStatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
@@ -795,6 +796,26 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
                     .map(ApiUtils::collectionToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
+    }
+
+    @POST
+    @Path("/stats/query")
+    @ApiOperation(value = "Find stats for multiple metrics. These metrics are aggregated into a single statistics " +
+            "series.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data."),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "Either tags or metric ids is required but not both. Either the " +
+                    "buckets or the bucketDuration parameter is required but not both.", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void getStats(
+            @Suspended AsyncResponse asyncResponse,
+            @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
+                    "The standard start, end, order, and limit query parameters are supported as well.")
+                    AggregatedStatsQueryRequest query) {
+        findStatsForAggregatedMetrics(asyncResponse, query, MetricType.COUNTER);
     }
 
     @Deprecated

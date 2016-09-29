@@ -80,6 +80,15 @@ class GaugeMetricStatisticsITest extends RESTTest {
     badGet(
         path: "gauges/$metric/stats/tags/x=1,y=2", headers: [(tenantHeaderName): tenantId]
     ) { exception -> assertEquals(400, exception.response.status) }
+
+    // Both buckets and bucketDuration parameters provided
+    badPost(path: "gauges/stats/query", headers: [(tenantHeaderName): tenantId], body: [
+        metrics: ['$metric'],
+        buckets: 1,
+        bucketDuration: "1d"
+    ]) { exception ->
+      assertEquals(400, exception.response.status)
+    }
   }
 
   @Test
@@ -291,10 +300,28 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    def responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            tags: 'type:cpu_usage,host:server1|server2'
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    def mapping = {bucket -> [bucket.start, bucket.end, bucket.min, bucket.max] };
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
     def bucket = response.data[0]
 
+    assertDoubleEquals("Expected POST and GET to give same avg", bucket.avg, responseByPost.data[0].avg);
+    assertDoubleEquals("Expected POST and GET to give same sum", bucket.sum, responseByPost.data[0].sum);
     assertEquals("The start time is wrong", start.millis, bucket.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
     assertDoubleEquals("The min is wrong", 36.94, bucket.min)
@@ -382,6 +409,23 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    def responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            tags: 'type:cpu_usage,host:server1|server2',
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    def mapping = {bucket -> [bucket.start, bucket.end, bucket.min, bucket.max] };
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
     def bucket = response.data[0]
@@ -389,6 +433,8 @@ class GaugeMetricStatisticsITest extends RESTTest {
     m1 = m1.take(m1.size() - 1)
     m2 = m2.take(m2.size() - 1)
 
+    assertDoubleEquals("Expected POST and GET to give same avg", bucket.avg, responseByPost.data[0].avg);
+    assertDoubleEquals("Expected POST and GET to give same sum", bucket.sum, responseByPost.data[0].sum);
     assertEquals("The start time is wrong", start.millis, bucket.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
     assertDoubleEquals("The min is wrong", (m1.min {it.value}).value + (m2.min {it.value}).value, bucket.min)
@@ -472,6 +518,23 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    def responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            tags: 'type:cpu_usage,host:server1|server2',
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    def mapping = {bucket -> [bucket.start, bucket.end, bucket.min, bucket.max] };
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back 5 buckets", 5, response.data.size())
 
     def actualBucketsByTag = response.data
@@ -496,13 +559,27 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(5).millis,
+            buckets: 5,
+            metrics: ['G1', 'G2'],
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back 5 buckets", 5, response.data.size())
 
     def actualBucketsById = response.data
 
-    assertEquals("Expected to get back five buckets", 5, response.data.size())
     assertEquals("Stacked stats when queried by tag are different than when queried by id", actualBucketsById, actualBucketsByTag)
-
   }
 
   @Test
@@ -582,6 +659,23 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    def responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            metrics: ['G1', 'G2'],
+            stacked: true
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    def mapping = {bucket -> [bucket.start, bucket.end, bucket.min, bucket.max] };
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
     def bucket = response.data[0]
@@ -589,6 +683,8 @@ class GaugeMetricStatisticsITest extends RESTTest {
     g1 = g1.take(g1.size() - 1)
     g2 = g2.take(g2.size() - 1)
 
+    assertDoubleEquals("Expected POST and GET to give same avg", bucket.avg, responseByPost.data[0].avg);
+    assertDoubleEquals("Expected POST and GET to give same sum", bucket.sum, responseByPost.data[0].sum);
     assertEquals("The start time is wrong", start.millis, bucket.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
     assertDoubleEquals("The min is wrong", (g1.min {it.value}).value + (g2.min {it.value}).value, bucket.min)
@@ -671,10 +767,28 @@ class GaugeMetricStatisticsITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
+    // query for data (POST version)
+    def responseByPost = hawkularMetrics.post(
+        path: 'gauges/stats/query',
+        body: [
+            start: start.millis,
+            end: start.plusMinutes(4).millis,
+            buckets: 1,
+            metrics: ['G1', 'G2']
+        ],
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, responseByPost.status)
+
+    def mapping = {bucket -> [bucket.start, bucket.end, bucket.min, bucket.max] };
+    assertEquals("Expected POST and GET to give same results", mapping.call(response.data), mapping.call
+        (responseByPost.data));
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
     def bucket = response.data[0]
 
+    assertDoubleEquals("Expected POST and GET to give same avg", bucket.avg, responseByPost.data[0].avg);
+    assertDoubleEquals("Expected POST and GET to give same sum", bucket.sum, responseByPost.data[0].sum);
     assertEquals("The start time is wrong", start.millis, bucket.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, bucket.end)
     assertDoubleEquals("The min is wrong", 36.94, bucket.min)

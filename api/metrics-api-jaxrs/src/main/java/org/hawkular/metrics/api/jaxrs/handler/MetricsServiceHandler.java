@@ -35,15 +35,22 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
+import org.hawkular.metrics.api.jaxrs.AggregatedStatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
+import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
+import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
+import org.hawkular.metrics.model.Percentile;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
@@ -173,6 +180,58 @@ public abstract class MetricsServiceHandler {
             dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, COUNTER_RATE));
         } else {
             throw new IllegalArgumentException(type + " is not a supported metric type for rate data points");
+        }
+    }
+
+    protected void findStatsForAggregatedMetrics(AsyncResponse asyncResponse, AggregatedStatsQueryRequest query,
+                                                 MetricType<? extends Number> type) {
+
+        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+        if (!timeRange.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
+            return;
+        }
+        Duration duration;
+        if (query.getBucketDuration() == null) {
+            duration = null;
+        } else {
+            duration = new DurationConverter().fromString(query.getBucketDuration());
+        }
+        BucketConfig bucketConfig = new BucketConfig(query.getBuckets(), duration, timeRange);
+        if (bucketConfig.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError(
+                    "Either the buckets or bucketDuration parameter must be used")));
+            return;
+        }
+        if (!bucketConfig.isValid()) {
+            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
+            return;
+        }
+        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
+        List<String> ids = query.getMetrics() == null ? Collections.emptyList() : query.getMetrics();
+
+        if (ids.isEmpty() && tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
+            return;
+        }
+        if (!ids.isEmpty() && !tags.isEmpty()) {
+            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
+            return;
+        }
+
+        List<Percentile> percentiles = query.getPercentiles() == null ? Collections.emptyList()
+                : new PercentilesConverter().fromString(query.getPercentiles()).getPercentiles();
+
+        if (ids.isEmpty()) {
+            metricsService.findNumericStats(getTenant(), type, tags, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles, query.isStacked())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+        } else {
+            metricsService.findNumericStats(getTenant(), type, ids, timeRange.getStart(),
+                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles, query.isStacked())
+                    .map(ApiUtils::collectionToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
         }
     }
 }
