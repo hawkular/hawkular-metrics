@@ -50,6 +50,7 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
+import org.hawkular.metrics.api.jaxrs.param.TimeAndSortParams;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
@@ -59,7 +60,6 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
-import org.hawkular.metrics.model.param.TimeRange;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
@@ -69,6 +69,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -268,12 +269,23 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
+    @Override
     public void getData(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findRawDataPointsForMetrics(asyncResponse, query, STRING);
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), STRING)
+                .toList()
+                .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(query.getStart(), query.getEnd())
+                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+                        .sortOptions(query.getLimit(), query.getOrder())
+                        .forString()
+                        .toObservable()
+                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+                                .observeOn(Schedulers.io())))
+                .subscribe(createNamedDataPointObserver(STRING));
     }
 
     @GET
@@ -290,42 +302,24 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
             @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
         MetricId<String> metricId = new MetricId<>(getTenant(), STRING, id);
-        if (limit != null) {
-            if (order == null) {
-                if (start == null && end != null) {
-                    order = Order.DESC;
-                } else if (start != null && end == null) {
-                    order = Order.ASC;
-                } else {
-                    order = Order.DESC;
-                }
-            }
-        } else {
-            limit = 0;
-        }
-
-        if (order == null) {
-            order = Order.DESC;
-        }
-
-        metricsService
-                .findStringData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct, limit, order)
+        TimeAndSortParams.<String>deferredBuilder(start, end)
+                .fromEarliest(fromEarliest, metricId, this::findTimeRange)
+                .sortOptions(limit, order)
+                .forString()
+                .toObservable()
+                .flatMap(p -> metricsService.findStringData(metricId, p.getTimeRange().getStart(), p
+                        .getTimeRange().getEnd(), distinct, p.getLimit(), p.getOrder()))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
 }

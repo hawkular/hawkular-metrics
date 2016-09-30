@@ -33,6 +33,8 @@ public class AggregatedStatsQueryRequest {
 
     private String end;
 
+    private Boolean fromEarliest;
+
     private Integer buckets;
 
     private String bucketDuration;
@@ -65,6 +67,14 @@ public class AggregatedStatsQueryRequest {
 
     public void setEnd(String end) {
         this.end = end;
+    }
+
+    public Boolean getFromEarliest() {
+        return fromEarliest;
+    }
+
+    public void setFromEarliest(Boolean fromEarliest) {
+        this.fromEarliest = fromEarliest;
     }
 
     public Integer getBuckets() {
@@ -116,6 +126,7 @@ public class AggregatedStatsQueryRequest {
                 Objects.equals(tags, that.tags) &&
                 Objects.equals(start, that.start) &&
                 Objects.equals(end, that.end) &&
+                Objects.equals(fromEarliest, that.fromEarliest) &&
                 Objects.equals(buckets, that.buckets) &&
                 Objects.equals(bucketDuration, that.bucketDuration) &&
                 Objects.equals(percentiles, that.percentiles) &&
@@ -124,7 +135,7 @@ public class AggregatedStatsQueryRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(metrics, tags, start, end, buckets, bucketDuration, percentiles, stacked);
+        return Objects.hash(metrics, tags, start, end, fromEarliest, buckets, bucketDuration, percentiles, stacked);
     }
 
     @Override public String toString() {
@@ -133,6 +144,7 @@ public class AggregatedStatsQueryRequest {
                 .add("tags", tags)
                 .add("start", start)
                 .add("end", end)
+                .add("fromEarliest", fromEarliest)
                 .add("buckets", buckets)
                 .add("bucketDuration", bucketDuration)
                 .add("percentiles", percentiles)

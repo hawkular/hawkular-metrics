@@ -51,6 +51,8 @@ import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
+import org.hawkular.metrics.api.jaxrs.param.TimeAndBucketParams;
+import org.hawkular.metrics.api.jaxrs.param.TimeAndSortParams;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
@@ -76,6 +78,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 /**
  * @author Stefan Negrea
@@ -299,12 +302,22 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
                     response = ApiError.class)
     })
+    @Override
     public void getData(
             @Suspended AsyncResponse asyncResponse,
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findRawDataPointsForMetrics(asyncResponse, query, AVAILABILITY);
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), AVAILABILITY)
+                .toList()
+                .flatMap(metricIds -> TimeAndSortParams.<AvailabilityType>deferredBuilder(query.getStart(), query.getEnd())
+                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+                        .sortOptions(query.getLimit(), query.getOrder())
+                        .toObservable()
+                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+                                .observeOn(Schedulers.io())))
+                .subscribe(createNamedDataPointObserver(AVAILABILITY));
     }
 
     @Deprecated
@@ -391,32 +404,23 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Set to true to return only distinct, contiguous values")
                 @QueryParam("distinct") @DefaultValue("false") Boolean distinct,
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
         MetricId<AvailabilityType> metricId = new MetricId<>(getTenant(), AVAILABILITY, id);
-
-        if (limit == null) {
-            limit = 0;
-        }
-        if (order == null) {
-            order = Order.defaultValue(limit, start, end);
-        }
-
-        metricsService
-                .findAvailabilityData(metricId, timeRange.getStart(), timeRange.getEnd(), distinct, limit, order)
+        TimeAndSortParams.<AvailabilityType>deferredBuilder(start, end)
+                .fromEarliest(fromEarliest, metricId, this::findTimeRange)
+                .sortOptions(limit, order)
+                .toObservable()
+                .flatMap(p -> metricsService.findAvailabilityData(metricId, p.getTimeRange().getStart(), p
+                        .getTimeRange().getEnd(), distinct, p.getLimit(), p.getOrder()))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 
     @GET
@@ -438,32 +442,22 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @PathParam("id") String id,
             @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
             @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+                @QueryParam("fromEarliest") Boolean fromEarliest,
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration) {
 
-        TimeRange timeRange = new TimeRange(start, end);
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
-        BucketConfig bucketConfig = new BucketConfig(bucketsCount, bucketDuration, timeRange);
-        if (!bucketConfig.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-            return;
-        }
-
-        if (bucketConfig.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError(
-                    "Either the buckets or bucketDuration parameter must be used")));
-            return;
-        }
-
         MetricId<AvailabilityType> metricId = new MetricId<>(getTenant(), AVAILABILITY, id);
-        Buckets buckets = bucketConfig.getBuckets();
-
-        metricsService.findAvailabilityStats(metricId, timeRange.getStart(), timeRange.getEnd(), buckets)
+        TimeAndBucketParams.<AvailabilityType>deferredBuilder(start, end)
+                .fromEarliest(fromEarliest, metricId, this::findTimeRange)
+                .bucketConfig(bucketsCount, bucketDuration)
+                .toObservable()
+                .flatMap(p -> metricsService.findAvailabilityStats(metricId, p.getTimeRange().getStart(),
+                        p.getTimeRange().getEnd(), p.getBucketConfig().getBuckets()))
+                .flatMap(Observable::from)
+                .skipWhile(bucket -> Boolean.TRUE.equals(fromEarliest) && bucket.isEmpty())
+                .toList()
                 .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
     }
 }

@@ -16,53 +16,40 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
-import static java.util.stream.Collectors.toList;
-
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
-import static org.hawkular.metrics.model.MetricType.GAUGE;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.container.AsyncResponse;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
-import org.hawkular.metrics.api.jaxrs.AggregatedStatsQueryRequest;
-import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
-import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
-import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.core.service.Order;
-import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
-import org.hawkular.metrics.model.NamedDataPoint;
-import org.hawkular.metrics.model.Percentile;
-import org.hawkular.metrics.model.param.BucketConfig;
-import org.hawkular.metrics.model.param.Duration;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
+import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
  */
-public abstract class MetricsServiceHandler {
+abstract class MetricsServiceHandler {
 
     @Inject
     protected MetricsService metricsService;
@@ -77,161 +64,70 @@ public abstract class MetricsServiceHandler {
         return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
     }
 
-    protected <T> void findRawDataPointsForMetrics(AsyncResponse asyncResponse, QueryRequest query,
-                                                   MetricType<T> type) {
-        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
-        int limit;
-        if (query.getLimit() == null) {
-            limit = 0;
-        } else {
-            limit = query.getLimit();
-        }
-        Order order;
-        if (query.getOrder() == null) {
-            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
-        } else {
-            order = Order.fromText(query.getOrder());
-        }
-
-        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
-        List<String> ids = query.getIds() == null ? Collections.emptyList() : query.getIds();
-
-        if (ids.isEmpty() && tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
-            return;
-        }
-        if (!ids.isEmpty() && !tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
-            return;
-        }
-
-        final Observable<NamedDataPoint<T>> dataPoints;
-        if (tags.isEmpty()) {
-            List<MetricId<T>> metricIds = ids.stream().map(id -> new MetricId<>(getTenant(), type, id))
-                    .collect(toList());
-            dataPoints = metricsService.findDataPoints(metricIds, timeRange.getStart(),
-                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
-        } else {
-            dataPoints = metricsService.findDataPoints(getTenant(), type, tags, timeRange.getStart(),
-                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
-        }
-
+    <T> NamedDataPointObserver<T>  createNamedDataPointObserver(MetricType<T> type) {
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-
-        dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, type));
+        return new NamedDataPointObserver<>(request, response, mapper, type);
     }
 
-    protected void findRateDataPointsForMetrics(AsyncResponse asyncResponse, QueryRequest query,
-                                                MetricType<? extends Number> type) {
-        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
-        if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
-        }
-
-        int limit;
-        if (query.getLimit() == null) {
-            limit = 0;
-        } else {
-            limit = query.getLimit();
-        }
-        Order order;
-        if (query.getOrder() == null) {
-            order = Order.defaultValue(limit, timeRange.getStart(), timeRange.getEnd());
-        } else {
-            order = Order.fromText(query.getOrder());
-        }
-
-        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
-        List<String> ids = query.getIds() == null ? Collections.emptyList() : query.getIds();
-
-        if (ids.isEmpty() && tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
-            return;
-        }
-        if (!ids.isEmpty() && !tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
-            return;
-        }
-
-        final Observable<NamedDataPoint<Double>> dataPoints;
-        if (tags.isEmpty()) {
-            List<MetricId<? extends Number>> metricIds = ids.stream().map(id -> new MetricId<>(getTenant(), type, id))
-                    .collect(toList());
-            dataPoints = metricsService.findRateData(metricIds, timeRange.getStart(),
-                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
-        } else {
-            dataPoints = metricsService.findRateData(getTenant(), type, tags, timeRange.getStart(),
-                    timeRange.getEnd(), limit, order).observeOn(Schedulers.io());
-        }
-
-        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
-        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-
-        if (type == GAUGE) {
-            dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, GAUGE));
-        } else if (type == COUNTER) {
-            dataPoints.subscribe(new NamedDataPointObserver<>(request, response, mapper, COUNTER_RATE));
-        } else {
-            throw new IllegalArgumentException(type + " is not a supported metric type for rate data points");
-        }
+    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
+        List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
+        Map<String, String> mapTags = TagsConverter.fromNullable(tags).getTags();
+        return findMetricsByNameOrTag(nonNullNames, mapTags, type);
     }
 
-    protected void findStatsForAggregatedMetrics(AsyncResponse asyncResponse, AggregatedStatsQueryRequest query,
-                                                 MetricType<? extends Number> type) {
+    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, Tags tags, MetricType<T> type) {
+        List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
+        Map<String, String> mapTags = tags == null ? Collections.emptyMap() : tags.getTags();
+        return findMetricsByNameOrTag(nonNullNames, mapTags, type);
+    }
 
-        TimeRange timeRange = new TimeRange(query.getStart(), query.getEnd());
+    private <T> Observable<MetricId<T>> findMetricsByNameOrTag(@NotNull List<String> metricNames, @NotNull Map<String,
+            String> tags, MetricType<T> type) {
+
+        if (metricNames.isEmpty() && tags.isEmpty()) {
+            return Observable.error(new RuntimeApiError("Either metrics or tags parameter must be used"));
+        }
+        if (!metricNames.isEmpty() && !tags.isEmpty()) {
+            return Observable.error(new RuntimeApiError("Cannot use both the metrics and tags parameters"));
+        }
+
+        if (!metricNames.isEmpty()) {
+            return Observable.from(metricNames)
+                    .map(id -> new MetricId<>(getTenant(), type, id));
+        }
+        // Tags case
+        return metricsService.findMetricsWithFilters(getTenant(), type, tags)
+                .map(Metric::getMetricId);
+    }
+
+    <T> Observable<TimeRange> findTimeRange(String start, String end, Boolean fromEarliest,
+                                                    Collection<MetricId<T>> metricIds) {
+        if (Boolean.TRUE.equals(fromEarliest)) {
+            if (start != null || end != null) {
+                return Observable.error(new RuntimeApiError("fromEarliest can only be used without start & end"));
+            }
+            return Observable.from(metricIds)
+                    .flatMap(metricsService::findMetric)
+                    .toList()
+                    .map(metrics -> metrics.stream()
+                            .map(Metric::getDataRetention)
+                            .filter(r -> r != null)
+                            .reduce(Math::max)
+                            .map(maxRetention -> {
+                                long dataRetention = maxRetention * 24 * 60 * 60 * 1000L;
+                                long now = System.currentTimeMillis();
+                                long earliest = now - dataRetention;
+                                return new TimeRange(earliest, now);
+                            }))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get);
+        }
+
+        TimeRange timeRange = new TimeRange(start, end);
         if (!timeRange.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(timeRange.getProblem())));
-            return;
+            return Observable.error(new RuntimeApiError(timeRange.getProblem()));
         }
-        Duration duration;
-        if (query.getBucketDuration() == null) {
-            duration = null;
-        } else {
-            duration = new DurationConverter().fromString(query.getBucketDuration());
-        }
-        BucketConfig bucketConfig = new BucketConfig(query.getBuckets(), duration, timeRange);
-        if (bucketConfig.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError(
-                    "Either the buckets or bucketDuration parameter must be used")));
-            return;
-        }
-        if (!bucketConfig.isValid()) {
-            asyncResponse.resume(badRequest(new ApiError(bucketConfig.getProblem())));
-            return;
-        }
-        Map<String, String> tags = TagsConverter.fromNullable(query.getTags()).getTags();
-        List<String> ids = query.getMetrics() == null ? Collections.emptyList() : query.getMetrics();
-
-        if (ids.isEmpty() && tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Either metrics or tags parameter must be used")));
-            return;
-        }
-        if (!ids.isEmpty() && !tags.isEmpty()) {
-            asyncResponse.resume(badRequest(new ApiError("Cannot use both the metrics and tags parameters")));
-            return;
-        }
-
-        List<Percentile> percentiles = query.getPercentiles() == null ? Collections.emptyList()
-                : new PercentilesConverter().fromString(query.getPercentiles()).getPercentiles();
-
-        if (ids.isEmpty()) {
-            metricsService.findNumericStats(getTenant(), type, tags, timeRange.getStart(),
-                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles, query.isStacked())
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-        } else {
-            metricsService.findNumericStats(getTenant(), type, ids, timeRange.getStart(),
-                    timeRange.getEnd(), bucketConfig.getBuckets(), percentiles, query.isStacked())
-                    .map(ApiUtils::collectionToResponse)
-                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
-        }
+        return Observable.just(timeRange);
     }
 }

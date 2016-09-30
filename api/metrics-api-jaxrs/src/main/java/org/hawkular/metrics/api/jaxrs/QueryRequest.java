@@ -29,6 +29,8 @@ public class QueryRequest {
 
     private String end;
 
+    private Boolean fromEarliest;
+
     private Integer limit;
 
     private String order;
@@ -57,6 +59,14 @@ public class QueryRequest {
 
     public void setEnd(String end) {
         this.end = end;
+    }
+
+    public Boolean getFromEarliest() {
+        return fromEarliest;
+    }
+
+    public void setFromEarliest(Boolean fromEarliest) {
+        this.fromEarliest = fromEarliest;
     }
 
     public Integer getLimit() {
@@ -88,6 +98,7 @@ public class QueryRequest {
                 "ids=" + ids +
                 ", start=" + start +
                 ", end=" + end +
+                ", fromEarliest=" + fromEarliest +
                 ", limit=" + limit +
                 ", order=" + order +
                 ", tags=" + tags +
