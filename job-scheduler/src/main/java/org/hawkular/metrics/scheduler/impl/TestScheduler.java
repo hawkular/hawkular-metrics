@@ -117,9 +117,11 @@ public class TestScheduler implements Scheduler {
     }
 
     public void truncateTables(String keyspace) {
+        //TODO: The filtering below for static data tables is prone to error. Find a better way to avoid
+        //truncating those tables.
         session.execute("select table_name from system_schema.tables where keyspace_name = '" + keyspace + "'")
                 .flatMap(Observable::from)
-                .filter(row -> !row.getString(0).equals("cassalog"))
+                .filter(row -> !row.getString(0).equals("cassalog") && !row.getString(0).equals("sys_config"))
                 .flatMap(row -> session.execute("truncate " + row.getString(0)))
                 .toCompletable()
                 .await(10, TimeUnit.SECONDS);
