@@ -67,6 +67,9 @@
             <overlay>
               <groupId>org.hawkular.metrics</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+              <excludes>
+                <exclude>WEB-INF/classes/org/hawkular/metrics/api/jaxrs/filter/AdminFilter.class</exclude>
+              </excludes>
             </overlay>
           </overlays>
         </configuration>

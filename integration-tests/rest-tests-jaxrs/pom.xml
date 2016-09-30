@@ -176,6 +176,7 @@
                     <javaOpt>-Dhawkular.terminal-event.timeout=${terminal-event.timeout}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.admin-token=awesome_secret_sauce</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                   </javaOpts>

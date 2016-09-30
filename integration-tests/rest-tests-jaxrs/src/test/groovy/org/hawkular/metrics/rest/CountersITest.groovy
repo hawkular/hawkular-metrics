@@ -531,14 +531,7 @@ class CountersITest extends RESTTest {
   void findCounterStats() {
     String counter = "C1"
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: "tenants",
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
@@ -597,14 +590,7 @@ class CountersITest extends RESTTest {
   void findRate() {
     String counter = "C1"
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: "tenants",
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
@@ -649,14 +635,7 @@ Actual:   ${response.data}
   void findRateWhenThereAreResets() {
     String counter = 'C1'
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: 'tenants',
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
@@ -705,14 +684,7 @@ Actual:   ${response.data}
   void findRateStats() {
     String counter = "C1"
 
-    // Create the tenant
     def response = hawkularMetrics.post(
-        path: "tenants",
-        body: [id: tenantId]
-    )
-    assertEquals(201, response.status)
-
-    response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
@@ -803,14 +775,7 @@ Actual:   ${response.data}
   void percentileParameter() {
       String counter = "C1"
 
-      // Create the tenant
       def response = hawkularMetrics.post(
-          path: "tenants",
-          body: [id: tenantId]
-      )
-      assertEquals(201, response.status)
-
-      response = hawkularMetrics.post(
           path: "counters/$counter/raw",
           headers: [(tenantHeaderName): tenantId],
           body: [

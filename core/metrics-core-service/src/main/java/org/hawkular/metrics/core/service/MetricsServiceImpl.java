@@ -71,7 +71,6 @@ import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
-import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.Duration;
 
@@ -313,13 +312,14 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private void initStringSize(Session session) {
-        Configuration configuration = configurationService.load("org.hawkular.metrics").toBlocking()
+        String configMaxStringSize = configurationService.load("org.hawkular.metrics", "string-size").toBlocking()
                 .lastOrDefault(null);
-        if (configuration == null) {
+        if (configMaxStringSize == null) {
             maxStringSize = -1;  // no size limit
         } else {
-            maxStringSize = Integer.parseInt(configuration.get("string-size", "2048"));
+            maxStringSize = Integer.parseInt(configMaxStringSize);
         }
+        log.infoMaxSizeStringMetrics(this.maxStringSize);
     }
 
     private void setDefaultTTL(Session session, String keyspace) {

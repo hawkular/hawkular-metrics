@@ -33,25 +33,42 @@ import org.junit.Test
 class TenantITest extends RESTTest {
   def tenantId = nextTenantId()
 
+  def adminToken = "awesome_secret_sauce"
+
   @Test
   void createAndReadTest() {
     def secondTenantId = nextTenantId()
 
-    def response = hawkularMetrics.post(path: "tenants", body: [
+    def response = hawkularMetrics.post(path: "tenants",
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: [
         id        : tenantId,
         retentions: [gauge: 45, availability: 30, counter: 13]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    response = hawkularMetrics.post(path: "tenants", body: [
+    response = hawkularMetrics.post(path: "tenants",
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: [
         id        : secondTenantId,
         retentions: [gauge: 13, availability: 45, counter: 30]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    response = hawkularMetrics.get(path: "tenants")
+    response = hawkularMetrics.get(path: "tenants",
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ]
+    )
     def expectedData = [
         [
             id        : tenantId,
@@ -68,22 +85,42 @@ class TenantITest extends RESTTest {
 
   @Test
   void duplicateTenantTest() {
-    def response = hawkularMetrics.post(path: 'tenants', body: [id: tenantId])
+    def response = hawkularMetrics.post(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: [id: tenantId])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    badPost(path: 'tenants', body: [id: tenantId]) { exception ->
+    badPost(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: [id: tenantId]) { exception ->
       assertEquals(409, exception.response.status)
     }
 
-    response = hawkularMetrics.post(path: 'tenants', query: [overwrite: true], body: [
+    response = hawkularMetrics.post(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      query: [overwrite: true],
+      body: [
         id: tenantId,
         retentions: [gauge: 145, availability: 130, counter: 113]
     ])
     assertEquals(201, response.status)
     assertEquals("http://$baseURI/tenants".toString(), response.getFirstHeader('location').value)
 
-    response = hawkularMetrics.get(path: "tenants")
+    response = hawkularMetrics.get(path: "tenants",
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ])
     def expectedData = [
         [
             id        : tenantId,
@@ -96,7 +133,12 @@ class TenantITest extends RESTTest {
 
   @Test
   void invalidPayloadTest() {
-    badPost(path: 'tenants', body: "" /* Empty body */) { exception ->
+    badPost(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: "" /* Empty body */) { exception ->
       assertEquals(400, exception.response.status)
       assertTrue(exception.response.data.containsKey("errorMsg"))
     }
@@ -110,7 +152,10 @@ class TenantITest extends RESTTest {
 
     def response = hawkularMetrics.post(
         path: "gauges/G1/raw",
-        headers: [(tenantHeaderName): tenantId],
+        headers: [
+          (tenantHeaderName): tenantId,
+          (adminTokenHeaderName): adminToken
+        ],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 3.14]
         ]
@@ -120,7 +165,7 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.get(path: "clock/wait", query: [duration: "31mn"])
     assertEquals("There was an error waiting: $response.data", 200, response.status)
 
-    response = hawkularMetrics.get(path: "tenants")
+    response = hawkularMetrics.get(path: "tenants", headers: [(adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
@@ -134,7 +179,10 @@ class TenantITest extends RESTTest {
 
     def response = hawkularMetrics.post(
         path: 'counters/C1/raw',
-        headers: [(tenantHeaderName): tenantId],
+        headers: [
+          (tenantHeaderName): tenantId,
+          (adminTokenHeaderName): adminToken
+        ],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 100]
         ]
@@ -144,7 +192,12 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.get(path: 'clock/wait', query: [duration: '31mn'])
     assertEquals("There was an error waiting: $response.data", 200, response.status)
 
-    response = hawkularMetrics.get(path: 'tenants')
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ])
+
     assertEquals(200, response.status)
 
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
@@ -158,7 +211,10 @@ class TenantITest extends RESTTest {
 
     def response = hawkularMetrics.post(
         path: 'availability/A1/raw',
-        headers: [(tenantHeaderName): tenantId],
+        headers: [
+          (tenantHeaderName): tenantId,
+          (adminTokenHeaderName): adminToken
+        ],
         body: [
             [timestamp: start.minusMinutes(1).millis, value: 'up']
         ]
@@ -168,7 +224,11 @@ class TenantITest extends RESTTest {
     response = hawkularMetrics.get(path: 'clock/wait', query: [duration: '31mn'])
     assertEquals("There was an error waiting: $response.data", 200, response.status)
 
-    response = hawkularMetrics.get(path: 'tenants')
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ])
     assertEquals(200, response.status)
 
     assertNotNull("tenantId = $tenantId, Response = $response.data", response.data.find { it.id == tenantId })
@@ -176,10 +236,15 @@ class TenantITest extends RESTTest {
 
   @Test
   void deleteTenantHavingNoMetrics() {
-    def response = hawkularMetrics.post(path: "tenants", body: [
-        id        : tenantId,
+    def response = hawkularMetrics.post(path: "tenants",
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ],
+      body: [
+        id: tenantId,
         retentions: [gauge: 45, availability: 30, counter: 13]
-    ])
+      ])
     assertEquals(201, response.status)
 
     response = hawkularMetrics.get(path:'scheduler/clock', headers: [(tenantHeaderName): tenantId])
@@ -187,7 +252,8 @@ class TenantITest extends RESTTest {
 
     DateTime now = new DateTime(response.data.time as Long)
 
-    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.delete(path: "tenants/$tenantId",
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.put(
@@ -197,7 +263,11 @@ class TenantITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [
+        (tenantHeaderName): tenantId,
+        (adminTokenHeaderName): adminToken
+      ])
     assertEquals(200, response.status)
     assertNull(response.data.find { it.id == tenantId })
   }
@@ -282,7 +352,8 @@ class TenantITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.delete(path: "tenants/$tenantId",
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.put(
@@ -321,11 +392,13 @@ class TenantITest extends RESTTest {
     assertEquals(204, response.status)
 
     ['gauge', 'counter', 'availability', 'string'].each { type ->
-      response = hawkularMetrics.get(path: "metrics", query: [type: type], headers: [(tenantHeaderName): tenantId])
+      response = hawkularMetrics.get(path: "metrics", query: [type: type],
+        headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
       assertEquals(204, response.status)
     }
 
-    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
     assertNull(response.data.find { it.id == tenantId })
   }
@@ -337,7 +410,8 @@ class TenantITest extends RESTTest {
 
     DateTime start = new DateTime(response.data.time as Long)
 
-    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.delete(path: "tenants/$tenantId",
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.put(
@@ -347,7 +421,8 @@ class TenantITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
     assertNull(response.data.find { it.id == tenantId })
   }
@@ -432,10 +507,12 @@ class TenantITest extends RESTTest {
     )
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.delete(path: "tenants/$tenantId",
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
-    response = hawkularMetrics.delete(path: "tenants/$tenantId", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.delete(path: "tenants/$tenantId",
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.put(
@@ -478,7 +555,8 @@ class TenantITest extends RESTTest {
       assertEquals(204, response.status)
     }
 
-    response = hawkularMetrics.get(path: 'tenants', headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: 'tenants',
+      headers: [(tenantHeaderName): tenantId, (adminTokenHeaderName): adminToken])
     assertEquals(200, response.status)
     assertNull(response.data.find { it.id == tenantId })
   }
