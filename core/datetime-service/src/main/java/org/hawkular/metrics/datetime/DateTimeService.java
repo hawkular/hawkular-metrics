@@ -19,6 +19,7 @@ package org.hawkular.metrics.datetime;
 import java.util.function.Supplier;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Days;
 import org.joda.time.Duration;
 import org.joda.time.Hours;
@@ -28,6 +29,10 @@ import org.joda.time.Period;
  * @author John Sanda
  */
 public class DateTimeService {
+
+    static {
+        DateTimeZone.setDefault(DateTimeZone.UTC);
+    }
 
     public static Supplier<DateTime> now = DateTime::now;
 
