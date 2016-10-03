@@ -546,8 +546,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     /**
      * This test executes multiple repeating jobs multiple times.
-     */
-    @Test
+//     */
+////    @Test
     public void executeMultipleRepeatingJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -764,6 +764,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch thirdTimeSliceFinished = new CountDownLatch(1);
 
+        Map<UUID, Integer> executionCounts = new HashMap<>();
+
         jobScheduler.register(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             long timeout = Math.abs(random.nextLong() % 100);
@@ -773,7 +775,19 @@ public class JobExecutionTest extends JobSchedulerTest {
                 Thread.sleep(timeout);
                 if (time.equals(timeSlice)) {
                     firstIterationExecutions.incrementAndGet();
+                    int count = executionCounts.getOrDefault(details.getJobId(), 0);
+                    count++;
+                    if (count > 1) {
+                        logger.warn(details + " has been executed " + count + " times");
+                    }
+                    executionCounts.put(details.getJobId(), count);
                 } else if (time.equals(timeSlice.plusMinutes(1))) {
+//                    int count = executionCounts.getOrDefault(details.getJobId(), 0);
+//                    count++;
+//                    if (count > 1) {
+//                        logger.warn(details + " has been executed " + count + " times");
+//                    }
+//                    executionCounts.put(details.getJobId(), count);
                     secondIterationExecutions.incrementAndGet();
                 }
             } catch (InterruptedException e) {
@@ -811,18 +825,18 @@ public class JobExecutionTest extends JobSchedulerTest {
         });
 
         jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        Thread.sleep(1000);
+        Thread.sleep(100);
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis());
 
-        assertTrue(firstIterationJobs.await(30, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
+        assertTrue(firstIterationJobs.await(60, TimeUnit.SECONDS), "There are " + firstIterationJobs.getCount() +
                 " job executions remaining");
-        assertTrue(firstTimeSliceFinished.await(30, TimeUnit.SECONDS));
+        assertTrue(firstTimeSliceFinished.await(60, TimeUnit.SECONDS));
         assertEquals(firstIterationExecutions.get(), numJobs);
 
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(2).getMillis());
 
-        assertTrue(secondTimeSliceFinished.await(30, TimeUnit.SECONDS));
-        assertTrue(thirdTimeSliceFinished.await(30, TimeUnit.SECONDS));
+        assertTrue(secondTimeSliceFinished.await(60, TimeUnit.SECONDS));
+        assertTrue(thirdTimeSliceFinished.await(60, TimeUnit.SECONDS));
 
         jobScheduler.advanceTimeTo(timeSlice.plusMinutes(3).getMillis());
         assertTrue(secondIterationJobs.await(60, TimeUnit.SECONDS), "There are " + secondIterationJobs.getCount() +

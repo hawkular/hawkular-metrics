@@ -31,6 +31,10 @@
 
   <name>Hawkular Metrics Job Scheduler</name>
 
+  <properties>
+    <test.keyspace>hawkulartest</test.keyspace>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -103,6 +107,7 @@
             <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
           </suiteXmlFiles>
           <systemPropertyVariables>
+            <keyspace>${test.keyspace}</keyspace>
             <resetdb>true</resetdb>
           </systemPropertyVariables>
         </configuration>
