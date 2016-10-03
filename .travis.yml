@@ -22,6 +22,7 @@ addons:
     packages:
     - collectd
     - collectd-utils
+    - oracle-java8-installer
   coverity_scan:
     project:
       name: hawkular/hawkular-metrics
