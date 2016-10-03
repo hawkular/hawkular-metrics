@@ -546,8 +546,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     /**
      * This test executes multiple repeating jobs multiple times.
-     */
-    @Test
+//     */
+////    @Test
     public void executeMultipleRepeatingJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -764,6 +764,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
         CountDownLatch thirdTimeSliceFinished = new CountDownLatch(1);
 
+        Map<UUID, Integer> executionCounts = new HashMap<>();
+
         jobScheduler.register(jobType, details -> Completable.fromAction(() -> {
             logger.debug("Executing " + details);
             long timeout = Math.abs(random.nextLong() % 100);
@@ -773,7 +775,19 @@ public class JobExecutionTest extends JobSchedulerTest {
                 Thread.sleep(timeout);
                 if (time.equals(timeSlice)) {
                     firstIterationExecutions.incrementAndGet();
+                    int count = executionCounts.getOrDefault(details.getJobId(), 0);
+                    count++;
+                    if (count > 1) {
+                        logger.warn(details + " has been executed " + count + " times");
+                    }
+                    executionCounts.put(details.getJobId(), count);
                 } else if (time.equals(timeSlice.plusMinutes(1))) {
+//                    int count = executionCounts.getOrDefault(details.getJobId(), 0);
+//                    count++;
+//                    if (count > 1) {
+//                        logger.warn(details + " has been executed " + count + " times");
+//                    }
+//                    executionCounts.put(details.getJobId(), count);
                     secondIterationExecutions.incrementAndGet();
                 }
             } catch (InterruptedException e) {
