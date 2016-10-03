@@ -604,6 +604,52 @@ Actual:   ${response.data}
             [timestamp: start.plusHours(2).millis, value: 4.44]
         ]
     ]))
+
+    // From Earliest
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['G1', 'G2', 'G3'],
+            fromEarliest: true,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 5.22],
+            [timestamp: start.plusHours(3).millis, value: 2.22],
+            [timestamp: start.plusHours(2).millis, value: 5.34],
+            [timestamp: start.plusHours(1).millis, value: 3.45],
+            [timestamp: start.millis, value: 1.23]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G2',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 3.99],
+            [timestamp: start.plusHours(3).millis, value: 2.63],
+            [timestamp: start.plusHours(2).millis, value: 3.62],
+            [timestamp: start.plusHours(1).millis, value: 2.36],
+            [timestamp: start.millis, value: 1.45]
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'G3',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 3.77],
+            [timestamp: start.plusHours(3).millis, value: 3.33],
+            [timestamp: start.plusHours(2).millis, value: 4.44],
+            [timestamp: start.plusHours(1).millis, value: 5.55],
+            [timestamp: start.millis, value: 4.45]
+        ]
+    ]))
   }
 
   @Test
@@ -704,6 +750,72 @@ Actual:   ${response.data}
         data: [
             [timestamp: 60_000 * 2, value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
             [timestamp: 60_000 * 2.5, value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
+        ]
+    ])
+  }
+
+  @Test
+  void fetchRatesFromEarliest() {
+    String tenantId = nextTenantId()
+    long start = DateTime.now().minusHours(4).getMillis()
+    def dataPoints = [
+        [
+            id: 'G1',
+            data: [
+                [timestamp: start + 60_000, value: 1.23],
+                [timestamp: start + 60_000 * 1.5, value: 3.45],
+                [timestamp: start + 60_000 * 2, value: 5.34]
+            ]
+        ],
+        [
+            id: 'G2',
+            data: [
+                [timestamp: start + 60_000, value: 1.45],
+                [timestamp: start + 60_000 * 1.5, value: 2.36],
+                [timestamp: start + 60_000 * 2, value: 3.62]
+            ]
+        ]
+    ]
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: dataPoints
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/rate/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['G1', 'G2'],
+            fromEarliest: true,
+            order: 'asc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size())
+
+    def timestamp1 = start + 60_000 * 1.5
+    def timestamp2 = start + 60_000 * 2
+    def rate1_1 = rate(dataPoints[0].data[1], dataPoints[0].data[0])
+    def rate1_2 = rate(dataPoints[0].data[2], dataPoints[0].data[1])
+    def rate2_1 = rate(dataPoints[1].data[1], dataPoints[1].data[0])
+    def rate2_2 = rate(dataPoints[1].data[2], dataPoints[1].data[1])
+    assertListOfGaugesContains(response.data, [
+        id: 'G1',
+        data: [
+            [timestamp: timestamp1, value: rate1_1],
+            [timestamp: timestamp2, value: rate1_2]
+        ]
+    ])
+
+    assertListOfGaugesContains(response.data, [
+        id: 'G2',
+        data: [
+            [timestamp: timestamp1, value: rate2_1],
+            [timestamp: timestamp2, value: rate2_2]
         ]
     ])
   }

@@ -394,6 +394,52 @@ class StringITest extends RESTTest {
             [timestamp: start.plusHours(2).millis, value: 'maintenance']
         ]
     ]))
+
+    // From Earliest
+    response = hawkularMetrics.post(
+        path: "strings/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['S1', 'S2', 'S3'],
+            fromEarliest: true,
+            order: 'asc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+    assertTrue(response.data.contains([
+        id: 'S1',
+        data: [
+            [timestamp: start.millis, value: 'running'],
+            [timestamp: start.plusHours(1).millis, value: 'running'],
+            [timestamp: start.plusHours(2).millis, value: 'maintenance'],
+            [timestamp: start.plusHours(3).millis, value: 'maintenance'],
+            [timestamp: start.plusHours(4).millis, value: 'down']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S2',
+        data: [
+            [timestamp: start.millis, value: 'stopped'],
+            [timestamp: start.plusHours(1).millis, value: 'starting'],
+            [timestamp: start.plusHours(2).millis, value: 'running'],
+            [timestamp: start.plusHours(3).millis, value: 'running'],
+            [timestamp: start.plusHours(4).millis, value: 'unknown']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'S3',
+        data: [
+            [timestamp: start.millis, value: 'maintenance'],
+            [timestamp: start.plusHours(1).millis, value: 'running'],
+            [timestamp: start.plusHours(2).millis, value: 'maintenance'],
+            [timestamp: start.plusHours(3).millis, value: 'reboot'],
+            [timestamp: start.plusHours(4).millis, value: 'starting']
+        ]
+    ]))
   }
 
   @Test

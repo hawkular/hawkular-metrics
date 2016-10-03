@@ -964,6 +964,55 @@ class GaugeMetricStatisticsITest extends RESTTest {
   }
 
   @Test
+  void multipleMetricsFromEarliest() {
+    String tenantId = nextTenantId()
+
+    def response = hawkularMetrics.post(path: "gauges/G1/raw", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(3).millis, value: 3],
+        [timestamp: new DateTimeService().currentHour().minusHours(2).millis, value: 2]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(path: "gauges/G2/raw", body: [
+        [timestamp: new DateTimeService().currentHour().minusHours(3).millis, value: 5],
+        [timestamp: new DateTimeService().currentHour().minusHours(2).millis, value: 4]
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/stats",
+        query: [metrics: ['G1', 'G2'],
+                fromEarliest: "true",
+                bucketDuration: "1h"],
+        headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(200, response.status)
+    assertEquals(4, response.data.size)
+
+    def expectedMin = [3.0, 2.0, null, null].toArray()
+    def expectedMax = [5.0, 4.0, null, null].toArray()
+    def expectedAvg = [4.0, 3.0, null, null].toArray()
+    assertArrayEquals(expectedMin, response.data.min.toArray())
+    assertArrayEquals(expectedMax, response.data.max.toArray())
+    assertArrayEquals(expectedAvg, response.data.avg.toArray())
+
+    // Same request with post endpoint
+    response = hawkularMetrics.post(
+        path: "gauges/stats/query",
+        body: [metrics: ['G1', 'G2'],
+                fromEarliest: "true",
+                bucketDuration: "1h"],
+        headers: [(tenantHeaderName): tenantId])
+
+    assertEquals(200, response.status)
+    assertEquals(4, response.data.size)
+
+    assertArrayEquals(expectedMin, response.data.min.toArray())
+    assertArrayEquals(expectedMax, response.data.max.toArray())
+    assertArrayEquals(expectedAvg, response.data.avg.toArray())
+  }
+
+  @Test
   void findTaggedBuckets() {
     String tenantId = nextTenantId()
     String metric = "tagged-buckets"
