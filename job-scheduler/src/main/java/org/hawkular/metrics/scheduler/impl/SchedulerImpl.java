@@ -52,6 +52,7 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.UDTValue;
@@ -164,29 +165,25 @@ public class SchedulerImpl implements Scheduler {
 
         lockManager = new LockManager(session);
 
-        insertJob = session.getSession().prepare(
-                "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
-        insertScheduledJob = session.getSession().prepare(
-                "INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
-        findScheduledJobs = session.getSession().prepare(
-                "SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
-        deleteScheduledJobs = session.getSession().prepare(
-                "DELETE FROM scheduled_jobs_idx WHERE time_slice = ?");
-        deleteScheduledJob = session.getSession().prepare(
-                "DELETE FROM scheduled_jobs_idx WHERE time_slice = ? AND job_id = ?");
-        findFinishedJobs = session.getSession().prepare(
-                "SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
-        deleteFinishedJobs = session.getSession().prepare(
-                "DELETE FROM finished_jobs_idx WHERE time_slice = ?");
-        updateJobToFinished = session.getSession().prepare(
-                "INSERT INTO finished_jobs_idx (time_slice, job_id) VALUES (?, ?)");
-        findJob = session.getSession().prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?");
-        addActiveTimeSlice = session.getSession().prepare("INSERT INTO active_time_slices (time_slice) VALUES (?)");
-        findActiveTimeSlices = session.getSession().prepare("SELECT DISTINCT time_slice FROM active_time_slices");
-        deleteActiveTimeSlice = session.getSession().prepare("DELETE FROM active_time_slices WHERE time_slice = ?");
+        insertJob = initQuery("INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
+        insertScheduledJob = initQuery("INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+        findScheduledJobs = initQuery("SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
+        deleteScheduledJobs = initQuery("DELETE FROM scheduled_jobs_idx WHERE time_slice = ?");
+        deleteScheduledJob = initQuery("DELETE FROM scheduled_jobs_idx WHERE time_slice = ? AND job_id = ?");
+        findFinishedJobs = initQuery("SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
+        deleteFinishedJobs = initQuery("DELETE FROM finished_jobs_idx WHERE time_slice = ?");
+        updateJobToFinished = initQuery("INSERT INTO finished_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+        findJob = initQuery("SELECT type, name, params, trigger FROM jobs WHERE id = ?");
+        addActiveTimeSlice = initQuery("INSERT INTO active_time_slices (time_slice) VALUES (?)");
+        findActiveTimeSlices = initQuery("SELECT DISTINCT time_slice FROM active_time_slices");
+        deleteActiveTimeSlice = initQuery("DELETE FROM active_time_slices WHERE time_slice = ?");
 
         finishedTimeSlices = Optional.empty();
         jobFinished = Optional.empty();
+    }
+
+    private PreparedStatement initQuery(String cql) {
+        return session.getSession().prepare(cql).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
     // TODO make configurable
