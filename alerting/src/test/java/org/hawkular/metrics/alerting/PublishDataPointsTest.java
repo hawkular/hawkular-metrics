@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.bus;
+package org.hawkular.metrics.alerting;
 
 import static java.util.Arrays.asList;
 
@@ -38,7 +38,6 @@ import javax.inject.Inject;
 
 import org.hawkular.alerts.api.model.data.Data;
 import org.hawkular.alerts.api.services.AlertsServiceMock;
-import org.hawkular.metrics.alerting.PublishCommandTable;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurableProducer;
@@ -46,6 +45,7 @@ import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -62,7 +62,7 @@ import org.junit.runner.RunWith;
 import rx.Observable;
 
 /**
- * TODO: We need to mock out AlertsService, I think, so that InsertedDataSubscriber can instantiate correctly
+ * Note that this test no longer tests filtering, as data is now filtered in alerting, not metrics.
  *
  * @author jsanda
  */
@@ -76,7 +76,6 @@ public class PublishDataPointsTest {
                 "org.hawkular.metrics:hawkular-metrics-model:" + System.getProperty("version.org.hawkular.metrics"),
                 "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("version.org.hawkular.metrics"),
                 "org.hawkular.metrics:hawkular-metrics-alerting:" + System.getProperty("version.org.hawkular.metrics"),
-                "org.hawkular.commons:hawkular-bus-common:" + System.getProperty("version.org.hawkular.commons"),
                 "org.hawkular.alerts:hawkular-alerts-api:" + System.getProperty("version.org.hawkular.alerts"),
                 "io.reactivex:rxjava:" + System.getProperty("version.io.reactivex.rxjava"));
 
@@ -86,10 +85,6 @@ public class PublishDataPointsTest {
 
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
                 .addPackages(true,
-                        "org.hawkular.bus",
-                        "org.hawkular.metrics.component.publish",
-                        "org.hawkular.metrics.component",
-                        "org.hawkular.metrics.component.insert",
                         "org.hawkular.alerts.api.services")
                 .addAsLibraries(dependencies)
                 .addClass(ConfigurableProducer.class)
@@ -99,12 +94,6 @@ public class PublishDataPointsTest {
 
         return archive;
     }
-
-    @Inject
-    Bus bus;
-
-    @Inject
-    PublishCommandTable publishCommandTable;
 
     @Inject
     @ServiceReady
@@ -123,28 +112,22 @@ public class PublishDataPointsTest {
     @Test
     public void publishGaugeDataPoints() throws Exception {
         String tenantId = "gauge-tenant";
-        String gauge1Id = "hm_g_G1";
-        String gauge2Id = "hm_g_G2";
-        MetricId<Double> filteredMetricId = new MetricId<>(tenantId, GAUGE, gauge1Id);
-        Metric<Double> gauge1 = new Metric<>(filteredMetricId, asList(
+        String gauge1Id = "G1";
+        MetricId<Double> publishedMetricId = new MetricId<>(tenantId, GAUGE, gauge1Id);
+        Metric<Double> gauge1 = new Metric<>(publishedMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), 10.0),
                 new DataPoint<>(System.currentTimeMillis() - 1000, 9.0),
                 new DataPoint<>(System.currentTimeMillis() - 2000, 9.0)));
 
-        MetricId<Double> ignoredMetricId = new MetricId<>(tenantId, GAUGE, gauge2Id);
-        Metric<Double> gauge2 = new Metric<>(ignoredMetricId, asList(
-                new DataPoint<>(System.currentTimeMillis(), 110.0),
-                new DataPoint<>(System.currentTimeMillis() - 1000, 19.0),
-                new DataPoint<>(System.currentTimeMillis() - 2000, 19.0)));
-
-        publishCommandTable.add(asList(filteredMetricId));
-
-        Observable<Metric<?>> observable = Observable.just(gauge1, gauge2);
+        Observable<Metric<?>> observable = Observable.just(gauge1);
 
         serviceReadyEvent.fire(new ServiceReadyEvent(observable));
 
         Set<Data> expected = gauge1.getDataPoints().stream()
-                .map(dataPoint -> Data.forNumeric(tenantId, gauge1Id, dataPoint.getTimestamp(),
+                .map(dataPoint -> Data.forNumeric(
+                        tenantId,
+                        InsertedDataSubscriber.prefixMap.get(MetricType.GAUGE) + gauge1Id,
+                        dataPoint.getTimestamp(),
                         dataPoint.getValue().doubleValue()))
                 .collect(Collectors.toCollection(HashSet::new));
 
@@ -155,30 +138,23 @@ public class PublishDataPointsTest {
     @Test
     public void publishAvailabilityDataPoints() throws Exception {
         String tenantId = "availability-tenant";
-        String availability1Id = "hm_a_A1";
-        String availability2Id = "hm_a_A2";
-        MetricId<AvailabilityType> filteredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability1Id);
-        Metric<AvailabilityType> availability1 = new Metric<>(filteredMetricId, asList(
+        String availability1Id = "A1";
+        MetricId<AvailabilityType> publishedMetricId = new MetricId<>(tenantId, AVAILABILITY, availability1Id);
+        Metric<AvailabilityType> availability1 = new Metric<>(publishedMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), UP),
                 new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
                 new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)));
 
-        MetricId<AvailabilityType> ignoredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability2Id);
-        Metric<AvailabilityType> availability2 = new Metric<>(ignoredMetricId, asList(
-                new DataPoint<>(System.currentTimeMillis(), UP),
-                new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
-                new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
-                new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)));
-
-        publishCommandTable.add(asList(filteredMetricId));
-
-        Observable<Metric<?>> observable = Observable.just(availability1, availability2);
+        Observable<Metric<?>> observable = Observable.just(availability1);
 
         serviceReadyEvent.fire(new ServiceReadyEvent(observable));
 
         Set<Data> expected = availability1.getDataPoints().stream()
-                .map(dataPoint -> Data.forAvailability(tenantId, availability1Id, dataPoint.getTimestamp(),
+                .map(dataPoint -> Data.forAvailability(
+                        tenantId,
+                        InsertedDataSubscriber.prefixMap.get(MetricType.AVAILABILITY) + availability1Id,
+                        dataPoint.getTimestamp(),
                         toAlertingAvail(dataPoint.getValue())))
                 .collect(Collectors.toCollection(HashSet::new));
 

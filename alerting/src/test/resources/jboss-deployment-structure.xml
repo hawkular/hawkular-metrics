@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
@@ -16,14 +17,14 @@
     limitations under the License.
 
 -->
-<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
-         version="3.1">
-
-  <resource-env-ref>
-    <resource-env-ref-name>cache/publish</resource-env-ref-name>
-    <lookup-name>java:jboss/infinispan/cache/hawkular-alerts/publish</lookup-name>
-  </resource-env-ref>
-
-</web-app>
+<jboss-deployment-structure>
+  <deployment>
+    <exclusions>
+      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
+      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
+    </exclusions>
+    <dependencies>
+      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
+    </dependencies>
+  </deployment>
+</jboss-deployment-structure>
