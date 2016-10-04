@@ -156,7 +156,7 @@ public class CompressDataJobITest extends BaseITest {
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));
-        long endSlice = DateTimeService.getTimeSlice(DateTime.now().getMillis(), Duration.standardHours(2));
+        long endSlice = DateTimeService.getTimeSlice(jobScheduler.now(), Duration.standardHours(2));
 
         Observable<Row> compressedRows = dataAccess.findCompressedData(mId, startSlice, endSlice, 0, Order.ASC);
 
@@ -164,8 +164,9 @@ public class CompressDataJobITest extends BaseITest {
         compressedRows.subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
-
         testSubscriber.assertNoErrors();
+        testSubscriber.assertCompleted();
+
         List<Row> rows = testSubscriber.getOnNextEvents();
         assertEquals(1, rows.size());
         ByteBuffer c_value = rows.get(0).getBytes("c_value");
@@ -173,7 +174,6 @@ public class CompressDataJobITest extends BaseITest {
 
         assertNotNull(c_value);
         assertNull(tags);
-        testSubscriber.assertCompleted();
     }
 
     @SuppressWarnings("unchecked")
@@ -195,7 +195,7 @@ public class CompressDataJobITest extends BaseITest {
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));
-        long endSlice = DateTimeService.getTimeSlice(DateTime.now().getMillis(), Duration.standardHours(2));
+        long endSlice = DateTimeService.getTimeSlice(jobScheduler.now(), Duration.standardHours(2));
 
         DataPointDecompressTransformer decompressor = new DataPointDecompressTransformer(type, Order.ASC, 0, start
                 .getMillis(), start.plusMinutes(30).getMillis());
@@ -205,7 +205,7 @@ public class CompressDataJobITest extends BaseITest {
 
         TestSubscriber<DataPoint<T>> pointTestSubscriber = new TestSubscriber<>();
         dataPoints.subscribe(pointTestSubscriber);
-        pointTestSubscriber.awaitTerminalEvent(3, TimeUnit.SECONDS);
+        pointTestSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
         pointTestSubscriber.assertCompleted();
         List<DataPoint<T>> compressedPoints = pointTestSubscriber.getOnNextEvents();
 
@@ -215,8 +215,6 @@ public class CompressDataJobITest extends BaseITest {
     @Test
     public void testGaugeCompress() throws Exception {
         long now = jobScheduler.now();
-
-        System.out.println(new DateTime(now).toString());
 
         DateTime start = DateTimeService.getTimeSlice(new DateTime(now, DateTimeZone.UTC).minusHours(2),
                 Duration.standardHours(2)).plusMinutes(30);
@@ -284,8 +282,6 @@ public class CompressDataJobITest extends BaseITest {
     @Test
     public void testGaugeWithTags() throws Exception {
         long now = jobScheduler.now();
-
-        System.out.println(new DateTime(now).toString());
 
         DateTime start = DateTimeService.getTimeSlice(new DateTime(now, DateTimeZone.UTC).minusHours(2),
                 Duration.standardHours(2)).plusMinutes(30);
