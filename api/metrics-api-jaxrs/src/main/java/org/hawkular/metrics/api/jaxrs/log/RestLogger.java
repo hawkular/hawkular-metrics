@@ -89,4 +89,14 @@ public interface RestLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 200013, value = "Invalid value [%s] for max requests per connection. Will use a default of %s")
     void warnInvalidMaxRequests(String maxRequestsPerConnection, String defaultMaxRequests);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200014, value = "Invalid value [%s] for Cassandra driver request timeout. Will use default value " +
+            "of %s")
+    void warnInvalidRequestTimeout(String requestTimeout, String defaultRequestTimeout);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200015, value = "Invalid value [%s] for Cassandra driver connection timeout. Will use default " +
+            "value of %s")
+    void warnInvalidConnectionTimeout(String connectionTimeout, String defaultConnectionTimeout);
 }
