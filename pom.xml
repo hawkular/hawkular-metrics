@@ -134,6 +134,7 @@
     <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
     <version.com.squareup.okhttp>2.0.0</version.com.squareup.okhttp>
+    <version.fi.iki.yak.compression-gorilla>1.1.0</version.fi.iki.yak.compression-gorilla>
   </properties>
 
   <dependencyManagement>
@@ -211,6 +212,11 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${version.com.google.guava}</version>
+      </dependency>
+      <dependency>
+        <groupId>fi.iki.yak</groupId>
+        <artifactId>compression-gorilla</artifactId>
+        <version>${version.fi.iki.yak.compression-gorilla}</version>
       </dependency>
       <!-- Other -->
       <dependency>

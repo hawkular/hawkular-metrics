@@ -26,10 +26,13 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -78,11 +81,21 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricInData;
 
+    private PreparedStatement findMetricInDataCompressed;
+
+    private PreparedStatement findAllMetricsInData;
+
+    private PreparedStatement findAllMetricsInDataCompressed;
+
     private PreparedStatement findMetricInMetricsIndex;
 
     private PreparedStatement getMetricTags;
 
     private PreparedStatement insertGaugeData;
+
+    private PreparedStatement insertCompressedData;
+
+    private PreparedStatement insertCompressedDataWithTags;
 
     private PreparedStatement insertGaugeDataUsingTTL;
 
@@ -105,6 +118,14 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement insertStringDataWithTags;
 
     private PreparedStatement insertStringDataWithTagsUsingTTL;
+
+    private PreparedStatement findCompressedDataByDateRangeExclusive;
+
+    private PreparedStatement findCompressedDataByDateRangeExclusiveWithLimit;
+
+    private PreparedStatement findCompressedDataByDateRangeExclusiveASC;
+
+    private PreparedStatement findCompressedDataByDateRangeExclusiveWithLimitASC;
 
     private PreparedStatement findCounterDataExclusive;
 
@@ -134,6 +155,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement deleteGaugeMetric;
 
+    private PreparedStatement deleteDatapoints;
+
     private PreparedStatement insertAvailability;
 
     private PreparedStatement insertAvailabilityUsingTTL;
@@ -157,8 +180,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteTagsFromMetricsIndex;
 
     private PreparedStatement readMetricsIndex;
-
-    private PreparedStatement findAllMetricsInData;
 
     private PreparedStatement updateRetentionsIndex;
 
@@ -192,10 +213,14 @@ public class DataAccessImpl implements DataAccess {
         findTenant = session.prepare("SELECT id, retentions FROM tenants WHERE id = ?");
 
         findMetricInData = session.prepare(
-            "SELECT DISTINCT tenant_id, metric " +
+            "SELECT DISTINCT tenant_id, type, metric, dpart " +
             "FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart=? " +
-            "LIMIT 1");
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ");
+
+        findMetricInDataCompressed = session.prepare(
+                "SELECT DISTINCT tenant_id, type, metric, dpart " +
+                        "FROM data_compressed " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ");
 
         findMetricInMetricsIndex = session.prepare(
             "SELECT metric, tags, data_retention " +
@@ -236,8 +261,24 @@ public class DataAccessImpl implements DataAccess {
             "ORDER BY metric ASC");
 
         findAllMetricsInData = session.prepare(
-            "SELECT DISTINCT tenant_id, metric, type, dpart " +
+            "SELECT DISTINCT tenant_id, type, metric, dpart " +
             "FROM data");
+
+        findAllMetricsInDataCompressed = session.prepare(
+                "SELECT DISTINCT tenant_id, type, metric, dpart " +
+                        "FROM data_compressed");
+
+        insertCompressedData = session.prepare(
+                "UPDATE data_compressed " +
+                        "USING TTL ? " +
+                        "SET c_value = ? " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+
+        insertCompressedDataWithTags = session.prepare(
+                "UPDATE data_compressed " +
+                        "USING TTL ? " +
+                        "SET c_value = ?, tags = ? " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeData = session.prepare(
             "UPDATE data " +
@@ -325,6 +366,26 @@ public class DataAccessImpl implements DataAccess {
             " AND time < ? ORDER BY time ASC" +
             " LIMIT ?");
 
+        findCompressedDataByDateRangeExclusive = session.prepare(
+                "SELECT time, c_value, tags FROM data_compressed " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        findCompressedDataByDateRangeExclusiveWithLimit = session.prepare(
+                "SELECT time, c_value, tags FROM data_compressed " +
+                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                        " LIMIT ?");
+
+        findCompressedDataByDateRangeExclusiveASC = session.prepare(
+                "SELECT time, c_value, tags FROM data_compressed " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                        " AND time < ? ORDER BY time ASC");
+
+        findCompressedDataByDateRangeExclusiveWithLimitASC = session.prepare(
+                "SELECT time, c_value, tags FROM data_compressed" +
+                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                        " AND time < ? ORDER BY time ASC" +
+                        " LIMIT ?");
+
         findStringDataByDateRangeExclusive = session.prepare(
             "SELECT time, s_value, tags FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
@@ -372,6 +433,10 @@ public class DataAccessImpl implements DataAccess {
         deleteGaugeMetric = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
+
+        deleteDatapoints = session.prepare(
+                "DELETE FROM data " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
         insertAvailability = session.prepare(
             "UPDATE data " +
@@ -485,7 +550,11 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
         return rxSession.executeAndFetch(findMetricInData
-                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
+                .concatWith(
+                        rxSession.executeAndFetch(findMetricInDataCompressed
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART)))
+                .take(1);
     }
 
     @Override
@@ -531,7 +600,8 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Row> findAllMetricsInData() {
-        return rxSession.executeAndFetch(findAllMetricsInData.bind());
+        return rxSession.executeAndFetch(findAllMetricsInData.bind())
+                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }
 
     @Override
@@ -682,6 +752,30 @@ public class DataAccessImpl implements DataAccess {
                 return rxSession
                         .executeAndFetch(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
                                 id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit));
+            }
+        }
+    }
+
+    @Override
+    public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
+            order) {
+        if (order == Order.ASC) {
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusiveASC.bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime)));
+            } else {
+                return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusiveWithLimitASC.bind(
+                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                        new Date(endTime), limit));
+            }
+        } else {
+            if (limit <= 0) {
+                return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusive.bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime)));
+            } else {
+                return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
+                        limit));
             }
         }
     }
@@ -853,5 +947,52 @@ public class DataAccessImpl implements DataAccess {
     public <T> ResultSetFuture updateRetentionsIndex(Metric<T> metric) {
         return session.executeAsync(updateRetentionsIndex.bind(metric.getMetricId().getTenantId(),
                 metric.getMetricId().getType().getCode(), metric.getMetricId().getName(), metric.getDataRetention()));
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
+                                                                    CompressedPointContainer cpc,
+                                                                    long sliceStart, long sliceEnd, int ttl) {
+
+        // ByteBuffer position must be 0!
+        Observable.just(cpc.getValueBuffer(), cpc.getTimestampBuffer(), cpc.getTagsBuffer())
+                .doOnNext(bb -> {
+                    if(bb != null && bb.position() != 0) {
+                        bb.rewind();
+                    }
+                });
+
+        BiConsumer<BoundStatement, Integer> mapper = (b, i) -> {
+            b.setString(i, id.getTenantId())
+                    .setByte(i+1, id.getType().getCode())
+                    .setString(i+2, id.getName())
+                    .setLong(i+3, DPART)
+                    .setTimestamp(i+4, new Date(timeslice));
+        };
+
+        BoundStatement b;
+        int i = 0;
+        if(cpc.getTagsBuffer() != null) {
+            b = insertCompressedDataWithTags.bind()
+                    .setInt(i, ttl)
+                    .setBytes(i+1, cpc.getValueBuffer())
+                    .setBytes(i+2, cpc.getTagsBuffer());
+            mapper.accept(b, 3);
+        } else {
+            b = insertCompressedData.bind()
+                    .setInt(i, ttl)
+                    .setBytes(i+1, cpc.getValueBuffer());
+            mapper.accept(b, 2);
+        }
+
+        return Observable.just(deleteDatapoints.bind()
+                .setString(0, id.getTenantId())
+                .setByte(1, id.getType().getCode())
+                .setString(2, id.getName())
+                .setLong(3, DPART)
+                .setUUID(4, getTimeUUID(sliceStart))
+                .setUUID(5, getTimeUUID(sliceEnd)))
+                .concatWith(Observable.just(b))
+                .concatMap(st -> rxSession.execute(st));
     }
 }

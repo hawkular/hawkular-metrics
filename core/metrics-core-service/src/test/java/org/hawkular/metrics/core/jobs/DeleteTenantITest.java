@@ -114,6 +114,7 @@ public class DeleteTenantITest extends BaseITest {
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
 
         jobName = method.getName();
         jobsService.start();

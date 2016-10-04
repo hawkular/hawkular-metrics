@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,6 @@
 package org.hawkular.metrics.core.service.transformers;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.Statement;
@@ -32,7 +31,7 @@ import rx.functions.Func0;
  * @author Thomas Segismont
  */
 public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
-    public static final int MAX_BATCH_SIZE = 10;
+    public static final int DEFAULT_BATCH_SIZE = 10;
 
     /**
      * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
@@ -46,7 +45,7 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
      * Creates a new transformer using the {@link #DEFAULT_BATCH_STATEMENT_FACTORY}.
      */
     public BatchStatementTransformer() {
-        this(DEFAULT_BATCH_STATEMENT_FACTORY, MAX_BATCH_SIZE);
+        this(DEFAULT_BATCH_STATEMENT_FACTORY, DEFAULT_BATCH_SIZE);
     }
 
     /**
@@ -55,7 +54,7 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
      */
     public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {
         this.batchSize = batchSize;
-        checkArgument(batchSize <= MAX_BATCH_SIZE, "batchSize exceeds limit");
+//        checkArgument(batchSize <= DEFAULT_BATCH_SIZE, "batchSize exceeds limit");
         this.batchStatementFactory = batchStatementFactory;
     }
 

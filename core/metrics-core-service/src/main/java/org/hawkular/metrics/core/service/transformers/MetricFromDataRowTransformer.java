@@ -47,7 +47,7 @@ public class MetricFromDataRowTransformer<T> implements Transformer<Row, Metric<
     @Override
     public Observable<Metric<T>> call(Observable<Row> rows) {
         return rows.map(row -> {
-            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(1));
+            MetricId<T> metricId = new MetricId<>(tenantId, type, row.getString(2));
             return new Metric<>(metricId, defaultDataRetention);
         });
     }

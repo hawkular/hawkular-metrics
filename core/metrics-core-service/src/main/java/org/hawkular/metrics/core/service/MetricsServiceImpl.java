@@ -44,8 +44,11 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
+import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
@@ -53,6 +56,7 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;
@@ -72,6 +76,7 @@ import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -166,7 +171,7 @@ public class MetricsServiceImpl implements MetricsService {
     private Map<MetricType<?>, Timer> dataPointReadTimers;
 
     /**
-     * Functions used to find metric data points.
+     * Functions used to find metric data points rows.
      */
     private Map<MetricType<?>, Func5<? extends MetricId<?>, Long, Long,
             Integer, Order, Observable<Row>>> dataPointFinders;
@@ -472,6 +477,12 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    public Observable<Metric<?>> findAllMetrics() {
+        return dataAccess.findAllMetricsInData()
+                .distinct().compose(new MetricFromFullDataRowTransformer(defaultTTL));
+    }
+
+    @Override
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
         return dataAccess.findMetricInMetricsIndex(id)
                 .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))
@@ -484,6 +495,7 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
         Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
+                .distinct()
                 .filter(row -> tenantId.equals(row.getString(0)))
                 .compose(new MetricFromFullDataRowTransformer(defaultTTL))
                 .map(m -> (Metric<T>) m);
@@ -702,14 +714,61 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
-            Order order) {
+                                                       Order order) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         MetricType<T> metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
-        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder = getDataPointFinder(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
+
+        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder = getDataPointFinder(metricType);
+
+        if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
+            // TODO Do mergeSort here, merging items from uncompressed and compressed.. that allows unlimited
+            // out-of-order writes
+            long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
+
+            Observable<DataPoint<T>> dataPoints = Observable.empty();
+
+            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, order)
+                    .map(mapper);
+
+            Observable<DataPoint<T>> compressedPoints =
+                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, order)
+                            .compose(new DataPointDecompressTransformer(metricType, order, limit, start, end));
+
+            switch(order) {
+                case ASC:
+                    dataPoints = compressedPoints.concatWith(uncompressedPoints);
+                    break;
+                case DESC:
+                    dataPoints = uncompressedPoints.concatWith(compressedPoints);
+                    break;
+            }
+
+            if(limit > 0) {
+                dataPoints = dataPoints.take(limit);
+            }
+
+            return dataPoints;
+        }
+
         return time(timer, () -> finder.call(metricId, start, end, limit, order)
                 .map(mapper));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice) {
+        // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
+        long endOfSlice = new DateTime(timeSlice).plusHours(2).getMillis() - 1;
+
+        return metrics
+                .flatMap(mId -> findDataPoints(mId, timeSlice, endOfSlice, 0, ASC)
+                        .compose(new DataPointCompressTransformer(mId.getType(), timeSlice))
+                        .onErrorResumeNext(Observable.empty())
+                        .flatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(mId, timeSlice,
+                                (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(mId))))
+                .map(rs -> null);
     }
 
     @Override
@@ -856,6 +915,8 @@ public class MetricsServiceImpl implements MetricsService {
             MetricType<T> metricType, List<String> metrics, long start, long end, Buckets buckets,
             List<Percentile> percentiles, boolean stacked) {
 
+        // TODO Stats needs fixing to understand compressed values also..
+
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
                 || metricType == COUNTER || metricType == COUNTER_RATE, "Invalid metric type: %s", metricType);
@@ -968,8 +1029,8 @@ public class MetricsServiceImpl implements MetricsService {
     public Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start,
             long end) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return dataAccess.findGaugeData(id, start, end, 0, ASC)
-                .map(Functions::getGaugeDataPoint)
+        return findDataPoints(id, start, end, 0, ASC)
+//                .map(Functions::getGaugeDataPoint)
                 .toList().map(data -> {
                     List<long[]> periods = new ArrayList<>(data.size());
                     long[] period = null;

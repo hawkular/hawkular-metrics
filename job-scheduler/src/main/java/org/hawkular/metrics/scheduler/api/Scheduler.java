@@ -19,6 +19,7 @@ package org.hawkular.metrics.scheduler.api;
 import java.util.Map;
 
 import rx.Completable;
+import rx.Observable;
 import rx.Single;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -71,4 +72,5 @@ public interface Scheduler {
      */
     void shutdown();
 
+    Observable<JobDetails> getAllJobs();
 }

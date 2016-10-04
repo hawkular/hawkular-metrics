@@ -110,6 +110,8 @@ public class SchedulerImpl implements Scheduler {
 
     private PreparedStatement findJob;
 
+    private PreparedStatement findAllJobs;
+
     private PreparedStatement addActiveTimeSlice;
 
     private PreparedStatement findActiveTimeSlices;
@@ -174,6 +176,7 @@ public class SchedulerImpl implements Scheduler {
         deleteFinishedJobs = initQuery("DELETE FROM finished_jobs_idx WHERE time_slice = ?");
         updateJobToFinished = initQuery("INSERT INTO finished_jobs_idx (time_slice, job_id) VALUES (?, ?)");
         findJob = initQuery("SELECT type, name, params, trigger FROM jobs WHERE id = ?");
+        findAllJobs = initQuery("SELECT id, type, name, params, trigger FROM jobs");
         addActiveTimeSlice = initQuery("INSERT INTO active_time_slices (time_slice) VALUES (?)");
         findActiveTimeSlices = initQuery("SELECT DISTINCT time_slice FROM active_time_slices");
         deleteActiveTimeSlice = initQuery("DELETE FROM active_time_slices WHERE time_slice = ?");
@@ -640,6 +643,13 @@ public class SchedulerImpl implements Scheduler {
                 .map(row -> new JobDetails(jobId, row.getString(0), row.getString(1),
                         row.getMap(2, String.class, String.class), getTrigger(row.getUDTValue(3))))
                 .doOnError(t -> logger.warn("Failed to fetch job [" + jobId + "]", t));
+    }
+
+    @Override
+    public Observable<JobDetails> getAllJobs() {
+        return session.executeAndFetch(findAllJobs.bind(), queryScheduler)
+                .map(row -> new JobDetails(row.getUUID(0), row.getString(1), row.getString(2),
+                row.getMap(3, String.class, String.class), getTrigger(row.getUDTValue(4))));
     }
 
     static Trigger getTrigger(UDTValue value) {

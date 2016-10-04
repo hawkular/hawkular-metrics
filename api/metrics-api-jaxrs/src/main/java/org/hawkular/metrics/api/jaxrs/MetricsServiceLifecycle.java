@@ -407,6 +407,7 @@ public class MetricsServiceLifecycle {
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl();
         jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
         jobsService.setScheduler(scheduler);

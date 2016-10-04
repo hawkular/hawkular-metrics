@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,11 +15,32 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
-
 setKeyspace keyspace
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
+schemaChange {
+  version '4.0'
+  author 'burmanm'
+  tags '0.20.x'
+  cql """
+CREATE TABLE data_compressed (
+    tenant_id text,
+    type tinyint,
+    metric text,
+    dpart bigint,
+    time timestamp,
+    c_value blob,
+    ts_value blob,
+    tags blob,
+    PRIMARY KEY ((tenant_id, type, metric, dpart), time)
+) WITH CLUSTERING ORDER BY (time DESC)
+"""
+}
+
+schemaChange {
+  version '4.1'
+  author 'burmanm'
+  tags '0.20.x'
+  cql """
+ALTER TABLE data WITH COMPRESSION = {'sstable_compression': 'LZ4Compressor'};
+"""
+}

@@ -16,6 +16,9 @@
  */
 package org.hawkular.metrics.datetime;
 
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjuster;
 import java.util.function.Supplier;
 
 import org.joda.time.DateTime;
@@ -98,5 +101,14 @@ public class DateTimeService {
         return dt.millisOfSecond().roundCeilingCopy().minusMillis(dt.getMillisOfSecond() % p.getMillis());
     }
 
+    public static TemporalAdjuster startOfNextOddHour() {
+        return temporal -> {
+            int currentHour = temporal.get(ChronoField.HOUR_OF_DAY);
+            return temporal.plus((currentHour % 2 == 0) ? 1 : 2, ChronoUnit.HOURS)
+                    .with(ChronoField.MINUTE_OF_HOUR, 0)
+                    .with(ChronoField.SECOND_OF_MINUTE, 0)
+                    .with(ChronoField.NANO_OF_SECOND, 0);
+        };
+    }
 
 }
