@@ -61,10 +61,3 @@ schemaChange {
   tags '0.19.x'
   cql "DROP TYPE aggregation_template"
 }
-
-schemaChange {
-  version '3.6'
-  author 'snegrea'
-  tags '0.19.x'
-  cql "DROP TABLE tenants_by_time"
-}
