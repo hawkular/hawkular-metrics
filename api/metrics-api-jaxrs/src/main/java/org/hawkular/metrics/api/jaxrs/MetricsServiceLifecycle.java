@@ -22,11 +22,13 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TOKEN;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CONNECTION_TIMEOUT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_CONN_HOST;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_REQUEST_CONN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REQUEST_TIMEOUT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
@@ -78,6 +80,7 @@ import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.hash.Hashing;
@@ -139,6 +142,16 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(CASSANDRA_MAX_REQUEST_CONN)
     private String maxRequestsPerConnection;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_REQUEST_TIMEOUT)
+    private String requestTimeout;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_CONNECTION_TIMEOUT)
+    private String connectionTimeout;
 
     @Inject
     @Configurable
@@ -339,12 +352,28 @@ public class MetricsServiceLifecycle {
             log.warnInvalidMaxRequests(maxRequestsPerConnection, defaultMaxRequests);
             newMaxRequests = Integer.parseInt(defaultMaxRequests);
         }
+        int driverRequestTimeout;
+        try {
+            driverRequestTimeout = Integer.parseInt(requestTimeout);
+        } catch (NumberFormatException e) {
+            driverRequestTimeout = Integer.parseInt(CASSANDRA_REQUEST_TIMEOUT.defaultValue());
+            log.warnInvalidRequestTimeout(requestTimeout, CASSANDRA_REQUEST_TIMEOUT.defaultValue());
+        }
+        int driverConnectionTimeout;
+        try {
+            driverConnectionTimeout = Integer.parseInt(connectionTimeout);
+        } catch (NumberFormatException e) {
+            driverConnectionTimeout = Integer.parseInt(CASSANDRA_CONNECTION_TIMEOUT.defaultValue());
+            log.warnInvalidConnectionTimeout(connectionTimeout, CASSANDRA_CONNECTION_TIMEOUT.defaultValue());
+        }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
-        );
+        ).withSocketOptions(new SocketOptions()
+                .setReadTimeoutMillis(driverRequestTimeout)
+                .setConnectTimeoutMillis(driverConnectionTimeout));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
