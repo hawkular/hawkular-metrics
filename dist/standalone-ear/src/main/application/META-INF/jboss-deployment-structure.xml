@@ -36,7 +36,7 @@
     </dependencies>
   </sub-deployment>
 
-  <sub-deployment name="hawkular-alerter-metrics.war">
+  <sub-deployment name="hawkular-metrics-alerter.war">
     <dependencies>
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
       <module name="deployment.hawkular-metrics.ear.hawkular-metrics.war" />

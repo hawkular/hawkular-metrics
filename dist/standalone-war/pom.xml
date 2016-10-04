@@ -63,6 +63,13 @@
       <groupId>org.hawkular.metrics</groupId>
       <artifactId>hawkular-metrics-alerting</artifactId>
       <version>${project.version}</version>
+      <!-- don't package alerting jars that we already get via deployment dependency, it can cause classcast issues -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.hawkular.alerts</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!-- Overlay -->
     <dependency>

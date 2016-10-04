@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <!--
 
     Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
@@ -17,23 +17,6 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <groupId>org.hawkular.metrics</groupId>
-    <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.21.0-SNAPSHOT</version>
-  </parent>
-
-  <artifactId>hawkular-metrics-alerting-parent</artifactId>
-  <packaging>pom</packaging>
-
-  <name>Hawkular Metrics Alerting Parent</name>
-
-  <modules>
-    <module>alerting-jar</module>
-    <module>alerter-war</module>
-  </modules>
-
-</project>
+<jboss-web>
+  <context-root>/hawkular/__alerter_metrics</context-root>
+</jboss-web>

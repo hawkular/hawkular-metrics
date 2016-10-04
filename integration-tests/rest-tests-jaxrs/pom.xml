@@ -70,6 +70,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-api</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -132,7 +138,8 @@
               </includes>
               <systemPropertyVariables>
                 <keyspace>${cassandra.keyspace}</keyspace>
-                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+                <hawkular-alerts.base-uri>${base-uri}/alerts</hawkular-alerts.base-uri>
+                <hawkular-metrics.base-uri>${base-uri}/metrics</hawkular-metrics.base-uri>
                 <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
                 <hawkular-metrics.test.access-control-allow-headers>random-header1,random-header2</hawkular-metrics.test.access-control-allow-headers>
                 <project.version>${project.version}</project.version>
@@ -179,6 +186,8 @@
                     <javaOpt>-Dhawkular.metrics.admin-token=awesome_secret_sauce</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+                    <javaOpt>-Dhawkular-alerts.engine-period=50</javaOpt>
+                    <javaOpt>-Dhawkular-metrics.publish-period=50</javaOpt>
                   </javaOpts>
                   <server-config>standalone.xml</server-config>
                 </configuration>
@@ -264,7 +273,7 @@
       <properties>
         <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
         <!-- IMPORTANT: The port must be the port offset + 8080. -->
-        <base-uri>127.0.0.1:55977/hawkular/metrics</base-uri>
+        <base-uri>127.0.0.1:55977/hawkular</base-uri>
         <wildfly.port.offset>47897</wildfly.port.offset>
         <!-- IMPORTANT: The management port must be the port offset + 9990. -->
         <wildfly.management.port>57887</wildfly.management.port>

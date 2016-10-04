@@ -714,8 +714,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
-                                                       Order order) {
+            Order order) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
+        Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
@@ -729,14 +730,14 @@ public class MetricsServiceImpl implements MetricsService {
 
             Observable<DataPoint<T>> dataPoints = Observable.empty();
 
-            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, order)
+            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder)
                     .map(mapper);
 
             Observable<DataPoint<T>> compressedPoints =
-                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, order)
-                            .compose(new DataPointDecompressTransformer(metricType, order, limit, start, end));
+                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
+                            .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
-            switch(order) {
+            switch (safeOrder) {
                 case ASC:
                     dataPoints = compressedPoints.concatWith(uncompressedPoints);
                     break;
@@ -752,7 +753,7 @@ public class MetricsServiceImpl implements MetricsService {
             return dataPoints;
         }
 
-        return time(timer, () -> finder.call(metricId, start, end, limit, order)
+        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder)
                 .map(mapper));
     }
 

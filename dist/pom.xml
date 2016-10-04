@@ -31,6 +31,13 @@
 
   <name>Hawkular Metrics Distributions</name>
 
+  <modules>
+    <module>component-war</module>
+    <module>component-ear</module>
+    <module>standalone-war</module>
+    <module>standalone-ear</module>
+  </modules>
+
   <profiles>
     <profile>
       <id>release</id>

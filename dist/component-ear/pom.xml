@@ -47,9 +47,9 @@
       <type>war</type>
     </dependency>
     <dependency>
-      <groupId>org.hawkular.alerts</groupId>
-      <artifactId>hawkular-alerter-metrics</artifactId>
-      <version>${version.org.hawkular.alerts}</version>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-alerter</artifactId>
+      <version>${project.version}</version>
       <type>war</type>
     </dependency>
       <!-- Because metrics war has a dependency on alerting war (to inject AlertsService) and both components
@@ -93,8 +93,8 @@
               <contextRoot>/hawkular/metrics</contextRoot>
             </webModule>
             <webModule>
-              <groupId>org.hawkular.alerts</groupId>
-              <artifactId>hawkular-alerter-metrics</artifactId>
+              <groupId>org.hawkular.metrics</groupId>
+              <artifactId>hawkular-metrics-alerter</artifactId>
               <contextRoot>/hawkular/__alerter-metrics</contextRoot>
             </webModule>
           </modules>

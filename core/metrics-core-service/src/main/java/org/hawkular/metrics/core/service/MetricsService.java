@@ -159,7 +159,7 @@ public interface MetricsService {
      * @param start      start time inclusive as a Unix timestamp in milliseconds
      * @param end        end time exclusive as a Unix timestamp in milliseconds
      * @param limit      limit the number of data points
-     * @param order      the sort order for the results
+     * @param order      the sort order for the results, ASC if null
      *
      * @return an {@link Observable} that emits {@link DataPoint data points}
      */
@@ -181,7 +181,7 @@ public interface MetricsService {
      * @param start      start time inclusive as a Unix timestamp in milliseconds
      * @param end        end time exclusive as a Unix timestamp in milliseconds
      * @param limit      limit the number of data points
-     * @param order      the sort order for the results
+     * @param order      the sort order for the results, ASC if null
      *
      * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
      */
@@ -302,7 +302,7 @@ public interface MetricsService {
      * @param start The start time which is inclusive
      * @param end   The end time which is exclusive
      * @param limit      limit the number of data points
-     * @param order      the sort order for the results
+     * @param order      the sort order for the results, ASC if null
      *
      * @return An Observable of {@link DataPoint data points} which are emitted in ascending order. In other words,
      * the most recent data is emitted first.
@@ -322,7 +322,7 @@ public interface MetricsService {
      * @param start      start time inclusive as a Unix timestamp in milliseconds
      * @param end        end time exclusive as a Unix timestamp in milliseconds
      * @param limit      limit the number of data points
-     * @param order      the sort order for the results
+     * @param order      the sort order for the results, ASC if null
      *
      * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
      */
