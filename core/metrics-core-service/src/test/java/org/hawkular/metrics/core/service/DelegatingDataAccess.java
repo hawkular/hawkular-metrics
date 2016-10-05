@@ -224,4 +224,9 @@ public class DelegatingDataAccess implements DataAccess {
                                                               long sliceStart, long sliceEnd, int ttl) {
         return delegate.deleteAndInsertCompressedGauge(id, timeslice, cpc, sliceStart, sliceEnd, ttl);
     }
+
+    @Override
+    public Observable<Row> findAllMetricsFromTagsIndex() {
+        return delegate.findAllMetricsFromTagsIndex();
+    }
 }

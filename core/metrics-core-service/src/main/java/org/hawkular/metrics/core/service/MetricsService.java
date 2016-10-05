@@ -122,7 +122,7 @@ public interface MetricsService {
      * @return Metric's that are filtered with given conditions
      */
     <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
-            tagsQueries, Func1<Metric<T>, Boolean>... filters);
+            tagsQueries);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as findMetricsWithFilters).
@@ -166,8 +166,6 @@ public interface MetricsService {
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order);
 
     Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice);
-
-//    <T> Observable<Void> compressBlock(Observable<MetricId<T>> metrics, long timeSlice);
 
     <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> ids, long start, long end, int limit,
                                                      Order order);

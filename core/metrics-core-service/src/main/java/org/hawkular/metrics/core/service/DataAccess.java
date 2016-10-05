@@ -110,6 +110,8 @@ public interface DataAccess {
 
     Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
 
+    Observable<Row> findAllMetricsFromTagsIndex();
+
     <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
                                                              CompressedPointContainer cpc,
                                                              long sliceStart, long sliceEnd, int ttl);

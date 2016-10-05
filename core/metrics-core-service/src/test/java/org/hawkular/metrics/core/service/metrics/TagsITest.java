@@ -153,9 +153,21 @@ public class TagsITest extends BaseMetricsITest {
         assertEquals(gauges.size(), 2, "Both hede and hades should have been returned, but not 'had'");
 
         gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("owner", "h[e|a]de(s?)"), metricsService.idFilter(".F"))
+                ImmutableMap.of("owner", "h[e|a]de(s?)"))
+                .filter(metricsService.idFilter(".F"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1, "Only hades should have been returned");
+
+        // Not existing tags
+        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+                ImmutableMap.of("!a2", "*", "a1", "*")).doOnError(Throwable::printStackTrace)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 2, "Only metrics with a1, but without a2 and type GAUGE should have been found");
+
+        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+                ImmutableMap.of("!a1", "*")).doOnError(Throwable::printStackTrace)
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 8, "Only metrics without a1 and type GAUGE should have been found");
     }
 
     @Test
@@ -180,6 +192,11 @@ public class TagsITest extends BaseMetricsITest {
         assertEquals(tagMap.size(), 2, "We should have two keys, a1 and a2");
         assertEquals(tagMap.get("a1").size(), 1, "a1 should have only one valid value");
         assertEquals(tagMap.get("a2").size(), 3, "a2 should have three values");
+
+        tagMap = metricsService.getTagValues(tenantId, AVAILABILITY, ImmutableMap.of("a1", "*"))
+                .toBlocking()
+                .lastOrDefault(null);
+        assertEquals(tagMap.get("a1").size(), 1, "a1 should have only one valid value");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)

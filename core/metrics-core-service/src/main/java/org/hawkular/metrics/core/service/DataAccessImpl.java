@@ -89,6 +89,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricInMetricsIndex;
 
+    private PreparedStatement findAllMetricsFromTagsIndex;
+
     private PreparedStatement getMetricTags;
 
     private PreparedStatement insertGaugeData;
@@ -267,6 +269,10 @@ public class DataAccessImpl implements DataAccess {
         findAllMetricsInDataCompressed = session.prepare(
                 "SELECT DISTINCT tenant_id, type, metric, dpart " +
                         "FROM data_compressed");
+
+        findAllMetricsFromTagsIndex = session.prepare(
+                "SELECT tenant_id, type, metric " +
+                        "FROM metrics_tags_idx");
 
         insertCompressedData = session.prepare(
                 "UPDATE data_compressed " +
@@ -500,7 +506,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND tname = ? AND tvalue = ? AND type = ? AND metric = ?");
 
         findMetricsByTagName = session.prepare(
-            "SELECT type, metric, tvalue " +
+            "SELECT tenant_id, type, metric, tvalue " +
             "FROM metrics_tags_idx " +
             "WHERE tenant_id = ? AND tname = ?");
 
@@ -994,5 +1000,10 @@ public class DataAccessImpl implements DataAccess {
                 .setUUID(5, getTimeUUID(sliceEnd)))
                 .concatWith(Observable.just(b))
                 .concatMap(st -> rxSession.execute(st));
+    }
+
+    @Override
+    public Observable<Row> findAllMetricsFromTagsIndex() {
+        return rxSession.executeAndFetch(findAllMetricsFromTagsIndex.bind());
     }
 }

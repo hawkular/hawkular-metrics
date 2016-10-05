@@ -1,0 +1,243 @@
+/*
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.hawkular.metrics.core.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
+
+import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
+import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricType;
+
+import com.datastax.driver.core.Row;
+
+import rx.Observable;
+import rx.functions.Func1;
+
+/**
+ * @author Michael Burman
+ */
+public class TagQueryParser {
+
+    private DataAccess dataAccess;
+    private MetricsService metricsService;
+
+    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
+        this.dataAccess = dataAccess;
+        this.metricsService = metricsService;
+    }
+
+    // Arrange the queries:
+    // a) Group which can be executed on Cassandra
+    // b) Group which requires Cassandra and in-memory
+    // c) Group which is executed in memory by fetching metric definitions from Cassandra
+    // Arrange each group to a sequence of most powerful query (such as exact query on Cassandra)
+
+    // Between group b & c, fetch the metric definitions (of the current list)
+
+    // TODO Handle TagValues export also
+
+    // TODO Handle the id filter outside, but it should be improved also?
+    static class QueryOptimizer {
+
+        public static final long GROUP_A_COST = 10;
+        public static final long GROUP_B_COST = 50;
+        public static final long GROUP_C_COST = 99;
+
+        public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Map<String, String> tagsQuery) {
+            // Returned list is a sorted list, with comparator (lower number is first)
+            // Assign each query a cost
+
+            Map<Long, List<Map.Entry<String, String>>> costSortedMap = new TreeMap<>();
+            costSortedMap.put(GROUP_B_COST, new ArrayList<>());
+            costSortedMap.put(GROUP_C_COST, new ArrayList<>());
+
+            for (Map.Entry<String, String> tagQuery : tagsQuery.entrySet()) {
+                if(tagQuery.getKey().startsWith("!")) {
+                    // In-memory sorted query, requires fetching all the definitions
+                    List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_C_COST);
+                    entries.add(tagQuery);
+                    costSortedMap.put(GROUP_C_COST, entries);
+                } else {
+                    // TODO How to filter exact matching from regexp matching?
+                    List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_B_COST);
+                    entries.add(tagQuery);
+                    costSortedMap.put(GROUP_B_COST, entries);
+                }
+            }
+
+            return costSortedMap;
+        }
+    }
+
+    public <T> Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
+                                                            Map<String, String> tagsQueries) {
+
+        Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
+
+        List<Map.Entry<String, String>> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
+        List<Map.Entry<String, String>> groupCEntries = costSortedMap.get(QueryOptimizer.GROUP_C_COST);
+
+        Observable<Metric<?>> groupMetrics;
+
+        // Fetch everything from the tagsQueries
+        groupMetrics = Observable.from(groupBEntries)
+                        .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                                .filter(tagValueFilter(e.getValue(), 3))
+                                .compose(new TagsIndexRowTransformer<>(metricType))
+                                .compose(new ItemsToSetTransformer<>())
+                                .reduce((s1, s2) -> {
+                                    s1.addAll(s2);
+                                    return s1;
+                                }))
+                        .reduce((s1, s2) -> {
+                            s1.retainAll(s2);
+                            return s1;
+                        })
+                        .flatMap(Observable::from)
+                        .flatMap(metricsService::findMetric);
+
+        // I might not have any metrics yet.. if this is the only query
+        if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
+            // Fetch all the available metrics for this tenant
+
+            groupMetrics = dataAccess.findAllMetricsFromTagsIndex()
+                    .compose(new TagsIndexRowTransformer<>(metricType))
+                    .filter(mId -> mId.getTenantId().equals(tenantId))
+                    .flatMap(metricsService::findMetric);
+
+            Observable<Metric<?>> dataMetrics = metricsService.findAllMetrics()
+                    .filter(metricTypeFilter(metricType));
+
+            groupMetrics = groupMetrics.concatWith(dataMetrics);
+
+        }
+
+        for (Map.Entry<String, String> groupCQuery : groupCEntries) {
+            groupMetrics = groupMetrics
+                    .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
+        }
+
+        return groupMetrics;
+    }
+
+    public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
+                                                             Map<String, String> tagsQueries) {
+
+        // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
+        return Observable.from(tagsQueries.entrySet())
+                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
+                        .filter(typeFilter(metricType))
+                        .filter(tagValueFilter(e.getValue(), 3))
+                        .map(row -> {
+                            Map<String, Map<String, String>> idMap = new HashMap<>();
+                            Map<String, String> valueMap = new HashMap<>();
+                            valueMap.put(e.getKey(), row.getString(3));
+
+                            idMap.put(row.getString(2), valueMap);
+                            return idMap;
+                        })
+                        .switchIfEmpty(Observable.just(new HashMap<>()))
+                        .reduce((map1, map2) -> {
+                            map1.putAll(map2);
+                            return map1;
+                        }))
+                .reduce((m1, m2) -> {
+                    // Now try to emulate set operation of cut
+                    Iterator<Map.Entry<String, Map<String, String>>> iterator = m1.entrySet().iterator();
+
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, Map<String, String>> next = iterator.next();
+                        if (!m2.containsKey(next.getKey())) {
+                            iterator.remove();
+                        } else {
+                            // Combine the entries
+                            Map<String, String> map2 = m2.get(next.getKey());
+                            map2.forEach((k, v) -> next.getValue().put(k, v));
+                        }
+                    }
+
+                    return m1;
+                })
+                .map(m -> {
+                    Map<String, Set<String>> tagValueMap = new HashMap<>();
+
+                    m.forEach((k, v) ->
+                            v.forEach((subKey, subValue) -> {
+                                if (tagValueMap.containsKey(subKey)) {
+                                    tagValueMap.get(subKey).add(subValue);
+                                } else {
+                                    Set<String> values = new HashSet<>();
+                                    values.add(subValue);
+                                    tagValueMap.put(subKey, values);
+                                }
+                            }));
+
+                    return tagValueMap;
+                });
+    }
+
+    private Func1<Metric<?>, Boolean> tagNotExistsFilter(String unwantedTagName) {
+        return tMetric -> {
+            for (String tagName : tMetric.getTags().keySet()) {
+                if(unwantedTagName.equals(tagName)) {
+                    return false;
+                }
+            }
+            return true;
+        };
+    }
+
+    private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
+        boolean positive = (!regexp.startsWith("!"));
+        Pattern p = PatternUtil.filterPattern(regexp);
+        return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
+    }
+
+    public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
+        boolean positive = (!regexp.startsWith("!"));
+        Pattern p = PatternUtil.filterPattern(regexp);
+        return tMetric -> positive == p.matcher(tMetric.getId()).matches();
+    }
+
+    public Func1<Row, Boolean> typeFilter(MetricType<?> type) {
+        return row -> {
+            MetricType<?> metricType = MetricType.fromCode(row.getByte(1));
+            return (type == null && metricType.isUserType()) || metricType == type;
+        };
+    }
+
+    public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
+        return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
+    }
+
+    public Func1<Metric<?>, Boolean> tagQlToFilter(Map.Entry<String, String> tagQuery) {
+        String tagKey = tagQuery.getKey();
+        if(tagKey.startsWith("!")) {
+            return tagNotExistsFilter(tagKey.substring(1));
+        }
+        return null;
+    }
+}

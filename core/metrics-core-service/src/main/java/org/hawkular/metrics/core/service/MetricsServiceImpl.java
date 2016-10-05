@@ -32,8 +32,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,13 +47,11 @@ import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
-import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
-import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -181,6 +177,11 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
+    /**
+     * Tools that do tagQueryParsing and execution
+     */
+    private TagQueryParser tagQueryParser;
+
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
     private int maxStringSize;
@@ -270,6 +271,8 @@ public class MetricsServiceImpl implements MetricsService {
         initStringSize(session);
         setDefaultTTL(session, keyspace);
         initMetrics();
+
+        tagQueryParser = new TagQueryParser(this.dataAccess, this);
     }
 
     void loadDataRetentions() {
@@ -515,42 +518,11 @@ public class MetricsServiceImpl implements MetricsService {
         return setFromMetricsIndex.concatWith(setFromData).distinct(m -> m.getMetricId());
     }
 
-    private <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-                                                            Map<String, String> tagsQueries) {
-        // Fetch everything from the tagsQueries
-        return Observable.from(tagsQueries.entrySet())
-                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .filter(tagValueFilter(e.getValue(), 2))
-                        .compose(new TagsIndexRowTransformer<>(tenantId, metricType))
-                        .compose(new ItemsToSetTransformer<>())
-                        .reduce((s1, s2) -> {
-                            s1.addAll(s2);
-                            return s1;
-                        }))
-                .reduce((s1, s2) -> {
-                    s1.retainAll(s2);
-                    return s1;
-                })
-                .flatMap(Observable::from)
-                .flatMap(this::findMetric);
-    }
-
     @Override
-    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, Map<String,
-            String> tagsQueries, Func1<Metric<T>, Boolean>... filters) {
-        Observable<Metric<T>> metricObservable = findMetricsWithFilters(tenantId, metricType, tagsQueries);
-
-        for (Func1<Metric<T>, Boolean> filter : filters) {
-            metricObservable = metricObservable.filter(filter);
-        }
-
-        return metricObservable;
-    }
-
-    private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
-        boolean positive = (!regexp.startsWith("!"));
-        Pattern p = PatternUtil.filterPattern(regexp);
-        return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
+    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
+                                                            Map<String, String> tagsQueries) {
+        return tagQueryParser.findMetricsWithFilters(tenantId, metricType, tagsQueries)
+                .map(tMetric -> (Metric<T>) tMetric);
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
@@ -559,68 +531,10 @@ public class MetricsServiceImpl implements MetricsService {
         return tMetric -> positive == p.matcher(tMetric.getId()).matches();
     }
 
-    public Func1<Row, Boolean> typeFilter(MetricType<?> type) {
-        return row -> {
-            MetricType<?> metricType = MetricType.fromCode(row.getByte(0));
-            return (type == null && metricType.isUserType()) || metricType == type;
-        };
-    }
-
     @Override
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
                                     Map<String, String> tagsQueries) {
-
-        // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
-        return Observable.from(tagsQueries.entrySet())
-                .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .filter(typeFilter(metricType))
-                        .filter(tagValueFilter(e.getValue(), 2))
-                        .map(row -> {
-                            Map<String, Map<String, String>> idMap = new HashMap<>();
-                            Map<String, String> valueMap = new HashMap<>();
-                            valueMap.put(e.getKey(), row.getString(2));
-
-                            idMap.put(row.getString(1), valueMap);
-                            return idMap;
-                        })
-                        .switchIfEmpty(Observable.just(new HashMap<>()))
-                        .reduce((map1, map2) -> {
-                            map1.putAll(map2);
-                            return map1;
-                        }))
-                .reduce((m1, m2) -> {
-                    // Now try to emulate set operation of cut
-                    Iterator<Map.Entry<String, Map<String, String>>> iterator = m1.entrySet().iterator();
-
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, Map<String, String>> next = iterator.next();
-                        if (!m2.containsKey(next.getKey())) {
-                            iterator.remove();
-                        } else {
-                            // Combine the entries
-                            Map<String, String> map2 = m2.get(next.getKey());
-                            map2.forEach((k, v) -> next.getValue().put(k, v));
-                        }
-                    }
-
-                    return m1;
-                })
-                .map(m -> {
-                    Map<String, Set<String>> tagValueMap = new HashMap<>();
-
-                    m.forEach((k, v) ->
-                            v.forEach((subKey, subValue) -> {
-                                if (tagValueMap.containsKey(subKey)) {
-                                    tagValueMap.get(subKey).add(subValue);
-                                } else {
-                                    Set<String> values = new HashSet<>();
-                                    values.add(subValue);
-                                    tagValueMap.put(subKey, values);
-                                }
-                            }));
-
-                    return tagValueMap;
-                });
+        return tagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
     }
 
     @Override
