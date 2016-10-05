@@ -101,7 +101,7 @@ public class JobsServiceImpl implements JobsService {
         Boolean compressionEnabled = Boolean.valueOf(configuration.get(CompressData.ENABLED_CONFIG, "true"));
         if(compressionEnabled) {
             CompressData compressDataJob = new CompressData(metricsService);
-            scheduler.register(CompressData.JOB_NAME, compressDataJob, deleteTenantRetryPolicy);
+            scheduler.register(CompressData.JOB_NAME, compressDataJob);
             maybeScheduleCompressData();
         }
     }
@@ -131,8 +131,9 @@ public class JobsServiceImpl implements JobsService {
             JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-            config.set("jobId", jobDetails.getJobId().toString());
-            configurationService.save(config).toBlocking();
+//            config.set("jobId", jobDetails.getJobId().toString());
+//            configurationService.save(config).toBlocking();
+            configurationService.save(configId, "jobId", jobDetails.getJobId().toString());
 
             logger.info("Created and scheduled " + jobDetails);
         }

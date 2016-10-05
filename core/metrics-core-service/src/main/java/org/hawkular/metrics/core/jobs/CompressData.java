@@ -59,6 +59,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
     public Completable call(JobDetails jobDetails) {
         // Rewind to previous timeslice
         Stopwatch stopwatch = Stopwatch.createStarted();
+        logger.info("Starting execution");
         long previousBlock = DateTimeService.getTimeSlice(new DateTime(jobDetails.getTrigger().getTriggerTime(),
                 DateTimeZone.UTC).minusHours(2), Duration.standardHours(2)).getMillis();
 
