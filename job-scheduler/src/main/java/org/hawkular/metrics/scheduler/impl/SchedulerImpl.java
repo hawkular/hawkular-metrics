@@ -362,6 +362,7 @@ public class SchedulerImpl implements Scheduler {
             if (details.getTrigger().nextTrigger() != null) {
                 logger.warn("Retry policies cannot be used with jobs that repeat. " + details + " will execute again " +
                         "according to its next trigger.");
+                return Completable.complete();
             }
             if (retryPolicy == RetryPolicy.NOW) {
                 return factory.call(details);
