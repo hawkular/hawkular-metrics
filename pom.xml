@@ -391,13 +391,14 @@
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
         <module>alerting</module>
-        <module>integration-tests</module>
         <module>clients</module>
         <module>containers</module>
         <module>bus</module>
         <module>dist/component-war</module>
         <module>dist/component-ear</module>
+        <module>dist/standalone-war</module>
         <module>dist/standalone-ear</module>
+        <module>integration-tests</module>
         <module>dist</module>
       </modules>
     </profile>

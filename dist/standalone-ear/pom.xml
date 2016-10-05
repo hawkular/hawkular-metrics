@@ -36,7 +36,7 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-standalone</artifactId>
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
@@ -88,7 +88,7 @@
             </webModule>
             <webModule>
               <groupId>org.hawkular.metrics</groupId>
-              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+              <artifactId>hawkular-metrics-standalone</artifactId>
               <bundleFileName>hawkular-metrics.war</bundleFileName>
               <contextRoot>/hawkular/metrics</contextRoot>
             </webModule>
