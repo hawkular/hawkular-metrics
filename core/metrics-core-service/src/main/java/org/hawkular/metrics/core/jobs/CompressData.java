@@ -20,14 +20,19 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
+import java.util.concurrent.TimeUnit;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
+
+import com.google.common.base.Stopwatch;
 
 import rx.Completable;
 import rx.Observable;
@@ -37,6 +42,8 @@ import rx.functions.Func1;
  * @author Michael Burman
  */
 public class CompressData implements Func1<JobDetails, Completable> {
+
+    private static Logger logger = Logger.getLogger(CompressData.class);
 
     public static final String JOB_NAME = "COMPRESS_DATA";
     public static final String ENABLED_CONFIG = "compression.enabled";
@@ -51,6 +58,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
     @Override
     public Completable call(JobDetails jobDetails) {
         // Rewind to previous timeslice
+        Stopwatch stopwatch = Stopwatch.createStarted();
         long previousBlock = DateTimeService.getTimeSlice(new DateTime(jobDetails.getTrigger().getTriggerTime(),
                 DateTimeZone.UTC).minusHours(2), Duration.standardHours(2)).getMillis();
 
@@ -59,7 +67,15 @@ public class CompressData implements Func1<JobDetails, Completable> {
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
         // Fetch all partition keys and compress the previous timeSlice
-        return Completable.fromObservable(metricsService.compressBlock(metricIds, previousBlock));
+        return Completable.fromObservable(
+                metricsService.compressBlock(metricIds, previousBlock)
+                        .doOnError(t -> logger.warn("Failed to compress data", t))
+                        .doOnCompleted(() -> {
+                            stopwatch.stop();
+                            logger.info("Finished compressing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
+                                    " ms");
+                        })
+        );
 
         // TODO Optimization - new worker per token - use parallelism in Cassandra
         // Configure the amount of parallelism?

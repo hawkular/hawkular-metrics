@@ -32,7 +32,5 @@ public interface JobsService {
 
     Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 
-    Single<JobDetails> submitCompressDataJob();
-
     Observable<JobDetails> getJobDetails();
 }

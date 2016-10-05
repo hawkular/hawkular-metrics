@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +47,7 @@ import rx.functions.Func2;
  */
 public class JobsServiceImpl implements JobsService {
 
-    private static Logger logger = Logger.getLogger(DeleteTenant.class);
+    private static Logger logger = Logger.getLogger(JobsServiceImpl.class);
 
     private Scheduler scheduler;
 
@@ -101,7 +102,7 @@ public class JobsServiceImpl implements JobsService {
         if(compressionEnabled) {
             CompressData compressDataJob = new CompressData(metricsService);
             scheduler.register(CompressData.JOB_NAME, compressDataJob, deleteTenantRetryPolicy);
-            submitCompressDataJob().toBlocking().value();
+            maybeScheduleCompressData();
         }
     }
 
@@ -116,19 +117,25 @@ public class JobsServiceImpl implements JobsService {
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
-    @Override
-    public Single<JobDetails> submitCompressDataJob() {
-        // Get next start of odd hour
-        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
-                .with(DateTimeService.startOfNextOddHour())
-                .toInstant(ZoneOffset.UTC).toEpochMilli();
+    private void maybeScheduleCompressData() {
+        String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
+        Configuration config = configurationService.load(configId).toBlocking()
+                .firstOrDefault(new Configuration(configId, new HashMap<>()));
+        if (config.get(CompressData.JOB_NAME) == null) {
+            logger.info("Preparing to create and schedule " + CompressData.JOB_NAME + " job");
 
-        return scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
-                ImmutableMap.of(),
-                new RepeatingTrigger.Builder()
-                        .withTriggerTime(nextStart)
-                        .withInterval(2, TimeUnit.HOURS)
-                        .build());
+            // Get next start of odd hour
+            long nextStart = LocalDateTime.now(ZoneOffset.UTC)
+                    .with(DateTimeService.startOfNextOddHour())
+                    .toInstant(ZoneOffset.UTC).toEpochMilli();
+            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
+                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
+            config.set("jobId", jobDetails.getJobId().toString());
+            configurationService.save(config).toBlocking();
+
+            logger.info("Created and scheduled " + jobDetails);
+        }
     }
 
     @Override
