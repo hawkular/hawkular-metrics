@@ -61,6 +61,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
 
@@ -82,10 +83,14 @@ public class CompressDataJobITest extends BaseITest {
     private JobsServiceImpl jobsService;
     private ConfigurationService configurationService;
     private TestScheduler jobScheduler;
+    private PreparedStatement resetConfig;
 
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
+
+        resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
+                CompressData.JOB_NAME + "'");
 
         configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
@@ -99,6 +104,8 @@ public class CompressDataJobITest extends BaseITest {
     @BeforeMethod
     public void initTest(Method method) {
         logger.debug("Starting [" + method.getName() + "]");
+
+        session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
         long nextStart = LocalDateTime.now(ZoneOffset.UTC)
