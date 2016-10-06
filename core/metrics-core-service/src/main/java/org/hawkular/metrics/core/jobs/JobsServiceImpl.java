@@ -121,7 +121,7 @@ public class JobsServiceImpl implements JobsService {
         String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
-        if (config.get(CompressData.JOB_NAME) == null) {
+        if (config.get("jobId") == null) {
             logger.info("Preparing to create and schedule " + CompressData.JOB_NAME + " job");
 
             // Get next start of odd hour
@@ -132,7 +132,7 @@ public class JobsServiceImpl implements JobsService {
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
             config.set("jobId", jobDetails.getJobId().toString());
-            configurationService.save(config).toBlocking();
+            configurationService.save(config).toBlocking().first();
 
             logger.info("Created and scheduled " + jobDetails);
         }
