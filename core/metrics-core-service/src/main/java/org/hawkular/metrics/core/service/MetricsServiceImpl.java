@@ -482,7 +482,8 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Metric<?>> findAllMetrics() {
         return dataAccess.findAllMetricsInData()
-                .distinct().compose(new MetricFromFullDataRowTransformer(defaultTTL));
+                .compose(new MetricFromFullDataRowTransformer(defaultTTL))
+                .distinct();
     }
 
     @Override

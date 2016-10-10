@@ -92,7 +92,7 @@ public class TagQueryParser {
         }
     }
 
-    public <T> Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
+    public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
                                                             Map<String, String> tagsQueries) {
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
@@ -122,16 +122,16 @@ public class TagQueryParser {
         // There might not be any metrics fetched yet.. if this is the only query
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
-            groupMetrics = dataAccess.findAllMetricsFromTagsIndex()
+            Observable<? extends Metric<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
                     .compose(new TagsIndexRowTransformer<>(metricType))
                     .filter(mId -> mId.getTenantId().equals(tenantId))
                     .flatMap(metricsService::findMetric);
 
             Observable<Metric<?>> dataMetrics = metricsService.findAllMetrics()
+                    .filter(m -> m.getMetricId().getTenantId().equals(tenantId))
                     .filter(metricTypeFilter(metricType));
 
-            groupMetrics = groupMetrics.concatWith(dataMetrics);
-
+            groupMetrics = Observable.concat(tagsMetrics, dataMetrics).distinct();
         }
 
         // Group C processing, everything outside Cassandra

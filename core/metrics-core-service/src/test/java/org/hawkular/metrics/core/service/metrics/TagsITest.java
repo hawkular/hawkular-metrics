@@ -271,13 +271,18 @@ public class TagsITest extends BaseMetricsITest {
                 ImmutableMap.of("a1", "4"));
         assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
 
-        // Create the gauges
+        // Create the metrics
         List<Metric<?>> metricsToAdd = new ArrayList<>(ids.size());
         for (int i = 0; i < ids.size(); i++) {
-            metricsToAdd.add(new Metric<>(ids.get(i), maps.get(i), 24));
+            if(ids.get(i).getType() == GAUGE) {
+                metricsToAdd.add(new Metric<>((MetricId<Double>) ids.get(i), maps.get(i), 24, asList(
+                        new DataPoint<>(System.currentTimeMillis(), 1.0))));
+            } else {
+                metricsToAdd.add(new Metric<>(ids.get(i), maps.get(i), 24));
+            }
         }
 
-        // Insert gauges
+        // Insert metrics
         Observable.from(metricsToAdd)
                 .subscribe(m -> metricsService.createMetric(m, false).toBlocking().lastOrDefault(null));
 
