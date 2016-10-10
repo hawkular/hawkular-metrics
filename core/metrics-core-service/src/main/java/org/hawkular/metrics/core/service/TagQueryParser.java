@@ -37,6 +37,8 @@ import rx.Observable;
 import rx.functions.Func1;
 
 /**
+ * Very simple query optimizer and parser for the tags query language
+ *
  * @author Michael Burman
  */
 public class TagQueryParser {
@@ -57,19 +59,19 @@ public class TagQueryParser {
 
     // Between group b & c, fetch the metric definitions (of the current list)
 
-    // TODO Handle TagValues export also
-
-    // TODO Handle the id filter outside, but it should be improved also?
     static class QueryOptimizer {
 
         public static final long GROUP_A_COST = 10;
         public static final long GROUP_B_COST = 50;
         public static final long GROUP_C_COST = 99;
 
+        /**
+         * Sorts the query language parameters based on their query cost.
+         *
+         * @param tagsQuery User's TagQL
+         * @return TreeMap with Long key indicating query cost (lower is better)
+         */
         public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Map<String, String> tagsQuery) {
-            // Returned list is a sorted list, with comparator (lower number is first)
-            // Assign each query a cost
-
             Map<Long, List<Map.Entry<String, String>>> costSortedMap = new TreeMap<>();
             costSortedMap.put(GROUP_B_COST, new ArrayList<>());
             costSortedMap.put(GROUP_C_COST, new ArrayList<>());
@@ -79,12 +81,10 @@ public class TagQueryParser {
                     // In-memory sorted query, requires fetching all the definitions
                     List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_C_COST);
                     entries.add(tagQuery);
-                    costSortedMap.put(GROUP_C_COST, entries);
                 } else {
                     // TODO How to filter exact matching from regexp matching?
                     List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_B_COST);
                     entries.add(tagQuery);
-                    costSortedMap.put(GROUP_B_COST, entries);
                 }
             }
 
@@ -119,10 +119,9 @@ public class TagQueryParser {
                         .flatMap(Observable::from)
                         .flatMap(metricsService::findMetric);
 
-        // I might not have any metrics yet.. if this is the only query
+        // There might not be any metrics fetched yet.. if this is the only query
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
-
             groupMetrics = dataAccess.findAllMetricsFromTagsIndex()
                     .compose(new TagsIndexRowTransformer<>(metricType))
                     .filter(mId -> mId.getTenantId().equals(tenantId))
@@ -135,6 +134,7 @@ public class TagQueryParser {
 
         }
 
+        // Group C processing, everything outside Cassandra
         for (Map.Entry<String, String> groupCQuery : groupCEntries) {
             groupMetrics = groupMetrics
                     .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
@@ -200,26 +200,13 @@ public class TagQueryParser {
     }
 
     private Func1<Metric<?>, Boolean> tagNotExistsFilter(String unwantedTagName) {
-        return tMetric -> {
-            for (String tagName : tMetric.getTags().keySet()) {
-                if(unwantedTagName.equals(tagName)) {
-                    return false;
-                }
-            }
-            return true;
-        };
+        return tMetric -> !tMetric.getTags().keySet().contains(unwantedTagName);
     }
 
     private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = PatternUtil.filterPattern(regexp);
         return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
-    }
-
-    public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
-        boolean positive = (!regexp.startsWith("!"));
-        Pattern p = PatternUtil.filterPattern(regexp);
-        return tMetric -> positive == p.matcher(tMetric.getId()).matches();
     }
 
     public Func1<Row, Boolean> typeFilter(MetricType<?> type) {
@@ -231,13 +218,5 @@ public class TagQueryParser {
 
     public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
         return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
-    }
-
-    public Func1<Metric<?>, Boolean> tagQlToFilter(Map.Entry<String, String> tagQuery) {
-        String tagKey = tagQuery.getKey();
-        if(tagKey.startsWith("!")) {
-            return tagNotExistsFilter(tagKey.substring(1));
-        }
-        return null;
     }
 }
