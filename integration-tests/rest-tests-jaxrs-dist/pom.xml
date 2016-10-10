@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.hawkular.alerts</groupId>
       <artifactId>hawkular-alerter-metrics</artifactId>
-      <version>${version.org.hawkular.alerts}</version>
+      <version>${version.org.hawkular.alerter}</version>
       <type>war</type>
     </dependency>
     <!-- Because metrics war has a dependency on alerting war (to inject AlertsService) and both components

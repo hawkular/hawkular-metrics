@@ -38,12 +38,14 @@ import java.util.List;
 
 import org.hawkular.metrics.core.service.DelegatingDataAccess;
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeUtils;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -58,6 +60,7 @@ public class AvailabilityITest extends BaseMetricsITest {
 
     protected PreparedStatement insertAvailabilityDateWithTimestamp;
 
+    @Override
     @BeforeClass
     public void initClass() {
         super.initClass();
@@ -195,6 +198,53 @@ public class AvailabilityITest extends BaseMetricsITest {
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
         metricsService.addDataPoints(AVAILABILITY, Observable.just(m3)).toBlocking();
+    }
+
+    @Test
+    public void addAndCompressData() throws Exception {
+        DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
+        DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
+
+        DateTime start = dt.minusMinutes(30);
+        DateTime end = start.plusMinutes(20);
+        String tenantId = "t1";
+
+        MetricId<AvailabilityType> mId = new MetricId<>(tenantId, AVAILABILITY, "m1");
+
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
+
+        Metric<AvailabilityType> m1 = new Metric<>(mId, asList(
+                new DataPoint<>(start.getMillis(), UP),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), UP),
+                new DataPoint<>(end.getMillis(), DOWN)));
+
+        Observable<Void> insertObservable = metricsService.addDataPoints(AVAILABILITY, Observable.just(m1));
+        insertObservable.toBlocking().lastOrDefault(null);
+
+        metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
+                .standardHours(2)))
+                .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
+
+        Observable<DataPoint<AvailabilityType>> observable = metricsService.findDataPoints(mId, start.getMillis(),
+                end.getMillis() + 1, 0, Order.DESC);
+        List<DataPoint<AvailabilityType>> actual = toList(observable);
+        List<DataPoint<AvailabilityType>> expected = asList(
+                new DataPoint<>(end.getMillis(), DOWN),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), UP),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), DOWN),
+                new DataPoint<>(start.getMillis(), UP));
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+        assertMetricIndexMatches("t1", AVAILABILITY,
+                singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+
+        observable = metricsService.findDataPoints(mId, start.getMillis(),
+                end.getMillis(), 0, Order.DESC);
+        actual = toList(observable);
+        assertEquals(3, actual.size(), "Last datapoint should be missing (<)");
+
+        DateTimeUtils.setCurrentMillisSystem();
     }
 
     private void addAvailabilityDataInThePast(Metric<AvailabilityType> metric, final Duration duration)
