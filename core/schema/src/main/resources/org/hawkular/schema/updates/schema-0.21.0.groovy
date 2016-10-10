@@ -49,3 +49,10 @@ schemaChange {
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD status tinyint"
 }
+
+schemaChange {
+  version '5.5'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'gc_grace_seconds', '604800')"
+}

@@ -65,6 +65,7 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.util.GCGraceSecondsManager;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -198,6 +199,7 @@ public class MetricsServiceLifecycle {
     private JmxReporter jmxReporter;
     private ConfigurationService configurationService;
     private DataAccess dataAcces;
+    private GCGraceSecondsManager gcGraceSecondsManager;
 
     MetricsServiceLifecycle() {
         ThreadFactory threadFactory = r -> {
@@ -264,13 +266,6 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
-            // When this class was first introduced, I said that the schema management
-            // should stay in MetricsServiceImpl, and now I am putting it back here. OK, so
-            // I deserve some criticism; however, I still think it should be done that way.
-            // I made this change temporarily because the schema for metrics and for the
-            // task scheduling service are declared and created in the same place. That
-            // will change at some point though because the task scheduling service will
-            // probably move to the hawkular-commons repo.
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
@@ -296,6 +291,8 @@ public class MetricsServiceLifecycle {
             initJobsService();
 
             session.getCluster().register(new ClusterStateListener());
+
+            initGCGraceSecondsManager();
 
             state = State.STARTED;
             log.infoServiceStarted();
@@ -408,6 +405,14 @@ public class MetricsServiceLifecycle {
         SchemaService schemaService = new SchemaService();
         schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb));
         session.execute("USE " + keyspace);
+    }
+
+    /**
+     * This should be called after the schema is initialized and all updates are done.
+     */
+    private void initGCGraceSecondsManager() {
+        gcGraceSecondsManager = new GCGraceSecondsManager(new RxSessionImpl(session), keyspace, configurationService);
+        gcGraceSecondsManager.maybeUpdateGCGraceSeconds();
     }
 
     private int getDefaultTTL() {
