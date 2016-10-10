@@ -99,4 +99,9 @@ public interface RestLogger extends BasicLogger {
     @Message(id = 200015, value = "Invalid value [%s] for Cassandra driver connection timeout. Will use default " +
             "value of %s")
     void warnInvalidConnectionTimeout(String connectionTimeout, String defaultConnectionTimeout);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200016, value = "Invalid value [%s] for Cassandra driver schema refresh interval. Will use " +
+            "default value of %s")
+    void warnInvalidSchemaRefreshInterval(String schemaRefreshInterval, String defaultSchemaRefreshInterval);
 }

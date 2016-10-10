@@ -142,6 +142,7 @@
                 <hawkular-metrics.base-uri>${base-uri}/metrics</hawkular-metrics.base-uri>
                 <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
                 <hawkular-metrics.test.access-control-allow-headers>random-header1,random-header2</hawkular-metrics.test.access-control-allow-headers>
+                <hawkular-metrics.cassandra.schema.refresh-interval>0</hawkular-metrics.cassandra.schema.refresh-interval>
                 <project.version>${project.version}</project.version>
               </systemPropertyVariables>
             </configuration>
