@@ -121,7 +121,7 @@ public class InsertedDataSubscriber {
 
         if (metricType == MetricType.AVAILABILITY) {
             Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-            publishAvailablility(avail);
+            publishAvailability(avail);
 
         } else if (metricType == MetricType.STRING) {
             Metric<String> string = (Metric<String>) metric;
@@ -148,7 +148,7 @@ public class InsertedDataSubscriber {
         }
     }
 
-    private void publishAvailablility(Metric<AvailabilityType> avail) {
+    private void publishAvailability(Metric<AvailabilityType> avail) {
         MetricId<AvailabilityType> availId = avail.getMetricId();
         String tenantId = availId.getTenantId();
         String dataId = prefixMap.get(MetricType.AVAILABILITY) + availId.getName();
