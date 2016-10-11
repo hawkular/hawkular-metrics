@@ -1,8 +1,11 @@
 # Enable container-based infrastructure
-sudo: false
+sudo: required
+dist: trusty
+
 language: java
 jdk:
 - oraclejdk8
+
 notifications:
   irc:
     channels:
