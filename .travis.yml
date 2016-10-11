@@ -43,6 +43,9 @@ before_install:
 - bash .travis.install.cassandra.sh
 - cp .travis.maven.settings.xml $HOME/.m2/settings.xml
 install:
+- bash .travis.install.maven.sh "3.3.9" "${HOME}/mvn-home"
+- export M2_HOME=${HOME}/mvn-home
+- export PATH=${HOME}/mvn-home/bin:${PATH}
 - mvn -version -B
 # unshallow is needed by license-maven-plugin
 - git fetch origin --unshallow
