@@ -78,9 +78,7 @@ https://github.com/pcmanus/ccm[Cassandra Cluster Manager, CCM].
 
 [source,bash,subs="attributes"]
 ----
-ccm create -v {cassandra-version} hawkular
-ccm populate -n 1
-ccm start
+ccm create -v {cassandra-version} -n 1 -s hawkular
 ----
 
 These steps build and start a single node cluster of Cassandra. Note that while it is recommended to use ccm, it
