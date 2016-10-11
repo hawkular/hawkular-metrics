@@ -49,6 +49,9 @@ public class CompressData implements Func1<JobDetails, Completable> {
     public static final String ENABLED_CONFIG = "compression.enabled";
     public static final String BLOCK_SIZE = "compression.block.size";
 
+    // TODO Make this configurable by reading BLOCK_SIZE from ConfigurationService
+    public static final Duration DEFAULT_BLOCK_SIZE = Duration.standardHours(2);
+
     private MetricsService metricsService;
 
     public CompressData(MetricsService service) {
@@ -61,7 +64,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.info("Starting execution");
         long previousBlock = DateTimeService.getTimeSlice(new DateTime(jobDetails.getTrigger().getTriggerTime(),
-                DateTimeZone.UTC).minusHours(2), Duration.standardHours(2)).getMillis();
+                DateTimeZone.UTC).minus(DEFAULT_BLOCK_SIZE), DEFAULT_BLOCK_SIZE).getMillis();
 
         Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetrics()
                 .map(Metric::getMetricId)

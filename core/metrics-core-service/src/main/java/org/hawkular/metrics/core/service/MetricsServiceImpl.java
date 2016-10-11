@@ -41,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -81,6 +82,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -675,14 +677,34 @@ public class MetricsServiceImpl implements MetricsService {
     @SuppressWarnings("unchecked")
     public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice) {
         // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
-        long endOfSlice = new DateTime(timeSlice).plusHours(2).getMillis() - 1;
+        long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
         return metrics
-                .flatMap(mId -> findDataPoints(mId, timeSlice, endOfSlice, 0, ASC)
-                        .compose(new DataPointCompressTransformer(mId.getType(), timeSlice))
-                        .onErrorResumeNext(Observable.empty())
-                        .flatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(mId, timeSlice,
-                                (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(mId))))
+                .retry((integer, t) -> {
+                    log.warn("This was " + integer + " time an error happened when fetching metricIds to compress, " +
+                            t.getMessage());
+                    return t instanceof DriverException;
+                })
+                .onErrorResumeNext(Observable.empty())
+                .concatMap(metricId ->
+                        findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC)
+                                .retry((integer, t) -> {
+                                    log.warn("This was " + integer + " an error happened when fetching datapoints of" +
+                                            " metricId " + metricId.toString() + " to compress, "
+                                            + t.getMessage());
+                                    return t instanceof DriverException;
+                                })
+                                .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
+                                .onErrorResumeNext(Observable.empty())
+                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
+                                        (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(metricId))
+                                        .retry((integer, t) -> {
+                                            log.warn("This was " + integer + " an error happened when fetching " +
+                                                    "datapoints of metricId " + metricId.toString() + " to compress, " +
+                                                    t.getMessage());
+                                            return t instanceof DriverException;
+                                        })
+                                ))
                 .map(rs -> null);
     }
 
