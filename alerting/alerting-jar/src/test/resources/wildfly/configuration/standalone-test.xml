@@ -284,6 +284,11 @@
         </local-cache>
         <local-cache name="timestamps"/>
       </cache-container>
+      <cache-container name="hawkular-alerts">
+        <local-cache name="publish">
+          <transaction mode="BATCH"/>
+        </local-cache>
+      </cache-container>
     </subsystem>
     <subsystem xmlns="urn:jboss:domain:jaxrs:1.0"/>
     <subsystem xmlns="urn:jboss:domain:jca:4.0">

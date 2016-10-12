@@ -38,6 +38,8 @@ import javax.inject.Inject;
 
 import org.hawkular.alerts.api.model.data.Data;
 import org.hawkular.alerts.api.services.AlertsServiceMock;
+import org.hawkular.alerts.filter.CacheClient;
+import org.hawkular.alerts.filter.CacheKey;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurableProducer;
@@ -77,6 +79,7 @@ public class PublishDataPointsTest {
                 "org.hawkular.metrics:hawkular-metrics-api-util:" + System.getProperty("version.org.hawkular.metrics"),
                 "org.hawkular.metrics:hawkular-metrics-alerting:" + System.getProperty("version.org.hawkular.metrics"),
                 "org.hawkular.alerts:hawkular-alerts-api:" + System.getProperty("version.org.hawkular.alerts"),
+                "org.hawkular.alerts:hawkular-alerts-filter-api:" + System.getProperty("version.org.hawkular.alerts"),
                 "io.reactivex:rxjava:" + System.getProperty("version.io.reactivex.rxjava"));
 
         Collection<JavaArchive> dependencies = new HashSet<JavaArchive>();
@@ -84,8 +87,7 @@ public class PublishDataPointsTest {
                 .withoutTransitivity().as(JavaArchive.class)));
 
         WebArchive archive = ShrinkWrap.create(WebArchive.class)
-                .addPackages(true,
-                        "org.hawkular.alerts.api.services")
+                .addPackages(true, "org.hawkular.alerts.api.services")
                 .addAsLibraries(dependencies)
                 .addClass(ConfigurableProducer.class)
                 .addAsWebInfResource(new File("src/test/resources/web.xml"))
@@ -98,6 +100,9 @@ public class PublishDataPointsTest {
     @Inject
     @ServiceReady
     Event<ServiceReadyEvent> serviceReadyEvent;
+
+    @Inject
+    CacheClient cacheClient;
 
     @BeforeClass
     public static void setupPublishing() {
@@ -113,20 +118,30 @@ public class PublishDataPointsTest {
     public void publishGaugeDataPoints() throws Exception {
         String tenantId = "gauge-tenant";
         String gauge1Id = "G1";
-        MetricId<Double> publishedMetricId = new MetricId<>(tenantId, GAUGE, gauge1Id);
-        Metric<Double> gauge1 = new Metric<>(publishedMetricId, asList(
+        String gauge2Id = "G2";
+        MetricId<Double> filteredMetricId = new MetricId<>(tenantId, GAUGE, gauge1Id);
+        Metric<Double> gauge1 = new Metric<>(filteredMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), 10.0),
                 new DataPoint<>(System.currentTimeMillis() - 1000, 9.0),
                 new DataPoint<>(System.currentTimeMillis() - 2000, 9.0)));
 
-        Observable<Metric<?>> observable = Observable.just(gauge1);
+        MetricId<Double> ignoredMetricId = new MetricId<>(tenantId, GAUGE, gauge2Id);
+        Metric<Double> gauge2 = new Metric<>(ignoredMetricId, asList(
+                new DataPoint<>(System.currentTimeMillis(), 110.0),
+                new DataPoint<>(System.currentTimeMillis() - 1000, 19.0),
+                new DataPoint<>(System.currentTimeMillis() - 2000, 19.0)));
+
+        String prefix = InsertedDataSubscriber.prefixMap.get(MetricType.GAUGE);
+        cacheClient.addTestKey(new CacheKey(tenantId, prefix + gauge1Id), "test");
+
+        Observable<Metric<?>> observable = Observable.just(gauge1, gauge2);
 
         serviceReadyEvent.fire(new ServiceReadyEvent(observable));
 
         Set<Data> expected = gauge1.getDataPoints().stream()
                 .map(dataPoint -> Data.forNumeric(
                         tenantId,
-                        InsertedDataSubscriber.prefixMap.get(MetricType.GAUGE) + gauge1Id,
+                        prefix + gauge1Id,
                         dataPoint.getTimestamp(),
                         dataPoint.getValue().doubleValue()))
                 .collect(Collectors.toCollection(HashSet::new));
@@ -139,21 +154,32 @@ public class PublishDataPointsTest {
     public void publishAvailabilityDataPoints() throws Exception {
         String tenantId = "availability-tenant";
         String availability1Id = "A1";
-        MetricId<AvailabilityType> publishedMetricId = new MetricId<>(tenantId, AVAILABILITY, availability1Id);
-        Metric<AvailabilityType> availability1 = new Metric<>(publishedMetricId, asList(
+        String availability2Id = "A2";
+        MetricId<AvailabilityType> filteredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability1Id);
+        Metric<AvailabilityType> availability1 = new Metric<>(filteredMetricId, asList(
                 new DataPoint<>(System.currentTimeMillis(), UP),
                 new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
                 new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)));
 
-        Observable<Metric<?>> observable = Observable.just(availability1);
+        MetricId<AvailabilityType> ignoredMetricId = new MetricId<>(tenantId, AVAILABILITY, availability2Id);
+        Metric<AvailabilityType> availability2 = new Metric<>(ignoredMetricId, asList(
+                new DataPoint<>(System.currentTimeMillis(), UP),
+                new DataPoint<>(System.currentTimeMillis() - 1000, DOWN),
+                new DataPoint<>(System.currentTimeMillis() - 2000, UNKNOWN),
+                new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)));
+
+        String prefix = InsertedDataSubscriber.prefixMap.get(MetricType.AVAILABILITY);
+        cacheClient.addTestKey(new CacheKey(tenantId, prefix + availability1Id), "test");
+
+        Observable<Metric<?>> observable = Observable.just(availability1, availability2);
 
         serviceReadyEvent.fire(new ServiceReadyEvent(observable));
 
         Set<Data> expected = availability1.getDataPoints().stream()
                 .map(dataPoint -> Data.forAvailability(
                         tenantId,
-                        InsertedDataSubscriber.prefixMap.get(MetricType.AVAILABILITY) + availability1Id,
+                        prefix + availability1Id,
                         dataPoint.getTimestamp(),
                         toAlertingAvail(dataPoint.getValue())))
                 .collect(Collectors.toCollection(HashSet::new));
