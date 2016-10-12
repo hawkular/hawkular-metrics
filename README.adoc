@@ -2,7 +2,7 @@
 :source-language: java
 
 // just major.minor
-:cassandra-version: 3.7
+:cassandra-version: 3.0.9
 
 ifdef::env-github[]
 [link=https://travis-ci.org/hawkular/hawkular-metrics]
@@ -84,7 +84,7 @@ ccm start
 ----
 
 These steps build and start a single node cluster of Cassandra. Note that while it is recommended to use ccm, it
-is not necessary. You just need to make sure you have a running {cassandra-version}.x cluster.
+is not necessary. You just need to make sure you have a running {cassandra-version} cluster.
 
 == Client tools
 

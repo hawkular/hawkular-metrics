@@ -22,7 +22,7 @@ set -xe
 cd "${HOME}"
 
 C_MAJOR="3"
-C_MINOR="7"
+C_MINOR="0"
 
 # Find the closest Apache mirror
 APACHE_MIRROR="$(curl -sL https://www.apache.org/dyn/closer.cgi?asjson=1 | python -c 'import sys, json; print json.load(sys.stdin)["preferred"]')"
