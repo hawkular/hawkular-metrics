@@ -41,7 +41,7 @@ public class MetricServiceManager {
         this.manager = manager;
         manager.startCluster();
         Session session = manager.createSession();
-        keyspace = System.getProperty("cassandra.keyspace", "benchmark");
+        keyspace = System.getProperty("hawkular.metrics.cassandra.keyspace", "benchmark");
         metricsService = createMetricsService(session);
     }
 

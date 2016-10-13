@@ -177,8 +177,8 @@
                     <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
                     <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
                     <javaOpt>-Djboss.socket.binding.port-offset=${wildfly.port.offset}</javaOpt>
-                    <javaOpt>-Dcassandra.keyspace=${cassandra.keyspace}</javaOpt>
-                    <javaOpt>-Dcassandra.resetdb</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.resetdb</javaOpt>
                     <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
                     <javaOpt>-Dhawkular.terminal-event.timeout=${terminal-event.timeout}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io</javaOpt>
@@ -187,7 +187,7 @@
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                     <javaOpt>-Dhawkular-alerts.engine-period=50</javaOpt>
-                    <javaOpt>-Dhawkular-metrics.publish-period=50</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.publish-period=50</javaOpt>
                   </javaOpts>
                   <server-config>standalone.xml</server-config>
                 </configuration>

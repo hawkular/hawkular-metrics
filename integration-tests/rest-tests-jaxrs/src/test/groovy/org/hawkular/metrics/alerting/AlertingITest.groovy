@@ -94,7 +94,7 @@ class AlertingITest extends AlertingITestBase {
         // too slow it could cause a test failure here and be something to look into...  Note, to keep the
         // sleep short we set the following in the pom:
         //   hawkular-alerts.engine-period  =50 ms to minimize lag in sending data to alerting
-        //   hawkular-metrics.publish-period=50 ms to minimize lag in alerting running the engine
+        //   hawkular.metrics.publish-period=50 ms to minimize lag in alerting running the engine
         Thread.sleep(500);
 
         // ENABLE Trigger, this should get picked up by the listener and the dataId should become active
