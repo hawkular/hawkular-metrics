@@ -1,0 +1,150 @@
+/*
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.hawkular.metrics.scheduler.impl;
+
+import java.util.Date;
+import java.util.UUID;
+
+import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.JobStatus;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
+import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
+import org.hawkular.metrics.scheduler.api.Trigger;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.jboss.logging.Logger;
+
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.UserType;
+
+import rx.Observable;
+
+/**
+ * @author jsanda
+ */
+public class JobsService {
+
+    private static Logger logger = Logger.getLogger(JobsService.class);
+
+    private RxSession session;
+
+    private PreparedStatement findScheduled;
+
+    private PreparedStatement insertScheduled;
+
+    private PreparedStatement update;
+
+    private PreparedStatement updateStatus;
+
+    public JobsService(RxSession session) {
+        this.session = session;
+        findScheduled = session.getSession().prepare(
+                "SELECT job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx " +
+                "WHERE time_slice = ?");
+        update = session.getSession().prepare(
+                "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
+        insertScheduled =  session.getSession().prepare(
+                "INSERT INTO scheduled_jobs_idx (time_slice, job_id, job_type, job_name, job_params, trigger, " +
+                "status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        updateStatus = session.getSession().prepare(
+                "UPDATE scheduled_jobs_idx SET status = ? WHERE time_slice = ? AND job_id = ?");
+    }
+
+    public Observable<JobDetails> findScheduledJobs(Date timeSlice, rx.Scheduler scheduler) {
+        return session.executeAndFetch(findScheduled.bind(timeSlice), scheduler)
+                .map(row -> new JobDetails(
+                        row.getUUID(0),
+                        row.getString(1),
+                        row.getString(2),
+                        row.getMap(3, String.class, String.class),
+                        getTrigger(row.getUDTValue(4)),
+                        JobStatus.fromCode(row.getByte(5))));
+    }
+
+    public Observable<ResultSet> insert(Date timeSlice, JobDetails job) {
+        return session.execute(insertScheduled.bind(timeSlice, job.getJobId(), job.getJobType(), job.getJobName(),
+                job.getParameters(), getTriggerValue(session, job.getTrigger())));
+    }
+
+    public Observable<ResultSet> updateStatusToFinished(Date timeSlice, UUID jobId) {
+        return session.execute(updateStatus.bind((byte) 1, timeSlice, jobId))
+                .doOnError(t -> logger.warn("There was an error updating the status to finished for [" + jobId +
+                        "] in time slice [" + timeSlice.getTime() + "]"));
+    }
+
+    static Trigger getTrigger(UDTValue value) {
+        int type = value.getInt("type");
+
+        switch (type) {
+            case 0:
+                return new SingleExecutionTrigger(value.getLong("trigger_time"));
+            case 1:
+                return new RepeatingTrigger(
+                        value.getLong("interval"),
+                        value.getLong("delay"),
+                        value.getLong("trigger_time"),
+                        value.getInt("repeat_count"),
+                        value.getInt("execution_count")
+                );
+            default:
+                throw new IllegalArgumentException("Trigger type [" + type + "] is not supported");
+        }
+    }
+
+    static UDTValue getTriggerValue(RxSession session, Trigger trigger) {
+        if (trigger instanceof RepeatingTrigger) {
+            return getRepeatingTriggerValue(session, (RepeatingTrigger) trigger);
+        }
+        if (trigger instanceof SingleExecutionTrigger) {
+            return getSingleExecutionTriggerValue(session, (SingleExecutionTrigger) trigger);
+        }
+        throw new IllegalArgumentException(trigger.getClass() + " is not a supported trigger type");
+    }
+
+    static UDTValue getSingleExecutionTriggerValue(RxSession session, SingleExecutionTrigger trigger) {
+        UserType triggerType = getKeyspace(session).getUserType("trigger_def");
+        UDTValue triggerUDT = triggerType.newValue();
+        triggerUDT.setInt("type", 0);
+        triggerUDT.setLong("trigger_time", trigger.getTriggerTime());
+
+        return triggerUDT;
+    }
+
+    static UDTValue getRepeatingTriggerValue(RxSession session, RepeatingTrigger trigger) {
+        UserType triggerType = getKeyspace(session).getUserType("trigger_def");
+        UDTValue triggerUDT = triggerType.newValue();
+        triggerUDT.setInt("type", 1);
+        triggerUDT.setLong("interval", trigger.getInterval());
+        triggerUDT.setLong("trigger_time", trigger.getTriggerTime());
+        if (trigger.getDelay() > 0) {
+            triggerUDT.setLong("delay", trigger.getDelay());
+        }
+        if (trigger.getRepeatCount() != null) {
+            triggerUDT.setInt("repeat_count", trigger.getRepeatCount());
+            triggerUDT.setInt("execution_count", trigger.getExecutionCount());
+        }
+
+        return triggerUDT;
+    }
+
+    private static KeyspaceMetadata getKeyspace(RxSession session) {
+        return session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace());
+    }
+
+}
