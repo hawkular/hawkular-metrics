@@ -30,6 +30,8 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -51,6 +54,7 @@ import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransform
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
+import org.hawkular.metrics.core.service.transformers.SortedMerge;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
@@ -640,11 +644,7 @@ public class MetricsServiceImpl implements MetricsService {
         Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder = getDataPointFinder(metricType);
 
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
-            // TODO Do mergeSort here, merging items from uncompressed and compressed.. that allows unlimited
-            // out-of-order writes
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
-
-            Observable<DataPoint<T>> dataPoints = Observable.empty();
 
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder)
                     .map(mapper);
@@ -653,14 +653,21 @@ public class MetricsServiceImpl implements MetricsService {
                     dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
-            switch (safeOrder) {
+            Comparator<DataPoint<T>> comparator;
+
+            switch(safeOrder) {
                 case ASC:
-                    dataPoints = compressedPoints.concatWith(uncompressedPoints);
+                    comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
                     break;
                 case DESC:
-                    dataPoints = uncompressedPoints.concatWith(compressedPoints);
+                    comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
                     break;
+                default:
+                    throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
             }
+
+            Observable<DataPoint<T>> dataPoints = SortedMerge
+                    .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
 
             if(limit > 0) {
                 dataPoints = dataPoints.take(limit);
@@ -673,6 +680,26 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(mapper));
     }
 
+    private <T> Observable.Transformer<T, T> applyRetryPolicy() {
+        return tObservable -> tObservable
+                .retryWhen(observable -> {
+                    Observable<Integer> range = Observable.range(1, Integer.MAX_VALUE);
+                    Observable<Observable<?>> zipWith = observable.zipWith(range, (t, i) -> {
+                        log.debug("Attempt #" + i + " to retry the operation after Cassandra client" +
+                                " exception");
+                        if (t instanceof DriverException) {
+                            return Observable.timer(i, TimeUnit.SECONDS).onBackpressureDrop();
+                        } else {
+                            return Observable.error(t);
+                        }
+                    });
+
+                    return Observable.merge(zipWith);
+                })
+                .doOnError(t -> log.error("Failure while trying to apply compression, skipping block", t))
+                .onErrorResumeNext(Observable.empty());
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice) {
@@ -680,30 +707,14 @@ public class MetricsServiceImpl implements MetricsService {
         long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
         return metrics
-                .retry((integer, t) -> {
-                    log.warn("This was " + integer + " time an error happened when fetching metricIds to compress, " +
-                            t.getMessage());
-                    return t instanceof DriverException;
-                })
-                .onErrorResumeNext(Observable.empty())
+                .compose(applyRetryPolicy())
                 .concatMap(metricId ->
                         findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC)
-                                .retry((integer, t) -> {
-                                    log.warn("This was " + integer + " an error happened when fetching datapoints of" +
-                                            " metricId " + metricId.toString() + " to compress, "
-                                            + t.getMessage());
-                                    return t instanceof DriverException;
-                                })
+                                .compose(applyRetryPolicy())
                                 .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
-                                .onErrorResumeNext(Observable.empty())
                                 .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
                                         (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(metricId))
-                                        .retry((integer, t) -> {
-                                            log.warn("This was " + integer + " an error happened when fetching " +
-                                                    "datapoints of metricId " + metricId.toString() + " to compress, " +
-                                                    t.getMessage());
-                                            return t instanceof DriverException;
-                                        })
+                                        .compose(applyRetryPolicy())
                                 ))
                 .map(rs -> null);
     }
