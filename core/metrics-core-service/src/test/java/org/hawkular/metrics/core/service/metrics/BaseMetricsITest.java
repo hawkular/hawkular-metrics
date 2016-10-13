@@ -90,6 +90,7 @@ public abstract class BaseMetricsITest extends BaseITest {
     public void initMethod() {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE data");
+        session.execute("TRUNCATE data_compressed");
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
@@ -213,9 +214,9 @@ public abstract class BaseMetricsITest extends BaseITest {
         List<MetricsTagsIndexEntry> actual = new ArrayList<>();
 
         for (Row row : rows) {
-            MetricType<?> type = MetricType.fromCode(row.getByte(0));
-            MetricId<?> id = new MetricId<>(tenantId, type, row.getString(1));
-            actual.add(new MetricsTagsIndexEntry(row.getString(2), id)); // Need value here.. pff.
+            MetricType<?> type = MetricType.fromCode(row.getByte(1));
+            MetricId<?> id = new MetricId<>(tenantId, type, row.getString(2));
+            actual.add(new MetricsTagsIndexEntry(row.getString(3), id)); // Need value here.. pff.
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");
