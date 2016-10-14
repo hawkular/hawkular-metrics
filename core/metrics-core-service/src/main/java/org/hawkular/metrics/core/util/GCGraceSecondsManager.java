@@ -61,8 +61,6 @@ public class GCGraceSecondsManager implements SchemaChangeListener {
 
     private RxSession session;
 
-    private PreparedStatement resetGCGraceSeconds;
-
     private PreparedStatement getGCGraceSeconds;
 
     private String keyspace;
@@ -97,11 +95,12 @@ public class GCGraceSecondsManager implements SchemaChangeListener {
             check = updateAllGCGraceSeconds(0);
         } else {
             // Need to call Completable.merge in order for subscriptions to happen correctly. See https://goo.gl/l15CRV
-            check = Completable.merge(configurationService.load("org.hawkular.metrics").map(config -> {
-                int gcGraceSeconds = Integer.parseInt(config.get("gcGraceSeconds", Integer.toString(
-                        DEFAULT_GC_GRACE_SECONDS)));
-                return updateAllGCGraceSeconds(gcGraceSeconds);
-            }));
+            check = Completable.merge(configurationService.load("org.hawkular.metrics", "gcGraceSeconds")
+                    .switchIfEmpty(Observable.just(Integer.toString(DEFAULT_GC_GRACE_SECONDS)))
+                    .map(property -> {
+                        int gcGraceSeconds = Integer.parseInt(property);
+                        return updateAllGCGraceSeconds(gcGraceSeconds);
+                    }));
         }
 
         check.subscribe(
