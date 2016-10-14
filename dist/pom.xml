@@ -34,8 +34,8 @@
   <modules>
     <module>component-war</module>
     <module>component-ear</module>
-    <module>standalone-war</module>
-    <module>standalone-ear</module>
+    <module>standalone/standalone-war</module>
+    <module>standalone/standalone-ear</module>
   </modules>
 
   <profiles>
