@@ -42,8 +42,8 @@
     <profile>
       <id>release</id>
       <modules>
-        <module>wildfly-standalone</module>
-        <module>wildfly-embedded-cassandra</module>
+        <module>standalone/wildfly-standalone</module>
+        <module>standalone/wildfly-embedded-cassandra</module>
       </modules>
     </profile>
   </profiles>
