@@ -34,7 +34,7 @@ public class LiveCassandraManager implements ClusterManager {
 
     @Override
     public void startCluster() {
-        nodes = System.getProperty("hawkular-metrics.cassandra-nodes", "127.0.0.1");
+        nodes = System.getProperty("hawkular.metrics.cassandra.nodes", "127.0.0.1");
     }
 
     @Override

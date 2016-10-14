@@ -26,30 +26,36 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public enum ConfigurationKey {
 
+    //CORS
     ALLOWED_CORS_ORIGINS("hawkular.metrics.allowed-cors-origins", "*", "ALLOWED_CORS_ORIGINS", false),
     ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS("hawkular.metrics.allowed-cors-access-control-allow-headers",
                     null, " ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS", false),
-    CASSANDRA_NODES("hawkular-metrics.cassandra-nodes", "127.0.0.1", "CASSANDRA_NODES", false),
-    CASSANDRA_CQL_PORT("hawkular-metrics.cassandra-cql-port", "9042", "CASSANDRA_CQL_PORT", false),
-    CASSANDRA_KEYSPACE("cassandra.keyspace", "hawkular_metrics", null, false),
-    CASSANDRA_RESETDB("cassandra.resetdb", null, null, true),
-    CASSANDRA_USESSL("hawkular-metrics.cassandra-use-ssl", "false", "CASSANDRA_USESSL", false),
-    CASSANDRA_MAX_CONN_HOST("hawkular-metrics.cassandra-max-connections-per-host", "10", "CASSANDRA_MAX_CONN_HOST",
+
+    //Cassandra
+    CASSANDRA_NODES("hawkular.metrics.cassandra.nodes", "127.0.0.1", "CASSANDRA_NODES", false),
+    CASSANDRA_CQL_PORT("hawkular.metrics.cassandra.cql-port", "9042", "CASSANDRA_CQL_PORT", false),
+    CASSANDRA_KEYSPACE("hawkular.metrics.cassandra.keyspace", "hawkular_metrics", null, false),
+    CASSANDRA_RESETDB("hawkular.metrics.cassandra.resetdb", null, null, true),
+    CASSANDRA_USESSL("hawkular.metrics.cassandra.use-ssl", "false", "CASSANDRA_USESSL", false),
+    CASSANDRA_MAX_CONN_HOST("hawkular.metrics.cassandra.max-connections-per-host", "10", "CASSANDRA_MAX_CONN_HOST",
             false),
-    CASSANDRA_MAX_REQUEST_CONN("hawkular-metrics.cassandra-max-requests-per-connection", "5000",
+    CASSANDRA_MAX_REQUEST_CONN("hawkular.metrics.cassandra.max-requests-per-connection", "5000",
             "CASSANDRA_MAX_REQUEST_CONN", false),
-    CASSANDRA_REQUEST_TIMEOUT("hawkular-metrics.cassandra.request.timeout", "12000", "CASSANDRA_REQUEST_TIMEOUT",
+    CASSANDRA_REQUEST_TIMEOUT("hawkular.metrics.cassandra.request-timeout", "12000", "CASSANDRA_REQUEST_TIMEOUT",
             false),
-    CASSANDRA_CONNECTION_TIMEOUT("hawkular-metrics.cassandra.connection.timeout", "5000",
+    CASSANDRA_CONNECTION_TIMEOUT("hawkular.metrics.cassandra.connection-timeout", "5000",
             "CASSANDRA_CONNECTION_TIMEOUT", false),
+
+    //Service
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
     DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true),
-    METRICS_PUBLISH_PERIOD("hawkular-metrics.publish-period", "2000", "METRICS_PUBLISH_PERIOD", false),
-    DISABLE_METRICS_FORWARDING("hawkular-metrics.disable-metrics-forwarding", null, "DISABLE_METRICS_FORWARDING", true),
-    DISABLE_PUBLISH_FILTERING("hawkular-metrics.disable-publish-filtering", null, "DISABLE_PUBLISH_FILTERING", true),
+    ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
 
-    ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false);
+    //Alerting
+    METRICS_PUBLISH_PERIOD("hawkular.metrics.publish-period", "2000", "METRICS_PUBLISH_PERIOD", false),
+    DISABLE_METRICS_FORWARDING("hawkular.metrics.disable-metrics-forwarding", null, "DISABLE_METRICS_FORWARDING", true),
+    DISABLE_PUBLISH_FILTERING("hawkular.metrics.disable-publish-filtering", null, "DISABLE_PUBLISH_FILTERING", true);
 
     private final String name;
     private final String env;
