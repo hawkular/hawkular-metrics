@@ -45,7 +45,7 @@ public enum ConfigurationKey {
             false),
     CASSANDRA_CONNECTION_TIMEOUT("hawkular.metrics.cassandra.connection-timeout", "5000",
             "CASSANDRA_CONNECTION_TIMEOUT", false),
-    CASSANDRA_SCHEMA_REFRESH_INTERVAL("hawkular-metrics.cassandra.schema.refresh-interval", "1000",
+    CASSANDRA_SCHEMA_REFRESH_INTERVAL("hawkular.metrics.cassandra.schema.refresh-interval", "1000",
             "CASSANDRA_SCHEMA_REFRESH_INTERVAL", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
