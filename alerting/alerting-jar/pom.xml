@@ -78,6 +78,14 @@
       <groupId>org.hawkular.alerts</groupId>
       <artifactId>hawkular-alerts-api</artifactId>
       <version>${version.org.hawkular.alerts}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-filter-api</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>

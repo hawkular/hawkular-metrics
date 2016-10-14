@@ -153,4 +153,14 @@ public class AlertsServiceMock implements AlertsService {
     public void sendEvents(Collection<Event> events) throws Exception {
 
     }
+
+    @Override
+    public void sendData(Collection<Data> data, boolean ignoreFiltering) throws Exception {
+        DATA.addAll(data);
+    }
+
+    @Override
+    public void sendEvents(Collection<Event> events, boolean ignoreFiltering) throws Exception {
+
+    }
 }

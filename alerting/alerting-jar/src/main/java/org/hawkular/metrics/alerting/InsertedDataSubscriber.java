@@ -23,6 +23,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_MET
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_PUBLISH_FILTERING;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_PERIOD;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,8 @@ import javax.inject.Inject;
 
 import org.hawkular.alerts.api.model.data.Data;
 import org.hawkular.alerts.api.services.AlertsService;
+import org.hawkular.alerts.filter.CacheClient;
+import org.hawkular.alerts.filter.CacheKey;
 import org.hawkular.metrics.api.jaxrs.ServiceReady;
 import org.hawkular.metrics.api.jaxrs.ServiceReadyEvent;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
@@ -77,6 +80,9 @@ public class InsertedDataSubscriber {
     private AlertsService alertsService;
 
     @Inject
+    private CacheClient dataIdCache;
+
+    @Inject
     @Configurable
     @ConfigurationProperty(METRICS_PUBLISH_PERIOD)
     private String publishPeriodProperty;
@@ -85,97 +91,84 @@ public class InsertedDataSubscriber {
     @Inject
     @Configurable
     @ConfigurationProperty(DISABLE_METRICS_FORWARDING)
-    private String disableMetricsForwarding;
+    private String disableMetricsForwardingProperty;
 
     @Inject
     @Configurable
     @ConfigurationProperty(DISABLE_PUBLISH_FILTERING)
-    private String disablePublishFiltering;
+    private String disablePublishFilteringProperty;
+    private boolean disablePublishFiltering;
 
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
-        if (!Boolean.parseBoolean(disableMetricsForwarding)) {
+        if (!Boolean.parseBoolean(disableMetricsForwardingProperty)) {
             publishPeriod = getPublishPeriod();
+            disablePublishFiltering = Boolean.parseBoolean(disablePublishFilteringProperty);
             Observable<List<Metric<?>>> events;
-            if (Boolean.parseBoolean(disablePublishFiltering)) {
-                events = event.getInsertedData()
-                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
-                        .filter(list -> !list.isEmpty());
-            } else {
-                events = event.getInsertedData()
-                        .filter(m -> m.getType() != MetricType.STRING)
-                        .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
-                        .filter(list -> !list.isEmpty());
-            }
+            events = event.getInsertedData()
+                    .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                    .filter(list -> !list.isEmpty());
             events = events.onBackpressureBuffer()
                     .observeOn(Schedulers.io());
-            subscription = events.subscribe(list -> list.forEach(this::onInsertedData));
+            subscription = events.subscribe(list -> onInsertedData(list));
         }
     }
 
+    private void onInsertedData(List<Metric<?>> metrics) {
+        List<Data> dataToSend = new ArrayList<>(metrics.size());
+        CacheKey reusableKey = new CacheKey("", ""); // avoid generating a bunch of throw-away key objects
+        metrics.stream().forEach(m -> addToData(m, dataToSend, reusableKey));
+        if (!dataToSend.isEmpty()) {
+            try {
+                alertsService.sendData(dataToSend, true);
+
+            } catch (Exception e) {
+                log.warnf("Failed to send alerting data.", e);
+            }
+        }
+    }
+
+    private boolean containsKey(String tenantId, String dataId, CacheKey reusableKey) {
+        reusableKey.setTenantId(tenantId);
+        reusableKey.setDataId(dataId);
+        return dataIdCache.containsKey(reusableKey);
+    }
+
     @SuppressWarnings("unchecked")
-    private void onInsertedData(Metric<?> metric) {
-        MetricType<?> metricType = metric.getMetricId().getType();
+    private void addToData(Metric<?> metric, List<Data> dataToSend, CacheKey reusableKey) {
+        MetricId<?> metricId = metric.getMetricId();
+        MetricType<?> metricType = metricId.getType();
         if (metricType == MetricType.UNDEFINED) {
+            return;
+        }
+
+        String tenantId = metricId.getTenantId();
+        String dataId = prefixMap.get(metricType) + metricId.getName();
+        if (!disablePublishFiltering && !containsKey(tenantId, dataId, reusableKey)) {
             return;
         }
 
         if (metricType == MetricType.AVAILABILITY) {
             Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-            publishAvailability(avail);
+            List<Data> availData = avail.getDataPoints().stream()
+                    .map(dataPoint -> Data.forAvailability(tenantId, dataId, dataPoint.getTimestamp(),
+                            toAlertingAvail(dataPoint.getValue())))
+                    .collect(toList());
+            dataToSend.addAll(availData);
 
         } else if (metricType == MetricType.STRING) {
             Metric<String> string = (Metric<String>) metric;
-            publishString(string);
+            List<Data> stringData = string.getDataPoints().stream()
+                    .map(dataPoint -> Data.forString(tenantId, dataId, dataPoint.getTimestamp(), dataPoint.getValue()))
+                    .collect(toList());
+            dataToSend.addAll(stringData);
 
-        }else {
-            publishNumeric((Metric<? extends Number>) metric);
-        }
-    }
-
-    private void publishNumeric(Metric<? extends Number> numeric) {
-        MetricId<? extends Number> numericId = numeric.getMetricId();
-        String tenantId = numericId.getTenantId();
-        String dataId = prefixMap.get(numericId.getType()) + numericId.getName();
-        List<Data> data = numeric.getDataPoints().stream()
-                .map(dataPoint -> Data.forNumeric(tenantId, dataId, dataPoint.getTimestamp(),
-                        dataPoint.getValue().doubleValue()))
-                .collect(toList());
-        try {
-            log.tracef("Publish numeric data: %s", data);
-            alertsService.sendData(data);
-        } catch (Exception e) {
-            log.warnf("Failed to send numeric alerting data.", e);
-        }
-    }
-
-    private void publishAvailability(Metric<AvailabilityType> avail) {
-        MetricId<AvailabilityType> availId = avail.getMetricId();
-        String tenantId = availId.getTenantId();
-        String dataId = prefixMap.get(MetricType.AVAILABILITY) + availId.getName();
-        List<Data> data = avail.getDataPoints().stream()
-                .map(dataPoint -> Data.forAvailability(tenantId, dataId, dataPoint.getTimestamp(),
-                        toAlertingAvail(dataPoint.getValue())))
-                .collect(toList());
-        try {
-            log.tracef("Publish avail data: %s", data);
-            alertsService.sendData(data);
-        } catch (Exception e) {
-            log.warnf("Failed to send availability alerting data.", e);
-        }
-    }
-
-    private void publishString(Metric<String> string) {
-        MetricId<String> stringId = string.getMetricId();
-        String tenantId = stringId.getTenantId();
-        String dataId = prefixMap.get(MetricType.STRING) + stringId.getName();
-        List<Data> data = string.getDataPoints().stream()
-                .map(dataPoint -> Data.forString(tenantId, dataId, dataPoint.getTimestamp(), dataPoint.getValue()))
-                .collect(toList());
-        try {
-            log.tracef("Publish string data: %s", data);
-            alertsService.sendData(data);
-        } catch (Exception e) {
-            log.warnf("Failed to send string alerting data.", e);
+        } else {
+            Metric<? extends Number> numeric = (Metric<? extends Number>) metric;
+            List<Data> numericData = numeric.getDataPoints().stream()
+                    .map(dataPoint -> Data.forNumeric(tenantId, dataId, dataPoint.getTimestamp(),
+                            dataPoint.getValue().doubleValue()))
+                    .collect(toList());
+            dataToSend.addAll(numericData);
         }
     }
 
