@@ -37,6 +37,7 @@ import org.testng.annotations.BeforeSuite;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -58,7 +59,10 @@ public class JobSchedulerTest {
 
     @BeforeSuite
     public static void initSuite() {
-        Cluster cluster = Cluster.builder().addContactPoints("127.0.0.01").build();
+        Cluster cluster = Cluster.builder()
+                .addContactPoints("127.0.0.01")
+                .withQueryOptions(new QueryOptions().setRefreshSchemaIntervalMillis(0))
+                .build();
         String keyspace = System.getProperty("keyspace", "hawkulartest");
         session = cluster.connect("system");
         rxSession = new RxSessionImpl(session);

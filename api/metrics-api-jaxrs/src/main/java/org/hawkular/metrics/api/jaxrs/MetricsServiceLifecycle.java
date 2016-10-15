@@ -30,6 +30,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_M
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REQUEST_TIMEOUT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
@@ -78,6 +79,7 @@ import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
@@ -162,6 +164,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(CASSANDRA_USESSL)
     private String cassandraUseSSL;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_SCHEMA_REFRESH_INTERVAL)
+    private String schemaRefreshInterval;
 
     @Inject
     @Configurable
@@ -366,6 +373,14 @@ public class MetricsServiceLifecycle {
             driverConnectionTimeout = Integer.parseInt(CASSANDRA_CONNECTION_TIMEOUT.defaultValue());
             log.warnInvalidConnectionTimeout(connectionTimeout, CASSANDRA_CONNECTION_TIMEOUT.defaultValue());
         }
+        int driverSchemaRefreshInterval;
+        try {
+            driverSchemaRefreshInterval = Integer.parseInt(schemaRefreshInterval);
+        } catch (NumberFormatException e) {
+            driverSchemaRefreshInterval = Integer.parseInt(CASSANDRA_SCHEMA_REFRESH_INTERVAL.defaultValue());
+            log.warnInvalidSchemaRefreshInterval(schemaRefreshInterval,
+                    CASSANDRA_SCHEMA_REFRESH_INTERVAL.defaultValue());
+        }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
@@ -373,7 +388,8 @@ public class MetricsServiceLifecycle {
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
         ).withSocketOptions(new SocketOptions()
                 .setReadTimeoutMillis(driverRequestTimeout)
-                .setConnectTimeoutMillis(driverConnectionTimeout));
+                .setConnectTimeoutMillis(driverConnectionTimeout)
+        ).withQueryOptions(new QueryOptions().setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
