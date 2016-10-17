@@ -35,6 +35,13 @@
       <directoryMode>0755</directoryMode>
     </fileSet>
     <fileSet>
+      <directory>src/main/resources/wildfly/configuration</directory>
+      <outputDirectory>${hawkular.dist.zip.root.dir}/standalone/configuration</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>0644</fileMode>
+      <directoryMode>0755</directoryMode>
+    </fileSet>
+    <fileSet>
       <directory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}</directory>
       <outputDirectory>${hawkular.dist.zip.root.dir}</outputDirectory>
       <includes>
