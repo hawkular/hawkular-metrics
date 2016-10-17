@@ -37,7 +37,6 @@
     <module>standalone/standalone-war</module>
     <module>standalone/standalone-ear</module>
     <module>standalone/wildfly-standalone</module>
-    <module>standalone/wildfly-embedded-cassandra</module>
   </modules>
 
   <profiles>
