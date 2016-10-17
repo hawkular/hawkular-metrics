@@ -21,7 +21,7 @@
 
   <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes" xalan:indent-amount="4" standalone="no" />
 
-    <xsl:template match="//*[local-name()='subsystem' and @xmlns='urn:jboss:domain:logging:3.0']">
+    <xsl:template match="//*[local-name()='subsystem' and @xmlns='*infinispan*']">
     <xsl:copy>
       <xsl:apply-templates select="node()|comment()|@*" />
       <cache-container name="hawkular-alerts" default-cache="triggers" statistics-enabled="true">

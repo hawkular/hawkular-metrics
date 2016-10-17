@@ -125,6 +125,7 @@
                   <includes>
                     <include>*.xml</include>
                   </includes>
+                  <outputDir>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/configuration</outputDir>
                   <fileMappers>
                     <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
                       <targetExtension>.xml</targetExtension>
