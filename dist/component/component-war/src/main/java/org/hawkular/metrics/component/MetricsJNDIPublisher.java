@@ -17,24 +17,19 @@
 package org.hawkular.metrics.component;
 
 import javax.annotation.PostConstruct;
-//import javax.enterprise.context.ApplicationScoped;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.inject.Inject;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.core.service.MetricsService;
 
 /**
  * @author Pavol Loffay
  */
-
-// [jshaughn] I'm not sure why this bean should be Eager or ApplicationScoped but as it turns out, these two
-// annotations together cause the bind to fail due to "Naming context is read-only" (which is a little crazy for
-// java:global).  I'm not sure about the necessity of Eager, so I left it in place, I think we can survive without
-// this bean being ApplicationScoped.  I sort of think perhaps neither of these is necessary.
-//@ApplicationScoped
-@Eager
+@Singleton
+@Startup
 public class MetricsJNDIPublisher {
 
     @Inject
@@ -46,7 +41,7 @@ public class MetricsJNDIPublisher {
         try {
             ctx = new InitialContext();
             ctx.bind("java:global/Hawkular/Metrics", metricsService);
-        } catch (NamingException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Could not register metrics in JNDI", e);
         } finally {
             if (ctx != null) {
