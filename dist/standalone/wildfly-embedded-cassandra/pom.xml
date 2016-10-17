@@ -43,9 +43,9 @@
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-standalone-dist</artifactId>
       <version>${project.version}</version>
-      <type>war</type>
+      <type>ear</type>
     </dependency>
     <dependency>
       <groupId>org.hawkular.commons</groupId>
@@ -83,19 +83,60 @@
             <id>copy-hawkular-dependencies</id>
             <phase>prepare-package</phase>
             <goals>
-              <goal>copy-dependencies</goal>
+              <goal>copy</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments
-              </outputDirectory>
-              <includeArtifactIds>hawkular-metrics-api-jaxrs,hawkular-commons-embedded-cassandra-ear
-              </includeArtifactIds>
-              <overWriteIfNewer>true</overWriteIfNewer>
-              <excludeTransitive>true</excludeTransitive>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.hawkular.metrics</groupId>
+                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
+                  <type>ear</type>
+                  <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments</outputDirectory>
+                  <destFileName>hawkular-metrics.ear</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.hawkular.commons</groupId>
+                  <artifactId>hawkular-commons-embedded-cassandra-ear</artifactId>
+                  <type>ear</type>
+                  <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments</outputDirectory>
+                </artifactItem>
+              </artifactItems>
             </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <!-- Enhance various standalone*.xml files with infinispan configuration-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>xml-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>transform-xmls</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>transform</goal>
+            </goals>
+            <configuration>
+              <transformationSets>
+                <transformationSet>
+                  <dir>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/configuration</dir>
+                  <stylesheet>${project.baseUri}src/main/xsl/subsystem-templates/hawkular-alerting-infinispan.xsl</stylesheet>
+                  <includes>
+                    <include>*.xml</include>
+                  </includes>
+                  <fileMappers>
+                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                      <targetExtension>.xml</targetExtension>
+                    </fileMapper>
+                  </fileMappers>
+                </transformationSet>
+              </transformationSets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>

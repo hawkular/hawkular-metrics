@@ -36,14 +36,14 @@
     <module>component/component-ear</module>
     <module>standalone/standalone-war</module>
     <module>standalone/standalone-ear</module>
+    <module>standalone/wildfly-standalone</module>
+    <module>standalone/wildfly-embedded-cassandra</module>
   </modules>
 
   <profiles>
     <profile>
       <id>release</id>
       <modules>
-        <module>standalone/wildfly-standalone</module>
-        <module>standalone/wildfly-embedded-cassandra</module>
       </modules>
     </profile>
   </profiles>
