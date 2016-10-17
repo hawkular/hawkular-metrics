@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014 - 2016 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,17 +21,17 @@
 
   <xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes" xalan:indent-amount="4" standalone="no" />
 
-    <xsl:template match="//*[local-name()='subsystem' and @xmlns='*infinispan*']">
-    <xsl:copy>
-      <xsl:apply-templates select="node()|comment()|@*" />
-      <cache-container name="hawkular-alerts" default-cache="triggers" statistics-enabled="true">
-        <local-cache name="partition"/>
-        <local-cache name="triggers"/>
-        <local-cache name="data"/>
-        <local-cache name="publish"/>
-        <local-cache name="schema"/>
-      </cache-container>
-    </xsl:copy>
+    <xsl:template match="//*[local-name()='subsystem' and @xmlns='urn:jboss:domain:infinispan:4.0']">
+      <xsl:copy>
+        <xsl:apply-templates select="node()|comment()|@*" />
+        <cache-container name="hawkular-alerts" default-cache="triggers" statistics-enabled="true">
+          <local-cache name="partition"/>
+          <local-cache name="triggers"/>
+          <local-cache name="data"/>
+          <local-cache name="publish"/>
+          <local-cache name="schema"/>
+        </cache-container>
+      </xsl:copy>
   </xsl:template>
 
   <!-- copy everything else as-is -->
