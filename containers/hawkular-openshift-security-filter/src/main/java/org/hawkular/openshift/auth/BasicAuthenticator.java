@@ -46,17 +46,8 @@ class BasicAuthenticator implements Authenticator {
     private static final Logger log = Logger.getLogger(BasicAuthenticator.class);
 
     static final String BASIC_PREFIX = "Basic ";
-    private static final String HTPASSWD_FILE_SYSPROP = "hawkular-metrics.openshift.htpasswd-file";
-    private static final File HTPASSWD_FILE;
-
-    static {
-        String htpasswdPath = System.getProperty(HTPASSWD_FILE_SYSPROP);
-        if (htpasswdPath == null) {
-            HTPASSWD_FILE = new File(System.getProperty("user.home"), ".htpasswd");
-        } else {
-            HTPASSWD_FILE = new File(htpasswdPath);
-        }
-    }
+    private static final String HTPASSWD_FILE_SYSPROP_SUFFIX = ".openshift.htpasswd-file";
+    private final File htpasswdFile;
 
     private static final String MD5_PREFIX = "$apr1$";
     private static final String SHA_PREFIX = "{SHA}";
@@ -64,14 +55,21 @@ class BasicAuthenticator implements Authenticator {
     private final HttpHandler containerHandler;
     private final Map<String, String> users;
 
-    BasicAuthenticator(HttpHandler containerHandler) {
+    BasicAuthenticator(HttpHandler containerHandler, String componentName) {
+        String htpasswdPath = System.getProperty(componentName + HTPASSWD_FILE_SYSPROP_SUFFIX);
+        if (htpasswdPath == null) {
+            htpasswdFile = new File(System.getProperty("user.home"), ".htpasswd");
+        } else {
+            htpasswdFile = new File(htpasswdPath);
+        }
+
         this.containerHandler = containerHandler;
-        users = HTPASSWD_FILE.canRead() ? Collections.unmodifiableMap(readHtpasswdFile()) : Collections.emptyMap();
+        users = htpasswdFile.canRead() ? Collections.unmodifiableMap(readHtpasswdFile()) : Collections.emptyMap();
     }
 
     private Map<String, String> readHtpasswdFile() {
         Map<String, String> result = new HashMap<String, String>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(HTPASSWD_FILE))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(htpasswdFile))) {
             reader.lines().forEach(line -> {
                 String[] values = line.split(":", 2);
                 if (values.length == 2) {

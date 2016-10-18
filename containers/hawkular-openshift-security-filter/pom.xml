@@ -28,9 +28,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-openshift-integration</artifactId>
+  <artifactId>hawkular-openshift-security-filter</artifactId>
 
-  <name>Hawkular Metrics OpenShift Integration</name>
+  <name>Hawkular OpenShift Security Filter</name>
 
   <dependencyManagement>
     <dependencies>

@@ -35,6 +35,7 @@ import static io.undertow.util.StatusCodes.FORBIDDEN;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.Sets;
 
@@ -47,12 +48,25 @@ import io.undertow.server.HttpServerExchange;
  * @author Thomas Segismont
  */
 public class OpenshiftAuthHandler implements HttpHandler {
-    private static final String SECURITY_OPTION_SYSPROP = "hawkular-metrics.openshift.auth-methods";
-    private static final Set<SecurityOption> SECURITY_OPTIONS;
+    private static final String SECURITY_OPTION_SYSPROP_SUFFIX = ".openshift.auth-methods";
+    private final Set<SecurityOption> SECURITY_OPTIONS;
 
-    static {
+    private final HttpHandler containerHandler;
+    private final TokenAuthenticator tokenAuthenticator;
+    private final BasicAuthenticator basicAuthenticator;
+
+    private final Pattern insecureEndpoints;
+    private final Pattern postQuery;
+
+    public OpenshiftAuthHandler(HttpHandler containerHandler, String componentName, String resourceName, Pattern insecureEndpoints, Pattern postQuery) {
+        this.containerHandler = containerHandler;
+        this.insecureEndpoints = insecureEndpoints;
+        this.postQuery = postQuery;
+        tokenAuthenticator = new TokenAuthenticator(containerHandler, resourceName, postQuery);
+        basicAuthenticator = new BasicAuthenticator(containerHandler, componentName);
+
         Set<SecurityOption> active = new HashSet<>();
-        String property = System.getProperty(SECURITY_OPTION_SYSPROP, OPENSHIFT_OAUTH.toString());
+        String property = System.getProperty(componentName + SECURITY_OPTION_SYSPROP_SUFFIX, OPENSHIFT_OAUTH.toString());
         Set<String> configured = Arrays.stream(property.split(",")).map(String::trim).collect(toSet());
         for (SecurityOption option : SecurityOption.values()) {
             if (configured.contains(option.toString())) {
@@ -60,16 +74,6 @@ public class OpenshiftAuthHandler implements HttpHandler {
             }
         }
         SECURITY_OPTIONS = Sets.immutableEnumSet(active);
-    }
-
-    private final HttpHandler containerHandler;
-    private final TokenAuthenticator tokenAuthenticator;
-    private final BasicAuthenticator basicAuthenticator;
-
-    public OpenshiftAuthHandler(HttpHandler containerHandler) {
-        this.containerHandler = containerHandler;
-        tokenAuthenticator = new TokenAuthenticator(containerHandler);
-        basicAuthenticator = new BasicAuthenticator(containerHandler);
     }
 
     @Override
@@ -86,8 +90,7 @@ public class OpenshiftAuthHandler implements HttpHandler {
         // There are a few endpoint that should not be secured. If we secure the status endpoint when we cannot
         // tell if the container is up and it will always be marked as pending
         String path = serverExchange.getRelativePath();
-        if (path == null || path.equals("") || path.equals("/") || path.equals("/status")
-                || path.startsWith("/static")) {
+        if (insecureEndpoints != null && insecureEndpoints.matcher(path).find()) {
             containerHandler.handleRequest(serverExchange);
             return;
         }

@@ -17,7 +17,10 @@
 
 package org.hawkular.openshift.auth;
 
+import java.io.InputStream;
 import java.util.EventListener;
+import java.util.Properties;
+import java.util.regex.Pattern;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -36,12 +39,55 @@ import io.undertow.servlet.util.ImmediateInstanceFactory;
 public class OpenshiftAuthServletExtension implements ServletExtension {
     private OpenshiftAuthHandler openshiftAuthHandler;
 
+    private static final String PROPERTY_FILE = "/WEB-INF/openshift-security-filter.properties";
+
     @Override
     public void handleDeployment(DeploymentInfo deploymentInfo, ServletContext servletContext) {
+
+        String componentName = "";
+        String resourceName = "";
+        Pattern insecureEndpointPattern = null;
+        Pattern postQueryPattern = null;
+        // file to contain configurations options for this Servlet Extension
+        InputStream is = servletContext.getResourceAsStream(PROPERTY_FILE);
+        if (is != null) {
+            try {
+                Properties props = new Properties();
+                props.load(is);
+                componentName = props.getProperty("component");
+                resourceName = props.getProperty("resource-name");
+                String insecurePatternString = props.getProperty("unsecure-endpoints");
+                String postQueryPatternString = props.getProperty("post-query");
+
+                if (insecurePatternString != null) {
+                    insecureEndpointPattern = Pattern.compile(insecurePatternString);
+                }
+
+                if (postQueryPatternString != null) {
+                    postQueryPattern = Pattern.compile(postQueryPatternString);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (componentName == null || componentName.isEmpty()) {
+            throw new RuntimeException("Missing or empty 'component' key from the " + PROPERTY_FILE + " configuration file.");
+        }
+
+        if (resourceName == null || resourceName.isEmpty()) {
+            throw new RuntimeException("Missing or empty 'resource-name' key from the " + PROPERTY_FILE + " configuratin file.");
+        }
+
+        final String cName = componentName;
+        final String rName = resourceName;
+        final Pattern insecurePattern = insecureEndpointPattern;
+        final Pattern postQuery = postQueryPattern;
+
         ImmediateInstanceFactory<EventListener> instanceFactory = new ImmediateInstanceFactory<>(new SCListener());
         deploymentInfo.addListener(new ListenerInfo(SCListener.class, instanceFactory));
         deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
-            openshiftAuthHandler = new OpenshiftAuthHandler(containerHandler);
+            openshiftAuthHandler = new OpenshiftAuthHandler(containerHandler, cName, rName, insecurePattern, postQuery);
             return openshiftAuthHandler;
         });
     }
