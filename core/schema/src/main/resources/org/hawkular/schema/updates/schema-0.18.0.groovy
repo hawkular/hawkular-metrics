@@ -27,6 +27,7 @@ CREATE TABLE locks (
     value text,
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'locks') }
 }
 
 schemaChange {
@@ -42,6 +43,7 @@ CREATE TABLE jobs (
     trigger frozen <trigger_def>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'jobs') }
 }
 
 schemaChange {
@@ -55,6 +57,7 @@ CREATE TABLE scheduled_jobs_idx (
     PRIMARY KEY (time_slice, job_id)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'scheduled_jobs_idx') }
 }
 
 schemaChange {
@@ -68,6 +71,7 @@ CREATE TABLE finished_jobs_idx (
     PRIMARY KEY (time_slice, job_id)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'finished_jobs_idx') }
 }
 
 schemaChange {
@@ -79,4 +83,5 @@ CREATE TABLE active_time_slices (
     time_slice timestamp PRIMARY KEY
 ) WITH compaction = { 'class' : 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'active_time_slices') }
 }
