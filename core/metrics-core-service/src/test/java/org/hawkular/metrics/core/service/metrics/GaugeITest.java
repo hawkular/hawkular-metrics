@@ -27,6 +27,7 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.joda.time.Duration;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -60,11 +62,17 @@ import rx.functions.Func1;
  */
 public class GaugeITest extends BaseMetricsITest {
 
+    private String tenantId;
+
+    @BeforeMethod
+    public void initTest(Method method) {
+        tenantId = method.getName();
+    }
+
     @Test
     public void addAndFetchGaugeData() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
-        String tenantId = "t1";
 
         metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
@@ -86,14 +94,13 @@ public class GaugeITest extends BaseMetricsITest {
                 new DataPoint<>(start.getMillis(), 1.1));
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
 
     @Test
     public void addGaugeDataForMultipleMetrics() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
-        String tenantId = "test-tenant";
 
         metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
@@ -143,7 +150,6 @@ public class GaugeITest extends BaseMetricsITest {
 
     @Test
     public void getPeriodsAboveThreshold() throws Exception {
-        String tenantId = "test-tenant";
         DateTime start = now().minusMinutes(20);
         double threshold = 20.0;
 
@@ -183,7 +189,6 @@ public class GaugeITest extends BaseMetricsITest {
     public void findStackedGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
-        String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
         MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
@@ -229,7 +234,6 @@ public class GaugeITest extends BaseMetricsITest {
     public void findSimpleGaugeStatsByMetricNames() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
-        String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
         MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
@@ -263,7 +267,6 @@ public class GaugeITest extends BaseMetricsITest {
     public void findStackedGaugeStatsByTags() {
         NumericDataPointCollector.createPercentile = InMemoryPercentileWrapper::new;
 
-        String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
 
         MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
@@ -317,7 +320,6 @@ public class GaugeITest extends BaseMetricsITest {
     public void addAndFetchGaugeDataAggregates() throws Exception {
         DateTime start = now().minusMinutes(30);
         DateTime end = start.plusMinutes(20);
-        String tenantId = "t1";
 
         metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
@@ -338,7 +340,7 @@ public class GaugeITest extends BaseMetricsITest {
         List<Double> expected = asList(10.0, 40.0, 25.0, 100.0);
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
 
     @Test
@@ -348,7 +350,6 @@ public class GaugeITest extends BaseMetricsITest {
 
         DateTime start = dt.minusMinutes(30);
         DateTime end = start.plusMinutes(20);
-        String tenantId = "t1";
 
         MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
 
@@ -377,7 +378,7 @@ public class GaugeITest extends BaseMetricsITest {
                 new DataPoint<>(start.getMillis(), 1.1));
 
         assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches("t1", GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
 
         observable = metricsService.findDataPoints(mId, start.getMillis(),
                 end.getMillis(), 0, Order.DESC);
@@ -391,7 +392,6 @@ public class GaugeITest extends BaseMetricsITest {
     public void addDataForSingleGaugeAndFindWithLimit() throws Exception {
         // Limited copy of the similar method in rest-tests, as these cases not tested in our unit tests
         // This targets the MetricsServiceImpl filtering without compression (effectively out-of-order writes)
-        String tenantId = "t1";
         metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
         DateTime start = now().minusHours(1);
