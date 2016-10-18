@@ -97,9 +97,9 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
-    <version.org.cassalog>0.3.1</version.org.cassalog>
+    <version.org.cassalog>0.4.1</version.org.cassalog>
     <version.org.hawkular.accounts>2.0.26.Final</version.org.hawkular.accounts>
-    <version.org.hawkular.alerts>1.2.3.Final-SRC-revision-04533604d253236abfa45b052764db9e2ea4ebce</version.org.hawkular.alerts>
+    <version.org.hawkular.alerts>1.2.3.Final-SRC-revision-f6c3dab9ff63f0fec8cd6df7195dfcdcae2f3ae2</version.org.hawkular.alerts>
     <version.org.hawkular.commons>0.7.1.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.7</version.joda-time>

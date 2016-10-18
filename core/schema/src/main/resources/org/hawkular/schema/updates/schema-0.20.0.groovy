@@ -34,6 +34,7 @@ CREATE TABLE data_compressed (
     PRIMARY KEY ((tenant_id, type, metric, dpart), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
 """
+  verify { tableExists(keyspace, 'data_compressed') }
 }
 
 schemaChange {

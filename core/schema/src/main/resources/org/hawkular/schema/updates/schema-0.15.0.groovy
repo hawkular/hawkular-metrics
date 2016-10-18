@@ -27,6 +27,7 @@ CREATE TABLE sys_config (
     PRIMARY KEY (config_id, name)
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """
+  verify { tableExists(keyspace, 'sys_config') }
 }
 
 schemaChange {
@@ -43,6 +44,7 @@ schemaChange {
   tags '0.15.x'
   description "Add support for data point tags. See HWKMETRICS-368 for details"
   cql "ALTER TABLE data ADD tags map<text,text>"
+  verify { columnExists(keyspace, 'data', 'tags') }
 }
 
 schemaChange {
@@ -51,6 +53,7 @@ schemaChange {
   tags '0.15.x'
   description 'Add support for string metric type. See HWKMETRICS-384 for details.'
   cql "ALTER TABLE data ADD s_value text"
+  verify { columnExists(keyspace, 'data', 's_value') }
 }
 
 schemaChange {

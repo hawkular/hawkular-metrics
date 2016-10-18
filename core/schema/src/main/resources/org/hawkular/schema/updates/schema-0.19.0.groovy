@@ -38,6 +38,7 @@ schemaChange {
   author 'snegre'
   tags '0.19.x'
   cql "ALTER TABLE data DROP aggregates"
+  verify { columnDoesNotExist(keyspace, 'data', 'aggregates') }
 }
 
 schemaChange {
@@ -45,6 +46,7 @@ schemaChange {
   author 'snegrea'
   tags '0.19.x'
   cql "DROP TYPE aggregate_data"
+  verify { typeDoesNotExist(keyspace, 'aggregate_data') }
 }
 
 
@@ -53,6 +55,7 @@ schemaChange {
   author 'snegrea'
   tags '0.19.x'
   cql "ALTER TABLE data DROP data_retention"
+  verify { columnDoesNotExist(keyspace, 'data', 'data_retention') }
 }
 
 schemaChange {
@@ -60,6 +63,7 @@ schemaChange {
   author 'snegrea'
   tags '0.19.x'
   cql "DROP TYPE aggregation_template"
+  verify { typeDoesNotExist(keyspace, 'aggregation_template') }
 }
 
 schemaChange {
@@ -67,4 +71,5 @@ schemaChange {
   author 'snegrea'
   tags '0.19.x'
   cql "DROP TABLE tenants_by_time"
+  verify { tableDoesNotExist(keyspace, 'tenants_by_time') }
 }
