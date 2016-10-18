@@ -25,6 +25,7 @@
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-dist</artifactId>
     <version>0.21.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>hawkular-metrics-wildfly-standalone</artifactId>
@@ -36,15 +37,15 @@
   <properties>
     <assembly.dir>${project.build.directory}/assembly</assembly.dir>
     <wildfly.dist.zip.root.dir>wildfly-${version.org.wildfly}</wildfly.dist.zip.root.dir>
-    <hawkular.dist.zip.root.dir>${artifactId}/hawkular-metrics-${project.version}</hawkular.dist.zip.root.dir>
+    <hawkular.dist.zip.root.dir>hawkular-metrics-wildfly-standalone-${project.version}</hawkular.dist.zip.root.dir>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-standalone-dist</artifactId>
       <version>${project.version}</version>
-      <type>war</type>
+      <type>ear</type>
     </dependency>
     <dependency>
       <groupId>org.wildfly</groupId>
@@ -76,23 +77,60 @@
             <id>copy-hawkular-dependencies</id>
             <phase>prepare-package</phase>
             <goals>
-              <goal>copy-dependencies</goal>
+              <goal>copy</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments
-              </outputDirectory>
-              <includeArtifactIds>hawkular-metrics-api-jaxrs</includeArtifactIds>
-              <overWriteIfNewer>true</overWriteIfNewer>
-              <excludeTransitive>true</excludeTransitive>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.hawkular.metrics</groupId>
+                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
+                  <type>ear</type>
+                  <outputDirectory>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/deployments</outputDirectory>
+                  <destFileName>hawkular-metrics.ear</destFileName>
+                </artifactItem>
+              </artifactItems>
             </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <!-- Enhance various standalone*.xml files with infinispan configuration-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>xml-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>transform-xmls</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>transform</goal>
+            </goals>
+            <configuration>
+              <transformationSets>
+                <transformationSet>
+                  <dir>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/configuration</dir>
+                  <stylesheet>${project.baseUri}src/main/xsl/subsystem-templates/hawkular-alerting-infinispan.xsl</stylesheet>
+                  <includes>
+                    <include>*.xml</include>
+                  </includes>
+                  <outputDir>${project.build.directory}/wildfly/${wildfly.dist.zip.root.dir}/standalone/configuration</outputDir>
+                  <fileMappers>
+                    <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                      <targetExtension>.xml</targetExtension>
+                    </fileMapper>
+                  </fileMappers>
+                </transformationSet>
+              </transformationSets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <finalName>hawkular-metrics-${project.version}</finalName>
+          <finalName>hawkular-metrics-wildfly-standalone-${project.version}</finalName>
           <appendAssemblyId>false</appendAssemblyId>
           <descriptors>
             <descriptor>${project.basedir}/src/assembly/dist.xml</descriptor>

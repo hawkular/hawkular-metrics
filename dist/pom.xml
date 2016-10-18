@@ -32,18 +32,17 @@
   <name>Hawkular Metrics Distributions</name>
 
   <modules>
-    <module>component-war</module>
-    <module>component-ear</module>
-    <module>standalone-war</module>
-    <module>standalone-ear</module>
+    <module>component/component-war</module>
+    <module>component/component-ear</module>
+    <module>standalone/standalone-war</module>
+    <module>standalone/standalone-ear</module>
+    <module>standalone/wildfly-standalone</module>
   </modules>
 
   <profiles>
     <profile>
       <id>release</id>
       <modules>
-        <module>wildfly-standalone</module>
-        <module>wildfly-embedded-cassandra</module>
       </modules>
     </profile>
   </profiles>
