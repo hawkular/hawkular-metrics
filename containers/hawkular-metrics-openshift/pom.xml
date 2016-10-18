@@ -22,10 +22,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>hawkular-metrics-parent</artifactId>
     <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-containers</artifactId>
     <version>0.21.0-SNAPSHOT</version>
-    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>hawkular-metrics-openshift</artifactId>
