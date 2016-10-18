@@ -43,7 +43,6 @@ import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
@@ -187,20 +186,22 @@ public class GaugeITest extends BaseMetricsITest {
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
+        MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
+        Metric<Double> m1 = new Metric<>(m1Id, getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
+        MetricId<Double> m2Id = new MetricId<>(tenantId, GAUGE, "M2");
+        Metric<Double> m2 = new Metric<>(m2Id, getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
+        MetricId<Double> m3Id = new MetricId<>(tenantId, GAUGE, "M3");
+        Metric<Double> m3 = new Metric<>(m3Id, getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
-                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                emptyList(), true));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(asList(m1Id,
+                m2Id), start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), true, false));
 
         assertEquals(actual.size(), 1);
 
@@ -231,20 +232,23 @@ public class GaugeITest extends BaseMetricsITest {
         String tenantId = "findGaugeStatsByMetricNames";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
+        MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
+        Metric<Double> m1 = new Metric<>(m1Id, getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
+        MetricId<Double> m2Id = new MetricId<>(tenantId, GAUGE, "M2");
+        Metric<Double> m2 = new Metric<>(m2Id, getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
+        MetricId<Double> m3Id = new MetricId<>(tenantId, GAUGE, "M3");
+        Metric<Double> m3 = new Metric<>(m3Id, getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
-                MetricType.GAUGE, asList("M1", "M2"), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                emptyList(), false));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(
+                asList(m1Id, m2Id), start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
+                emptyList(), false, false));
 
         assertEquals(actual.size(), 1);
 
@@ -262,24 +266,30 @@ public class GaugeITest extends BaseMetricsITest {
         String tenantId = "findGaugeStatsByTags";
         DateTime start = now().minusMinutes(10);
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), getDataPointList("M1", start));
+        MetricId<Double> m1Id = new MetricId<>(tenantId, GAUGE, "M1");
+        Metric<Double> m1 = new Metric<>(m1Id, getDataPointList("M1", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m1)));
         doAction(() -> metricsService.addTags(m1, ImmutableMap.of("type", "cpu_usage", "node", "server1")));
 
-        Metric<Double> m2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), getDataPointList("M2", start));
+        MetricId<Double> m2Id = new MetricId<>(tenantId, GAUGE, "M2");
+        Metric<Double> m2 = new Metric<>(m2Id, getDataPointList("M2", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m2)));
         doAction(() -> metricsService.addTags(m2, ImmutableMap.of("type", "cpu_usage", "node", "server2")));
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), getDataPointList("M3", start));
+        MetricId<Double> m3Id = new MetricId<>(tenantId, GAUGE, "M3");
+        Metric<Double> m3 = new Metric<>(m3Id, getDataPointList("M3", start));
         doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(m3)));
         doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
-        List<List<NumericBucketPoint>> actual = getOnNextEvents(() -> metricsService.findNumericStats(tenantId,
-                MetricType.GAUGE, tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                emptyList(), true));
+        List<List<NumericBucketPoint>> actual = getOnNextEvents(
+                () -> metricsService.findMetricsWithFilters(tenantId, GAUGE, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(metrics -> metricsService.findNumericStats(metrics, start.getMillis(), start
+                                .plusMinutes(5).getMillis(), buckets, emptyList(), true, false)));
 
         assertEquals(actual.size(), 1);
 

@@ -379,6 +379,52 @@ class AvailabilityITest extends RESTTest {
             [timestamp: start.plusHours(2).millis, value: 'up']
         ]
     ]))
+
+    // From Earliest
+    response = hawkularMetrics.post(
+        path: "availability/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            ids: ['A1', 'A2', 'A3'],
+            fromEarliest: true,
+            order: 'desc'
+        ]
+    )
+
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+    assertTrue(response.data.contains([
+        id: 'A1',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 'up'],
+            [timestamp: start.plusHours(3).millis, value: 'down'],
+            [timestamp: start.plusHours(2).millis, value: 'down'],
+            [timestamp: start.plusHours(1).millis, value: 'up'],
+            [timestamp: start.millis, value: 'up']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A2',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 'down'],
+            [timestamp: start.plusHours(3).millis, value: 'down'],
+            [timestamp: start.plusHours(2).millis, value: 'up'],
+            [timestamp: start.plusHours(1).millis, value: 'down'],
+            [timestamp: start.millis, value: 'up']
+        ]
+    ]))
+
+    assertTrue(response.data.contains([
+        id: 'A3',
+        data: [
+            [timestamp: start.plusHours(4).millis, value: 'down'],
+            [timestamp: start.plusHours(3).millis, value: 'up'],
+            [timestamp: start.plusHours(2).millis, value: 'up'],
+            [timestamp: start.plusHours(1).millis, value: 'up'],
+            [timestamp: start.millis, value: 'down']
+        ]
+    ]))
   }
 
   @Test

@@ -24,7 +24,6 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.QueryRequest;
-import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.param.TagNames;
@@ -58,7 +57,4 @@ public interface IMetricsHandler<T> {
     void getData(AsyncResponse asyncResponse, QueryRequest query);
 
     void addMetricData(AsyncResponse asyncResponse, String id, List<DataPoint<T>> data);
-
-    void getMetricData(AsyncResponse asyncResponse, String id, String start, String end, Boolean flag, Integer limit,
-            Order order);
 }

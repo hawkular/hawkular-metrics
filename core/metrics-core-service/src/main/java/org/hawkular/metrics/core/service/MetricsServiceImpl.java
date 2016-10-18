@@ -24,7 +24,6 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
-import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
@@ -762,27 +761,19 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start,
+    public <T extends Number> Observable<NamedDataPoint<Double>> findRateData(List<MetricId<T>> ids, long start,
                                                                      long end, int limit, Order order) {
         return Observable.from(ids).concatMap(id -> findRateData(id, start, end, limit, order)
                 .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
     }
 
     @Override
-    public Observable<NamedDataPoint<Double>> findRateData(String tenantId, MetricType<? extends Number> metricType,
-            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
-        return findMetricsWithFilters(tenantId, metricType, tagFilters)
-                .map(Metric::getMetricId)
-                .concatMap(id -> findRateData(id, start, end, limit, order)
-                        .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
-    }
-
-    @Override
-    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
-                                                              Buckets buckets, List<Percentile> percentiles) {
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findRateData(id, start, end, 0, ASC)
-                .compose(new NumericBucketPointTransformer(buckets, percentiles));
+    public Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, BucketConfig bucketConfig,
+                                                              List<Percentile> percentiles) {
+        TimeRange timeRange = bucketConfig.getTimeRange();
+        checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
+        return findRateData(id, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
+                .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
     }
 
     @SuppressWarnings("unchecked")
@@ -810,65 +801,32 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
-            MetricType<T> metricType, Map<String, String> tagFilters, long start, long end, Buckets buckets,
-            List<Percentile> percentiles, boolean stacked) {
-
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
-                || metricType == COUNTER || metricType == COUNTER_RATE, "Invalid metric type: %s", metricType);
-
-        final boolean isRate = (COUNTER != metricType && GAUGE != metricType);
-        final MetricType<? extends Number> mType = isRate ? (metricType == GAUGE_RATE ? GAUGE : COUNTER) : metricType;
-        final Observable<MetricId<? extends Number>> metricIds = findMetricsWithFilters(tenantId, mType, tagFilters)
-                .map(Metric::getMetricId);
-
-        return findNumericStats(metricIds, start, end, buckets, percentiles, stacked, isRate);
-    }
-
-    @Override
-    public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId,
-            MetricType<T> metricType, List<String> metrics, long start, long end, Buckets buckets,
-            List<Percentile> percentiles, boolean stacked) {
-
-        // TODO Stats needs fixing to understand compressed values also..
-
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        checkArgument(metricType == GAUGE || metricType == GAUGE_RATE
-                || metricType == COUNTER || metricType == COUNTER_RATE, "Invalid metric type: %s", metricType);
-
-        final boolean isRate = (COUNTER != metricType && GAUGE != metricType);
-        final MetricType<? extends Number> mType = isRate ? (metricType == GAUGE_RATE ? GAUGE : COUNTER) : metricType;
-        final Observable<MetricId<? extends Number>> metricIds = Observable.from(metrics)
-                .map(name -> new MetricId<>(tenantId, mType, name));
-
-        return findNumericStats(metricIds, start, end, buckets, percentiles, stacked, isRate);
-    }
-
-    private Observable<List<NumericBucketPoint>> findNumericStats(
-            Observable<MetricId<? extends Number>> metrics, long start, long end, Buckets buckets, List<Percentile>
+    public <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(
+            List<MetricId<T>> metrics, long start, long end, Buckets buckets, List<Percentile>
             percentiles, boolean stacked, boolean isRate) {
 
+        // TODO Stats needs fixing to understand compressed values also..
+        checkArgument(isValidTimeRange(start, end), "Invalid time range");
         if (!stacked) {
             if (!isRate) {
-                return metrics
+                return Observable.from(metrics)
                         .flatMap(metricId -> findDataPoints(metricId, start, end, 0, Order.DESC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             } else {
-                return metrics
+                return Observable.from(metrics)
                         .flatMap(metricId -> findRateData(metricId, start, end, 0, ASC))
                         .compose(new NumericBucketPointTransformer(buckets, percentiles));
             }
         } else {
             Observable<Observable<NumericBucketPoint>> individualStats;
             if (!isRate) {
-                individualStats = metrics.map(metricId -> {
+                individualStats = Observable.from(metrics).map(metricId -> {
                     return findDataPoints(metricId, start, end, 0, Order.DESC)
                             .compose(new NumericBucketPointTransformer(buckets, percentiles))
                             .flatMap(Observable::from);
                 });
             } else {
-                individualStats = metrics.map(metricId -> {
+                individualStats = Observable.from(metrics).map(metricId -> {
                     return findRateData(metricId, start, end, 0, ASC)
                             .compose(new NumericBucketPointTransformer(buckets, percentiles))
                             .flatMap(Observable::from);
@@ -927,11 +885,12 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end,
-            Buckets buckets, List<Percentile> percentiles) {
-        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-        return findDataPoints(id, start, end, 0, ASC)
-                .compose(new NumericBucketPointTransformer(buckets, percentiles));
+    public Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, BucketConfig bucketConfig, List<Percentile>
+            percentiles) {
+        TimeRange timeRange = bucketConfig.getTimeRange();
+        checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
+        return findDataPoints(id, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
+                .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
     }
 
     @Override

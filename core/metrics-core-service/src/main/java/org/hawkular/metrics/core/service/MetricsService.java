@@ -116,7 +116,7 @@ public interface MetricsService {
      * key: tagName ; value: t1|t2|..         -> Find all metrics with tag tagName and having any of the values
      *                                           t1 or t2 etc
      *
-     * @param tenantId
+     * @param tenantId The id of the tenant to which the metrics belong
      * @param type If type is null, no type filtering is used
      * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @return Metric's that are filtered with given conditions
@@ -125,9 +125,10 @@ public interface MetricsService {
             tagsQueries);
 
     /**
-     * Returns distinct tag values for a given tag query (using the same query format as findMetricsWithFilters).
+     * Returns distinct tag values for a given tag query (using the same query format as {@link
+     * #findMetricsWithFilters(String, MetricType, Map)}).
      *
-     * @param tenantId
+     * @param tenantId The id of the tenant to which the metrics belong
      * @param metricType If type is null, no type filtering is used (values are merged)
      * @param tagsQueries If tagsQueries is empty, empty Observable is returned
      * @return A map with key as the tagname and set of possible values restricted by the query
@@ -221,40 +222,25 @@ public interface MetricsService {
             long start, long end, List<Percentile> percentiles);
 
     /**
-     * Fetches data points from multiple metrics that are determined by a tags filter query. Down sampling is performed
-     * such that data points from all matching metrics will go into one of the buckets. Functions are then applied to
-     * each bucket to produce a single {@link NumericBucketPoint} for each bucket.
-     *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param tagFilters The metric tag filter used to query for metrics
-     * @param start The start time inclusive as a Unix timestamp in milliseconds
-     * @param end The end time exclusive as a Unix timestamp in milliseconds
-     * @param buckets Determines the number of data points to be returned and how data points will be grouped based
-     *                on which time slice or bucket they fall into.
-     * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
-     */
-    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagFilters, long start, long end, Buckets buckets, List<Percentile> percentiles,
-            boolean stacked);
-
-    /**
      * Fetches data points from multiple metrics. Down sampling is performed such that data points from all matching
      * metrics will go into one of the buckets. Functions are then applied to each bucket to produce a single
      * {@link NumericBucketPoint} for each bucket.
      *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param metrics The names of the gauge metrics that will be queried
+     * @param metrics The {@link MetricId} list of the gauge or counter metrics that will be queried
      * @param start The start time inclusive as a Unix timestamp in milliseconds
      * @param end The end time exclusive as a Unix timestamp in milliseconds
      * @param buckets Determines the number of data points to be returned and how data points will be grouped based
      *                on which time slice or bucket they fall into.
+     * @param stacked Should we stack multiple metrics?
+     * @param isRate Set true to retrieve data as rates
      * @return An {@link Observable} that emits a single list of {@link NumericBucketPoint}
      */
-    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(String tenantId, MetricType<T> metricType,
-            List<String> metrics, long start, long end, Buckets buckets, List<Percentile> percentiles, boolean stacked);
+    <T extends Number> Observable<List<NumericBucketPoint>> findNumericStats(
+            List<MetricId<T>> metrics, long start, long end, Buckets buckets, List<Percentile>
+            percentiles, boolean stacked, boolean isRate);
 
     Observable<DataPoint<AvailabilityType>> findAvailabilityData(MetricId<AvailabilityType> id, long start, long end,
-            boolean distinct, int limit, Order order);
+                                                                 boolean distinct, int limit, Order order);
 
     Observable<List<AvailabilityBucketPoint>> findAvailabilityStats(MetricId<AvailabilityType> metricId, long start,
                                                                     long end, Buckets buckets);
@@ -266,13 +252,11 @@ public interface MetricsService {
      * Computes stats on a counter.
      *
      * @param id      counter metric id
-     * @param start   start time, inclusive
-     * @param end     end time, exclusive
-     * @param buckets bucket configuration
+     * @param bucketConfig bucket configuration
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, long start, long end, Buckets buckets,
+    Observable<List<NumericBucketPoint>> findCounterStats(MetricId<Long> id, BucketConfig bucketConfig,
                                                           List<Percentile> percentiles);
 
     /**
@@ -308,37 +292,19 @@ public interface MetricsService {
     Observable<DataPoint<Double>> findRateData(MetricId<? extends Number> id, long start, long end, int limit,
                                                Order order);
 
-    Observable<NamedDataPoint<Double>> findRateData(List<MetricId<? extends Number>> ids, long start, long end,
+    <T extends Number> Observable<NamedDataPoint<Double>> findRateData(List<MetricId<T>> ids, long start, long end,
             int limit, Order order);
-
-    /**
-     * Fetches gauge or counter data points for multiple metrics searched by tag and calculates per-minute rates.
-     *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param metricType The type of the metrics
-     * @param tagFilters The metric tag filter used to query for metrics
-     * @param start      start time inclusive as a Unix timestamp in milliseconds
-     * @param end        end time exclusive as a Unix timestamp in milliseconds
-     * @param limit      limit the number of data points
-     * @param order      the sort order for the results, ASC if null
-     *
-     * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
-     */
-    Observable<NamedDataPoint<Double>> findRateData(String tenantId, MetricType<? extends Number> metricType,
-            Map<String, String> tagFilters, long start, long end, int limit, Order order);
 
     /**
      * Computes stats on a counter or gauge rate.
      *
      * @param id      metric id
-     * @param start   start time, inclusive
-     * @param end     end time, exclusive
-     * @param buckets bucket configuration
+     * @param bucketConfig bucket configuration
      *
      * @return an {@link Observable} emitting a single {@link List} of {@link NumericBucketPoint}
      */
-    Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, long start, long end,
-                                                       Buckets buckets, List<Percentile> percentiles);
+    Observable<List<NumericBucketPoint>> findRateStats(MetricId<? extends Number> id, BucketConfig bucketConfig,
+                                                       List<Percentile> percentiles);
 
     /**
      * <p>

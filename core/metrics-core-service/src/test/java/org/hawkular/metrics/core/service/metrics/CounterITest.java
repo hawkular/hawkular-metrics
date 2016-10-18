@@ -25,6 +25,8 @@ import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.joda.time.DateTime.now;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
@@ -47,12 +49,13 @@ import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.testng.annotations.Test;
 
@@ -198,7 +201,7 @@ public class CounterITest extends BaseMetricsITest {
         PSquarePercentile top = new PSquarePercentile(99.9);
 
         for (long i = 0; i < testSize; i++) {
-            counterList.add(new DataPoint<Long>((long) 60000 + i, i));
+            counterList.add(new DataPoint<>((long) 60000 + i, i));
             top.increment(i);
         }
 
@@ -209,8 +212,11 @@ public class CounterITest extends BaseMetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
-        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
-                0, now().getMillis(), Buckets.fromStep(60_000, 60_100, 60_100), percentiles).toBlocking()
+        BucketConfig bucketConfig = mock(BucketConfig.class);
+        when(bucketConfig.getTimeRange()).thenReturn(new TimeRange(0L, now().getMillis()));
+        when(bucketConfig.getBuckets()).thenReturn(Buckets.fromStep(60_000, 60_100, 60_100));
+        List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(), bucketConfig,
+                percentiles).toBlocking()
                 .single();
 
         assertEquals(1, actual.size());
@@ -275,16 +281,19 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test simple counter stats
         List<List<NumericBucketPoint>> actualCounterStatsByTag = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, tagFilters, start.getMillis(),
-                        start.plusMinutes(5).getMillis(), buckets, emptyList(), false));
+                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
+                        start.plusMinutes(5).getMillis(), buckets, emptyList(), false, false)));
         assertEquals(actualCounterStatsByTag.size(), 1);
 
         List<List<NumericBucketPoint>> actualCounterStatsById = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, asList("C1", "C2"),
-                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), false));
+                () -> metricsService.findNumericStats(asList(c1.getMetricId(), c2.getMetricId()),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), false, false));
         assertEquals(actualCounterStatsById.size(), 1);
 
-        List<NumericBucketPoint> expectedCounterStats = Arrays.asList(createSingleBucket(
+        List<NumericBucketPoint> expectedCounterStats = asList(createSingleBucket(
                 Stream.concat(c1.getDataPoints().stream(), c2.getDataPoints().stream()).collect(Collectors.toList()),
                 start, start.plusMinutes(5)));
 
@@ -293,13 +302,16 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test stacked counter stats
         List<List<NumericBucketPoint>> actualStackedCounterStatsByTag = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, tagFilters, start.getMillis(),
-                        start.plusMinutes(5).getMillis(), buckets, emptyList(), true));
+                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
+                            start.plusMinutes(5).getMillis(), buckets, emptyList(), true, false)));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
         List<List<NumericBucketPoint>> actualStackedCounterStatsById = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER, asList("C1", "C2"),
-                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), true));
+                () -> metricsService.findNumericStats(asList(c1.getMetricId(), c2.getMetricId()),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), true, false));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
         NumericBucketPoint collectorC1 = createSingleBucket(c1.getDataPoints(), start, start.plusMinutes(5));
@@ -334,13 +346,16 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test simple counter rate stats
         List<List<NumericBucketPoint>> actualCounterRateStatsByTag = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tagFilters, start.getMillis(),
-                        start.plusMinutes(5).getMillis(), buckets, emptyList(), false));
+                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
+                            start.plusMinutes(5).getMillis(), buckets, emptyList(), false, true)));
         assertEquals(actualCounterRateStatsByTag.size(), 1);
 
         List<List<NumericBucketPoint>> actualCounterRateStatsById = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, asList("C1", "C2"),
-                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), false));
+                () -> metricsService.findNumericStats(asList(c1.getMetricId(), c2.getMetricId()),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), false, true));
         assertEquals(actualCounterRateStatsById.size(), 1);
 
         List<NumericBucketPoint> expectedCounterRateStats = Arrays.asList(createSingleBucket(
@@ -352,13 +367,16 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test stacked counter rate stats
         List<List<NumericBucketPoint>> actualStackedCounterRateStatsByTag = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, tagFilters, start.getMillis(),
-                        start.plusMinutes(5).getMillis(), buckets, emptyList(), true));
+                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
+                            start.plusMinutes(5).getMillis(), buckets, emptyList(), true, true)));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
         List<List<NumericBucketPoint>> actualStackedCounterRateStatsById = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.COUNTER_RATE, asList("C1", "C2"),
-                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), true));
+                () -> metricsService.findNumericStats(asList(c1.getMetricId(), c2.getMetricId()),
+                        start.getMillis(), start.plusMinutes(5).getMillis(), buckets, emptyList(), true, true));
         assertEquals(actualStackedCounterStatsByTag.size(), 1);
 
         NumericBucketPoint collectorC1Rate = createSingleBucket(c1Rate, start, start.plusMinutes(5));

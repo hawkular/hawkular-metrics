@@ -28,6 +28,8 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
@@ -49,11 +51,12 @@ import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
+import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.testng.annotations.Test;
 
@@ -80,27 +83,27 @@ public class TagsITest extends BaseMetricsITest {
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 5, "Metrics m1-m5 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "2"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "2"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
                 ImmutableMap.of("a1", "*", "a2", "2|3")).toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Metrics m3-m4 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "2|3"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "2|3"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Metrics m3-m4 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "*"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 3, "Metrics m3-m5 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a5", "*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a5", "*"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0, "No gauges should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
                 ImmutableMap.of("a4", "*", "a5", "none")).toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0, "No gauges should have been returned");
 
@@ -110,19 +113,19 @@ public class TagsITest extends BaseMetricsITest {
         assertEquals(metrics.size(), 6, "Metrics m1-m5 and a1 should have been returned");
 
         // Test that we actually get correct gauges also, not just correct size
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "2"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "2"))
                 .toList().toBlocking().lastOrDefault(null);
         Metric m3 = metricsToAdd.get(2);
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
         assertEquals(gauges.get(0), m3, "m3 did not match the original inserted metric");
 
         // Test for NOT operator
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "!4"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "!4"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only gauges m3-m4 should have been returned");
 
         gauges = metricsService
-                .<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "!4"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "!4"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only gauges m3-m4 should have been returned");
 
@@ -140,19 +143,19 @@ public class TagsITest extends BaseMetricsITest {
         }
 
         // More regexp tests
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", "web.*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", "web.*"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only websrv01 and websrv02 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", ".*01"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", ".*01"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only websrv01 and backend01 should have been returned");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
                 ImmutableMap.of("owner", "h[e|a]de(s?)")).toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Both hede and hades should have been returned, but not 'had'");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
                 ImmutableMap.of("owner", "h[e|a]de(s?)"))
                 .filter(metricsService.idFilter(".F"))
                 .toList().toBlocking().lastOrDefault(null);
@@ -458,9 +461,11 @@ public class TagsITest extends BaseMetricsITest {
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
+        BucketConfig bucketConfig = mock(BucketConfig.class);
+        when(bucketConfig.getTimeRange()).thenReturn(new TimeRange(0L, now().getMillis()));
+        when(bucketConfig.getBuckets()).thenReturn(Buckets.fromStep(60_000, 60_000 * 8, 60_000));
         List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
-                0, now().getMillis(), Buckets.fromStep(60_000, 60_000 * 8, 60_000),
-                asList(new Percentile("95.0"))).toBlocking().single();
+                bucketConfig, asList(new Percentile("95.0"))).toBlocking().single();
 
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
@@ -528,9 +533,11 @@ public class TagsITest extends BaseMetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(
-                () -> metricsService.findNumericStats(tenantId, MetricType.GAUGE,
-                        tagFilters, start.getMillis(), start.plusMinutes(5).getMillis(), buckets,
-                        emptyList(), false));
+                () -> metricsService.findMetricsWithFilters(tenantId, GAUGE, tagFilters)
+                        .map(Metric::getMetricId)
+                        .toList()
+                        .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(), start.plusMinutes(5)
+                                        .getMillis(), buckets, emptyList(), false, false)));
 
         assertEquals(actual.size(), 1);
 
