@@ -35,6 +35,10 @@
   <name>Hawkular Metrics WAR for Hawkular Services</name>
   <description>Hawkular Metrics WAR for Hawkular Services</description>
 
+  <properties>
+    <version.javaee.spec>7.0</version.javaee.spec>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -115,6 +119,12 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax</groupId>
+      <artifactId>javaee-api</artifactId>
+      <version>${version.javaee.spec}</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
