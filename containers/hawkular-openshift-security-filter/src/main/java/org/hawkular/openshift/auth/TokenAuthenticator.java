@@ -36,7 +36,6 @@ import static io.undertow.util.StatusCodes.BAD_REQUEST;
 import static io.undertow.util.StatusCodes.CREATED;
 import static io.undertow.util.StatusCodes.FORBIDDEN;
 import static io.undertow.util.StatusCodes.INTERNAL_SERVER_ERROR;
-import static io.undertow.util.StatusCodes.UNAUTHORIZED;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -58,6 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.jboss.logging.Logger;
@@ -155,8 +155,13 @@ class TokenAuthenticator implements Authenticator {
     private final Timer authLatency;
     private final Timer apiLatency;
 
-    TokenAuthenticator(HttpHandler containerHandler) {
+    private final Pattern postQuery;
+    private final String resourceName;
+
+    TokenAuthenticator(HttpHandler containerHandler, String resourceName, Pattern postQuery) {
         this.containerHandler = containerHandler;
+        this.resourceName = resourceName;
+        this.postQuery = postQuery;
         objectMapper = new ObjectMapper();
         try {
             kubernetesMasterUri = new URI(KUBERNETES_MASTER_URL);
@@ -184,11 +189,6 @@ class TokenAuthenticator implements Authenticator {
             return;
         }
 
-        if (!USER_WRITE_ACCESS.equalsIgnoreCase("true") && !isQuery(serverExchange)) {
-                endExchange(serverExchange, UNAUTHORIZED, UNAUTHORIZED_USER_EDIT_MSG);
-                return;
-        }
-
         // Marks the request as dispatched. If we don't do this, the exchange will be terminated by the container when
         // this method returns, but we need to wait for Kubernetes' master response.
         serverExchange.dispatch();
@@ -209,12 +209,7 @@ class TokenAuthenticator implements Authenticator {
             return true;
         } else if (serverExchange.getRequestMethod().toString().equalsIgnoreCase("POST")) {
             // some POST requests may be queries we need to check.
-            // For instance: /[counters, gauges, availabilities, strings]/raw/query, or /metrics/stats/query
-
-            // Note the path will be something like /foo/bar/baz and the first element will be "", we need to check 2 & 3
-            String[] paths = serverExchange.getRelativePath().split("/");
-            if (paths.length >= 4 && (paths[2].equals("raw") || paths[2].equals("stats") || paths[2].equals("rate")) &&
-                    paths[3].equals("query")) {
+            if (postQuery != null && postQuery.matcher(serverExchange.getRelativePath()).find()) {
                 return true;
             } else {
                 return false;
@@ -236,7 +231,22 @@ class TokenAuthenticator implements Authenticator {
     private void sendAuthenticationRequest(HttpServerExchange serverExchange, PooledConnection connection) {
         AuthContext context = serverExchange.getAttachment(AUTH_CONTEXT_KEY);
         String verb = getVerb(serverExchange);
-        context.subjectAccessReview = generateSubjectAccessReview(context.tenant, verb);
+
+        String resource;
+        // if we are not dealing with a query
+        if (!isQuery(serverExchange)) {
+            // is USER_WRITE_ACCESS is disabled, then use the legacy check.
+            // Otherwise check using the actual resource (eg 'hawkular-metrics', 'hawkular-alerts', etc)
+            if (USER_WRITE_ACCESS.equalsIgnoreCase("true")) {
+                resource = RESOURCE;
+            } else {
+                resource= resourceName;
+            }
+        } else {
+            resource = RESOURCE;
+        }
+
+        context.subjectAccessReview = generateSubjectAccessReview(context.tenant, verb, resource);
         ClientRequest request = buildClientRequest(context);
         context.clientRequestStarting();
         connection.sendRequest(request, new RequestReadyCallback(serverExchange, connection));
@@ -278,11 +288,11 @@ class TokenAuthenticator implements Authenticator {
      *
      * @return JSON text representation of the SubjectAccessReview object
      */
-    private String generateSubjectAccessReview(String namespace, String verb) {
+    private String generateSubjectAccessReview(String namespace, String verb, String resource) {
         ObjectNode objectNode = objectMapper.createObjectNode();
         objectNode.put("apiVersion", "v1");
         objectNode.put("kind", KIND);
-        objectNode.put("resource", RESOURCE);
+        objectNode.put("resource", resource);
         objectNode.put("verb", verb);
         objectNode.put("namespace", namespace);
         return objectNode.toString();

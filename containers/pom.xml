@@ -32,24 +32,12 @@
 
   <name>Hawkular Metric Containers</name>
 
-  <properties>
-    <!-- Override version.org.apache.cassandra set in hawkular-parent -->
-    <version.org.apache.cassandra>2.2.1</version.org.apache.cassandra>
-    <version.org.jolokia.docker-maven-plugin>0.12.0</version.org.jolokia.docker-maven-plugin>
-
-    <docker.user>hawkular</docker.user>
-    <hawkular-metrics.image>${docker.user}/hawkular-metrics:${project.version}</hawkular-metrics.image>
-    <cassandra.build>devel</cassandra.build>
-    <cassandra.image>${docker.user}/hawkular-cassandra:${version.org.apache.cassandra}-${cassandra.build}</cassandra.image>
-    <heapster.image>kubernetes/heapster:v0.17.0</heapster.image>
-    <hawkular-deployment.image>${docker.user}/metrics-deployment:${project.version}</hawkular-deployment.image>
-  </properties>
-
   <modules>
-    <module>hawkular-metrics-openshift-integration</module>
-    <module>metrics-api-jaxrs-openshift</module>
+    <module>hawkular-openshift-security-filter</module>
+    <module>hawkular-metrics-openshift</module>
+    <module>hawkular-alerts-openshift</module>
+    <module>hawkular-metrics-openshift-dist</module>
   </modules>
-
 
   <build>
     <plugins>
@@ -64,20 +52,6 @@
         </configuration>
       </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>io.fabric8</groupId>
-          <artifactId>fabric8-maven-plugin</artifactId>
-          <version>${version.io.fabric8}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.jolokia</groupId>
-          <artifactId>docker-maven-plugin</artifactId>
-          <version>${version.org.jolokia.docker-maven-plugin}</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
   </build>
 
 </project>
