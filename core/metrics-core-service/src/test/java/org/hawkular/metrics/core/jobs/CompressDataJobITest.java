@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import static java.util.Arrays.asList;
 
+import static org.hawkular.metrics.core.jobs.CompressData.JOB_NAME;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
@@ -85,12 +86,14 @@ public class CompressDataJobITest extends BaseITest {
     private TestScheduler jobScheduler;
     private PreparedStatement resetConfig;
 
+    private JobDetails compressionJob;
+
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
 
         resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
-                CompressData.JOB_NAME + "'");
+                JOB_NAME + "'");
 
         configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
@@ -119,7 +122,10 @@ public class CompressDataJobITest extends BaseITest {
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        jobsService.start();
+        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
+                .findFirst().get();
+
+        assertNotNull(compressionJob);
     }
 
     @AfterMethod(alwaysRun = true)
@@ -153,13 +159,8 @@ public class CompressDataJobITest extends BaseITest {
             latch.countDown();
         });
 
-        for (JobDetails jobDetails : jobsService.getJobDetails().toBlocking().toIterable()) {
-            if(CompressData.JOB_NAME.equals(jobDetails.getJobName())) {
-                jobScheduler.advanceTimeTo(jobDetails.getTrigger().getTriggerTime());
-                jobScheduler.advanceTimeBy(1);
-                break;
-            }
-        }
+        jobScheduler.advanceTimeTo(compressionJob.getTrigger().getTriggerTime());
+        jobScheduler.advanceTimeBy(1);
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));
@@ -193,12 +194,13 @@ public class CompressDataJobITest extends BaseITest {
             latch.countDown();
         });
 
-        for (JobDetails jobDetails : jobsService.getJobDetails().toBlocking().toIterable()) {
-            if(CompressData.JOB_NAME.equals(jobDetails.getJobName())) {
-                jobScheduler.advanceTimeTo(jobDetails.getTrigger().getTriggerTime());
-                break;
-            }
-        }
+//        for (JobDetails jobDetails : jobsService.getJobDetails().toBlocking().toIterable()) {
+//            if(JOB_NAME.equals(jobDetails.getJobName())) {
+//                jobScheduler.advanceTimeTo(jobDetails.getTrigger().getTriggerTime());
+//                break;
+//            }
+//        }
+        jobScheduler.advanceTimeTo(compressionJob.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));

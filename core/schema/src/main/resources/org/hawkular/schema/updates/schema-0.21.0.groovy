@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,12 +15,37 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
+schemaChange {
+  version '5.0'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "ALTER TABLE scheduled_jobs_idx ADD job_name text"
+}
 
-setKeyspace keyspace
+schemaChange {
+  version '5.1'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "ALTER TABLE scheduled_jobs_idx ADD job_params frozen<map<text, text>>"
+}
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
+schemaChange {
+  version '5.2'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "ALTER TABLE scheduled_jobs_idx ADD trigger frozen<trigger_def>"
+}
+
+schemaChange {
+  version '5.3'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "ALTER TABLE scheduled_jobs_idx ADD job_type text"
+}
+
+schemaChange {
+  version '5.4'
+  author 'jsanda'
+  tags '0.21.x'
+  cql "ALTER TABLE scheduled_jobs_idx ADD status tinyint"
+}

@@ -18,7 +18,9 @@ package org.hawkular.metrics.core.jobs;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +40,6 @@ import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
 
-import rx.Observable;
 import rx.Single;
 import rx.functions.Func2;
 
@@ -80,9 +81,10 @@ public class JobsServiceImpl implements JobsService {
     }
 
     @Override
-    public void start() {
+    public List<JobDetails> start() {
         scheduler.start();
 
+        List<JobDetails> backgroundJobs = new ArrayList<>();
         Configuration configuration = configurationService.load("org.hawkular.metrics.jobs")
                 .toBlocking().lastOrDefault(null);
 
@@ -102,8 +104,10 @@ public class JobsServiceImpl implements JobsService {
         if(compressionEnabled) {
             CompressData compressDataJob = new CompressData(metricsService);
             scheduler.register(CompressData.JOB_NAME, compressDataJob);
-            maybeScheduleCompressData();
+            maybeScheduleCompressData(backgroundJobs);
         }
+
+        return backgroundJobs;
     }
 
     @Override
@@ -117,7 +121,7 @@ public class JobsServiceImpl implements JobsService {
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
-    private void maybeScheduleCompressData() {
+    private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
         String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
@@ -131,17 +135,11 @@ public class JobsServiceImpl implements JobsService {
             JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-//            config.set("jobId", jobDetails.getJobId().toString());
-//            configurationService.save(config).toBlocking();
+            backgroundJobs.add(jobDetails);
             configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
 
             logger.info("Created and scheduled " + jobDetails);
         }
-    }
-
-    @Override
-    public Observable<JobDetails> getJobDetails() {
-        return scheduler.getAllJobs();
     }
 
 }

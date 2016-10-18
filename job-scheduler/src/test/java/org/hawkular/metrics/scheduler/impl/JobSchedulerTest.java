@@ -17,17 +17,16 @@
 package org.hawkular.metrics.scheduler.impl;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.fail;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
-import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
-import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -35,15 +34,14 @@ import org.joda.time.DateTime;
 import org.testng.annotations.BeforeSuite;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.UDTValue;
+import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -51,11 +49,11 @@ import rx.Observable;
 public class JobSchedulerTest {
     protected static Session session;
     protected static RxSession rxSession;
-    private static PreparedStatement findJob;
-    private static PreparedStatement findScheduledJobs;
     private static PreparedStatement findFinishedJobs;
     private static PreparedStatement getActiveTimeSlices;
     private static PreparedStatement addActiveTimeSlice;
+
+    protected static JobsService jobsService;
 
     @BeforeSuite
     public static void initSuite() {
@@ -74,9 +72,8 @@ public class JobSchedulerTest {
 
         session.execute("USE " + keyspace);
 
-        findJob = session.prepare("SELECT type, name, params, trigger FROM jobs WHERE id = ?")
-                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-        findScheduledJobs = session.prepare("SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
+        jobsService = new JobsService(rxSession);
+
         findFinishedJobs = session.prepare("SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
         getActiveTimeSlices = session.prepare("SELECT distinct time_slice FROM active_time_slices");
         addActiveTimeSlice = session.prepare("INSERT INTO active_time_slices (time_slice) VALUES (?)");
@@ -115,40 +112,37 @@ public class JobSchedulerTest {
         }
     }
 
-    protected static Set<UUID> getScheduledJobs(DateTime timeSlice) {
-        return getJobs(timeSlice, findScheduledJobs);
+    protected static Set<JobDetails> getScheduledJobs(DateTime timeSlice) {
+        List<JobDetails> jobs = jobsService.findScheduledJobs(timeSlice.toDate(), Schedulers.computation())
+                .toList()
+                .toBlocking()
+                .firstOrDefault(null);
+        assertNotNull(jobs);
+        return ImmutableSet.copyOf(jobs);
+    }
+
+    protected static JobDetails getScheduledJob(JobDetails details) {
+        return getScheduledJobs(new DateTime(details.getTrigger().getTriggerTime()))
+                .stream()
+                .filter(scheduled -> scheduled.getJobId().equals(details.getJobId()))
+                .findFirst()
+                .orElseGet(() -> null);
     }
 
     protected static Set<UUID> getFinishedJobs(DateTime timeSlice) {
-        return getJobs(timeSlice, findFinishedJobs);
-    }
-
-    private static Set<UUID> getJobs(DateTime timeSlice, PreparedStatement query) {
-        return session.execute(query.bind(timeSlice.toDate())).all().stream().map(row -> row.getUUID(0))
+        return session.execute(findFinishedJobs.bind(timeSlice.toDate())).all().stream().map(row -> row.getUUID(0))
                 .collect(Collectors.toSet());
     }
 
     protected static void assertJobEquals(JobDetails expected) {
-        ResultSet resultSet = session.execute(findJob.bind(expected.getJobId()));
-        assertFalse(resultSet.isExhausted(), "Failed to find " + expected + " in jobs table");
-        Row row = resultSet.one();
+        JobDetails actual = getScheduledJob(expected);
 
-        assertEquals(row.getString(0), expected.getJobType(), "The job type does not match");
-        assertEquals(row.getString(1), expected.getJobName(), "The job name does not match");
-        assertEquals(row.getMap(2, String.class, String.class), expected.getParameters(),
+        assertNotNull(actual);
+        assertEquals(actual.getJobType(), expected.getJobType(), "The job type does not match");
+        assertEquals(actual.getJobName(), expected.getJobName(), "The job name does not match");
+        assertEquals(actual.getParameters(), expected.getParameters(),
                 "The job parameters do not match");
-
-        UDTValue udtValue = row.getUDTValue(3);
-        int triggerType = 0;
-        if (expected.getTrigger() instanceof SingleExecutionTrigger) {
-            triggerType = 0;
-        } else if (expected.getTrigger() instanceof RepeatingTrigger) {
-            triggerType = 1;
-        } else {
-            fail(expected.getTrigger().getClass().getName() + " is not a recognized trigger type");
-        }
-        assertEquals(udtValue.getInt(0), triggerType, "The trigger type does not match");
-        assertEquals(udtValue.getLong(1), expected.getTrigger().getTriggerTime(), "The trigger time does not match");
+        assertEquals(actual.getTrigger(), expected.getTrigger(), "The triggers do not match");
     }
 
 }

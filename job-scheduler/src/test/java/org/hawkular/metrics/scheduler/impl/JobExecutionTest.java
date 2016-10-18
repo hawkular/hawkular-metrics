@@ -73,14 +73,14 @@ public class JobExecutionTest extends JobSchedulerTest {
     private static Logger logger = Logger.getLogger(JobExecutionTest.class);
 
     private PreparedStatement insertJob;
-    private PreparedStatement updateJobQueue;
 
     private TestScheduler jobScheduler;
 
     @BeforeClass
     public void initClass() {
-        insertJob = session.prepare("INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
-        updateJobQueue = session.prepare("INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+        insertJob = session.prepare(
+                "INSERT INTO scheduled_jobs_idx (time_slice, job_id, job_type, job_name, job_params, trigger) VALUES " +
+                "(?, ?, ?, ?, ?, ?)");
     }
 
     @BeforeMethod(alwaysRun = true)
@@ -255,7 +255,9 @@ public class JobExecutionTest extends JobSchedulerTest {
         });
 
         jobScheduler.onJobFinished(details -> {
+            logger.debug("FINISHED " + details);
             if (details.equals(job2)) {
+                logger.debug("COUNT DOWN");
                 job2Finished.countDown();
             }
         });
@@ -546,8 +548,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     /**
      * This test executes multiple repeating jobs multiple times.
-//     */
-////    @Test
+     */
+    @Test
     public void executeMultipleRepeatingJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -695,6 +697,11 @@ public class JobExecutionTest extends JobSchedulerTest {
 
 
         DateTime nextTimeSlice = new DateTime(longTrigger.nextTrigger().getTriggerTime());
+        Trigger nextShortTrigger = new RepeatingTrigger.Builder()
+                .withTriggerTime(timeSlice.plusMinutes(5).getMillis())
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
 
         assertEquals(longJobExecutionCount.get(), 1, "Expected " + longJob + " to be executed once");
         assertEquals(shortJobExecutionTimes.size(), 5, "Expected " + shortJob + " to be executed 5 times");
@@ -703,7 +710,11 @@ public class JobExecutionTest extends JobSchedulerTest {
                 timeSlice.plusMinutes(4).toDate()));
         assertEquals(getScheduledJobs(finishedTimeSlice), emptySet());
         assertEquals(getFinishedJobs(finishedTimeSlice), emptySet());
-        assertEquals(getScheduledJobs(nextTimeSlice), ImmutableSet.of(longJob.getJobId(), shortJob.getJobId()));
+        assertEquals(getScheduledJobs(nextTimeSlice), ImmutableSet.of(
+                new JobDetails(longJobId, longJob.getJobType(), longJob.getJobName(), emptyMap(),
+                        longTrigger.nextTrigger()),
+                new JobDetails(shortJobId, shortJob.getJobType(), shortJob.getJobName(), emptyMap(), nextShortTrigger)
+        ));
     }
 
     /**
@@ -739,6 +750,57 @@ public class JobExecutionTest extends JobSchedulerTest {
     }
 
 //    @Test
+    public void resumeExecutionAfterJobHasBeenRescheduled() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails details = new JobDetails(randomUUID(), "ResumeAfterReschedule", "JOB-1", emptyMap(), trigger);
+
+        scheduleJob(details);
+        jobScheduler.register(details.getJobType(), jobDetails -> Completable.fromAction(() -> {
+            logger.debug("Executing " + jobDetails);
+        }));
+        CountDownLatch jobDone = new CountDownLatch(1);
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                jobDone.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+
+        assertTrue(jobDone.await(10, TimeUnit.HOURS));
+    }
+
+    @Test
+    public void doNotExecuteJobAgainWhenStatusFlagIsSet() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder().build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails job = new JobDetails(randomUUID(), "AlreadyExecuted", "TEST", emptyMap(), trigger);
+
+        scheduleJob(job);
+        jobsService.updateStatusToFinished(timeSlice.toDate(), job.getJobId()).toSingle().toBlocking().value();
+
+        AtomicInteger executions = new AtomicInteger();
+
+        jobScheduler.register(job.getJobType(), jobDetails -> Completable.fromAction(executions::incrementAndGet));
+
+        CountDownLatch timeSliceDone = new CountDownLatch(1);
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                timeSliceDone.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+
+        assertTrue(timeSliceDone.await(10, TimeUnit.SECONDS));
+        assertEquals(executions.get(), 0);
+    }
+
+    @Test
     public void executeLotsOfJobs() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -782,12 +844,6 @@ public class JobExecutionTest extends JobSchedulerTest {
                     }
                     executionCounts.put(details.getJobId(), count);
                 } else if (time.equals(timeSlice.plusMinutes(1))) {
-//                    int count = executionCounts.getOrDefault(details.getJobId(), 0);
-//                    count++;
-//                    if (count > 1) {
-//                        logger.warn(details + " has been executed " + count + " times");
-//                    }
-//                    executionCounts.put(details.getJobId(), count);
                     secondIterationExecutions.incrementAndGet();
                 }
             } catch (InterruptedException e) {
@@ -861,9 +917,8 @@ public class JobExecutionTest extends JobSchedulerTest {
     private void scheduleJob(JobDetails job) {
         Date timeSlice = new Date(job.getTrigger().getTriggerTime());
         logger.debug("Scheduling " + job + " for execution at " + timeSlice);
-        session.execute(insertJob.bind(job.getJobId(), job.getJobType(), job.getJobName(),
-                job.getParameters(), SchedulerImpl.getTriggerValue(rxSession, job.getTrigger())));
-        session.execute(updateJobQueue.bind(timeSlice, job.getJobId()));
+        session.execute(insertJob.bind(new Date(job.getTrigger().getTriggerTime()), job.getJobId(), job.getJobType(),
+                job.getJobName(), job.getParameters(), JobsService.getTriggerValue(rxSession, job.getTrigger())));
     }
 
     private class TestJob implements Action1<JobDetails> {

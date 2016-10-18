@@ -16,9 +16,10 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.List;
+
 import org.hawkular.metrics.scheduler.api.JobDetails;
 
-import rx.Observable;
 import rx.Single;
 
 /**
@@ -26,11 +27,10 @@ import rx.Single;
  */
 public interface JobsService {
 
-    void start();
+    List<JobDetails> start();
 
     void shutdown();
 
     Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 
-    Observable<JobDetails> getJobDetails();
 }

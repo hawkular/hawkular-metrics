@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.google.common.base.MoreObjects;
+
 /**
  * @author jsanda
  */
@@ -36,12 +38,25 @@ public class JobDetails {
 
     private Trigger trigger;
 
+    private JobStatus status;
+
     public JobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters, Trigger trigger) {
         this.jobId = jobId;
         this.jobType = jobType;
         this.jobName = jobName;
         this.parameters = Collections.unmodifiableMap(parameters);
         this.trigger = trigger;
+        status = JobStatus.NONE;
+    }
+
+    public JobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters, Trigger trigger,
+            JobStatus status) {
+        this.jobId = jobId;
+        this.jobType = jobType;
+        this.jobName = jobName;
+        this.parameters = Collections.unmodifiableMap(parameters);
+        this.trigger = trigger;
+        this.status = status;
     }
 
     public UUID getJobId() {
@@ -64,31 +79,36 @@ public class JobDetails {
         return trigger;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JobDetails that = (JobDetails) o;
-        return Objects.equals(jobId, that.jobId) &&
-                Objects.equals(jobType, that.jobType) &&
-                Objects.equals(jobName, that.jobName) &&
-                Objects.equals(parameters, that.parameters) &&
-                Objects.equals(trigger, that.trigger);
+    public JobStatus getStatus() {
+        return status;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(jobId, jobType, jobName, parameters, trigger);
+    @Override public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JobDetails details = (JobDetails) o;
+        return Objects.equals(jobId, details.jobId) &&
+                Objects.equals(jobType, details.jobType) &&
+                Objects.equals(jobName, details.jobName) &&
+                Objects.equals(parameters, details.parameters) &&
+                Objects.equals(trigger, details.trigger) &&
+                Objects.equals(status, details.status);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(jobId, jobType, jobName, parameters, trigger, status);
     }
 
     @Override
     public String toString() {
-        return "JobDetails{" +
-                "jobId=" + jobId +
-                ", jobType='" + jobType + '\'' +
-                ", jobName='" + jobName + '\'' +
-                ", parameters=" + parameters +
-                ", trigger=" + trigger +
-                '}';
+        return MoreObjects.toStringHelper(this)
+                .add("jobId", jobId)
+                .add("jobType", jobType)
+                .add("jobName", jobName)
+                .add("parameters", parameters)
+                .add("trigger", trigger)
+                .add("status", status)
+                .omitNullValues()
+                .toString();
     }
 }
