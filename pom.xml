@@ -99,7 +99,7 @@
     <!-- Dependencies versions -->
     <version.org.cassalog>0.4.1</version.org.cassalog>
     <version.org.hawkular.accounts>2.0.26.Final</version.org.hawkular.accounts>
-    <version.org.hawkular.alerts>1.2.3.Final-SRC-revision-8ae73b15169174fc9c0df9f145a2e4549882171d</version.org.hawkular.alerts>
+    <version.org.hawkular.alerts>1.3.0.Final</version.org.hawkular.alerts>
     <version.org.hawkular.commons>0.7.10.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.7</version.joda-time>
