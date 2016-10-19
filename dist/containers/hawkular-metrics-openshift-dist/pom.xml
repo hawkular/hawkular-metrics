@@ -23,8 +23,9 @@
 
   <parent>
     <groupId>org.hawkular.metrics</groupId>
-    <artifactId>hawkular-metrics-containers</artifactId>
+    <artifactId>hawkular-metrics-dist</artifactId>
     <version>0.21.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>hawkular-metrics-openshift-dist</artifactId>
