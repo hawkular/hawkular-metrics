@@ -34,24 +34,5 @@
 
   <modules>
     <module>hawkular-openshift-security-filter</module>
-    <module>hawkular-metrics-openshift</module>
-    <module>hawkular-alerts-openshift</module>
-    <module>hawkular-metrics-openshift-dist</module>
   </modules>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>cassandra-docker/src/main/docker/cassandra.yaml</exclude>
-            <exclude>hawkular-metrics-docker-eap/src/main/docker/standalone.xml</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
 </project>
