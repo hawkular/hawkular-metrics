@@ -67,4 +67,9 @@ public interface CoreLogger extends BasicLogger {
     @LogMessage(level = INFO)
     @Message(id = 100008, value = "Using max size of %d for string metrics")
     void infoMaxSizeStringMetrics(int maxStringSize);
+
+    @LogMessage(level = INFO)
+    @Message(id = 100009, value = "Using max number of retries %d and max retry delay of %d ms for inserting data " +
+            "points")
+    void infoInsertRetryConfig(int maxRetries, long maxRetryDelay);
 }

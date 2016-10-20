@@ -56,3 +56,17 @@ schemaChange {
   tags '0.21.x'
   cql "INSERT INTO sys_config (config_id, name, value) VALUES ('org.hawkular.metrics', 'gc_grace_seconds', '604800')"
 }
+
+schemaChange {
+  version '5.6'
+  author 'jsanda'
+  tags '0.21.x'
+  cql """
+BEGIN UNLOGGED BATCH
+    INSERT INTO sys_config (config_id, name, value)
+        VALUES ('org.hawkular.metrics', 'ingestion.retry.max-retries', '5');
+    INSERT INTO sys_config (config_id, name, value)
+        VALUES ('org.hawkular.metrics', 'ingestion.retry.max-delay', '30000');
+APPLY BATCH;
+"""
+}

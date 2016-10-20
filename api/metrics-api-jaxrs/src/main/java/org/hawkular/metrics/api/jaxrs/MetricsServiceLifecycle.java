@@ -34,11 +34,15 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_S
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -69,6 +73,7 @@ import org.hawkular.metrics.core.util.GCGraceSecondsManager;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
+import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -187,6 +192,16 @@ public class MetricsServiceLifecycle {
     private String adminToken;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(INGEST_MAX_RETRIES)
+    private String ingestMaxRetries;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(INGEST_MAX_RETRY_DELAY)
+    private String ingestMaxRetryDelay;
+
+    @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
@@ -273,6 +288,7 @@ public class MetricsServiceLifecycle {
             configurationService.init(new RxSessionImpl(session));
 
             persistAdminToken();
+            updateIngestionConfiguration();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
@@ -440,6 +456,30 @@ public class MetricsServiceLifecycle {
             String hashedAdminToken = Hashing.sha256().newHasher().putString(adminToken, Charsets.UTF_8).hash()
                     .toString();
             configurationService.save("org.hawkular.metrics", "admin.token", hashedAdminToken);
+        }
+    }
+
+    private void updateIngestionConfiguration() {
+        Map<String, String> properties = new HashMap<>();
+        if (ingestMaxRetries != null) {
+            try {
+                Integer.parseInt(ingestMaxRetries);
+                properties.put("ingestion.retry.max-retries", ingestMaxRetries);
+            } catch (NumberFormatException e) {
+                log.warnInvalidIngestMaxRetries(ingestMaxRetries);
+            }
+        }
+        if (ingestMaxRetryDelay != null) {
+            try {
+                Long.parseLong(ingestMaxRetryDelay);
+                properties.put("ingestion.retry.max-delay", ingestMaxRetryDelay);
+            } catch (NumberFormatException e) {
+                log.warnInvalidIngestMaxRetryDelay(ingestMaxRetryDelay);
+            }
+        }
+        if (!properties.isEmpty()) {
+            Configuration config = new Configuration("org.hawkular.metrics", properties);
+            configurationService.save(config).toCompletable().await(10, SECONDS);
         }
     }
 
