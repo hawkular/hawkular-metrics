@@ -28,11 +28,11 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-alerts-openshift</artifactId>
+  <artifactId>hawkular-metrics-openshift-alerting</artifactId>
   <packaging>war</packaging>
 
-  <name>Hawkular Alerts WAR for OpenShift EAR</name>
-  <description>Hawkular Alerts WAR for Standalone EAR</description>
+  <name>Hawkular Metrics Alerting WAR for OpenShift EAR</name>
+  <description>Hawkular Metrics Alerting WAR for OpenShift EAR</description>
 
   <dependencies>
 
@@ -52,7 +52,7 @@
   </dependencies>
 
   <build>
-    <finalName>hawkular-alerts-openshift</finalName>
+    <finalName>hawkular-metrics-openshift-alerting</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
