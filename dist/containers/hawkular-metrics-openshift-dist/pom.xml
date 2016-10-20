@@ -43,7 +43,7 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-alerts-openshift</artifactId>
+      <artifactId>hawkular-metrics-openshift-alerting</artifactId>
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
@@ -83,7 +83,7 @@
           <modules>
             <webModule>
               <groupId>org.hawkular.metrics</groupId>
-              <artifactId>hawkular-alerts-openshift</artifactId>
+              <artifactId>hawkular-metrics-openshift-alerting</artifactId>
               <bundleFileName>hawkular-alerts.war</bundleFileName>
               <contextRoot>/hawkular/alerts</contextRoot>
             </webModule>
