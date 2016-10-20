@@ -93,11 +93,12 @@ public class DataPointDecompressTransformer<T> implements Observable.Transformer
                                         dataPoint = new DataPoint(pair.getTimestamp(), pair.getDoubleValue());
                                         break;
                                     case 1: // AVAILABILITY
-                                        dataPoint = new DataPoint(pair.getTimestamp(), AvailabilityType.fromByte((byte)
-                                            pair.getLongValue()));
+                                        dataPoint = new DataPoint(pair.getTimestamp(), AvailabilityType.fromByte(
+                                                ((Double) pair.getDoubleValue()).byteValue()));
                                         break;
                                     case 2: // COUNTER
-                                        dataPoint = new DataPoint(pair.getTimestamp(), pair.getLongValue());
+                                        dataPoint = new DataPoint(pair.getTimestamp(), ((Double) pair.getDoubleValue
+                                                ()).longValue());
                                         break;
                                     default:
                                         // Not supported yet

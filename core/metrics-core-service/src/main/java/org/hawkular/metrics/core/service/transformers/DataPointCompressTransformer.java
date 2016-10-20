@@ -66,10 +66,11 @@ public class DataPointCompressTransformer<T> implements Observable.Transformer<D
                             compressor.addValue(d.getTimestamp(), (Double) d.getValue());
                             break;
                         case 1: // AVAILABILITY
-                            compressor.addValue(d.getTimestamp(), ((AvailabilityType) d.getValue()).getCode());
+                            compressor.addValue(d.getTimestamp(), ((Byte) ((AvailabilityType) d.getValue()).getCode())
+                                    .doubleValue());
                             break;
                         case 2: // COUNTER
-                            compressor.addValue(d.getTimestamp(), (Long) d.getValue());
+                            compressor.addValue(d.getTimestamp(), ((Long) d.getValue()).doubleValue());
                             break;
                         default:
                             // Not supported yet
