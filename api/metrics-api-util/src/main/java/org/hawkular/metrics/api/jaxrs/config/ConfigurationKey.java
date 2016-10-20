@@ -52,6 +52,9 @@ public enum ConfigurationKey {
     DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true),
     ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
 
+    INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
+    INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
+
     //Alerting
     METRICS_PUBLISH_PERIOD("hawkular.metrics.publish-period", "2000", "METRICS_PUBLISH_PERIOD", false),
     DISABLE_METRICS_FORWARDING("hawkular.metrics.disable-metrics-forwarding", null, "DISABLE_METRICS_FORWARDING", true),

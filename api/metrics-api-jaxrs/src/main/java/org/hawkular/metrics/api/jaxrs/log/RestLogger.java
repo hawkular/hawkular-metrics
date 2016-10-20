@@ -104,4 +104,14 @@ public interface RestLogger extends BasicLogger {
     @Message(id = 200016, value = "Invalid value [%s] for Cassandra driver schema refresh interval. Will use " +
             "default value of %s")
     void warnInvalidSchemaRefreshInterval(String schemaRefreshInterval, String defaultSchemaRefreshInterval);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200017, value = "Invalid value [%s] for ingestion max retries. The ingestion configuration setting " +
+            "will not be updated")
+    void warnInvalidIngestMaxRetries(String maxRetries);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200018, value = "Invalid value [%s] for ingestion max retry delay. The ingestion configuration " +
+            "setting will not be updated")
+    void warnInvalidIngestMaxRetryDelay(String maxRetries);
 }

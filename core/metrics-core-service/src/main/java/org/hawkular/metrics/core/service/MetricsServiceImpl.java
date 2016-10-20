@@ -75,6 +75,7 @@ import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -97,6 +98,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Observable;
+import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func5;
@@ -191,6 +193,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     private int maxStringSize;
 
+    private long insertRetryMaxDelay;
+
+    private int insertMaxRetries;
+
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
     }
@@ -273,7 +279,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
-        initStringSize(session);
+        initConfiguration(session);
         setDefaultTTL(session, keyspace);
         initMetrics();
 
@@ -324,15 +330,20 @@ public class MetricsServiceImpl implements MetricsService {
                 .build();
     }
 
-    private void initStringSize(Session session) {
-        String configMaxStringSize = configurationService.load("org.hawkular.metrics", "string-size").toBlocking()
+    private void initConfiguration(Session session) {
+        Configuration configuration = configurationService.load("org.hawkular.metrics").toBlocking()
                 .lastOrDefault(null);
+        String configMaxStringSize = configuration.get("string-size");
         if (configMaxStringSize == null) {
             maxStringSize = -1;  // no size limit
         } else {
             maxStringSize = Integer.parseInt(configMaxStringSize);
         }
         log.infoMaxSizeStringMetrics(this.maxStringSize);
+
+        insertRetryMaxDelay = Long.parseLong(configuration.get("ingestion.retry.max-delay", "30000"));
+        insertMaxRetries = Integer.parseInt(configuration.get("ingestion.retry.max-retries", "5"));
+        log.infoInsertRetryConfig(insertMaxRetries, insertRetryMaxDelay);
     }
 
     private void setDefaultTTL(Session session, String keyspace) {
@@ -608,6 +619,23 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
                 .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
+                        .retryWhen(errors -> {
+                            Observable<Integer> range = Observable.range(1, insertMaxRetries);
+                            return errors
+                                    .zipWith(range, (t, i) -> {
+                                        if (t instanceof DriverException) {
+                                            return i;
+                                        }
+                                        throw Exceptions.propagate(t);
+                                    })
+                                    .flatMap(retryCount -> {
+                                        long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, insertRetryMaxDelay);
+                                        log.debug("Retrying insert for " + metric.getMetricId() + " in " + delay + " ms");
+                                        return Observable.timer((long) Math.min(Math.pow(2, retryCount) * 1000, 30000),
+                                                TimeUnit.SECONDS);
+                                    });
+                        })
+                        .doOnError(t -> log.debug("Failed to insert data points for " + metric.getMetricId()))
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
