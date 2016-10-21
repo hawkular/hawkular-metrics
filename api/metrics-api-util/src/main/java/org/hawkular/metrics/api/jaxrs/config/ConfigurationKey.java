@@ -56,6 +56,7 @@ public enum ConfigurationKey {
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
 
     //Alerting
+    METRICS_PUBLISH_BUFFER_SIZE("hawkular.metrics.publish-buffer-size", "100", "METRICS_PUBLISH_BUFFER_SIZE", false),
     METRICS_PUBLISH_PERIOD("hawkular.metrics.publish-period", "2000", "METRICS_PUBLISH_PERIOD", false),
     DISABLE_METRICS_FORWARDING("hawkular.metrics.disable-metrics-forwarding", null, "DISABLE_METRICS_FORWARDING", true),
     DISABLE_PUBLISH_FILTERING("hawkular.metrics.disable-publish-filtering", null, "DISABLE_PUBLISH_FILTERING", true);
