@@ -317,7 +317,19 @@ public class SchedulerImpl implements Scheduler {
                                 activeTimeSlices.remove(d);
                                 finishedTimeSlices.ifPresent(subject -> subject.onNext(d));
                             },
-                            t -> logger.warn("Job execution failed", t),
+                            t -> {
+                                logger.warn("Job execution failed", t);
+                                synchronized (lock) {
+                                    // When there is an error we need to make sure the corresponding time slice is
+                                    // removed from activeTimeSlices. See HWKMETRICS-518 for more details.
+                                    //
+                                    // Since wee do not have the timestamp here we simply remove everything. This will
+                                    // cause any duplicate job execution since each job has a lock associated with it.
+                                    // Clearing this cache may result in extra attempts at acquiring job locks. I plan
+                                    // change this. See HWKMETRICS-522.
+                                    activeTimeSlices.clear();
+                                }
+                            },
                             () ->  logger.debug("Done!")
                     );
         });
