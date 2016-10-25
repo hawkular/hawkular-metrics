@@ -53,3 +53,16 @@ export HEAP_NEWSIZE="100M"
 export MAX_HEAP_SIZE="1G"
 
 nohup sh ${CASSANDRA_HOME}/bin/cassandra -f -p ${HOME}/cassandra.pid > ${CASSANDRA_HOME}/logs/stdout.log 2>&1 &
+
+
+CASSANDRA_STATUS="undecided"
+TOTAL_WAIT=0;
+while [ "$CASSANDRA_STATUS" != "running" ] && [ $TOTAL_WAIT -lt 60 ]; do
+ CASSANDRA_STATUS=`${CASSANDRA_HOME}/bin/nodetool statusbinary | xargs`
+ echo "Cassandra server status: $CASSANDRA_STATUS."
+
+ sleep 3
+
+ TOTAL_WAIT=$((TOTAL_WAIT+3))
+ echo "Waited $TOTAL_WAIT seconds for Cassandra to start."
+done
