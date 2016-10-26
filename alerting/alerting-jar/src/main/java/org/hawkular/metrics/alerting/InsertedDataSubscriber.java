@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_FORWARDING;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_PUBLISH_FILTERING;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_BUFFER_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_PUBLISH_PERIOD;
 
 import java.util.ArrayList;
@@ -90,6 +91,12 @@ public class InsertedDataSubscriber {
 
     @Inject
     @Configurable
+    @ConfigurationProperty(METRICS_PUBLISH_BUFFER_SIZE)
+    private String publishBufferSizeProperty;
+    private int publishBufferSize;
+
+    @Inject
+    @Configurable
     @ConfigurationProperty(DISABLE_METRICS_FORWARDING)
     private String disableMetricsForwardingProperty;
 
@@ -105,7 +112,7 @@ public class InsertedDataSubscriber {
             disablePublishFiltering = Boolean.parseBoolean(disablePublishFilteringProperty);
             Observable<List<Metric<?>>> events;
             events = event.getInsertedData()
-                    .buffer(publishPeriod, TimeUnit.MILLISECONDS, 100)
+                    .buffer(publishPeriod, TimeUnit.MILLISECONDS, publishBufferSize)
                     .filter(list -> !list.isEmpty());
             events = events.onBackpressureBuffer()
                     .observeOn(Schedulers.io());
