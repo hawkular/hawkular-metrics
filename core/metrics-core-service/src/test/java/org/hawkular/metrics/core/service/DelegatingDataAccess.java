@@ -122,8 +122,8 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
-            Order order) {
-        return delegate.findCounterData(id, startTime, endTime, limit, order);
+            Order order, int pageSize) {
+        return delegate.findCounterData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override
@@ -132,8 +132,9 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order) {
-        return delegate.findGaugeData(id, startTime, endTime, limit, order);
+    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+            int pageSize) {
+        return delegate.findGaugeData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override
@@ -152,14 +153,15 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order) {
-        return delegate.findStringData(id, startTime, endTime, limit, order);
+    public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
+            int pageSize) {
+        return delegate.findStringData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override
     public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order) {
-        return delegate.findAvailabilityData(id, startTime, endTime, limit, order);
+            int limit, Order order, int pageSize) {
+        return delegate.findAvailabilityData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override

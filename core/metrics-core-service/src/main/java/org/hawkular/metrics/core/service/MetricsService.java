@@ -166,7 +166,10 @@ public interface MetricsService {
      */
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order);
 
-    Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice);
+    <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order,
+            int pageSize);
+
+    Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize);
 
     <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> ids, long start, long end, int limit,
                                                      Order order);

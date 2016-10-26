@@ -61,7 +61,6 @@ public class AvailabilityITest extends BaseMetricsITest {
     @BeforeClass
     public void initClass() {
         super.initClass();
-
         insertAvailabilityDateWithTimestamp = session.prepare(
                 "INSERT INTO data (tenant_id, type, metric, dpart, time, availability) " +
                         "VALUES (?, ?, ?, ?, ?, ?) " +

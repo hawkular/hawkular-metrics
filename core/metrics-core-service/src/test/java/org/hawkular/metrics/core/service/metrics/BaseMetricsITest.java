@@ -64,6 +64,8 @@ public abstract class BaseMetricsITest extends BaseITest {
 
     protected static final int DEFAULT_TTL = 7; //days
 
+    protected static final int COMPRESSION_PAGE_SIZE = 1000;
+
     protected MetricsServiceImpl metricsService;
 
     protected DataAccess dataAccess;
