@@ -33,9 +33,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -155,8 +155,9 @@ public class SchedulerImpl implements Scheduler {
         this.session = session;
         jobFactories = new HashMap<>();
         retryFunctions = new HashMap<>();
-        tickExecutor = Executors.newScheduledThreadPool(1,
-                new ThreadFactoryBuilder().setNameFormat("ticker-pool-%d").build());
+
+        tickExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
+                .setNameFormat("ticker-pool-%d").build(), new ThreadPoolExecutor.DiscardPolicy());
         tickScheduler = Schedulers.from(tickExecutor);
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build();
@@ -559,7 +560,6 @@ public class SchedulerImpl implements Scheduler {
 
     private Completable deleteActiveTimeSlice(Date timeSlice) {
         return session.execute(deleteActiveTimeSlice.bind(timeSlice), queryScheduler)
-                .doOnCompleted(() -> logger.debug("Deleted active time slice [" + timeSlice + "]"))
                 .toCompletable();
     }
 
@@ -576,16 +576,6 @@ public class SchedulerImpl implements Scheduler {
         } catch (InterruptedException e) {
             logger.warn("Interrupted during shutdown", e);
         }
-    }
-
-    void reset(rx.Scheduler tickScheduler) {
-        logger.debug("Starting reset");
-        shutdown();
-        jobFactories = new HashMap<>();
-        this.tickScheduler = tickScheduler;
-        queryExecutor = Executors.newFixedThreadPool(getQueryThreadPoolSize(),
-                new ThreadFactoryBuilder().setNameFormat("query-thread-pool-%d").build());
-        queryScheduler = Schedulers.from(queryExecutor);
     }
 
     private Observable<? extends Set<JobDetails>> findScheduledJobs(Date timeSlice) {
