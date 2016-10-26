@@ -101,7 +101,7 @@ import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 import rx.functions.Func2;
-import rx.functions.Func5;
+import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
 import rx.subjects.PublishSubject;
 
@@ -176,8 +176,8 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Functions used to find metric data points rows.
      */
-    private Map<MetricType<?>, Func5<? extends MetricId<?>, Long, Long,
-            Integer, Order, Observable<Row>>> dataPointFinders;
+    private Map<MetricType<?>, Func6<? extends MetricId<?>, Long, Long,
+                Integer, Order, Integer, Observable<Row>>> dataPointFinders;
 
     /**
      * Functions used to transform a row into a data point object.
@@ -196,6 +196,8 @@ public class MetricsServiceImpl implements MetricsService {
     private long insertRetryMaxDelay;
 
     private int insertMaxRetries;
+
+    private int defaultPageSize;
 
     public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
@@ -248,27 +250,27 @@ public class MetricsServiceImpl implements MetricsService {
                 .build();
 
         dataPointFinders = ImmutableMap
-                .<MetricType<?>, Func5<? extends MetricId<?>, Long, Long, Integer, Order,
+                .<MetricType<?>, Func6<? extends MetricId<?>, Long, Long, Integer, Order, Integer,
                         Observable<Row>>>builder()
-                .put(GAUGE, (metricId, start, end, limit, order) -> {
+                .put(GAUGE, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order);
+                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order, pageSize);
                 })
-                .put(AVAILABILITY, (metricId, start, end, limit, order) -> {
+                .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order);
+                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
                 })
-                .put(COUNTER, (metricId, start, end, limit, order) -> {
+                .put(COUNTER, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Long> counterId = (MetricId<Long>) metricId;
-                    return dataAccess.findCounterData(counterId, start, end, limit, order);
+                    return dataAccess.findCounterData(counterId, start, end, limit, order, pageSize);
                 })
-                .put(STRING, (metricId, start, end, limit, order) -> {
+                .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<String> stringId = (MetricId<String>) metricId;
-                    return dataAccess.findStringData(stringId, start, end, limit, order);
+                    return dataAccess.findStringData(stringId, start, end, limit, order, pageSize);
                 })
                 .build();
 
@@ -344,6 +346,8 @@ public class MetricsServiceImpl implements MetricsService {
         insertRetryMaxDelay = Long.parseLong(configuration.get("ingestion.retry.max-delay", "30000"));
         insertMaxRetries = Integer.parseInt(configuration.get("ingestion.retry.max-retries", "5"));
         log.infoInsertRetryConfig(insertMaxRetries, insertRetryMaxDelay);
+
+        defaultPageSize = Integer.parseInt(configuration.get("page-size", "5000"));
     }
 
     private void setDefaultTTL(Session session, String keyspace) {
@@ -663,18 +667,70 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
             Order order) {
+//        checkArgument(isValidTimeRange(start, end), "Invalid time range");
+//        Order safeOrder = (null == order) ? Order.ASC : order;
+//        MetricType<T> metricType = metricId.getType();
+//        Timer timer = getDataPointFindTimer(metricType);
+//        Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
+//
+//        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
+//                getDataPointFinder(metricType);
+//
+//        if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
+//            long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
+//
+//            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder)
+//                    .map(mapper);
+//
+//            Observable<DataPoint<T>> compressedPoints =
+//                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
+//                            .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
+//
+//            Comparator<DataPoint<T>> comparator;
+//
+//            switch(safeOrder) {
+//                case ASC:
+//                    comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
+//                    break;
+//                case DESC:
+//                    comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
+//                    break;
+//                default:
+//                    throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
+//            }
+//
+//            Observable<DataPoint<T>> dataPoints = SortedMerge
+//                    .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
+//
+//            if(limit > 0) {
+//                dataPoints = dataPoints.take(limit);
+//            }
+//
+//            return dataPoints;
+//        }
+//
+//        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder)
+//                .map(mapper));
+
+        return findDataPoints(metricId, start, end, limit, order, defaultPageSize);
+    }
+
+    @Override
+    public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
+            Order order, int pageSize) {
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
         Timer timer = getDataPointFindTimer(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
 
-        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder = getDataPointFinder(metricType);
+        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
+                getDataPointFinder(metricType);
 
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
-            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder)
+            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
 
             Observable<DataPoint<T>> compressedPoints =
@@ -704,7 +760,7 @@ public class MetricsServiceImpl implements MetricsService {
             return dataPoints;
         }
 
-        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder)
+        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder, pageSize)
                 .map(mapper));
     }
 
@@ -730,14 +786,14 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice) {
+    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize) {
         // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
         long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
         return metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId ->
-                        findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC)
+                        findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC, pageSize)
                                 .compose(applyRetryPolicy())
                                 .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
                                 .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
@@ -773,10 +829,10 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> getDataPointFinder(
+    private <T> Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> getDataPointFinder(
             MetricType<T> metricType) {
-        Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>> finder;
-        finder = (Func5<MetricId<T>, Long, Long, Integer, Order, Observable<Row>>) dataPointFinders
+        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder;
+        finder = (Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>>) dataPointFinders
                 .get(metricType);
         if (finder == null) {
             throw new UnsupportedOperationException(metricType.getText());

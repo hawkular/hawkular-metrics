@@ -27,6 +27,7 @@ import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -48,14 +49,26 @@ public class CompressData implements Func1<JobDetails, Completable> {
     public static final String JOB_NAME = "COMPRESS_DATA";
     public static final String ENABLED_CONFIG = "compression.enabled";
     public static final String BLOCK_SIZE = "compression.block.size";
+    public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
+
+    private static final int DEFAULT_PAGE_SIZE = 1000;
 
     // TODO Make this configurable by reading BLOCK_SIZE from ConfigurationService
     public static final Duration DEFAULT_BLOCK_SIZE = Duration.standardHours(2);
 
     private MetricsService metricsService;
 
-    public CompressData(MetricsService service) {
+    private int pageSize;
+
+    public CompressData(MetricsService service, ConfigurationService configurationService) {
         metricsService = service;
+        String pageSizeConfig =  configurationService.load(CONFIG_ID, "page-size")
+                .toBlocking().firstOrDefault(null);
+        if (pageSizeConfig == null) {
+            pageSize = DEFAULT_PAGE_SIZE;
+        } else {
+            pageSize = Integer.parseInt(pageSizeConfig);
+        }
     }
 
     @Override
@@ -72,7 +85,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
         // Fetch all partition keys and compress the previous timeSlice
         return Completable.fromObservable(
-                metricsService.compressBlock(metricIds, previousBlock)
+                metricsService.compressBlock(metricIds, previousBlock, pageSize)
                         .doOnError(t -> logger.warn("Failed to compress data", t))
                         .doOnCompleted(() -> {
                             stopwatch.stop();
