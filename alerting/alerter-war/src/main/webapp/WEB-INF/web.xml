@@ -24,4 +24,9 @@
   <display-name>Hawkular Metrics: External Alerter</display-name>
   <description>A Hawkular Alerting External Alerter for alerting on aggregate Hawkular Metrics data.</description>
 
+  <resource-env-ref>
+    <resource-env-ref-name>container/hawkular-alerts</resource-env-ref-name>
+    <lookup-name>java:jboss/infinispan/container/hawkular-alerts</lookup-name>
+  </resource-env-ref>
+
 </web-app>

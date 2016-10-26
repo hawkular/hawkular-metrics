@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
@@ -48,6 +49,10 @@ import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.notifications.Listener;
+import org.infinispan.notifications.cachemanagerlistener.annotation.ViewChanged;
+import org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent;
 import org.jboss.logging.Logger;
 
 /**
@@ -72,6 +77,14 @@ public class ExpressionManager {
     ScheduledThreadPoolExecutor expressionExecutor;
     Map<ExternalCondition, ScheduledFuture<?>> expressionFutures = new HashMap<>();
 
+    /**
+     * Indicate if the deployment is on a clustering scenario and if so if this is the coordinator node
+     */
+    private boolean distributed = false;
+    private boolean coordinator = false;
+    private TopologyChangeListener topologyChangeListener = null;
+    private DefinitionsListener definitionsListener = null;
+
     @Inject
     private MetricsService metrics;
 
@@ -81,31 +94,91 @@ public class ExpressionManager {
     @Inject
     private AlertsService alerts;
 
+    /**
+     * Access to the manager of the caches used for the partition services.  This is used to inspect cluster
+     * topology and ensure we only run the external alerter on one node (the coordinator). Otherwise
+     * each node would execute the same work, resulting in duplicate alerts.
+     */
+    @Resource(lookup = "java:jboss/infinispan/container/hawkular-alerts")
+    private EmbeddedCacheManager cacheManager;
+
     @PostConstruct
     public void init() {
-        log.debug("Initializing Hawkular Alerts-Metrics Manager...");
+        // Cache manager has an active transport (i.e. jgroups) when is configured on distributed mode
+        distributed = cacheManager.getTransport() != null;
+
+        if (distributed) {
+            topologyChangeListener = new TopologyChangeListener();
+            cacheManager.addListener(topologyChangeListener);
+        }
+
+        processTopologyChange();
+    }
+
+    // When a node is joining/leaving the cluster the coordinator node could change
+    @Listener
+    public class TopologyChangeListener {
+        @ViewChanged
+        public void onTopologyChange(ViewChangedEvent cacheEvent) {
+            processTopologyChange();
+        }
+    }
+
+    private void processTopologyChange() {
+        boolean currentCoordinator = coordinator;
+        coordinator = distributed ? cacheManager.isCoordinator() : true;
+
+        if (coordinator && !currentCoordinator) {
+            start();
+
+        } else if (!coordinator && currentCoordinator) {
+            stop();
+        }
+    }
+
+    public void start() {
+        log.infof("Starting Hawkular Metrics External Alerter, distributed=%s", distributed);
+
         expressionExecutor = new ScheduledThreadPoolExecutor(THREAD_POOL_SIZE);
 
         refresh();
 
-        log.debug("Registering Trigger UPDATE/REMOVE listener");
-        definitions.registerListener(new DefinitionsListener() {
-            @Override
-            public void onChange(DefinitionsEvent event) {
-                refresh();
-            }
-        }, DefinitionsEvent.Type.TRIGGER_UPDATE, Type.TRIGGER_REMOVE);
+        if (null == definitionsListener) {
+            log.info("Registering Trigger UPDATE/REMOVE listener");
+            definitionsListener = new DefinitionsListener() {
+                @Override
+                public void onChange(DefinitionsEvent event) {
+                    if (coordinator) {
+                        refresh();
+                    }
+                }
+            };
+            definitions.registerListener(definitionsListener, DefinitionsEvent.Type.TRIGGER_UPDATE,
+                    Type.TRIGGER_REMOVE);
+        }
     }
 
     @PreDestroy
     public void shutdown() {
-        log.debug("Shutting down Hawkular Alerts-Metrics Manager...");
+        if (coordinator) {
+            stop();
+        }
+
+        if (distributed) {
+            cacheManager.removeListener(topologyChangeListener);
+            cacheManager.stop();
+        }
+    }
+
+    public void stop() {
+        log.infof("Stopping Hawkular Metrics External Alerter, distributed=%s", distributed);
 
         if (null != expressionFutures) {
             expressionFutures.values().forEach(f -> f.cancel(true));
         }
         if (null != expressionExecutor) {
             expressionExecutor.shutdown();
+            expressionExecutor = null;
         }
     }
 
