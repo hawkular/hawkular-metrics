@@ -26,10 +26,6 @@ import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertNotNull;
 import static org.testng.AssertJUnit.assertNull;
 import static org.testng.AssertJUnit.assertTrue;
-//import static org.junit.Assert.assertEquals;
-//import static org.junit.Assert.assertNotNull;
-//import static org.junit.Assert.assertNull;
-//import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -72,6 +68,11 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
 import rx.observers.TestSubscriber;
+
+//import static org.junit.Assert.assertEquals;
+//import static org.junit.Assert.assertNotNull;
+//import static org.junit.Assert.assertNull;
+//import static org.junit.Assert.assertTrue;
 
 /**
  * Test the compression ETL jobs

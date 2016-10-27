@@ -100,12 +100,9 @@ public class JobsServiceImpl implements JobsService {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
-        Boolean compressionEnabled = Boolean.valueOf(configuration.get(CompressData.ENABLED_CONFIG, "true"));
-        if(compressionEnabled) {
-            CompressData compressDataJob = new CompressData(metricsService, configurationService);
-            scheduler.register(CompressData.JOB_NAME, compressDataJob);
-            maybeScheduleCompressData(backgroundJobs);
-        }
+        CompressData compressDataJob = new CompressData(metricsService, configurationService);
+        scheduler.register(CompressData.JOB_NAME, compressDataJob);
+        maybeScheduleCompressData(backgroundJobs);
 
         return backgroundJobs;
     }

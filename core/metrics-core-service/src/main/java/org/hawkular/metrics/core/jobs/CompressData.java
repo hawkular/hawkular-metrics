@@ -48,7 +48,6 @@ public class CompressData implements Func1<JobDetails, Completable> {
     private static Logger logger = Logger.getLogger(CompressData.class);
 
     public static final String JOB_NAME = "COMPRESS_DATA";
-    public static final String ENABLED_CONFIG = "compression.enabled";
     public static final String BLOCK_SIZE = "compression.block.size";
     public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
 
