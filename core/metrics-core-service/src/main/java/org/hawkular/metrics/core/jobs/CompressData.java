@@ -27,6 +27,7 @@ import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
@@ -60,19 +61,28 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
     private int pageSize;
 
+    private boolean enabled;
+
     public CompressData(MetricsService service, ConfigurationService configurationService) {
         metricsService = service;
-        String pageSizeConfig =  configurationService.load(CONFIG_ID, "page-size")
-                .toBlocking().firstOrDefault(null);
-        if (pageSizeConfig == null) {
+        Configuration configuration = configurationService.load(CONFIG_ID).toSingle().toBlocking().value();
+        if (configuration.get("page-size") == null) {
             pageSize = DEFAULT_PAGE_SIZE;
         } else {
-            pageSize = Integer.parseInt(pageSizeConfig);
+            pageSize = Integer.parseInt(configuration.get("page-size"));
         }
+
+        String enabledConfig = configuration.get("enabled", "true");
+        enabled = Boolean.parseBoolean(enabledConfig);
+        logger.debugf("Job enabled? %b", enabled);
+
     }
 
     @Override
     public Completable call(JobDetails jobDetails) {
+        if (!enabled) {
+            return Completable.complete();
+        }
         // Rewind to previous timeslice
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.info("Starting execution");
