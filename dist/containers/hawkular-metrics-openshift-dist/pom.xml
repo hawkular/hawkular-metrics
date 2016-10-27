@@ -69,6 +69,32 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- Note, also, it really seems like we should be able to pull cassalog up to ear/lib level.  But, for
+         some reason the groovy-cassalog link can't deal with it.  So, at least for now we have to keep
+         cassalog in each war and maintain having hawkular-metrics-schema at ear level. Leaving this here in
+         case we want to try again at a later time...
+    <dependency>
+      <groupId>org.cassalog</groupId>
+      <artifactId>cassalog</artifactId>
+      <version>${version.org.cassalog}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>${version.org.codehaus.groovy}</version>
+    </dependency>
+    -->
+    <!-- extract cassandra driver from wars and up to ear lib -->
+    <dependency>
+      <groupId>com.datastax.cassandra</groupId>
+      <artifactId>cassandra-driver-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

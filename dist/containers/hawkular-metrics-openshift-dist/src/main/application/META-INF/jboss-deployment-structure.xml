@@ -18,12 +18,18 @@
 
 -->
 <jboss-deployment-structure>
-  <sub-deployment name="hawkular-alerts.war">
+  <deployment>
     <dependencies>
-      <module name="com.google.guava" export="true" />
+      <!-- common to metrics and alerting wars -->
       <module name="org.infinispan" export="true" />
       <module name="org.jboss.xnio"/>
       <module name="org.jboss.xnio.nio"/>
+    </dependencies>
+  </deployment>
+
+  <sub-deployment name="hawkular-alerts.war">
+    <dependencies>
+      <module name="com.google.guava" export="true" />
     </dependencies>
   </sub-deployment>
 
@@ -35,8 +41,6 @@
     <dependencies>
       <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
-      <module name="org.jboss.xnio"/>
-      <module name="org.jboss.xnio.nio"/>
     </dependencies>
   </sub-deployment>
 
