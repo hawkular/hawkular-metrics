@@ -113,7 +113,7 @@ public class JobSchedulerTest {
     }
 
     protected static Set<JobDetails> getScheduledJobs(DateTime timeSlice) {
-        List<JobDetails> jobs = jobsService.findScheduledJobs(timeSlice.toDate(), Schedulers.computation())
+        List<JobDetails> jobs = jobsService.findScheduledJobsForTime(timeSlice.toDate(), Schedulers.computation())
                 .toList()
                 .toBlocking()
                 .firstOrDefault(null);
