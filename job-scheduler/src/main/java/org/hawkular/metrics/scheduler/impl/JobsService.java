@@ -17,6 +17,10 @@
 package org.hawkular.metrics.scheduler.impl;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
@@ -44,7 +48,11 @@ public class JobsService {
 
     private RxSession session;
 
-    private PreparedStatement findScheduled;
+    private PreparedStatement findTimeSlices;
+
+    private PreparedStatement findScheduledForTime;
+
+    private PreparedStatement findAllScheduled;
 
     private PreparedStatement insertScheduled;
 
@@ -54,9 +62,12 @@ public class JobsService {
 
     public JobsService(RxSession session) {
         this.session = session;
-        findScheduled = session.getSession().prepare(
+        findTimeSlices = session.getSession().prepare("SELECT DISTINCT time_slice FROM scheduled_jobs_idx");
+        findScheduledForTime = session.getSession().prepare(
                 "SELECT job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx " +
                 "WHERE time_slice = ?");
+        findAllScheduled = session.getSession().prepare(
+                "SELECT job_id, job_type, job_name, job_params, trigger, status, time_slice FROM scheduled_jobs_idx");
         update = session.getSession().prepare(
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         insertScheduled =  session.getSession().prepare(
@@ -66,8 +77,44 @@ public class JobsService {
                 "UPDATE scheduled_jobs_idx SET status = ? WHERE time_slice = ? AND job_id = ?");
     }
 
+    public Observable<Date> findActiveTimeSlices(Date currentTime, rx.Scheduler scheduler) {
+        return session.executeAndFetch(findTimeSlices.bind(), scheduler)
+                .map(row -> row.getTimestamp(0))
+                .filter(timestamp -> timestamp.compareTo(currentTime) < 0)
+                .toSortedList()
+                .doOnNext(timeSlices -> logger.debug("ACTIVE TIME SLICES " + timeSlices))
+                .flatMap(Observable::from)
+                .concatWith(Observable.just(currentTime));
+    }
+
+    /**
+     * This method is currently unused.
+     */
     public Observable<JobDetails> findScheduledJobs(Date timeSlice, rx.Scheduler scheduler) {
-        return session.executeAndFetch(findScheduled.bind(timeSlice), scheduler)
+        return session.executeAndFetch(findAllScheduled.bind(), scheduler)
+                .filter(row -> row.getTimestamp(6).compareTo(timeSlice) <= 0)
+                .map(row -> new JobDetails(
+                        row.getUUID(0),
+                        row.getString(1),
+                        row.getString(2),
+                        row.getMap(3, String.class, String.class),
+                        getTrigger(row.getUDTValue(4)),
+                        JobStatus.fromCode(row.getByte(5))))
+                .collect(HashMap::new, (Map<UUID, SortedSet<JobDetails>> map, JobDetails details) -> {
+                    SortedSet<JobDetails> set = map.get(details.getJobId());
+                    if (set == null) {
+                        set = new TreeSet<>((JobDetails d1, JobDetails d2) ->
+                                Long.compare(d1.getTrigger().getTriggerTime(), d2.getTrigger().getTriggerTime()));
+                    }
+                    set.add(details);
+                    map.put(details.getJobId(), set);
+                })
+                .flatMap(map -> Observable.from(map.entrySet()))
+                .map(entry -> entry.getValue().first());
+    }
+
+    public Observable<JobDetails> findScheduledJobsForTime(Date timeSlice, rx.Scheduler scheduler) {
+        return session.executeAndFetch(findScheduledForTime.bind(timeSlice), scheduler)
                 .map(row -> new JobDetails(
                         row.getUUID(0),
                         row.getString(1),
