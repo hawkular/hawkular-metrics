@@ -69,6 +69,26 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- It seems like we should be able to pull cassalog up to ear/lib level.  But, for some reason the
+         groovy-cassalog link can't deal with it. This is unlikely to change due to the groovy impl of
+         cassalog, I'll leave this here just as a reminder not to try.
+    <dependency>
+      <groupId>org.cassalog</groupId>
+      <artifactId>cassalog</artifactId>
+      <version>${version.org.cassalog}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>${version.org.codehaus.groovy}</version>
+    </dependency>
+    -->
   </dependencies>
 
   <build>
@@ -80,6 +100,7 @@
           <initializeInOrder>true</initializeInOrder>
           <fileNameMapping>no-version</fileNameMapping>
           <defaultLibBundleDir>lib/</defaultLibBundleDir>
+          <!-- <skinnyWars>true</skinnyWars> -->
           <modules>
             <webModule>
               <groupId>org.hawkular.alerts</groupId>

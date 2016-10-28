@@ -241,7 +241,7 @@
                 </configuration>
               </execution>
               <execution>
-                <id>deploy-webapp</id>
+                <id>deploy-ear</id>
                 <phase>pre-integration-test</phase>
                 <goals>
                   <goal>deploy-artifact</goal>

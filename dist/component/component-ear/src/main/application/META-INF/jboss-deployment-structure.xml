@@ -20,14 +20,16 @@
 <jboss-deployment-structure>
   <deployment>
     <dependencies>
+      <!-- common to metrics and alerting wars -->
       <module name="org.hawkular.bus" export="true" />
+      <module name="org.hawkular.commons.cassandra-driver" export="true" />
+      <module name="org.infinispan" export="true" />
     </dependencies>
   </deployment>
 
   <sub-deployment name="hawkular-alerts.war">
     <dependencies>
       <module name="com.google.guava" export="true" />
-      <module name="org.infinispan" export="true" />
     </dependencies>
   </sub-deployment>
 
