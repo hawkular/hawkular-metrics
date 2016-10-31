@@ -142,6 +142,27 @@ class TenantITest extends RESTTest {
       assertEquals(400, exception.response.status)
       assertTrue(exception.response.data.containsKey("errorMsg"))
     }
+
+    // Missing admin header
+    badPost(path: 'tenants',
+        headers: [
+            (tenantHeaderName): tenantId,
+        ],
+        body: "" /* Empty body */) { exception ->
+      assertEquals(400, exception.response.status)
+      assertTrue(exception.response.data.containsKey("errorMsg"))
+    }
+
+    // Incorrect admin header
+    badPost(path: 'tenants',
+        headers: [
+            (tenantHeaderName): tenantId,
+            (adminTokenHeaderName): "mustard"
+        ],
+        body: "" /* Empty body */) { exception ->
+      assertEquals(403, exception.response.status)
+      assertTrue(exception.response.data.containsKey("errorMsg"))
+    }
   }
 
   @Test
