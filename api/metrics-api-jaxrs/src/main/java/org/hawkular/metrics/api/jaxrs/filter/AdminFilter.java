@@ -47,15 +47,19 @@ public class AdminFilter implements ContainerRequestFilter {
     public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
     public static final String ADMIN_TOKEN_HEADER_NAME = "Hawkular-Admin-Token";
 
-    private static final String MISSING_TENANT_MSG;
-    private static final String WRONG_ADMIN_TOKEN_MSG;
+    private static final String TENANT_MISSING;
+    private static final String ADMIN_TOKEN_INCORRECT;
+    private static final String ADMIN_TOKEN_MISSING;
 
     static {
-        MISSING_TENANT_MSG = "Tenant is not specified. Use '"
-                             + TENANT_HEADER_NAME
-                             + "' header.";
+        TENANT_MISSING = "Tenant is not specified. Use '"
+                + TENANT_HEADER_NAME
+                + "' header.";
 
-        WRONG_ADMIN_TOKEN_MSG = "Admin token is wrong or not specified.";
+        ADMIN_TOKEN_MISSING = "Admin token is not specified. Use '"
+                + ADMIN_TOKEN_HEADER_NAME +"' header";
+
+        ADMIN_TOKEN_INCORRECT = "Admin token is wrong or not specified.";
     }
 
     @Inject
@@ -74,20 +78,28 @@ public class AdminFilter implements ContainerRequestFilter {
                 // Fail on missing tenant info
                 Response response = Response.status(Status.BAD_REQUEST)
                         .type(APPLICATION_JSON_TYPE)
-                        .entity(new ApiError(MISSING_TENANT_MSG))
+                        .entity(new ApiError(TENANT_MISSING))
                         .build();
                 requestContext.abortWith(response);
                 return;
             }
 
             String adminToken = requestContext.getHeaders().getFirst(ADMIN_TOKEN_HEADER_NAME);
-            if (adminToken != null && !adminToken.trim().isEmpty() && validAdminToken(adminToken)) {
-                return;
+            if (adminToken != null && !adminToken.trim().isEmpty()) {
+                if(!validAdminToken(adminToken)) {
+                    // Admin token is not valid
+                    Response response = Response.status(Status.FORBIDDEN)
+                            .type(APPLICATION_JSON_TYPE)
+                            .entity(new ApiError(ADMIN_TOKEN_INCORRECT))
+                            .build();
+                    requestContext.abortWith(response);
+                    return;
+                }
             } else {
-                // Fail on bad admin token
+                // Fail on missing admin token
                 Response response = Response.status(Status.BAD_REQUEST)
                         .type(APPLICATION_JSON_TYPE)
-                        .entity(new ApiError(WRONG_ADMIN_TOKEN_MSG))
+                        .entity(new ApiError(ADMIN_TOKEN_MISSING))
                         .build();
                 requestContext.abortWith(response);
                 return;
