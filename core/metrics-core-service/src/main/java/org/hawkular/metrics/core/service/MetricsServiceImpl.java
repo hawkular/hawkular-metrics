@@ -667,51 +667,6 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
             Order order) {
-//        checkArgument(isValidTimeRange(start, end), "Invalid time range");
-//        Order safeOrder = (null == order) ? Order.ASC : order;
-//        MetricType<T> metricType = metricId.getType();
-//        Timer timer = getDataPointFindTimer(metricType);
-//        Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
-//
-//        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
-//                getDataPointFinder(metricType);
-//
-//        if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
-//            long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
-//
-//            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder)
-//                    .map(mapper);
-//
-//            Observable<DataPoint<T>> compressedPoints =
-//                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
-//                            .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
-//
-//            Comparator<DataPoint<T>> comparator;
-//
-//            switch(safeOrder) {
-//                case ASC:
-//                    comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
-//                    break;
-//                case DESC:
-//                    comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
-//                    break;
-//                default:
-//                    throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
-//            }
-//
-//            Observable<DataPoint<T>> dataPoints = SortedMerge
-//                    .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
-//
-//            if(limit > 0) {
-//                dataPoints = dataPoints.take(limit);
-//            }
-//
-//            return dataPoints;
-//        }
-//
-//        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder)
-//                .map(mapper));
-
         return findDataPoints(metricId, start, end, limit, order, defaultPageSize);
     }
 
