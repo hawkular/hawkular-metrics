@@ -109,6 +109,7 @@ public class InsertedDataSubscriber {
     public void onMetricsServiceReady(@Observes @ServiceReady ServiceReadyEvent event) {
         if (!Boolean.parseBoolean(disableMetricsForwardingProperty)) {
             publishPeriod = getPublishPeriod();
+            publishBufferSize = getPublishBufferSize();
             disablePublishFiltering = Boolean.parseBoolean(disablePublishFilteringProperty);
             Observable<List<Metric<?>>> events;
             events = event.getInsertedData()
@@ -206,4 +207,15 @@ public class InsertedDataSubscriber {
             return Integer.parseInt(METRICS_PUBLISH_PERIOD.defaultValue());
         }
     }
+
+    private int getPublishBufferSize() {
+        try {
+            return Integer.parseInt(publishBufferSizeProperty);
+        } catch (NumberFormatException e) {
+            log.warnf("Invalid publish buffer size. Setting default value %s",
+                    METRICS_PUBLISH_BUFFER_SIZE.defaultValue());
+            return Integer.parseInt(METRICS_PUBLISH_BUFFER_SIZE.defaultValue());
+        }
+    }
+
 }
