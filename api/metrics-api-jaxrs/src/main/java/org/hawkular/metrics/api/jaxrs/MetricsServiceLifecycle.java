@@ -32,6 +32,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_QUERY_PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
@@ -213,6 +214,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(COMPRESSION_QUERY_PAGE_SIZE)
     private String compressionPageSize;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(COMPRESSION_JOB_ENABLED)
+    private String compressionJobEnabled;
 
     @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
@@ -523,6 +529,10 @@ public class MetricsServiceLifecycle {
                         .toCompletable()
                         .await(10, SECONDS);
             }
+        }
+
+        if (compressionJobEnabled != null) {
+            configurationService.save(CompressData.CONFIG_ID, "enabled", compressionJobEnabled);
         }
     }
 
