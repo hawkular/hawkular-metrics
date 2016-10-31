@@ -32,10 +32,12 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_QUERY_PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.security.NoSuchAlgorithmException;
@@ -63,6 +65,7 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
 import org.hawkular.metrics.core.service.DataAccess;
@@ -202,6 +205,16 @@ public class MetricsServiceLifecycle {
     private String ingestMaxRetryDelay;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(PAGE_SIZE)
+    private String pageSize;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(COMPRESSION_QUERY_PAGE_SIZE)
+    private String compressionPageSize;
+
+    @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
@@ -289,6 +302,7 @@ public class MetricsServiceLifecycle {
 
             persistAdminToken();
             updateIngestionConfiguration();
+            updateCompressionJobConfiguration();
 
             metricsService = new MetricsServiceImpl();
             metricsService.setDataAccess(dataAcces);
@@ -394,6 +408,16 @@ public class MetricsServiceLifecycle {
             log.warnInvalidSchemaRefreshInterval(schemaRefreshInterval,
                     CASSANDRA_SCHEMA_REFRESH_INTERVAL.defaultValue());
         }
+        int driverPageSize;
+        try {
+            if (pageSize == null) {
+                driverPageSize = Integer.parseInt(PAGE_SIZE.defaultValue());
+            } else {
+                driverPageSize = Integer.parseInt(pageSize);
+            }
+        } catch (NumberFormatException e) {
+            driverPageSize = Integer.parseInt(PAGE_SIZE.defaultValue());
+        }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
@@ -402,7 +426,9 @@ public class MetricsServiceLifecycle {
         ).withSocketOptions(new SocketOptions()
                 .setReadTimeoutMillis(driverRequestTimeout)
                 .setConnectTimeoutMillis(driverConnectionTimeout)
-        ).withQueryOptions(new QueryOptions().setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval));
+        ).withQueryOptions(new QueryOptions()
+                .setFetchSize(driverPageSize)
+                .setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();
@@ -480,6 +506,23 @@ public class MetricsServiceLifecycle {
         if (!properties.isEmpty()) {
             Configuration config = new Configuration("org.hawkular.metrics", properties);
             configurationService.save(config).toCompletable().await(10, SECONDS);
+        }
+    }
+
+    private void updateCompressionJobConfiguration() {
+        if (compressionPageSize != null) {
+            configurationService.save(CompressData.CONFIG_ID, "page-size", compressionPageSize)
+                    .toCompletable()
+                    .await(10, SECONDS);
+        } else {
+            String pageSizeConfig = configurationService.load(CompressData.CONFIG_ID, "page-size")
+                    .toBlocking().firstOrDefault(null);
+            if (pageSizeConfig == null) {
+                configurationService.save(CompressData.CONFIG_ID, "page-size",
+                        COMPRESSION_QUERY_PAGE_SIZE.defaultValue())
+                        .toCompletable()
+                        .await(10, SECONDS);
+            }
         }
     }
 

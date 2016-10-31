@@ -75,17 +75,20 @@ public interface DataAccess {
 
     Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
 
-    Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order);
+    Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order,
+            int pageSize);
 
     Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order);
 
-    Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order);
+    Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+            int pageSize);
 
-    Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order);
+    Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
+            int pageSize);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
-            Order order);
+            Order order, int pageSize);
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 

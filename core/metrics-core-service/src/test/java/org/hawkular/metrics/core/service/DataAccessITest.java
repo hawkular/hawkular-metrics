@@ -55,6 +55,8 @@ public class DataAccessITest extends BaseITest {
 
     private static int DEFAULT_TTL = 600;
 
+    private static int DEFAULT_PAGE_SIZE = 5000;
+
     private DataAccessImpl dataAccess;
 
     private PreparedStatement truncateTenants;
@@ -118,7 +120,7 @@ public class DataAccessITest extends BaseITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis(), 0, Order.DESC);
+                start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
@@ -149,7 +151,7 @@ public class DataAccessITest extends BaseITest {
         dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
 
         Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
-                start.getMillis(), end.getMillis(), 0, Order.DESC);
+                start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
                 .toBlocking()
@@ -176,7 +178,7 @@ public class DataAccessITest extends BaseITest {
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
                 .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
-                        0, Order.DESC)
+                        0, Order.DESC, DEFAULT_PAGE_SIZE)
                 .map(Functions::getAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),
