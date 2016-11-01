@@ -199,8 +199,25 @@ public class TagQueryParser {
                 });
     }
 
+    public Observable<String> getTagNames(String tenantId, String filter) {
+        return dataAccess.getTagNames()
+                .filter(r -> tenantId.equals(r.getString(0)))
+                .map(r -> r.getString(1))
+                .distinct()
+                .filter(tagNameFilter(filter));
+    }
+
     private Func1<Metric<?>, Boolean> tagNotExistsFilter(String unwantedTagName) {
         return tMetric -> !tMetric.getTags().keySet().contains(unwantedTagName);
+    }
+
+    private Func1<String, Boolean> tagNameFilter(String regexp) {
+        if(regexp != null) {
+            boolean positive = (!regexp.startsWith("!"));
+            Pattern p = PatternUtil.filterPattern(regexp);
+            return s -> positive == p.matcher(s).matches(); // XNOR
+        }
+        return s -> true;
     }
 
     private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {

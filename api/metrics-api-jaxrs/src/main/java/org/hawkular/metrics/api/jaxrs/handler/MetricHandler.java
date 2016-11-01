@@ -141,6 +141,23 @@ public class MetricHandler {
     }
 
     @GET
+    @Path("/tags")
+    @ApiOperation(value = "Retrieve available tag names", response = List.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Tags successfully retrieved."),
+            @ApiResponse(code = 204, message = "No tags were found"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tags.",
+                    response = ApiError.class)
+    })
+    public void getTagNames(@Suspended final AsyncResponse asyncResponse,
+                            @ApiParam(value = "Tag name regexp filter") @QueryParam("filter") String tagNameFilter) {
+        metricsService.getTagNames(getTenant(), tagNameFilter)
+                .toList()
+                .map(ApiUtils::collectionToResponse)
+                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
+    }
+
+    @GET
     @Path("/tags/{tags}")
     @ApiOperation(value = "Retrieve metrics' tag values", response = Map.class)
     @ApiResponses(value = {

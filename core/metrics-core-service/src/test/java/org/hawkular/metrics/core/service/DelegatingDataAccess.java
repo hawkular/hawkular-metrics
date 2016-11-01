@@ -80,6 +80,10 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.getMetricTags(id);
     }
 
+    @Override public Observable<Row> getTagNames() {
+        return delegate.getTagNames();
+    }
+
     @Override
     public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
         return delegate.addTags(metric, tags);
