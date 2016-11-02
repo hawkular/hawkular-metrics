@@ -194,7 +194,7 @@ class TokenAuthenticator implements Authenticator {
         serverExchange.dispatch();
         XnioIoThread ioThread = serverExchange.getIoThread();
         ConnectionPool connectionPool = connectionPools.computeIfAbsent(ioThread, t -> {
-            return new ConnectionPool(connectionFactory);
+            return new ConnectionPool(connectionFactory, resourceName);
         });
         PooledConnectionWaiter waiter = createWaiter(serverExchange);
         if (!connectionPool.offer(waiter)) {
@@ -502,6 +502,12 @@ class TokenAuthenticator implements Authenticator {
      * the container does not evenly assign requests to IO threads, implementation is easier as no synchronization is
      * needed. But remember that only the corresponding io thread must manipulate its own pool instance.
      */
+    /**
+     * @author snegrea
+     */
+    /**
+     * @author snegrea
+     */
     private static class ConnectionPool {
         private final ConnectionFactory connectionFactory;
         private final List<PooledConnection> connections;
@@ -512,19 +518,60 @@ class TokenAuthenticator implements Authenticator {
         private volatile int connectionCount;
         private volatile int waiterCount;
 
-        private ConnectionPool(ConnectionFactory connectionFactory) {
+        private ConnectionPool(ConnectionFactory connectionFactory, String resourceName) {
             this.connectionFactory = connectionFactory;
             connections = new ArrayList<>(MAX_CONNECTIONS_PER_THREAD);
             waiters = new ArrayDeque<>();
             XnioIoThread ioThread = (XnioIoThread) Thread.currentThread();
             periodicTaskKey = ioThread.executeAtInterval(this::periodicTask, 1, SECONDS);
-            MetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            Gauge<Integer> connectionsGauge = () -> connectionCount;
-            metrics.register("openshift-oauth-" + ioThread.getName() + "-pool-connections", connectionsGauge);
-            Gauge<Integer> waitersGauge = () -> waiterCount;
-            metrics.register("openshift-oauth-" + ioThread.getName() + "-pool-waiters", waitersGauge);
+
+            try {
+                Gauge<Integer> connectionsGauge = () -> connectionCount;
+                this.registerMetric(resourceName, "openshift-oauth-" + ioThread.getName() + "-pool-connections",
+                    connectionsGauge);
+            } catch (Exception e) {
+                log.error("Failed to register connection count metric.", e);
+            }
+
+            try {
+                Gauge<Integer> waitersGauge = () -> waiterCount;
+                this.registerMetric(resourceName, "openshift-oauth-" + ioThread.getName() + "-pool-waiters",
+                    waitersGauge);
+            } catch (Exception e) {
+                log.error("Failed to register waiter count metric.", e);
+            }
+
             ongoingCreations = 0;
             stop = false;
+        }
+
+        /**
+         * Attempt to register a metric in a shared metrics repository.
+         *
+         * @param metricName metric name
+         * @param resourceName deployment resource name
+         * @param gauge gauge to register
+         */
+        public void registerMetric(String resourceName, String metricName, Gauge<Integer> gauge) throws Exception {
+            int number = 0;
+            MetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+            do {
+                String tempName = resourceName + "-" + metricName + '-' + number;
+                if (metrics.getGauges().get(tempName) == null) {
+                    try {
+                        metrics.register(tempName, gauge);
+                        break;
+                    } catch (IllegalArgumentException e) {
+                        //continue trying, that means the metric name was allocated meanwhile
+                    }
+                }
+
+                number++;
+                if (number > 1000) {
+                    throw new Exception("Too many failed attempts to register the metric.");
+                }
+            }
+            while (true);
         }
 
         /**
