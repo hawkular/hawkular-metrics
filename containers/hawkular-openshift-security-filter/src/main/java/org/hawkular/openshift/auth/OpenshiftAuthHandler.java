@@ -62,7 +62,7 @@ public class OpenshiftAuthHandler implements HttpHandler {
         this.containerHandler = containerHandler;
         this.insecureEndpoints = insecureEndpoints;
         this.postQuery = postQuery;
-        tokenAuthenticator = new TokenAuthenticator(containerHandler, resourceName, postQuery);
+        tokenAuthenticator = new TokenAuthenticator(containerHandler, componentName, resourceName, postQuery);
         basicAuthenticator = new BasicAuthenticator(containerHandler, componentName);
 
         Set<SecurityOption> active = new HashSet<>();
