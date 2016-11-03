@@ -101,9 +101,9 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <artifactId>hawkular-metrics-standalone-dist</artifactId>
       <version>${project.version}</version>
-      <type>war</type>
+      <type>ear</type>
       <scope>test</scope>
     </dependency>
     <!-- JBoss Logging Annotations Processor -->
@@ -275,7 +275,7 @@
                 </configuration>
               </execution>
               <execution>
-                <id>configure-loggers</id>
+                <id>configure-loggers-and-caches</id>
                 <phase>pre-integration-test</phase>
                 <goals>
                   <goal>execute-commands</goal>
@@ -284,6 +284,7 @@
                   <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
                   <executeCommands>
                     <commands>
+                      <!-- loggers -->
                       <command>
                         /subsystem=logging/logger=org.hawkular:add(level="TRACE")
                       </command>
@@ -296,20 +297,39 @@
                       <commmand>
                         /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/wildfly-test.log"})
                       </commmand>
+                      <!-- caches -->
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=partition/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=triggers/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=data/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=publish/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
+                      </commmand>
                     </commands>
                   </executeCommands>
                 </configuration>
               </execution>
               <execution>
-                <id>deploy-webapp</id>
+                <id>deploy-dist</id>
                 <phase>pre-integration-test</phase>
                 <goals>
                   <goal>deploy-artifact</goal>
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
-                  <name>hawkular-metric-rest.war</name>
+                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
+                  <name>hawkular-metrics.ear</name>
                 </configuration>
               </execution>
               <execution>

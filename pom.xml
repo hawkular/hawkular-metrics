@@ -391,10 +391,10 @@
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
         <module>alerting</module>
-        <module>clients</module>
         <module>containers</module>
         <module>bus</module>
         <module>dist</module>
+        <module>clients</module>
         <module>integration-tests</module>
       </modules>
     </profile>
