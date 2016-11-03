@@ -110,7 +110,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
  * @author Thomas Segismont
  */
 @ApplicationScoped
-//@Eager
 public class MetricsServiceLifecycle {
     private static final RestLogger log = RestLogging.getRestLogger(MetricsServiceLifecycle.class);
 
