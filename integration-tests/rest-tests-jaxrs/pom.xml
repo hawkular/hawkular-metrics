@@ -236,6 +236,9 @@
                       <commmand>
                         /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
                       </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=locks/:add(indexing=NONE,start=LAZY)
+                      </commmand>
                     </commands>
                   </executeCommands>
                 </configuration>
