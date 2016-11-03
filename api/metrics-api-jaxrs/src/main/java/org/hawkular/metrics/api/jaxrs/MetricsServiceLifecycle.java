@@ -231,9 +231,6 @@ public class MetricsServiceLifecycle {
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
-//    @Resource(lookup = "java:jboss/infinispan/container/hawkular-alerts")
-//    private EmbeddedCacheManager cacheManager;
-
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-alerts/locks")
     private Cache<String, String> locksCache;
 
