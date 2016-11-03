@@ -53,8 +53,11 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
@@ -63,7 +66,6 @@ import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
-import org.hawkular.metrics.api.jaxrs.util.Eager;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.jobs.CompressData;
@@ -81,6 +83,8 @@ import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
+import org.infinispan.AdvancedCache;
+import org.infinispan.Cache;
 
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -106,7 +110,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
  * @author Thomas Segismont
  */
 @ApplicationScoped
-@Eager
 public class MetricsServiceLifecycle {
     private static final RestLogger log = RestLogging.getRestLogger(MetricsServiceLifecycle.class);
 
@@ -227,6 +230,9 @@ public class MetricsServiceLifecycle {
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
+    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-alerts/locks")
+    private Cache<String, String> locksCache;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -253,6 +259,10 @@ public class MetricsServiceLifecycle {
      */
     public State getState() {
         return state;
+    }
+
+    void eagerInit(@Observes @Initialized(ApplicationScoped.class) Object event) {
+        // init
     }
 
     @PostConstruct
@@ -450,9 +460,13 @@ public class MetricsServiceLifecycle {
     }
 
     private void initSchema() {
-        SchemaService schemaService = new SchemaService();
-        schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb));
-        session.execute("USE " + keyspace);
+        AdvancedCache<String, String> cache = locksCache.getAdvancedCache();
+        DistributedLock schemaLock = new DistributedLock(cache, "cassalog");
+        schemaLock.lockAndThen(30000, () -> {
+            SchemaService schemaService = new SchemaService();
+            schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb));
+            session.execute("USE " + keyspace);
+        });
     }
 
     /**
@@ -480,7 +494,9 @@ public class MetricsServiceLifecycle {
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
         jobsService.setScheduler(scheduler);
-        jobsService.start();
+
+        DistributedLock jobsLock = new DistributedLock(locksCache.getAdvancedCache(), "background-jobs");
+        jobsLock.lockAndThen(jobsService::start);
     }
 
     private void persistAdminToken() {
