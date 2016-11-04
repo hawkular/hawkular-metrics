@@ -82,7 +82,7 @@ public class JobsService {
                 .map(row -> row.getTimestamp(0))
                 .filter(timestamp -> timestamp.compareTo(currentTime) < 0)
                 .toSortedList()
-                .doOnNext(timeSlices -> logger.debug("ACTIVE TIME SLICES " + timeSlices))
+                .doOnNext(timeSlices -> logger.debugf("Active time slices %s", timeSlices))
                 .flatMap(Observable::from)
                 .concatWith(Observable.just(currentTime));
     }
@@ -121,7 +121,17 @@ public class JobsService {
                         row.getString(2),
                         row.getMap(3, String.class, String.class),
                         getTrigger(row.getUDTValue(4)),
-                        JobStatus.fromCode(row.getByte(5))));
+                        JobStatus.fromCode(row.getByte(5))))
+                .doOnSubscribe(() -> logger.debugf("Fetching scheduled jobs tor time slice [%s]", timeSlice))
+                .doOnNext(details -> logger.debugf("Found job details %s", details));
+    }
+
+    public Observable<ScheduledExecution> findScheduledExecutions(UUID jobId, rx.Scheduler scheduler) {
+        return session.executeAndFetch(findAllScheduled.bind(), scheduler)
+                .filter(row -> row.getUUID(0).equals(jobId))
+                .map(row -> new ScheduledExecution(row.getTimestamp(6), new JobDetails(jobId, row.getString(1),
+                        row.getString(2), row.getMap(3, String.class, String.class), getTrigger(row.getUDTValue(4)),
+                        JobStatus.fromCode(row.getByte(5)))));
     }
 
     public Observable<ResultSet> insert(Date timeSlice, JobDetails job) {
@@ -131,8 +141,8 @@ public class JobsService {
 
     public Observable<ResultSet> updateStatusToFinished(Date timeSlice, UUID jobId) {
         return session.execute(updateStatus.bind((byte) 1, timeSlice, jobId))
-                .doOnError(t -> logger.warn("There was an error updating the status to finished for [" + jobId +
-                        "] in time slice [" + timeSlice.getTime() + "]"));
+                .doOnError(t -> logger.warnf("There was an error updating the status to finished for %s in time " +
+                        "slice [%s]", jobId, timeSlice.getTime()));
     }
 
     static Trigger getTrigger(UDTValue value) {
