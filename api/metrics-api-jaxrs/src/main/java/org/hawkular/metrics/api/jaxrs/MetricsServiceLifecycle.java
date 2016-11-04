@@ -230,7 +230,7 @@ public class MetricsServiceLifecycle {
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
-    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-alerts/locks")
+    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
     private Cache<String, String> locksCache;
 
     private volatile State state;
