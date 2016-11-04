@@ -25,13 +25,13 @@
   <display-name>Hawkular Metrics Rest interface</display-name>
 
   <resource-env-ref>
-    <resource-env-ref-name>container/hawkular-alerts</resource-env-ref-name>
-    <lookup-name>java:jboss/infinispan/container/hawkular-alerts</lookup-name>
+    <resource-env-ref-name>container/hawkular-metrics</resource-env-ref-name>
+    <lookup-name>java:jboss/infinispan/container/hawkular-metrics</lookup-name>
   </resource-env-ref>
 
   <resource-env-ref>
     <resource-env-ref-name>cache/locks</resource-env-ref-name>
-    <lookup-name>java:jboss/infinispan/cache/hawkular-alerts/locks</lookup-name>
+    <lookup-name>java:jboss/infinispan/cache/hawkular-metrics/locks</lookup-name>
   </resource-env-ref>
 
   <servlet>
