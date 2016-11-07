@@ -49,6 +49,8 @@ public enum ConfigurationKey {
             "CASSANDRA_SCHEMA_REFRESH_INTERVAL", false),
     PAGE_SIZE("hawkular.metrics.page-size", "1000", "PAGE_SIZE", false),
     COMPRESSION_QUERY_PAGE_SIZE("hawkular.metrics.compression.page-size", "1000", "COMPRESSION_PAGE_SIZE", false),
+    COMPRESSION_JOB_PARALLEL_READS("hawkular.metrics.jobs.compression.parallel-reads", "1",
+            "COMPRESSION_PARALLEL_READS", false),
     COMPRESSION_JOB_ENABLED("hawkular.metrics.jobs.compression.enabled", null, "COMPRESSION_JOB_ENABLED", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),

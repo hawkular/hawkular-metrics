@@ -741,20 +741,21 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize) {
+    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize,
+            int parallelReads) {
         // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
         long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
         return metrics
                 .compose(applyRetryPolicy())
-                .concatMap(metricId ->
+                .flatMap(metricId ->
                         findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC, pageSize)
                                 .compose(applyRetryPolicy())
                                 .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
                                 .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
                                         (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(metricId))
                                         .compose(applyRetryPolicy())
-                                ))
+                                ), parallelReads)
                 .map(rs -> null);
     }
 

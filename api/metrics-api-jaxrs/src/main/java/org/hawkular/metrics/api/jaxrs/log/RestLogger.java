@@ -22,6 +22,7 @@ import static org.jboss.logging.Logger.Level.FATAL;
 import static org.jboss.logging.Logger.Level.INFO;
 import static org.jboss.logging.Logger.Level.WARN;
 
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -114,4 +115,9 @@ public interface RestLogger extends BasicLogger {
     @Message(id = 200018, value = "Invalid value [%s] for ingestion max retry delay. The ingestion configuration " +
             "setting will not be updated")
     void warnInvalidIngestMaxRetryDelay(String maxRetries);
+
+    @LogMessage(level = WARN)
+    @Message(id = 200019, value = "There was an error updating the configuration of the " + CompressData.JOB_NAME +
+            " job")
+    void warnCompressionJobConfigUpdateFailed(@Cause Exception e);
 }
