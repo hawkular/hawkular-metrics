@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-integration-tests</artifactId>
-    <version>0.21.4.Final</version>
+    <version>0.21.5.Final</version>
   </parent>
 
   <!-- This EAR distribution is required because it must package the special metrics WAR used
