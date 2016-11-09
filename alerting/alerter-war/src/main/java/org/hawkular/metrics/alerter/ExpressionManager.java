@@ -17,6 +17,7 @@
 package org.hawkular.metrics.alerter;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -409,7 +410,7 @@ public class ExpressionManager {
                 if (log.isDebugEnabled()) {
                     log.debug("Sending External Condition Data to Alerts! " + externalData);
                 }
-                alerts.sendData(externalData);
+                alerts.sendData(Collections.singleton(externalData));
 
             } catch (Exception e) {
                 log.error("Failed to send external data to alerts system.", e);

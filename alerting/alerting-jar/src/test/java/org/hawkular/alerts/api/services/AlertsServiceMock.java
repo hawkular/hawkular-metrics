@@ -135,18 +135,8 @@ public class AlertsServiceMock implements AlertsService {
     }
 
     @Override
-    public void sendData(Data data) throws Exception {
-        DATA.add(data);
-    }
-
-    @Override
     public void sendData(Collection<Data> data) throws Exception {
         DATA.addAll(data);
-    }
-
-    @Override
-    public void sendEvent(Event event) throws Exception {
-
     }
 
     @Override
