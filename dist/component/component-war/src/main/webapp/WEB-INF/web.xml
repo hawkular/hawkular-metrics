@@ -21,6 +21,16 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
          version="3.1">
 
+  <resource-env-ref>
+    <resource-env-ref-name>container/hawkular-metrics</resource-env-ref-name>
+    <lookup-name>java:jboss/infinispan/container/hawkular-metrics</lookup-name>
+  </resource-env-ref>
+
+  <resource-env-ref>
+    <resource-env-ref-name>cache/locks</resource-env-ref-name>
+    <lookup-name>java:jboss/infinispan/cache/hawkular-metrics/locks</lookup-name>
+  </resource-env-ref>
+
   <servlet>
     <servlet-name>staticContent</servlet-name>
     <servlet-class>io.undertow.servlet.handlers.DefaultServlet</servlet-class>
