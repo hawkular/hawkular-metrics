@@ -135,6 +135,8 @@
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
     <version.com.squareup.okhttp>2.0.0</version.com.squareup.okhttp>
     <version.fi.iki.yak.compression-gorilla>1.1.0</version.fi.iki.yak.compression-gorilla>
+
+    <version.com.datastax.cassandra>3.0.4</version.com.datastax.cassandra>
   </properties>
 
   <dependencyManagement>
