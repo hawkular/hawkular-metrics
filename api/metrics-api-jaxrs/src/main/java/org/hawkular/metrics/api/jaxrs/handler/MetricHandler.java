@@ -149,9 +149,11 @@ public class MetricHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred while fetching tags.",
                     response = ApiError.class)
     })
-    public void getTagNames(@Suspended final AsyncResponse asyncResponse,
-                            @ApiParam(value = "Tag name regexp filter") @QueryParam("filter") String tagNameFilter) {
-        metricsService.getTagNames(getTenant(), tagNameFilter)
+    public <T> void getTagNames(@Suspended final AsyncResponse asyncResponse,
+                            @ApiParam(value = "Tag name regexp filter") @QueryParam("filter") String tagNameFilter,
+                            @ApiParam(value = "Tags applied to defined metric type", allowableValues = "gauge, " +
+                                    "availability, counter, string") @QueryParam("type") MetricType<T> metricType) {
+        metricsService.getTagNames(getTenant(), metricType, tagNameFilter)
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
@@ -167,7 +169,8 @@ public class MetricHandler {
                     response = ApiError.class)
     })
     public <T> void getTags(@Suspended final AsyncResponse asyncResponse,
-                            @ApiParam(value = "Queried metric type", allowableValues = "gauge, availability, counter")
+                            @ApiParam(value = "Queried metric type", allowableValues = "gauge, availability, counter," +
+                                    " string")
                             @QueryParam("type") MetricType<T> metricType,
                             @ApiParam("Tag query") @PathParam("tags") Tags tags) {
         metricsService.getTagValues(getTenant(), metricType, tags.getTags())

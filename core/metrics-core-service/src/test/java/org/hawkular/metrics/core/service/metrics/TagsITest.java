@@ -209,7 +209,7 @@ public class TagsITest extends BaseMetricsITest {
         String tenantId = "t1tag";
         createTagMetrics(tenantId);
 
-        Observable<String> tagNames = metricsService.getTagNames(tenantId, null);
+        Observable<String> tagNames = metricsService.getTagNames(tenantId, null, null);
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         tagNames.subscribe(testSubscriber);
 
@@ -217,7 +217,15 @@ public class TagsITest extends BaseMetricsITest {
         testSubscriber.assertCompleted();
         testSubscriber.assertValueCount(5);
 
-        tagNames = metricsService.getTagNames(tenantId, "host.*");
+        tagNames = metricsService.getTagNames(tenantId, null, "host.*");
+        testSubscriber = new TestSubscriber<>();
+        tagNames.subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValueCount(1);
+
+        tagNames = metricsService.getTagNames(tenantId, AVAILABILITY, null);
         testSubscriber = new TestSubscriber<>();
         tagNames.subscribe(testSubscriber);
 

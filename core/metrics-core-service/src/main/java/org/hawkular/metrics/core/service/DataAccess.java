@@ -55,6 +55,8 @@ public interface DataAccess {
 
     Observable<Row> getTagNames();
 
+    Observable<Row> getTagNamesWithType();
+
     <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags);
 
     <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags);

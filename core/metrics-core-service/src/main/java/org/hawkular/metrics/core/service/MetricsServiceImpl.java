@@ -567,8 +567,8 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<String> getTagNames(String tenantId, String filter) {
-        return tagQueryParser.getTagNames(tenantId, filter);
+    public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
+        return tagQueryParser.getTagNames(tenantId, metricType, filter);
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,
