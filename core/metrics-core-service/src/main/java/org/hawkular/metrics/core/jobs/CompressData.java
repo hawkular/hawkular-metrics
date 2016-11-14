@@ -27,6 +27,8 @@ import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
+import org.hawkular.metrics.scheduler.api.Trigger;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.jboss.logging.Logger;
@@ -49,6 +51,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
     public static final String JOB_NAME = "COMPRESS_DATA";
     public static final String BLOCK_SIZE = "compression.block.size";
+    public static final String TARGET_TIME = "compression.time.target";
     public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
 
     private static final int DEFAULT_PAGE_SIZE = 1000;
@@ -79,14 +82,31 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails jobDetails) {
-        if (!enabled) {
-            return Completable.complete();
+
+        DateTime timeSliceInclusive;
+
+        Trigger trigger = jobDetails.getTrigger();
+        if(trigger instanceof RepeatingTrigger) {
+            if (!enabled) {
+                return Completable.complete();
+            }
+            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(DEFAULT_BLOCK_SIZE);
+        } else {
+            if(jobDetails.getParameters().containsKey(TARGET_TIME)) {
+                timeSliceInclusive = new DateTime(jobDetails.getParameters().get(TARGET_TIME), DateTimeZone.UTC);
+            } else {
+                logger.error("Missing " + TARGET_TIME + " parameter from manual execution of " + JOB_NAME + " job");
+                return Completable.complete();
+            }
         }
+
         // Rewind to previous timeslice
+        DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, DEFAULT_BLOCK_SIZE);
+        long startOfSlice = timeSliceStart.getMillis();
+        long endOfSlice = timeSliceStart.plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
+
         Stopwatch stopwatch = Stopwatch.createStarted();
-        logger.info("Starting execution");
-        long previousBlock = DateTimeService.getTimeSlice(new DateTime(jobDetails.getTrigger().getTriggerTime(),
-                DateTimeZone.UTC).minus(DEFAULT_BLOCK_SIZE), DEFAULT_BLOCK_SIZE).getMillis();
+        logger.info("Starting compression of timestamps between " + startOfSlice + " - " + endOfSlice);
 
         Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetrics()
                 .map(Metric::getMetricId)
@@ -94,7 +114,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
         // Fetch all partition keys and compress the previous timeSlice
         return Completable.fromObservable(
-                metricsService.compressBlock(metricIds, previousBlock, pageSize)
+                metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize)
                         .doOnError(t -> logger.warn("Failed to compress data", t))
                         .doOnCompleted(() -> {
                             stopwatch.stop();

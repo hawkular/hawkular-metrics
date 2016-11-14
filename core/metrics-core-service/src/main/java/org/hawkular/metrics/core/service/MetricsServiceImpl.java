@@ -746,18 +746,19 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize) {
+    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
+            endTimeSlice, int pageSize) {
         // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
-        long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
+//        long endOfSlice = new DateTime(startTimeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
         return metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId ->
-                        findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC, pageSize)
+                        findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                                 .compose(applyRetryPolicy())
-                                .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
-                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
-                                        (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(metricId))
+                                .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
+                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
+                                        (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                         .compose(applyRetryPolicy())
                                 ))
                 .map(rs -> null);

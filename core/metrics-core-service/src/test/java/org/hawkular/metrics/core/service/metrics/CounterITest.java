@@ -43,6 +43,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.datetime.DateTimeService;
@@ -253,9 +254,11 @@ public class CounterITest extends BaseMetricsITest {
         Observable<Void> insertObservable = metricsService.addDataPoints(COUNTER, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
-        metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE)
-                .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
+        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
+        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+
+        metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Long>> observable = metricsService.findDataPoints(mId, start.getMillis(),
                 end.getMillis() + 1, 0, Order.DESC);
