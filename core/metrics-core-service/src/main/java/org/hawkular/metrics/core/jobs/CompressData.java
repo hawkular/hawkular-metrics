@@ -53,17 +53,15 @@ public class CompressData implements Func1<JobDetails, Completable> {
     public static final String BLOCK_SIZE = "compression.block.size";
     public static final String TARGET_TIME = "compression.time.target";
     public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
+    public static final Duration DEFAULT_BLOCK_SIZE = Duration.standardHours(2);
 
     private static final int DEFAULT_PAGE_SIZE = 1000;
-
-    // TODO Make this configurable by reading BLOCK_SIZE from ConfigurationService
-    public static final Duration DEFAULT_BLOCK_SIZE = Duration.standardHours(2);
 
     private MetricsService metricsService;
 
     private int pageSize;
-
     private boolean enabled;
+    private Duration blockSize;
 
     public CompressData(MetricsService service, ConfigurationService configurationService) {
         metricsService = service;
@@ -72,6 +70,12 @@ public class CompressData implements Func1<JobDetails, Completable> {
             pageSize = DEFAULT_PAGE_SIZE;
         } else {
             pageSize = Integer.parseInt(configuration.get("page-size"));
+        }
+
+        if(configuration.get(BLOCK_SIZE) != null) {
+            blockSize = Duration.parse(configuration.get(BLOCK_SIZE));
+        } else {
+            blockSize = DEFAULT_BLOCK_SIZE;
         }
 
         String enabledConfig = configuration.get("enabled", "true");
@@ -90,7 +94,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
             if (!enabled) {
                 return Completable.complete();
             }
-            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(DEFAULT_BLOCK_SIZE);
+            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(blockSize);
         } else {
             if(jobDetails.getParameters().containsKey(TARGET_TIME)) {
                 timeSliceInclusive = new DateTime(jobDetails.getParameters().get(TARGET_TIME), DateTimeZone.UTC);
@@ -101,9 +105,9 @@ public class CompressData implements Func1<JobDetails, Completable> {
         }
 
         // Rewind to previous timeslice
-        DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, DEFAULT_BLOCK_SIZE);
+        DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, blockSize);
         long startOfSlice = timeSliceStart.getMillis();
-        long endOfSlice = timeSliceStart.plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
+        long endOfSlice = timeSliceStart.plus(blockSize).getMillis() - 1;
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.info("Starting compression of timestamps between " + startOfSlice + " - " + endOfSlice);

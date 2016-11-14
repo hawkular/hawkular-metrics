@@ -60,7 +60,6 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.joda.time.Duration;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;

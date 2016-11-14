@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -77,7 +76,6 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
-import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;

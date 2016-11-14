@@ -49,7 +49,6 @@ import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.joda.time.Duration;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
