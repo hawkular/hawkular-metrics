@@ -365,6 +365,17 @@ class TagsITest extends RESTTest {
         query: [filter: 'e*'],
         headers: [(tenantHeaderName): tenantId])
     assertEquals(204, response.status)
+
+    // Test type filter
+    response = hawkularMetrics.delete(path: "gauges/N2/tags/d3", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "metrics/tags",
+        query: [filter: 'd.*', type: 'gauge'],
+        headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(1, response.data.size)
+    assertTrue(response.data.contains('d1'))
   }
 
 
