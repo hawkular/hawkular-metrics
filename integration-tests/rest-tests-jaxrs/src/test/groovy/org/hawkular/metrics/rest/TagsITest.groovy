@@ -322,6 +322,64 @@ class TagsITest extends RESTTest {
   }
 
   @Test
+  void findTagNames() {
+    def tenantId = nextTenantId()
+
+    metricTypes.each {
+
+      // Create metric
+      def response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N1',
+          tags: ['a1': 'A/B', 'd1': 'B:A']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+
+      response = hawkularMetrics.post(path: it.path, body: [
+          id  : 'N2',
+          tags: ['a1': 'a', 'd3': 'B:A']
+      ], headers: [(tenantHeaderName): tenantId])
+      assertEquals(201, response.status)
+    }
+
+    // Fetch available tag names
+    def response = hawkularMetrics.get(path: "metrics/tags",
+        headers: [(tenantHeaderName): tenantId]);
+    assertEquals(200, response.status)
+    assertEquals(3, response.data.size)
+
+    assertTrue(response.data.contains('a1'))
+    assertTrue(response.data.contains('d1'))
+    assertTrue(response.data.contains('d3'))
+
+    // Fetch with filter
+    response = hawkularMetrics.get(path: "metrics/tags",
+        query: [filter: 'd.*'],
+        headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+    assertTrue(response.data.contains('d1'))
+    assertTrue(response.data.contains('d3'))
+
+    // Fetch filter without match
+    response = hawkularMetrics.get(path: "metrics/tags",
+        query: [filter: 'e*'],
+        headers: [(tenantHeaderName): tenantId])
+    assertEquals(204, response.status)
+
+    // Test type filter
+    response = hawkularMetrics.delete(path: "gauges/N2/tags/d3", headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: "metrics/tags",
+        query: [filter: 'd.*', type: 'gauge'],
+        headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(1, response.data.size)
+    assertTrue(response.data.contains('d1'))
+  }
+
+
+  @Test
   void addTaggedDataPoints() {
     def dataValues = [:]
     dataValues['counter'] = [1, 99, 2]

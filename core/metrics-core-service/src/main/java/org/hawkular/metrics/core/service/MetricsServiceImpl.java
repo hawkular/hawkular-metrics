@@ -566,6 +566,11 @@ public class MetricsServiceImpl implements MetricsService {
                 .defaultIfEmpty(new HashMap<>());
     }
 
+    @Override
+    public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
+        return tagQueryParser.getTagNames(tenantId, metricType, filter);
+    }
+
     // Adding/deleting metric tags currently involves writing to three tables - data,
     // metrics_idx, and metrics_tags_idx. It might make sense to refactor tag related
     // functionality into a separate class.

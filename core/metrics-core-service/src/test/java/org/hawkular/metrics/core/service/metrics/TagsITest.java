@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,6 +66,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 public class TagsITest extends BaseMetricsITest {
 
@@ -200,6 +202,36 @@ public class TagsITest extends BaseMetricsITest {
                 .toBlocking()
                 .lastOrDefault(null);
         assertEquals(tagMap.get("a1").size(), 1, "a1 should have only one valid value");
+    }
+
+    @Test
+    public void tagNameSearch() throws Exception {
+        String tenantId = "t1tag";
+        createTagMetrics(tenantId);
+
+        Observable<String> tagNames = metricsService.getTagNames(tenantId, null, null);
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        tagNames.subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValueCount(5);
+
+        tagNames = metricsService.getTagNames(tenantId, null, "host.*");
+        testSubscriber = new TestSubscriber<>();
+        tagNames.subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValueCount(1);
+
+        tagNames = metricsService.getTagNames(tenantId, AVAILABILITY, null);
+        testSubscriber = new TestSubscriber<>();
+        tagNames.subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValueCount(1);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)

@@ -149,7 +149,7 @@ public class TagQueryParser {
         // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
         return Observable.from(tagsQueries.entrySet())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
-                        .filter(typeFilter(metricType))
+                        .filter(typeFilter(metricType, 1))
                         .filter(tagValueFilter(e.getValue(), 3))
                         .map(row -> {
                             Map<String, Map<String, String>> idMap = new HashMap<>();
@@ -199,8 +199,35 @@ public class TagQueryParser {
                 });
     }
 
+    public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
+        Observable<String> tagNames;
+        if(metricType == null) {
+            tagNames = dataAccess.getTagNames()
+                    .filter(r -> tenantId.equals(r.getString(0)))
+                    .map(r -> r.getString(1))
+                    .distinct();
+        } else {
+            // This query is slower than without type - we have to request all the rows, not just partition keys
+            tagNames = dataAccess.getTagNamesWithType()
+                    .filter(typeFilter(metricType, 2))
+                    .filter(r -> tenantId.equals(r.getString(0)))
+                    .map(r -> r.getString(1))
+                    .distinct();
+        }
+        return tagNames.filter(tagNameFilter(filter));
+    }
+
     private Func1<Metric<?>, Boolean> tagNotExistsFilter(String unwantedTagName) {
         return tMetric -> !tMetric.getTags().keySet().contains(unwantedTagName);
+    }
+
+    private Func1<String, Boolean> tagNameFilter(String regexp) {
+        if(regexp != null) {
+            boolean positive = (!regexp.startsWith("!"));
+            Pattern p = PatternUtil.filterPattern(regexp);
+            return s -> positive == p.matcher(s).matches(); // XNOR
+        }
+        return s -> true;
     }
 
     private Func1<Row, Boolean> tagValueFilter(String regexp, int index) {
@@ -209,9 +236,9 @@ public class TagQueryParser {
         return r -> positive == p.matcher(r.getString(index)).matches(); // XNOR
     }
 
-    public Func1<Row, Boolean> typeFilter(MetricType<?> type) {
+    public Func1<Row, Boolean> typeFilter(MetricType<?> type, int index) {
         return row -> {
-            MetricType<?> metricType = MetricType.fromCode(row.getByte(1));
+            MetricType<?> metricType = MetricType.fromCode(row.getByte(index));
             return (type == null && metricType.isUserType()) || metricType == type;
         };
     }

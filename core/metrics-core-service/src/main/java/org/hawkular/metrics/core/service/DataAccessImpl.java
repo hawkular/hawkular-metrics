@@ -93,6 +93,10 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement getMetricTags;
 
+    private PreparedStatement getTagNames;
+
+    private PreparedStatement getTagNamesWithType;
+
     private PreparedStatement insertGaugeData;
 
     private PreparedStatement insertCompressedData;
@@ -233,6 +237,14 @@ public class DataAccessImpl implements DataAccess {
             "SELECT tags " +
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
+
+        getTagNames = session.prepare(
+                "SELECT DISTINCT tenant_id, tname " +
+                        "FROM metrics_tags_idx"); // Cassandra 3.10 will allow filtering by tenant_id
+
+        getTagNamesWithType = session.prepare(
+                "SELECT tenant_id, tname, type " +
+                        "FROM metrics_tags_idx");
 
         insertIntoMetricsIndex = session.prepare(
             "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
@@ -572,6 +584,16 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<Row> getMetricTags(MetricId<T> id) {
         return rxSession.executeAndFetch(getMetricTags.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    }
+
+    @Override
+    public Observable<Row> getTagNames() {
+        return rxSession.executeAndFetch(getTagNames.bind());
+    }
+
+    @Override
+    public Observable<Row> getTagNamesWithType() {
+        return rxSession.executeAndFetch(getTagNamesWithType.bind());
     }
 
     @Override

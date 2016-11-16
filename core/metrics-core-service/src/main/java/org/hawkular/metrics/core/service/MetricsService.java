@@ -138,6 +138,8 @@ public interface MetricsService {
 
     Observable<Map<String, String>> getMetricTags(MetricId<?> id);
 
+    Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter);
+
     Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
     Observable<Void> deleteTags(Metric<?> metric, Set<String> tags);
