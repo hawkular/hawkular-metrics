@@ -148,7 +148,7 @@ public class ExpressionManager {
             log.info("Registering Trigger UPDATE/REMOVE listener");
             definitionsListener = new DefinitionsListener() {
                 @Override
-                public void onChange(DefinitionsEvent event) {
+                public void onChange(Set<DefinitionsEvent> event) {
                     if (coordinator) {
                         refresh();
                     }

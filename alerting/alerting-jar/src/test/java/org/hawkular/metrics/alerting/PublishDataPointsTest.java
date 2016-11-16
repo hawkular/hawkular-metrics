@@ -28,6 +28,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -132,7 +133,7 @@ public class PublishDataPointsTest {
                 new DataPoint<>(System.currentTimeMillis() - 2000, 19.0)));
 
         String prefix = InsertedDataSubscriber.prefixMap.get(MetricType.GAUGE);
-        cacheClient.addTestKey(new CacheKey(tenantId, prefix + gauge1Id), "test");
+        cacheClient.addTestKey(new CacheKey(tenantId, prefix + gauge1Id), Collections.singleton("test"));
 
         Observable<Metric<?>> observable = Observable.just(gauge1, gauge2);
 
@@ -170,7 +171,7 @@ public class PublishDataPointsTest {
                 new DataPoint<>(System.currentTimeMillis() - 3000, ADMIN)));
 
         String prefix = InsertedDataSubscriber.prefixMap.get(MetricType.AVAILABILITY);
-        cacheClient.addTestKey(new CacheKey(tenantId, prefix + availability1Id), "test");
+        cacheClient.addTestKey(new CacheKey(tenantId, prefix + availability1Id), Collections.singleton("test"));
 
         Observable<Metric<?>> observable = Observable.just(availability1, availability2);
 
