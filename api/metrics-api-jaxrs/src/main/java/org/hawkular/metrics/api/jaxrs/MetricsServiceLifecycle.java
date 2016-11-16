@@ -439,6 +439,7 @@ public class MetricsServiceLifecycle {
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
+                .setMaxQueueSize(1024)
         ).withSocketOptions(new SocketOptions()
                 .setReadTimeoutMillis(driverRequestTimeout)
                 .setConnectTimeoutMillis(driverConnectionTimeout)
