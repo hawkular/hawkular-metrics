@@ -435,8 +435,10 @@ public class MetricsServiceLifecycle {
             driverPageSize = Integer.parseInt(PAGE_SIZE.defaultValue());
         }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
-                .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
-                .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
+//                .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
+                .setMaxConnectionsPerHost(HostDistance.LOCAL, 50)
+//                .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
+                .setMaxConnectionsPerHost(HostDistance.REMOTE, 50)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
                 .setMaxQueueSize(1024)
