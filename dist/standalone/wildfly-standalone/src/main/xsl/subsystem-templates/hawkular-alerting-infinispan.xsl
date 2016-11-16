@@ -32,6 +32,9 @@
         <local-cache name="schema"/>
         <local-cache name="locks"/>
       </cache-container>
+      <cache-container name="hawkular-metrics" default-cache="triggers" statistics-enabled="true">
+        <local-cache name="locks"/>
+      </cache-container>
     </xsl:copy>
   </xsl:template>
 
