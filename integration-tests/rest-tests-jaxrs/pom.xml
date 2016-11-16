@@ -237,6 +237,9 @@
                         /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
                       </commmand>
                       <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=dataIds/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
                         /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
                       </commmand>
                       <commmand>
