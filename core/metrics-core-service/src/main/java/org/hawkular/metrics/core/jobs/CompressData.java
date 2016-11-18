@@ -73,7 +73,8 @@ public class CompressData implements Func1<JobDetails, Completable> {
         }
 
         if(configuration.get(BLOCK_SIZE) != null) {
-            blockSize = Duration.parse(configuration.get(BLOCK_SIZE));
+            java.time.Duration parsedDuration = java.time.Duration.parse(configuration.get(BLOCK_SIZE));
+            blockSize = Duration.millis(parsedDuration.toMillis());
         } else {
             blockSize = DEFAULT_BLOCK_SIZE;
         }
@@ -87,6 +88,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
     @Override
     public Completable call(JobDetails jobDetails) {
 
+        Duration runtimeBlockSize = blockSize;
         DateTime timeSliceInclusive;
 
         Trigger trigger = jobDetails.getTrigger();
@@ -94,29 +96,38 @@ public class CompressData implements Func1<JobDetails, Completable> {
             if (!enabled) {
                 return Completable.complete();
             }
-            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(blockSize);
+            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(runtimeBlockSize);
         } else {
             if(jobDetails.getParameters().containsKey(TARGET_TIME)) {
-                timeSliceInclusive = new DateTime(jobDetails.getParameters().get(TARGET_TIME), DateTimeZone.UTC);
+                // DateTime parsing fails without casting to Long first
+                Long parsedMillis = Long.valueOf(jobDetails.getParameters().get(TARGET_TIME));
+                timeSliceInclusive = new DateTime(parsedMillis, DateTimeZone.UTC);
             } else {
                 logger.error("Missing " + TARGET_TIME + " parameter from manual execution of " + JOB_NAME + " job");
                 return Completable.complete();
             }
+
+            if(jobDetails.getParameters().containsKey(BLOCK_SIZE)) {
+                java.time.Duration parsedDuration =
+                        java.time.Duration.parse(jobDetails.getParameters().get(BLOCK_SIZE));
+                runtimeBlockSize = Duration.millis(parsedDuration.toMillis());
+            }
         }
 
         // Rewind to previous timeslice
-        DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, blockSize);
+        DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, runtimeBlockSize);
         long startOfSlice = timeSliceStart.getMillis();
-        long endOfSlice = timeSliceStart.plus(blockSize).getMillis() - 1;
+        long endOfSlice = timeSliceStart.plus(runtimeBlockSize).getMillis() - 1;
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-        logger.info("Starting compression of timestamps between " + startOfSlice + " - " + endOfSlice);
+        logger.info("Starting compression of timestamps (UTC) between " + startOfSlice + " - " + endOfSlice);
 
         Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetrics()
                 .map(Metric::getMetricId)
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
         // Fetch all partition keys and compress the previous timeSlice
+        // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
         return Completable.fromObservable(
                 metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize)
                         .doOnError(t -> logger.warn("Failed to compress data", t))
@@ -126,8 +137,5 @@ public class CompressData implements Func1<JobDetails, Completable> {
                                     " ms");
                         })
         );
-
-        // TODO Optimization - new worker per token - use parallelism in Cassandra
-        // Configure the amount of parallelism?
     }
 }

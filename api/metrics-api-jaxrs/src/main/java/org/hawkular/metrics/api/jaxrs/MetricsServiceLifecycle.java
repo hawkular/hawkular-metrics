@@ -41,6 +41,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
+import java.lang.management.ManagementFactory;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -60,6 +61,12 @@ import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
@@ -497,6 +504,20 @@ public class MetricsServiceLifecycle {
 
         DistributedLock jobsLock = new DistributedLock(locksCache.getAdvancedCache(), "background-jobs");
         jobsLock.lockAndThen(jobsService::start);
+
+        registerMBean("JobsService", jobsService);
+    }
+
+    private void registerMBean(String name, Object service) {
+        try {
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            String fullName = String.format("%s:type=%s", service.getClass().getPackage().getName(), name);
+            ObjectName serviceName = new ObjectName(fullName);
+            mbs.registerMBean(service, serviceName);
+        } catch (MalformedObjectNameException | MBeanRegistrationException | NotCompliantMBeanException
+                | InstanceAlreadyExistsException e) {
+            log.error("Could not initialize JMX MBean", e);
+        }
     }
 
     private void persistAdminToken() {

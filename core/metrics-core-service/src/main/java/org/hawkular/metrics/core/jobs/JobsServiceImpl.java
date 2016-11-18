@@ -46,7 +46,7 @@ import rx.functions.Func2;
 /**
  * @author jsanda
  */
-public class JobsServiceImpl implements JobsService {
+public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
     private static Logger logger = Logger.getLogger(JobsServiceImpl.class);
 
@@ -85,8 +85,6 @@ public class JobsServiceImpl implements JobsService {
         scheduler.start();
 
         List<JobDetails> backgroundJobs = new ArrayList<>();
-        Configuration configuration = configurationService.load("org.hawkular.metrics.jobs")
-                .toBlocking().lastOrDefault(null);
 
         deleteTenant = new DeleteTenant(session, metricsService);
         Map<JobDetails, Integer> deleteTenantAttempts = new ConcurrentHashMap<>();
@@ -139,4 +137,26 @@ public class JobsServiceImpl implements JobsService {
         }
     }
 
+    // JMX management
+    private void submitCompressJob(Map<String, String> parameters) {
+        String jobName = String.format("%s_single_%s", CompressData.JOB_NAME, parameters.get(CompressData.TARGET_TIME));
+        scheduler.scheduleJob(CompressData.JOB_NAME, jobName, parameters,
+                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
+    }
+
+    @Override
+    public void submitCompressJob(long timestamp) {
+        logger.debugf("Scheduling manual submitCompressJob with default blocksize, timestamp->%d", timestamp);
+        submitCompressJob(ImmutableMap.of(CompressData.TARGET_TIME, Long.valueOf(timestamp).toString()));
+    }
+
+    @Override
+    public void submitCompressJob(long timestamp, String blockSize) {
+        logger.debugf("Scheduling manual submitCompressJob with defined blocksize, timestamp->%d, blockSize->%s",
+                timestamp, blockSize);
+        submitCompressJob(ImmutableMap.of(
+                CompressData.TARGET_TIME, Long.valueOf(timestamp).toString(),
+                CompressData.BLOCK_SIZE, blockSize)
+        );
+    }
 }
