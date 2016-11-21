@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,7 @@ import rx.Observable;
 /**
  * A scheduled reporter that persists internally collected metrics. Several of the DropWizard metric types are complex
  * types having multiple values, and they do not map directly to metric types in Hawkular Metrics. Numeric gauges and
- * counters map directly, but meters, times, and histograms do not. 
+ * counters map directly, but meters, times, and histograms do not.
  *
  * @author jsanda
  */
