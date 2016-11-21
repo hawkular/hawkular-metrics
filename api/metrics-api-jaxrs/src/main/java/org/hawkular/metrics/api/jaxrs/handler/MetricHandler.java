@@ -192,7 +192,8 @@ public class MetricHandler {
     public <T> void findMetrics(
             @Suspended
             AsyncResponse asyncResponse,
-            @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, counter")
+            @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, " +
+                    "counter, string")
             @QueryParam("type") MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "Regexp to match metricId if tags filtering is used, otherwise exact matching",
@@ -207,6 +208,10 @@ public class MetricHandler {
         if(tags == null) {
             if(!Strings.isNullOrEmpty(id)) {
                 // HWKMETRICS-461
+                if(metricType == null) {
+                    asyncResponse.resume(badRequest(new ApiError("Exact id search requires type to be set")));
+                    return;
+                }
                 String[] ids = id.split("\\|");
                 metricObservable = Observable.from(ids)
                         .map(idPart -> new MetricId<>(getTenant(), metricType, idPart))
