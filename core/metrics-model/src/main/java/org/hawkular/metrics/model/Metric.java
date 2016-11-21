@@ -96,6 +96,10 @@ public class Metric<T> {
         this(id, Collections.emptyMap(), null, Collections.emptyList());
     }
 
+    public Metric(MetricId<T> id, Map<String, String> tags) {
+        this(id, unmodifiableMap(tags), null, Collections.emptyList());
+    }
+
     public Metric(MetricId<T> id, Integer dataRetention) {
         this(id, Collections.emptyMap(), dataRetention, Collections.emptyList());
     }
