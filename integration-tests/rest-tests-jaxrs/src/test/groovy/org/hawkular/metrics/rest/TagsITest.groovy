@@ -511,6 +511,12 @@ class TagsITest extends RESTTest {
             tags    : ['c1': 'C'],
             type: it.type
         ]))
+
+      badGet(path: "metrics", query: [id: '91c171ed-0294-44b3-bcdb-42253b58aa5a'],
+          headers: [(tenantHeaderName): tenantId]) { exception ->
+        // Missing type
+        assertEquals(400, exception.response.status)
+      }
     }
   }
 }
