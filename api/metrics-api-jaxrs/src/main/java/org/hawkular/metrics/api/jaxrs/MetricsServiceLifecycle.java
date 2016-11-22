@@ -33,6 +33,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_R
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_ENABLED;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_PARALLEL_READS;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_QUERY_PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
@@ -217,6 +218,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(COMPRESSION_QUERY_PAGE_SIZE)
     private String compressionPageSize;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(COMPRESSION_JOB_PARALLEL_READS)
+    private String compressionParallelReads;
 
     @Inject
     @Configurable
@@ -532,23 +538,28 @@ public class MetricsServiceLifecycle {
     }
 
     private void updateCompressionJobConfiguration() {
+        Configuration configuration = configurationService.load(CompressData.CONFIG_ID).toSingle().toBlocking().value();
+
         if (compressionPageSize != null) {
-            configurationService.save(CompressData.CONFIG_ID, "page-size", compressionPageSize)
-                    .toCompletable()
-                    .await(10, SECONDS);
-        } else {
-            String pageSizeConfig = configurationService.load(CompressData.CONFIG_ID, "page-size")
-                    .toBlocking().firstOrDefault(null);
-            if (pageSizeConfig == null) {
-                configurationService.save(CompressData.CONFIG_ID, "page-size",
-                        COMPRESSION_QUERY_PAGE_SIZE.defaultValue())
-                        .toCompletable()
-                        .await(10, SECONDS);
-            }
+            configuration.set("page-size", compressionPageSize);
+        } else if (configuration.get("page-size") == null) {
+                configuration.set("page-size", COMPRESSION_QUERY_PAGE_SIZE.defaultValue());
         }
 
         if (compressionJobEnabled != null) {
-            configurationService.save(CompressData.CONFIG_ID, "enabled", compressionJobEnabled);
+            configuration.set("enabled", compressionJobEnabled);
+        }
+
+        if (compressionParallelReads != null) {
+            configuration.set("parallel-reads", compressionParallelReads);
+        }
+
+        try {
+            configurationService.save(configuration)
+                    .toCompletable()
+                    .await(30, SECONDS);
+        } catch (Exception e) {
+            log.warnCompressionJobConfigUpdateFailed(e);
         }
     }
 

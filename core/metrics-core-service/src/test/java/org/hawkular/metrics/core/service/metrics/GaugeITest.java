@@ -365,7 +365,7 @@ public class GaugeITest extends BaseMetricsITest {
         insertObservable.toBlocking().lastOrDefault(null);
 
         metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE)
+                .standardHours(2)), COMPRESSION_PAGE_SIZE, 1)
                 .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
@@ -435,7 +435,7 @@ public class GaugeITest extends BaseMetricsITest {
         expected = expectCreator.apply(cStart);
 
         metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(cStart.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE).toBlocking().lastOrDefault(null);
+                .standardHours(2)), COMPRESSION_PAGE_SIZE, 1).toBlocking().lastOrDefault(null);
 
         actual = toList(metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "m1"),
                 cStart.plusMinutes(1).getMillis(), end, 3, Order.ASC));

@@ -62,6 +62,8 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
     private boolean enabled;
 
+    private int parallelReads;
+
     public CompressData(MetricsService service, ConfigurationService configurationService) {
         metricsService = service;
         Configuration configuration = configurationService.load(CONFIG_ID).toSingle().toBlocking().value();
@@ -75,6 +77,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
         enabled = Boolean.parseBoolean(enabledConfig);
         logger.debugf("Job enabled? %b", enabled);
 
+        parallelReads = Integer.parseInt(configuration.get("parallel-reads", "1"));
     }
 
     @Override
@@ -94,7 +97,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
 
         // Fetch all partition keys and compress the previous timeSlice
         return Completable.fromObservable(
-                metricsService.compressBlock(metricIds, previousBlock, pageSize)
+                metricsService.compressBlock(metricIds, previousBlock, pageSize, parallelReads)
                         .doOnError(t -> logger.warn("Failed to compress data", t))
                         .doOnCompleted(() -> {
                             stopwatch.stop();

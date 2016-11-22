@@ -254,7 +254,7 @@ public class CounterITest extends BaseMetricsITest {
         insertObservable.toBlocking().lastOrDefault(null);
 
         metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE)
+                .standardHours(2)), COMPRESSION_PAGE_SIZE, 1)
                 .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
 
         Observable<DataPoint<Long>> observable = metricsService.findDataPoints(mId, start.getMillis(),
