@@ -53,7 +53,19 @@
       <version>${project.version}</version>
       <type>war</type>
     </dependency>
-      <!-- Because metrics war has a dependency on alerting war (to inject AlertsService) and both components
+    <dependency>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-actions-email-metrics</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-actions-webhook-metrics</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <type>war</type>
+    </dependency>
+    <!-- Because metrics war has a dependency on alerting war (to inject AlertsService) and both components
          use cassalog, we hit an issue such that the metrics schema file resources could not be located, the CL
          was tied to the alerting war. To make them available we are placing the schema jar in the ear's lib,
          which is available to every deployment's CL. We may not need this if we have a better solution resulting
@@ -107,6 +119,18 @@
               <artifactId>hawkular-alerts-rest-services</artifactId>
               <bundleFileName>hawkular-alerts.war</bundleFileName>
               <contextRoot>/hawkular/alerts</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>org.hawkular.alerts</groupId>
+              <artifactId>hawkular-alerts-actions-email-metrics</artifactId>
+              <bundleFileName>hawkular-alerts-action-email.war</bundleFileName>
+              <contextRoot>/hawkular/actions/email</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>org.hawkular.alerts</groupId>
+              <artifactId>hawkular-alerts-actions-webhook-metrics</artifactId>
+              <bundleFileName>hawkular-alerts-action-webhook.war</bundleFileName>
+              <contextRoot>/hawkular/actions/webhook</contextRoot>
             </webModule>
             <webModule>
               <groupId>org.hawkular.metrics</groupId>
