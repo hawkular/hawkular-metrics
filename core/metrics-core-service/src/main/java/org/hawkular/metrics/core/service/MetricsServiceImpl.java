@@ -95,6 +95,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
@@ -744,12 +745,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
+    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
             endTimeSlice, int pageSize) {
-        // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
-//        long endOfSlice = new DateTime(startTimeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
 
-        return metrics
+        return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId ->
                         findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
@@ -758,8 +757,7 @@ public class MetricsServiceImpl implements MetricsService {
                                 .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                         (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                         .compose(applyRetryPolicy())
-                                ))
-                .map(rs -> null);
+                                )));
     }
 
     @Override

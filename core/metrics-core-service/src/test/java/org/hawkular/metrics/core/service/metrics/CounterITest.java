@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,7 +66,9 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import rx.Completable;
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 public class CounterITest extends BaseMetricsITest {
 
@@ -256,8 +259,15 @@ public class CounterITest extends BaseMetricsITest {
         DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
         DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
 
-        metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
+        Completable compressCompletable =
+                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
+
+        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
+        compressCompletable.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
 
         Observable<DataPoint<Long>> observable = metricsService.findDataPoints(mId, start.getMillis(),
                 end.getMillis() + 1, 0, Order.DESC);

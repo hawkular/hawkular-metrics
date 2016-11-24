@@ -37,6 +37,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -180,8 +181,8 @@ public interface MetricsService {
      * @param pageSize Cassandra query parameter
      * @return onComplete when job is done
      */
-    Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long endTimeSlice,
-                                   int pageSize);
+    Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long endTimeSlice,
+                              int pageSize);
 
     <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> ids, long start, long end, int limit,
                                                      Order order);
