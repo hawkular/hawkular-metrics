@@ -41,7 +41,6 @@ import org.joda.time.Minutes;
 import com.google.common.collect.ImmutableMap;
 
 import rx.Single;
-import rx.Subscriber;
 import rx.functions.Func2;
 
 /**
@@ -141,21 +140,10 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     // JMX management
     private void submitCompressJob(Map<String, String> parameters) {
         String jobName = String.format("%s_single_%s", CompressData.JOB_NAME, parameters.get(CompressData.TARGET_TIME));
-        Single<JobDetails> jobDetailsSingle = scheduler.scheduleJob(CompressData.JOB_NAME, jobName, parameters,
-                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-        jobDetailsSingle.subscribe(new Subscriber<JobDetails>() {
-            @Override public void onCompleted() {
-                logger.info("submitCompressJob->onCompleted");
-            }
-
-            @Override public void onError(Throwable throwable) {
-                logger.error("submitCompressJob->onError", throwable);
-            }
-
-            @Override public void onNext(JobDetails jobDetails) {
-                logger.info("submitCompressJob->onNext");
-            }
-        });
+        // Blocking to ensure it is actually scheduled..
+        scheduler.scheduleJob(CompressData.JOB_NAME, jobName, parameters,
+                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build())
+                .toBlocking().value();
     }
 
     @Override

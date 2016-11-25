@@ -246,7 +246,8 @@ public class SchedulerImpl implements Scheduler {
                 })
                 .flatMap(details -> jobsService.insert(new Date(trigger.getTriggerTime()), details)
                         .map(resultSet -> details))
-                .toSingle();
+                .toSingle()
+                .doOnError(t -> logger.warn("Failed to schedule job " + name, t));
     }
 
     @Override
