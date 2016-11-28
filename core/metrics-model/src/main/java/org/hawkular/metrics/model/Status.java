@@ -43,7 +43,7 @@ public class Status {
         this.metricsServiceStatus = metricsServiceStatus;
     }
 
-    @JsonProperty("Built-From-Git-SHA")
+    @JsonProperty("Built-From-Git-SHA1")
     public String getGitSHA() {
         return gitSHA;
     }

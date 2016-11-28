@@ -17,6 +17,7 @@
 package org.hawkular.metrics.rest
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assume.assumeTrue
@@ -41,5 +42,8 @@ class StatusITest extends RESTTest {
         assertEquals(version, response.data['Implementation-Version'])
         assertNotNull(response.data['Built-From-Git-SHA1'])
         assertNotEquals('Unknown', response.data['Built-From-Git-SHA1'])
+
+        assertFalse(response.data.Cassandra.empty)
+        assertEquals([[address: 'localhost', status: 'up']], response.data.Cassandra)
     }
 }
