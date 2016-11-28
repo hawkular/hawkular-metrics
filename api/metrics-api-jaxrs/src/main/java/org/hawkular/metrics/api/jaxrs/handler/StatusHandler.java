@@ -23,12 +23,10 @@ import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
@@ -51,17 +49,18 @@ public class StatusHandler {
 
     @Inject
     MetricsServiceLifecycle metricsServiceLifecycle;
+
     @Inject
     ManifestInformation manifestInformation;
 
     @GET
     @ApiOperation(value = "Returns the current status for various components.",
             response = Map.class)
-    public Response status(@Context ServletContext servletContext) {
+    public Response status() {
         Map<String, String> status = new HashMap<>();
         State metricState = metricsServiceLifecycle.getState();
         status.put(METRICSSERVICE_NAME, metricState.toString());
-        status.putAll(manifestInformation.getFrom(servletContext));
+        status.putAll(manifestInformation.getAttributes());
         return Response.ok(status).build();
     }
 }

@@ -54,10 +54,10 @@ public class BaseHandler {
     @Produces(APPLICATION_JSON)
     @ApiOperation(value = "Returns some basic information about the Hawkular Metrics service.",
             response = String.class, responseContainer = "Map")
-    public Response baseJSON(@Context ServletContext servletContext) {
+    public Response baseJSON() {
         Map<String, String> hawkularMetricsProperties = new HashMap<>();
         hawkularMetricsProperties.put("name", "Hawkular-Metrics");
-        hawkularMetricsProperties.putAll(manifestInformation.getFrom(servletContext));
+        hawkularMetricsProperties.putAll(manifestInformation.getAttributes());
         return Response.ok(hawkularMetricsProperties).build();
     }
 

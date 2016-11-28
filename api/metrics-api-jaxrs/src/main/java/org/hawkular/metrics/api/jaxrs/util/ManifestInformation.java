@@ -23,33 +23,43 @@ import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.servlet.ServletContext;
 
 import com.google.common.collect.ImmutableList;
 
 @ApplicationScoped
-@Eager
 public class ManifestInformation {
     private static final List<String> VERSION_ATTRIBUTES = ImmutableList.of("Implementation-Version",
             "Built-From-Git-SHA1");
 
-    // We can't inject the servlet context because it's not supported in CDI 1.0 (EAP 6)
-    public Map<String, String> getFrom(ServletContext servletContext) {
-        Map<String, String> manifestInformation = new HashMap<>();
+    @Inject
+    private ServletContext servletContext;
+
+    private Map<String, String> attributes = new HashMap<>();
+
+    @PostConstruct
+    public void init() {
         try (InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF")) {
             Manifest manifest = new Manifest(inputStream);
             Attributes attr = manifest.getMainAttributes();
             for (String attribute : VERSION_ATTRIBUTES) {
-                manifestInformation.put(attribute, attr.getValue(attribute));
+                attributes.put(attribute, attr.getValue(attribute));
             }
         } catch (Exception e) {
             for (String attribute : VERSION_ATTRIBUTES) {
-                if (manifestInformation.get(attribute) == null) {
-                    manifestInformation.put(attribute, "Unknown");
+                if (attributes.get(attribute) == null) {
+                    attributes.put(attribute, "Unknown");
                 }
             }
         }
-        return manifestInformation;
     }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+
 }

@@ -74,6 +74,7 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
+import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
@@ -237,6 +238,9 @@ public class MetricsServiceLifecycle {
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
+    @Inject
+    private ManifestInformation manifestInfo;
+
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
     private Cache<String, String> locksCache;
 
@@ -274,6 +278,8 @@ public class MetricsServiceLifecycle {
 
     @PostConstruct
     void init() {
+        log.infof("Hawkular Metrics version: %s", manifestInfo.getAttributes().get("Implementation-Version"));
+
         lifecycleExecutor.submit(this::startMetricsService);
         if (Boolean.parseBoolean(waitForService)
             // "hawkular-metrics.backend" is not a real Metrics configuration parameter (there's a single
