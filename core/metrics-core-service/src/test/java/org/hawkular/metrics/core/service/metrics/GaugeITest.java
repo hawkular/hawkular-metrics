@@ -31,11 +31,13 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.Aggregate;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
@@ -48,14 +50,15 @@ import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.joda.time.Duration;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
+import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
@@ -364,9 +367,18 @@ public class GaugeITest extends BaseMetricsITest {
         Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
-        metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE)
-                .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
+        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
+        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+
+        Completable compressCompletable =
+                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
+
+        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
+        compressCompletable.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
 
         Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
                 end.getMillis() + 1, 0, Order.DESC);
@@ -434,8 +446,18 @@ public class GaugeITest extends BaseMetricsITest {
         metricsInserter.apply(cStart);
         expected = expectCreator.apply(cStart);
 
-        metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(cStart.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE).toBlocking().lastOrDefault(null);
+        DateTime startSlice = DateTimeService.getTimeSlice(cStart, CompressData.DEFAULT_BLOCK_SIZE);
+        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+
+        Completable compressCompletable =
+                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                        COMPRESSION_PAGE_SIZE);
+
+        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
+        compressCompletable.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
 
         actual = toList(metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE, "m1"),
                 cStart.plusMinutes(1).getMillis(), end, 3, Order.ASC));

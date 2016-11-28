@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -77,7 +76,6 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
-import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
@@ -97,6 +95,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
@@ -746,21 +745,19 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize) {
-        // Fetches all the datapoints between timeslice start and timeslice end (end must not be included!)
-        long endOfSlice = new DateTime(timeSlice).plus(CompressData.DEFAULT_BLOCK_SIZE).getMillis() - 1;
+    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
+            endTimeSlice, int pageSize) {
 
-        return metrics
+        return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId ->
-                        findDataPoints(metricId, timeSlice, endOfSlice, 0, ASC, pageSize)
+                        findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                                 .compose(applyRetryPolicy())
-                                .compose(new DataPointCompressTransformer(metricId.getType(), timeSlice))
-                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, timeSlice,
-                                        (CompressedPointContainer) cpc, timeSlice, endOfSlice, getTTL(metricId))
+                                .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
+                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
+                                        (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                         .compose(applyRetryPolicy())
-                                ))
-                .map(rs -> null);
+                                )));
     }
 
     @Override

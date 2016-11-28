@@ -38,11 +38,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.math3.stat.descriptive.rank.PSquarePercentile;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.datetime.DateTimeService;
@@ -59,13 +61,14 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.joda.time.Duration;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import rx.Completable;
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 public class CounterITest extends BaseMetricsITest {
 
@@ -253,9 +256,18 @@ public class CounterITest extends BaseMetricsITest {
         Observable<Void> insertObservable = metricsService.addDataPoints(COUNTER, Observable.just(m1));
         insertObservable.toBlocking().lastOrDefault(null);
 
-        metricsService.compressBlock(Observable.just(mId), DateTimeService.getTimeSlice(start.getMillis(), Duration
-                .standardHours(2)), COMPRESSION_PAGE_SIZE)
-                .doOnError(Throwable::printStackTrace).toBlocking().lastOrDefault(null);
+        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
+        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+
+        Completable compressCompletable =
+                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
+
+        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
+        compressCompletable.subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
 
         Observable<DataPoint<Long>> observable = metricsService.findDataPoints(mId, start.getMillis(),
                 end.getMillis() + 1, 0, Order.DESC);

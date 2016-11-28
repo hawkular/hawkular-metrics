@@ -37,6 +37,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 
+import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -171,7 +172,17 @@ public interface MetricsService {
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order,
             int pageSize);
 
-    Observable<Void> compressBlock(Observable<? extends MetricId<?>> metrics, long timeSlice, int pageSize);
+    /**
+     * Compresses the given range between timestamps to a single block.
+     *
+     * @param metrics Compressed metric definitions
+     * @param startTimeSlice Start time of the block
+     * @param endTimeSlice End time of the block
+     * @param pageSize Cassandra query parameter
+     * @return onComplete when job is done
+     */
+    Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long endTimeSlice,
+                              int pageSize);
 
     <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> ids, long start, long end, int limit,
                                                      Order order);
