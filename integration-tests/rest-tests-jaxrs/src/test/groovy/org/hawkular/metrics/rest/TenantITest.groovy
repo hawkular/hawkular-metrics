@@ -33,8 +33,6 @@ import org.junit.Test
 class TenantITest extends RESTTest {
   def tenantId = nextTenantId()
 
-  def adminToken = "awesome_secret_sauce"
-
   @Test
   void createAndReadTest() {
     def secondTenantId = nextTenantId()

@@ -127,6 +127,9 @@
           <name>!skipTests</name>
         </property>
       </activation>
+      <properties>
+        <admin-token>awesome_secret_sauce</admin-token>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -143,6 +146,7 @@
                 <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
                 <hawkular-metrics.test.access-control-allow-headers>random-header1,random-header2</hawkular-metrics.test.access-control-allow-headers>
                 <hawkular-metrics.cassandra.schema.refresh-interval>0</hawkular-metrics.cassandra.schema.refresh-interval>
+                <hawkular.metrics.admin-token>${admin-token}</hawkular.metrics.admin-token>
                 <project.version>${project.version}</project.version>
               </systemPropertyVariables>
             </configuration>
@@ -184,7 +188,7 @@
                     <javaOpt>-Dhawkular.terminal-event.timeout=${terminal-event.timeout}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-origins=http://test.hawkular.org,https://secure.hawkular.io</javaOpt>
                     <javaOpt>-Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2</javaOpt>
-                    <javaOpt>-Dhawkular.metrics.admin-token=awesome_secret_sauce</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.admin-token=${admin-token}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.cassandra.schema.refresh-interval=0</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>

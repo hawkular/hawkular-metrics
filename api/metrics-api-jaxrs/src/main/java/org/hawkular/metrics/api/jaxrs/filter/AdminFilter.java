@@ -72,7 +72,7 @@ public class AdminFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        if (path.startsWith("/tenants")) {
+        if (path.startsWith("/tenants") || path.startsWith("/admin")) {
             String tenant = requestContext.getHeaders().getFirst(TENANT_HEADER_NAME);
             if (tenant == null || tenant.trim().isEmpty()) {
                 // Fail on missing tenant info

@@ -90,6 +90,10 @@ ${text}
     return "T${TENANT_PREFIX}${TENANT_ID_COUNTER.incrementAndGet()}"
   }
 
+  static String getAdminToken() {
+    return System.getProperty("hawkular.metrics.admin-token")
+  }
+
   static void assertDoubleEquals(expected, actual) {
     assertDoubleEquals(null, expected, actual)
   }
