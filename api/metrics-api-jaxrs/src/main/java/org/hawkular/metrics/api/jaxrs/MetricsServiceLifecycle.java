@@ -20,6 +20,7 @@ package org.hawkular.metrics.api.jaxrs;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TOKEN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CONNECTION_TIMEOUT;
@@ -45,6 +46,7 @@ import java.lang.management.ManagementFactory;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -84,6 +86,7 @@ import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.util.GCGraceSecondsManager;
+import org.hawkular.metrics.model.CassandraStatus;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.schema.SchemaService;
@@ -270,6 +273,20 @@ public class MetricsServiceLifecycle {
      */
     public State getState() {
         return state;
+    }
+
+    public List<CassandraStatus> getCassandraStatus() {
+        return session.getCluster().getMetadata().getAllHosts().stream()
+                .map(host -> {
+                    CassandraStatus status;
+                    if (host.isUp()) {
+                        status = new CassandraStatus(host.getAddress().getHostName(), "up");
+                    } else {
+                        status = new CassandraStatus(host.getAddress().getHostName(), "down");
+                    }
+                    return status;
+                })
+                .collect(toList());
     }
 
     void eagerInit(@Observes @Initialized(ApplicationScoped.class) Object event) {

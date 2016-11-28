@@ -18,7 +18,6 @@ package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -32,6 +31,7 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
+import org.hawkular.metrics.model.Status;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -59,8 +59,14 @@ public class StatusHandler {
     public Response status() {
         Map<String, String> status = new HashMap<>();
         State metricState = metricsServiceLifecycle.getState();
-        status.put(METRICSSERVICE_NAME, metricState.toString());
-        status.putAll(manifestInformation.getAttributes());
+        status.setMetricsServiceStatus(metricsServiceLifecycle.getState().toString());
+
+        Map<String, String> manifestInfo = manifestInformation.getFrom(servletContext);
+        status.setImplementationVersion(manifestInfo.get("Implementation-Version"));
+        status.setGitSHA(manifestInfo.get("Built-From-Git-SHA1"));
+
+        status.setCassandraStatus(metricsServiceLifecycle.getCassandraStatus());
+
         return Response.ok(status).build();
     }
 }
