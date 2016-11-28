@@ -33,7 +33,7 @@ import com.google.common.base.Preconditions;
  */
 public class MetricNameService implements MetricFilter {
 
-    public static final String TENANT_ID = "org.hawkular.metrics";
+    public static final String TENANT_ID = "admin";
 
     private static final String separator = ":";
 

@@ -120,7 +120,8 @@ public class MetricsInitializer {
     private Map<String, String> getTags(String metricName) {
         return ImmutableMap.of(
                 "hostname", metricNameService.getHostName(),
-                "baseMetric", metricName
+                "baseMetric", metricName,
+                "component", "org.hawkular.metrics"
         );
     }
 
