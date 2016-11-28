@@ -44,7 +44,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
-import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
