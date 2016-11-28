@@ -99,6 +99,11 @@ public class AlertsServiceMock implements AlertsService {
     }
 
     @Override
+    public Page<Alert> getAlerts(Set<String> arg0, AlertsCriteria arg1, Pager arg2) throws Exception {
+        return null;
+    }
+
+    @Override
     public Event getEvent(String tenantId, String eventId, boolean thin) throws Exception {
 
         return null;
@@ -107,6 +112,11 @@ public class AlertsServiceMock implements AlertsService {
     @Override
     public Page<Event> getEvents(String tenantId, EventsCriteria criteria, Pager pager) throws Exception {
 
+        return null;
+    }
+
+    @Override
+    public Page<Event> getEvents(Set<String> arg0, EventsCriteria arg1, Pager arg2) throws Exception {
         return null;
     }
 
