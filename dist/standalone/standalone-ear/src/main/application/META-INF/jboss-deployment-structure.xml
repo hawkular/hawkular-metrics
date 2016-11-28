@@ -31,6 +31,18 @@
     </dependencies>
   </sub-deployment>
 
+  <sub-deployment name="hawkular-alerts-action-email.war">
+    <dependencies>
+      <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
+    </dependencies>
+  </sub-deployment>
+
+  <sub-deployment name="hawkular-alerts-action-webhook.war">
+    <dependencies>
+      <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
+    </dependencies>
+  </sub-deployment>
+
   <sub-deployment name="hawkular-metrics.war">
     <exclusions>
       <module name="org.jboss.resteasy.resteasy-jackson-provider"/>

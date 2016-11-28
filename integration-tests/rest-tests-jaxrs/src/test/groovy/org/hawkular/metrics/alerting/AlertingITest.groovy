@@ -16,10 +16,12 @@
  */
 package org.hawkular.metrics.alerting
 
+import org.hawkular.alerts.api.model.action.ActionDefinition
 import org.hawkular.alerts.api.model.condition.Condition
 import org.hawkular.alerts.api.model.condition.ThresholdCondition
 import org.hawkular.alerts.api.model.trigger.Mode
 import org.hawkular.alerts.api.model.trigger.Trigger
+import org.hawkular.alerts.api.model.trigger.TriggerAction
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.Ignore
@@ -44,8 +46,22 @@ class AlertingITest extends AlertingITestBase {
         String metricId = "gauge1-" + start;
         String dataId = "hm_g_" + metricId;   // dataId = type-prefix + metricId
 
-        // CREATE trigger using threshold condition
-        def resp = client.get(path: "")
+        // CREATE the action definition
+        String actionPlugin = "email"
+        String actionId = "email-to-admin";
+
+        Map<String, String> actionProperties = new HashMap<>();
+        actionProperties.put("from", "from-alerts@company.org");
+        actionProperties.put("to", "to-admin@company.org");
+        actionProperties.put("cc", "cc-developers@company.org");
+
+        ActionDefinition actionDefinition = new ActionDefinition(null, actionPlugin, actionId, actionProperties);
+
+        def resp = client.post(path: "actions", body: actionDefinition)
+        assert(200 == resp.status || 400 == resp.status)
+
+        // CREATE trigger using threshold condition and action
+        resp = client.get(path: "")
         assertTrue(resp.status == 200 || resp.status == 204)
 
         def triggerId = "AlertingITest-t01";
@@ -69,6 +85,9 @@ class AlertingITest extends AlertingITestBase {
         resp = client.put(path: "triggers/" + triggerId + "/conditions/firing", body: conditions)
         assertEquals(200, resp.status)
         assertEquals(1, resp.data.size())
+
+        // ADD email action (note: expected that e-mail is not sent unless SMTP configured and running on 2525)
+        trigger.addAction(new TriggerAction("email", "email-to-admin"));
 
         // FETCH trigger to validate and get the tenantId
         resp = client.get(path: "triggers/" + triggerId);

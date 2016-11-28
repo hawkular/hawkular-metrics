@@ -190,6 +190,8 @@
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
                     <javaOpt>-Dhawkular-alerts.engine-period=50</javaOpt>
                     <javaOpt>-Dhawkular.metrics.publish-period=50</javaOpt>
+                    <!-- Tests don't require SMTP server but for manual verification of test e-mail, run on 2525 -->
+                    <javaOpt>-Dmail.smtp.port=2525</javaOpt>
                   </javaOpts>
                   <server-config>standalone.xml</server-config>
                 </configuration>
