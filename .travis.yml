@@ -33,7 +33,7 @@ addons:
     build_command: ./mvnw -DskipTests=true compile
     branch_pattern: coverity_scan
 cache:
-  directories:
+  directories: # keep in sync with CACHED_DIRECTORIES below
   - $HOME/.m2/repository
   - $HOME/.m2/wrapper
   - $HOME/cassandra-downloads
@@ -49,6 +49,18 @@ install:
 - git fetch origin --unshallow
 script:
 - ./mvnw verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=DEBUG -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -Dtravis -B
+before_cache:
+# Clean the cached directories once their size exceeds the space left on the partition.
+# This is important because Travis zips the cached directories to a temporary file on the same partition.
+# Note that while we consider the summed size of all cached dirs, we remove only those ones that tend to grow over time
+- CACHED_DIRECTORIES=("$HOME/.m2/repository" "$HOME/.m2/wrapper" $HOME/cassandra-downloads)
+- availBytes=$(df -P . | tail -1 | awk '{print $4}')
+- cachedBytes=$(du -cs "${CACHED_DIRECTORIES[@]}" | tail -1 | awk '{print $1}')
+- echo "Checking if the size of directories to cache ${cachedBytes} Bytes exceeds the free space ${availBytes} Bytes left on the current partition"
+- if [ "${cachedBytes}" -gt "${availBytes}" ] ; then
+    echo "Cleaning the cached dirs (${cachedBytes} Bytes) because their size exceeds the free space (${availBytes} Bytes) left on the current partition"
+    rm -Rf "$HOME/.m2"
+  fi
 after_failure: bash .travis.diagnose.sh
 after_success:
 - PROJECT_VERSION=`./mvnw --batch-mode org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version | grep -v '\['`
