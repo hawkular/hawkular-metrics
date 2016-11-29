@@ -19,7 +19,7 @@
 set -x
 
 # generate the docs
-mvn clean compile -Pdocgen -DskipTests -Dcheckstyle.skip -Dlicense.skip
+./mvnw clean compile -Pdocgen -DskipTests -Dcheckstyle.skip -Dlicense.skip
 
 FILE_NAME="rest-metrics.adoc"
 FILE_PATH="api/metrics-api-jaxrs/target/generated/$FILE_NAME"

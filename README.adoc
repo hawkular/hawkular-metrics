@@ -66,10 +66,10 @@ IMPORTANT: A running Cassandra cluster, which can be a single node, is required 
 ----
 git clone git@github.com:hawkular/hawkular-metrics.git
 cd hawkular-metrics
-mvn install
+./mvnw install
 ----
 
-TIP: If you only want to build the sources without a running C* cluster, you can run `mvn install -DskipTests`.
+TIP: If you only want to build the sources without a running C* cluster, you can run `./mvnw install -DskipTests`.
 
 == Setting up Cassandra for development or testing
 
