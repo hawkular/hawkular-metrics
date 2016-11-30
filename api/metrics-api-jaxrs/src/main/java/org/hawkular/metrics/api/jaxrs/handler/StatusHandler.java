@@ -19,6 +19,7 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
+import org.hawkular.metrics.model.CassandraStatus;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -61,6 +63,27 @@ public class StatusHandler {
         State metricState = metricsServiceLifecycle.getState();
         status.put(METRICSSERVICE_NAME, metricState.toString());
         status.putAll(manifestInformation.getFrom(servletContext));
+
+        List<CassandraStatus> cassandraStatuses = metricsServiceLifecycle.getCassandraStatus();
+        int nodesUp = 0;
+        int nodesDown = 0;
+
+        for (CassandraStatus cassandraStatus : cassandraStatuses) {
+            if (cassandraStatus.getStatus().equals("up")) {
+                nodesUp++;
+            } else {
+                nodesDown++;
+            }
+        }
+
+        if (nodesUp == cassandraStatuses.size()) {
+            status.put("Cassandra", "up");
+        } else if (nodesDown == cassandraStatuses.size()) {
+            status.put("Cassandra", "down");
+        } else {
+            status.put("Cassandra", "degraded");
+        }
+
         return Response.ok(status).build();
     }
 }
