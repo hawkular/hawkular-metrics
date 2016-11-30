@@ -62,7 +62,7 @@ public class StatusHandler {
         Map<String, String> status = new HashMap<>();
         State metricState = metricsServiceLifecycle.getState();
         status.put(METRICSSERVICE_NAME, metricState.toString());
-        status.putAll(manifestInformation.getFrom(servletContext));
+        status.putAll(manifestInformation.getAttributes());
 
         List<CassandraStatus> cassandraStatuses = metricsServiceLifecycle.getCassandraStatus();
         int nodesUp = 0;

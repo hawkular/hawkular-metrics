@@ -60,7 +60,7 @@ public class AdminHandler {
         MetricsServiceLifecycle.State metricState = metricsServiceLifecycle.getState();
         status.setMetricsServiceStatus(metricsServiceLifecycle.getState().toString());
 
-        Map<String, String> manifestInfo = manifestInformation.getFrom(servletContext);
+        Map<String, String> manifestInfo = manifestInformation.getAttributes();
         status.setImplementationVersion(manifestInfo.get("Implementation-Version"));
         status.setGitSHA(manifestInfo.get("Built-From-Git-SHA1"));
 
