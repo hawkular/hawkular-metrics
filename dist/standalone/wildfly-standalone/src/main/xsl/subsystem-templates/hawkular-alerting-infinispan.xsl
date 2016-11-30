@@ -31,7 +31,7 @@
         <local-cache name="publish"/>
         <local-cache name="schema"/>
         <local-cache name="dataIds"/>
-        <local-cache name="locks"/>
+        <local-cache name="globalActions"/>
       </cache-container>
       <cache-container name="hawkular-metrics" default-cache="triggers" statistics-enabled="true">
         <local-cache name="locks"/>
