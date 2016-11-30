@@ -184,9 +184,11 @@ public class MetricsServiceImpl implements MetricsService {
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
     /**
-     * Tools that do tagQueryParsing and execution
+     * Tools that do tag queries and execution
      */
-    private TagQueryParser tagQueryParser;
+    private SimpleTagQueryParser simpleTagQueryParser;
+
+    private JsonTagQueryParser jsonTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -284,7 +286,8 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        tagQueryParser = new TagQueryParser(this.dataAccess, this);
+        simpleTagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
+        jsonTagQueryParser = new JsonTagQueryParser(this.dataAccess, this);
     }
 
     void loadDataRetentions() {
@@ -540,9 +543,39 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-                                                            Map<String, String> tagsQueries) {
-        return tagQueryParser.findMetricsWithFilters(tenantId, metricType, tagsQueries)
+            Map<String, String> tagQueries) {
+        Map<String, String> simpleTagQueries = new HashMap<String, String>();
+        Map<String, String> jsonTagQueries = new HashMap<String, String>();
+
+        for (Map.Entry<String, String> e : tagQueries.entrySet()) {
+            if (e.getValue().startsWith(JsonTagQueryParser.JSON_PATH_PREFIX)) {
+                jsonTagQueries.put(e.getKey(), e.getValue());
+            } else {
+                simpleTagQueries.put(e.getKey(), e.getValue());
+            }
+        }
+
+        Observable<Metric<T>> simpleTagMetrics = null;
+        if (!simpleTagQueries.isEmpty()) {
+            simpleTagMetrics = simpleTagQueryParser
+                .findMetricsWithFilters(tenantId, metricType, simpleTagQueries)
                 .map(tMetric -> (Metric<T>) tMetric);
+        }
+
+        Observable<Metric<T>> jsonTagMetrics = null;
+        if (!jsonTagQueries.isEmpty()) {
+            jsonTagMetrics = jsonTagQueryParser
+                .findMetricsWithFilters(tenantId, metricType, jsonTagQueries)
+                .map(tMetric -> (Metric<T>) tMetric);
+        }
+
+        if (simpleTagMetrics != null && jsonTagMetrics != null) {
+            return simpleTagMetrics.concatWith(jsonTagMetrics).distinct();
+        } else if (simpleTagMetrics != null) {
+            return simpleTagMetrics;
+        } else {
+            return jsonTagMetrics;
+        }
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
@@ -554,7 +587,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
                                     Map<String, String> tagsQueries) {
-        return tagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
+        return simpleTagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
     }
 
     @Override
@@ -567,7 +600,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
-        return tagQueryParser.getTagNames(tenantId, metricType, filter);
+        return simpleTagQueryParser.getTagNames(tenantId, metricType, filter);
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,

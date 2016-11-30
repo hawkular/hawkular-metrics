@@ -41,12 +41,12 @@ import rx.functions.Func1;
  *
  * @author Michael Burman
  */
-public class TagQueryParser {
+public class SimpleTagQueryParser {
 
     private DataAccess dataAccess;
     private MetricsService metricsService;
 
-    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
+    public SimpleTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
         this.dataAccess = dataAccess;
         this.metricsService = metricsService;
     }
