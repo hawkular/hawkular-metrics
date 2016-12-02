@@ -39,6 +39,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPOPRTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -78,6 +79,9 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
+import org.hawkular.metrics.core.dropwizard.MetricsInitializer;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
@@ -235,6 +239,11 @@ public class MetricsServiceLifecycle {
     private String compressionJobEnabled;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_REPOPRTING_HOSTNAME)
+    private String metricsReportingHostname;
+
+    @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
@@ -360,7 +369,21 @@ public class MetricsServiceLifecycle {
                 jmxReporter = JmxReporter.forRegistry(metricRegistry).inDomain("hawkular.metrics").build();
                 jmxReporter.start();
             }
+
+            MetricNameService metricNameService;
+            if (metricsReportingHostname == null) {
+                metricNameService = new MetricNameService();
+            } else {
+                metricNameService = new MetricNameService(metricsReportingHostname);
+            }
+            metricsService.setMetricNameService(metricNameService);
+
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
+
+            new MetricsInitializer(metricRegistry, metricsService, metricNameService).run();
+
+            DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
+            reporter.start(30, SECONDS);
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 

@@ -22,7 +22,6 @@ import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.core.service.Order.ASC;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 import static org.hawkular.metrics.model.Utils.isValidTimeRange;
@@ -44,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -154,6 +154,8 @@ public class MetricsServiceImpl implements MetricsService {
     private DataAccess dataAccess;
 
     private ConfigurationService configurationService;
+
+    private MetricNameService metricNameService = new MetricNameService();
 
     private MetricRegistry metricRegistry;
 
@@ -317,17 +319,17 @@ public class MetricsServiceImpl implements MetricsService {
 
     private void initMetrics() {
         dataPointInsertMeters = ImmutableMap.<MetricType<?>, Meter> builder()
-                .put(GAUGE, metricRegistry.meter("gauge-inserts"))
-                .put(AVAILABILITY, metricRegistry.meter("availability-inserts"))
-                .put(COUNTER, metricRegistry.meter("counter-inserts"))
-                .put(COUNTER_RATE, metricRegistry.meter("gauge-inserts"))
-                .put(STRING, metricRegistry.meter("string-inserts"))
+                .put(GAUGE, metricRegistry.meter(metricNameService.createMetricName("gauge-inserts")))
+                .put(AVAILABILITY, metricRegistry.meter(metricNameService.createMetricName("availability-inserts")))
+                .put(COUNTER, metricRegistry.meter(metricNameService.createMetricName("counter-inserts")))
+                .put(STRING, metricRegistry.meter(metricNameService.createMetricName("string-inserts")))
                 .build();
         dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer> builder()
-                .put(GAUGE, metricRegistry.timer("gauge-read-latency"))
-                .put(AVAILABILITY, metricRegistry.timer("availability-read-latency"))
-                .put(COUNTER, metricRegistry.timer("counter-read-latency"))
-                .put(STRING, metricRegistry.timer("string-read-latency"))
+                .put(GAUGE, metricRegistry.timer(metricNameService.createMetricName("gauge-read-latency")))
+                .put(AVAILABILITY, metricRegistry.timer(metricNameService.createMetricName(
+                        "availability-read-latency")))
+                .put(COUNTER, metricRegistry.timer(metricNameService.createMetricName("counter-read-latency")))
+                .put(STRING, metricRegistry.timer(metricNameService.createMetricName("string-read-latency")))
                 .build();
     }
 
@@ -410,6 +412,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setMetricNameService(MetricNameService metricNameService) {
+        this.metricNameService = metricNameService;
     }
 
     public void setDefaultTTL(int defaultTTL) {
