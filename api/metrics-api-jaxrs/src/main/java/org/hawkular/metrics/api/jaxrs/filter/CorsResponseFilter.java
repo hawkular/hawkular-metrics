@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,21 +33,16 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.api.jaxrs.util.OriginValidation;
 
 /**
  * @author Stefan Negrea
  */
 @Provider
 public class CorsResponseFilter implements ContainerResponseFilter {
-
-    @Inject
-    OriginValidation validator;
 
     @Inject
     @Configurable
@@ -63,21 +58,18 @@ public class CorsResponseFilter implements ContainerResponseFilter {
             return;
         }
 
-        if (validator.isAllowedOrigin(requestOrigin)) {
-            MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
-            responseHeaders.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
+        // CORS validation already checked on request filter, see CorsRequestFilter
+        MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        responseHeaders.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
 
-            if (extraAccesControlAllowHeaders != null) {
-                responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS,
-                        DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + "," + extraAccesControlAllowHeaders.trim());
-            } else {
-                responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
-            }
+        if (extraAccesControlAllowHeaders != null) {
+            responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS,
+                    DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + "," + extraAccesControlAllowHeaders.trim());
         } else {
-            responseContext.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+            responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
         }
     }
 }
