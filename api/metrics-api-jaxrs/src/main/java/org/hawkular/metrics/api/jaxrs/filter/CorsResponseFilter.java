@@ -17,14 +17,6 @@
 package org.hawkular.metrics.api.jaxrs.filter;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_HEADERS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_METHODS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_ALLOW_ORIGIN;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ACCESS_CONTROL_MAX_AGE;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS;
-import static org.hawkular.metrics.api.jaxrs.util.Headers.ORIGIN;
 
 import java.io.IOException;
 
@@ -32,9 +24,9 @@ import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 
+import org.hawkular.jaxrs.filter.cors.CorsFilters;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 
@@ -52,24 +44,9 @@ public class CorsResponseFilter implements ContainerResponseFilter {
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
             throws IOException {
-
-        String requestOrigin = requestContext.getHeaderString(ORIGIN);
-        if (requestOrigin == null) {
-            return;
-        }
-
-        // CORS validation already checked on request filter, see CorsRequestFilter
-        MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
-        responseHeaders.add(ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
-        responseHeaders.add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-        responseHeaders.add(ACCESS_CONTROL_ALLOW_METHODS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
-        responseHeaders.add(ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
-
-        if (extraAccesControlAllowHeaders != null) {
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS,
-                    DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + "," + extraAccesControlAllowHeaders.trim());
-        } else {
-            responseHeaders.add(ACCESS_CONTROL_ALLOW_HEADERS, DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
-        }
+        CorsFilters.filterResponse(
+                requestContext,
+                responseContext,
+                extraAccesControlAllowHeaders);
     }
 }
