@@ -570,7 +570,7 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         if (simpleTagMetrics != null && jsonTagMetrics != null) {
-            return simpleTagMetrics.concatWith(jsonTagMetrics).distinct();
+            return simpleTagMetrics.mergeWith(jsonTagMetrics).distinct();
         } else if (simpleTagMetrics != null) {
             return simpleTagMetrics;
         } else {

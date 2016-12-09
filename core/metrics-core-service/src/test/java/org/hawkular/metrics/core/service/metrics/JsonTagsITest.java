@@ -20,11 +20,14 @@ package org.hawkular.metrics.core.service.metrics;
 import static java.util.Arrays.asList;
 
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
+import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -37,43 +40,128 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
 
+/**
+ *
+ * @author Stefan Negrea
+ */
 public class JsonTagsITest extends BaseMetricsITest {
 
     @Test
     public void tagValueSearch() throws Exception {
-        String tenantId = "t1tag";
+        String tenantId = "jsonT1Tag";
 
         createTagMetrics(tenantId);
 
+        //JSON PATH queries
         List<Metric<Double>> gauges = metricsService
                 .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.foo"))
-                .toList()
+                .toSortedList((a, b) -> {
+                    return a.getId().compareTo(b.getId());
+                })
                 .toBlocking().lastOrDefault(null);
-        assertEquals(gauges.size(), 3, "Metrics m1, m2, m3 should have been returned");
+        assertEquals(gauges.size(), 3);
+        assertMetricListById(gauges, "m1", "m2", "m3");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$..foo"))
+                .toSortedList((a, b) -> {
+                    return a.getId().compareTo(b.getId());
+                })
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 3);
+        assertMetricListById(gauges, "m1", "m2", "m3");
 
         gauges = metricsService
                 .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$[?(@.foo == \"2\")]"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
-        assertEquals(gauges.size(), 1, "Metric m2 should have been returned");
+        assertEquals(gauges.size(), 1);
         assertEquals(gauges.get(0).getId(), "m2");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$[?(@.foo == 1)]"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 1);
+        assertEquals(gauges.get(0).getId(), "m1");
 
         gauges = metricsService
                 .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.foo.bar"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
-        assertEquals(gauges.size(), 1, "Metric m3 should have been returned");
+        assertEquals(gauges.size(), 1);
         assertEquals(gauges.get(0).getId(), "m3");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.foo.bar.foo"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 0);
+
+        // Request both regex and JSON Path matches
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.foo", "a2", "3"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 4);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "3", "a1", "json:$.foo"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 4);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.bar.foo", "a2", "3"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 1);
+        assertMetricListById(gauges, "m4");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$.bar"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 0);
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "json:$..bar"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 1);
+        assertMetricListById(gauges, "m3");
 
         List<Metric<AvailabilityType>> availability = metricsService
                 .findMetricsWithFilters(tenantId, AVAILABILITY, ImmutableMap.of("a1", "json:$.foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
-        assertEquals(availability.size(), 1, "Metric a1 should have been returned");
+        assertEquals(availability.size(), 1);
         assertEquals(availability.get(0).getId(), "a1");
+
+        List<Metric<Long>> counters = metricsService
+                .findMetricsWithFilters(tenantId, COUNTER, ImmutableMap.of("a1", "json:$..foo"))
+                .toList()
+                .toBlocking().lastOrDefault(null);
+        assertEquals(counters.size(), 1);
+        assertEquals(counters.get(0).getId(), "c1");
     }
 
-    protected List<Metric<?>> createTagMetrics(String tenantId) throws Exception {
+    private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
+        for (String expectedMetricId : expectedMetricIds) {
+            boolean found = false;
+            for (Metric<T> actualMetric : actualMetrics) {
+                if (actualMetric.getId().equals(expectedMetricId)) {
+                    found = true;
+                    break;
+                }
+            }
+            assertTrue(found, "Metric " + expectedMetricId + " was not found in the list of returned metrics.");
+        }
+    }
+
+    protected Map<String, Metric<?>> createTagMetrics(String tenantId) throws Exception {
         ImmutableList<MetricId<?>> ids = ImmutableList.of(
                 new MetricId<>(tenantId, GAUGE, "m1"),
                 new MetricId<>(tenantId, GAUGE, "m2"),
@@ -88,11 +176,12 @@ public class JsonTagsITest extends BaseMetricsITest {
                 new MetricId<>(tenantId, GAUGE, "mE"),
                 new MetricId<>(tenantId, GAUGE, "mF"),
                 new MetricId<>(tenantId, GAUGE, "mG"),
-                new MetricId<>(tenantId, AVAILABILITY, "a1"));
+                new MetricId<>(tenantId, AVAILABILITY, "a1"),
+                new MetricId<>(tenantId, COUNTER, "c1"));
 
         @SuppressWarnings("unchecked")
         ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
-                ImmutableMap.of("a1", "{\"foo\":1}"),
+                ImmutableMap.of("a1", "{\"foo\":1}", "a2", "1"),
                 ImmutableMap.of("a1", "{\"foo\":2}"),
                 ImmutableMap.of("a1", "{\"foo\": {\"bar\":3}}"),
                 ImmutableMap.of("a1", "2", "a2", "3"),
@@ -105,7 +194,8 @@ public class JsonTagsITest extends BaseMetricsITest {
                 ImmutableMap.of("owner", "hede"),
                 ImmutableMap.of("owner", "hades"),
                 ImmutableMap.of("owner", "had"),
-                ImmutableMap.of("a1", "{\"foo\": 3}"));
+                ImmutableMap.of("a1", "{\"foo\": 3}"),
+                ImmutableMap.of("a1", "{\"foo\": 5}"));
         assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
 
         // Create the metrics
@@ -123,6 +213,6 @@ public class JsonTagsITest extends BaseMetricsITest {
         Observable.from(metricsToAdd)
                 .subscribe(m -> metricsService.createMetric(m, false).toBlocking().lastOrDefault(null));
 
-        return metricsToAdd;
+        return Observable.from(metricsToAdd).toMap(e -> e.getId()).toBlocking().lastOrDefault(null);
     }
 }

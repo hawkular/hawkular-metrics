@@ -37,9 +37,9 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider;
 import rx.Observable;
 
 /**
- * Very simple query optimizer and parser for the tags query language
+ * JSON Path based tag query parser
  *
- * @author Michael Burman
+ * @author Stefan Negrea
  */
 public class JsonTagQueryParser {
 
