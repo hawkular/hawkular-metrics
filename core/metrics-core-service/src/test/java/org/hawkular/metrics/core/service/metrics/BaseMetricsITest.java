@@ -18,6 +18,7 @@
 package org.hawkular.metrics.core.service.metrics;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -222,6 +223,17 @@ public abstract class BaseMetricsITest extends BaseITest {
         }
 
         assertEquals(actual, expected, "The metrics tags index entries do not match");
+    }
+
+    protected void assertDataRetentionsIndexContains(String tenantId, MetricType<?> type, Set<Retention> expected)
+        throws Exception {
+        ResultSetFuture queryFuture = dataAccess.findDataRetentions(tenantId, type);
+        ListenableFuture<Set<Retention>> retentionsFuture = Futures.transform(queryFuture,
+                new DataRetentionsMapper(tenantId, type));
+        Set<Retention> actual = getUninterruptibly(retentionsFuture);
+
+        assertTrue(actual.containsAll(expected), "Expected data retentions index to contain " + expected +
+                " but found " + actual);
     }
 
     protected void assertDataRetentionsIndexMatches(String tenantId, MetricType<?> type, Set<Retention> expected)
