@@ -72,7 +72,7 @@ public class MetricsInitializer {
 
         metricRegistry.getMeters(metricNameService).entrySet().forEach(entry -> {
             String tenantId = MetricNameService.TENANT_ID;
-            String metricName = metricNameService.getMetricName(entry.getKey());
+            String metricName = entry.getKey();
             Map<String, String> tags = getTags(metricName);
 
             gaugeMetrics.add(new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-1min"), tags));
@@ -85,7 +85,7 @@ public class MetricsInitializer {
 
         metricRegistry.getTimers(metricNameService).entrySet().forEach(entry -> {
             String tenantId = MetricNameService.TENANT_ID;
-            String metricName = metricNameService.getMetricName(entry.getKey());
+            String metricName = entry.getKey();
             Map<String, String> tags = getTags(metricName);
 
             gaugeMetrics.add(new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-1min"), tags));
