@@ -27,6 +27,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_C
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_CONN_HOST;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_QUEUE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_REQUEST_CONN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REQUEST_TIMEOUT;
@@ -172,6 +173,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(CASSANDRA_MAX_REQUEST_CONN)
     private String maxRequestsPerConnection;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_MAX_QUEUE_SIZE)
+    private String maxQueueSize;
 
     @Inject
     @Configurable
@@ -487,11 +493,21 @@ public class MetricsServiceLifecycle {
         } catch (NumberFormatException e) {
             driverPageSize = Integer.parseInt(PAGE_SIZE.defaultValue());
         }
+        int driverMaxQueueSize;
+        try {
+            driverMaxQueueSize = Integer.parseInt(maxQueueSize);
+        } catch (NumberFormatException e) {
+            log.warnf("Invalid value [%s] for Cassandra driver max queue size", maxQueueSize);
+            driverMaxQueueSize = Integer.parseInt(CASSANDRA_MAX_QUEUE_SIZE.defaultValue());
+        }
         clusterBuilder.withPoolingOptions(new PoolingOptions()
                 .setMaxConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
+                .setCoreConnectionsPerHost(HostDistance.LOCAL, newMaxConnections)
                 .setMaxConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
+                .setCoreConnectionsPerHost(HostDistance.REMOTE, newMaxConnections)
                 .setMaxRequestsPerConnection(HostDistance.LOCAL, newMaxRequests)
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, newMaxRequests)
+                .setMaxQueueSize(driverMaxQueueSize)
         ).withSocketOptions(new SocketOptions()
                 .setReadTimeoutMillis(driverRequestTimeout)
                 .setConnectTimeoutMillis(driverConnectionTimeout)
