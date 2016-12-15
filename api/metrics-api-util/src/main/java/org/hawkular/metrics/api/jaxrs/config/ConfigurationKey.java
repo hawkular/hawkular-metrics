@@ -41,6 +41,7 @@ public enum ConfigurationKey {
             false),
     CASSANDRA_MAX_REQUEST_CONN("hawkular.metrics.cassandra.max-requests-per-connection", "5000",
             "CASSANDRA_MAX_REQUEST_CONN", false),
+    CASSANDRA_MAX_QUEUE_SIZE("hawkular.metrics.cassandra.max-queue-size", "256", "CASSANDRA_MAX_QUEUE_SIZE", false),
     CASSANDRA_REQUEST_TIMEOUT("hawkular.metrics.cassandra.request-timeout", "12000", "CASSANDRA_REQUEST_TIMEOUT",
             false),
     CASSANDRA_CONNECTION_TIMEOUT("hawkular.metrics.cassandra.connection-timeout", "5000",
