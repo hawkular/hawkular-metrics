@@ -55,7 +55,7 @@ public class JsonTagsITest extends BaseMetricsITest {
 
         //JSON PATH queries
         List<Metric<Double>> gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.foo"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.foo"))
                 .toSortedList((a, b) -> {
                     return a.getId().compareTo(b.getId());
                 })
@@ -64,7 +64,7 @@ public class JsonTagsITest extends BaseMetricsITest {
         assertMetricListById(gauges, "m1", "m2", "m3");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$..foo"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$..foo"))
                 .toSortedList((a, b) -> {
                     return a.getId().compareTo(b.getId());
                 })
@@ -73,83 +73,85 @@ public class JsonTagsITest extends BaseMetricsITest {
         assertMetricListById(gauges, "m1", "m2", "m3");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$[?(@.foo == \"2\")]"))
+                .findMetricsWithFilters(tenantId, GAUGE,
+                        ImmutableListMultimap.of("a1", "jsonpath:$[?(@.foo == \"2\")]"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertEquals(gauges.get(0).getId(), "m2");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$[?(@.foo == 1)]"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$[?(@.foo == 1)]"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertEquals(gauges.get(0).getId(), "m1");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.foo.bar"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.foo.bar"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertEquals(gauges.get(0).getId(), "m3");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.foo.bar.foo"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.foo.bar.foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0);
 
         // Request both regex and JSON Path matches, order does not matter
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.foo", "a2", "3"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.foo", "a2", "3"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertMetricListById(gauges, "m1");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a2", "3", "a1", "json:$.foo"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a2", "3", "a1", "jsonpath:$.foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertMetricListById(gauges, "m1");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.bar.foo", "a2", "3"))
+                .findMetricsWithFilters(tenantId, GAUGE,
+                        ImmutableListMultimap.of("a1", "jsonpath:$.bar.foo", "a2", "3"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0);
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$.bar"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.bar"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0);
 
         gauges = metricsService
                 .findMetricsWithFilters(tenantId, GAUGE,
-                        ImmutableListMultimap.of("a1", "json:$..bar", "a1", "json:$..foo"))
+                        ImmutableListMultimap.of("a1", "jsonpath:$..bar", "a1", "jsonpath:$..foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertMetricListById(gauges, "m3");
 
         gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "json:$..bar"))
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$..bar"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1);
         assertMetricListById(gauges, "m3");
 
         List<Metric<AvailabilityType>> availability = metricsService
-                .findMetricsWithFilters(tenantId, AVAILABILITY, ImmutableListMultimap.of("a1", "json:$.foo"))
+                .findMetricsWithFilters(tenantId, AVAILABILITY, ImmutableListMultimap.of("a1", "jsonpath:$.foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(availability.size(), 1);
         assertEquals(availability.get(0).getId(), "a1");
 
         List<Metric<Long>> counters = metricsService
-                .findMetricsWithFilters(tenantId, COUNTER, ImmutableListMultimap.of("a1", "json:$..foo"))
+                .findMetricsWithFilters(tenantId, COUNTER, ImmutableListMultimap.of("a1", "jsonpath:$..foo"))
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(counters.size(), 1);

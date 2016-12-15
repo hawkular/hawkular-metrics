@@ -43,7 +43,7 @@ import rx.Observable;
  */
 public class JsonTagQueryParser {
 
-    public static final String JSON_PATH_PREFIX = "json:";
+    public static final String JSON_PATH_PREFIX = "jsonpath:";
     private final int JSON_PATH_PREFIX_LENGTH = JSON_PATH_PREFIX.length();
 
     private DataAccess dataAccess;

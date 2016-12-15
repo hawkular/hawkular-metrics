@@ -75,56 +75,56 @@ class JsonTagsITest extends RESTTest {
 
       //match 'a1' JSON tags that have a top property named "foo"
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$.foo'],
+        query: [tags: 'a1:jsonpath:$.foo'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm3')
 
       //match 'a1' JSON tags that have a property named 'bar' at any level of the JSON tree
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..bar'],
+        query: [tags: 'a1:jsonpath:$..bar'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm4', 'm5')
 
       //match 'a1' JSON tags that have a property named 'foo'.'bar' at any level of the JSON tree
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..foo.bar'],
+        query: [tags: 'a1:jsonpath:$..foo.bar'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
 
       //match 'a1' JSON tags that have a property 'foo'.'bar' != 3 at any level of the JSON tree
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..foo[?(@.bar != 3)]'],
+        query: [tags: 'a1:jsonpath:$..foo[?(@.bar != 3)]'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3')
 
       //match 'a1' JSON tags that have a property 'foo'.'bar' == 3 at any level of the JSON tree
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..foo[?(@.bar == 3)]'],
+        query: [tags: 'a1:jsonpath:$..foo[?(@.bar == 3)]'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm5')
 
       //match 'a1' JSON tags that have a property 'bar' == 'ab' or 'bar' == 3 at any level of the JSON tree
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..[?(@.bar == \'ab\' || @.bar == 3)]'],
+        query: [tags: 'a1:jsonpath:$..[?(@.bar == \'ab\' || @.bar == 3)]'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm4', 'm5')
 
       //match 'a1' JSON tags that have a property named 'bar' as a child of 'fizz', 'fizz' being a top level property
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$.fizz..bar'],
+        query: [tags: 'a1:jsonpath:$.fizz..bar'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm5')
 
       //match 'a1' JSON tags that have a property 'bar' == 3 as a child of 'fizz', 'fizz' being a top level property
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$.fizz..[?(@.bar == 3)]'],
+        query: [tags: 'a1:jsonpath:$.fizz..[?(@.bar == 3)]'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm5')
@@ -132,27 +132,27 @@ class JsonTagsITest extends RESTTest {
       //match 'a1' JSON tags that have a property 'bar' == 3 as a child of 'fizz', 'fizz' being a top level property
       // and also have a regex filter for c1 tag, no metrics satisfy both of these conditions
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$.fizz..[?(@.bar == 3)],c1:*'],
+        query: [tags: 'a1:jsonpath:$.fizz..[?(@.bar == 3)],c1:*'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(204, response.status)
 
       //match 'a1' JSON tags that have a property 'foo' anywhere in the Json
       // and also have a regex filter for b1 == C
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..foo,b1:C'],
+        query: [tags: 'a1:jsonpath:$..foo,b1:C'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'b1:C,a1:json:$..foo'],
+        query: [tags: 'b1:C,a1:jsonpath:$..foo'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5')
 
       //have two matchers for the same tag key
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: 'a1:json:$..foo,a1:json:$..bar'],
+        query: [tags: 'a1:jsonpath:$..foo,a1:jsonpath:$..bar'],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
