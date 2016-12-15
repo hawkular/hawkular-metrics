@@ -32,6 +32,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
+import com.google.common.collect.Multimap;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -71,12 +72,12 @@ public class SimpleTagQueryParser {
          * @param tagsQuery User's TagQL
          * @return TreeMap with Long key indicating query cost (lower is better)
          */
-        public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Map<String, String> tagsQuery) {
+        public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Multimap<String, String> tagsQuery) {
             Map<Long, List<Map.Entry<String, String>>> costSortedMap = new TreeMap<>();
             costSortedMap.put(GROUP_B_COST, new ArrayList<>());
             costSortedMap.put(GROUP_C_COST, new ArrayList<>());
 
-            for (Map.Entry<String, String> tagQuery : tagsQuery.entrySet()) {
+            for (Map.Entry<String, String> tagQuery : tagsQuery.entries()) {
                 if(tagQuery.getKey().startsWith("!")) {
                     // In-memory sorted query, requires fetching all the definitions
                     List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_C_COST);
@@ -93,7 +94,7 @@ public class SimpleTagQueryParser {
     }
 
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
-                                                            Map<String, String> tagsQueries) {
+            Multimap<String, String> tagsQueries) {
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
@@ -144,10 +145,10 @@ public class SimpleTagQueryParser {
     }
 
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
-                                                             Map<String, String> tagsQueries) {
+            Multimap<String, String> tagsQueries) {
 
         // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
-        return Observable.from(tagsQueries.entrySet())
+        return Observable.from(tagsQueries.entries())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                         .filter(typeFilter(metricType, 1))
                         .filter(tagValueFilter(e.getValue(), 3))

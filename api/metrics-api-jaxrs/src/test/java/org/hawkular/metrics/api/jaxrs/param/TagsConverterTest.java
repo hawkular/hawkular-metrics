@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@ package org.hawkular.metrics.api.jaxrs.param;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import org.hawkular.metrics.model.param.Tags;
 import org.junit.Test;
@@ -28,7 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 
 /**
  * @author Thomas Segismont
@@ -40,10 +39,11 @@ public class TagsConverterTest {
     public static Iterable<Object[]> params() {
         return Arrays.asList(
                 new Object[][]{
-                        {"", new Tags(Collections.emptyMap())},
-                        {"1:2", new Tags(ImmutableMap.of("1", "2"))},
-                        {"a:b,c:defg", new Tags(ImmutableMap.of("a", "b", "c", "defg"))},
-                        {"3:b,c:d4 efg ,   7 : 2", new Tags(ImmutableMap.of("3", "b", "c", "d4 efg ", "   7 ", " 2"))},
+                        { "", new Tags(ImmutableListMultimap.of()) },
+                        { "1:2", new Tags(ImmutableListMultimap.of("1", "2")) },
+                        { "a:b,c:defg", new Tags(ImmutableListMultimap.of("a", "b", "c", "defg")) },
+                        { "3:b,c:d4 efg ,   7 : 2",
+                                new Tags(ImmutableListMultimap.of("3", "b", "c", "d4 efg ", "   7 ", " 2")) },
                 }
         );
     }

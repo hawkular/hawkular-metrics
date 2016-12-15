@@ -18,7 +18,6 @@ package org.hawkular.metrics.core.service;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
@@ -26,6 +25,7 @@ import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
+import com.google.common.collect.Multimap;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
@@ -77,13 +77,15 @@ public class JsonTagQueryParser {
     }
 
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
-            Map<String, String> jsonTagQueries) {
-        return Observable.from(jsonTagQueries.entrySet())
+            Multimap<String, String> jsonTagQueries) {
+        return Observable.from(jsonTagQueries.entries())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                         .filter(r -> jsonPathFilter(r.getString(3), e.getValue()))
                         .compose(new TagsIndexRowTransformer<>(metricType))
                         .compose(new ItemsToSetTransformer<>()))
                 .flatMap(Observable::from)
+                .groupBy(m -> m)
+                .flatMap(s -> s.skip(jsonTagQueries.size() - 1).take(1))
                 .flatMap(metricsService::findMetric);
     }
 

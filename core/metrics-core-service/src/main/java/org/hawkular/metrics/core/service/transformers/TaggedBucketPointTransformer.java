@@ -32,6 +32,8 @@ import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Percentile;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 
+import com.google.common.collect.Multimap;
+
 import rx.Observable;
 import rx.Observable.Transformer;
 
@@ -41,10 +43,10 @@ import rx.Observable.Transformer;
 public class TaggedBucketPointTransformer
         implements Transformer<DataPoint<? extends Number>, Map<String, TaggedBucketPoint>> {
 
-    private final Map<String, String> tags;
+    private final Multimap<String, String> tags;
     private final List<Percentile> percentiles;
 
-    public TaggedBucketPointTransformer(Map<String, String> tags, List<Percentile> percentiles) {
+    public TaggedBucketPointTransformer(Multimap<String, String> tags, List<Percentile> percentiles) {
         this.tags = tags;
         this.percentiles = percentiles;
     }
@@ -52,7 +54,7 @@ public class TaggedBucketPointTransformer
     @Override
     public Observable<Map<String, TaggedBucketPoint>> call(Observable<DataPoint<? extends Number>> dataPoints) {
         Predicate<DataPoint<? extends Number>> filter = dataPoint -> true;
-        for (Entry<String, String> entry : tags.entrySet()) {
+        for (Entry<String, String> entry : tags.entries()) {
             boolean positive = (!entry.getValue().startsWith("!"));
             Pattern pattern = filterPattern(entry.getValue());
             filter = filter.and(dataPoint -> {
@@ -60,14 +62,16 @@ public class TaggedBucketPointTransformer
                         (positive == pattern.matcher(dataPoint.getTags().get(entry.getKey())).matches());
             });
         }
+
         return dataPoints
                 .filter(filter::test)
-                .groupBy(dataPoint -> tags.entrySet().stream().collect(
+                .groupBy(dataPoint -> tags.entries().stream().collect(
                         toMap(Entry::getKey, e -> dataPoint.getTags().get(e.getKey()))))
                 .flatMap(group -> group.collect(() -> new TaggedDataPointCollector(group.getKey(), percentiles),
                         TaggedDataPointCollector::increment))
                 .map(TaggedDataPointCollector::toBucketPoint)
                 .toMap(bucketPoint -> bucketPoint.getTags().entrySet().stream().map(e ->
                         e.getKey() + ":" + e.getValue()).collect(joining(",")));
+
     }
 }

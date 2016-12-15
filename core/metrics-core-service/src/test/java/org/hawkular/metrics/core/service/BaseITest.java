@@ -159,4 +159,9 @@ public abstract class BaseITest {
         }
     }
 
+    public static String getMethodTenant(String tenantPrefix) {
+        final StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        return tenantPrefix + '-' + stackTraceElements[stackTraceElements.length - 2].getMethodName();
+    }
+
 }

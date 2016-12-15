@@ -21,7 +21,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Tags holder. This class is meant to be used only as a JAX−RS method parameter.
@@ -32,18 +33,18 @@ public class Tags {
     public static final String LIST_DELIMITER = ",";
     public static final String TAG_DELIMITER = ":";
 
-    private final Map<String, String> tags;
+    private final Multimap<String, String> tags;
 
     /**
      * Null or blank names or values are not permitted. Names and values can't have
      *
      * @param tags values as a {@link Map}
      */
-    public Tags(Map<String, String> tags) {
+    public Tags(Multimap<String, String> tags) {
         checkArgument(tags != null, "tags is null");
-        Stream<Map.Entry<String, String>> entryStream = tags.entrySet().stream();
+        Stream<Map.Entry<String, String>> entryStream = tags.entries().stream();
         checkArgument(entryStream.allMatch(Tags::isValid), "Invalid tag name or value: %s", tags);
-        this.tags = ImmutableMap.copyOf(tags);
+        this.tags = ImmutableListMultimap.copyOf(tags);
     }
 
     private static boolean isValid(Map.Entry<String, String> tag) {
@@ -57,7 +58,7 @@ public class Tags {
     /**
      * @return tag values as a {@link Map}
      */
-    public Map<String, String> getTags() {
+    public Multimap<String, String> getTags() {
         return tags;
     }
 

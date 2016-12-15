@@ -37,6 +37,8 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 
+import com.google.common.collect.Multimap;
+
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
@@ -122,8 +124,8 @@ public interface MetricsService {
      * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @return Metric's that are filtered with given conditions
      */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
-            tagsQueries);
+    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type,
+            Multimap<String, String> tagsQueries);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
@@ -135,7 +137,7 @@ public interface MetricsService {
      * @return A map with key as the tagname and set of possible values restricted by the query
      */
     Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
-                                                             Map<String, String> tagsQueries);
+            Multimap<String, String> tagsQueries);
 
     Observable<Map<String, String>> getMetricTags(MetricId<?> id);
 
@@ -201,7 +203,7 @@ public interface MetricsService {
      * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
      */
     <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
-         Map<String, String> tagFilters, long start, long end, int limit, Order order);
+            Multimap<String, String> tagFilters, long start, long end, int limit, Order order);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data
@@ -234,7 +236,7 @@ public interface MetricsService {
      * @return A map of {@link TaggedBucketPoint tagged bucket points} that are keyed by a concatenation of tags of
      * the form tag_name:tag_value,tag_name:tag_value.
      */
-    Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Map<String, String> tags,
+    Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId, Multimap<String, String> tags,
             long start, long end, List<Percentile> percentiles);
 
     /**
@@ -288,7 +290,7 @@ public interface MetricsService {
      * @return A map of {@link TaggedBucketPoint tagged bucket points} that are keyed by a concatenation of tags of
      * the form tag_name:tag_value,tag_name:tag_value.
      */
-    Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId, Map<String, String> tags,
+    Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId, Multimap<String, String> tags,
             long start, long end, List<Percentile> percentiles);
 
     /**

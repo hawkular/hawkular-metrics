@@ -23,15 +23,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import javax.ws.rs.ext.ParamConverter;
 
 import org.hawkular.metrics.model.param.Tags;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * A JAX-RS {@link ParamConverter} for {@link Tags} parameters. The string format is a list of tags in the {@code
@@ -48,17 +48,17 @@ public class TagsConverter implements ParamConverter<Tags> {
 
     public static Tags fromNullable(String value) {
         if (value == null) {
-            return new Tags(Collections.emptyMap());
+            return new Tags(ImmutableListMultimap.of());
         }
         return convert(value);
     }
 
     private static Tags convert(String value) {
         if (value.isEmpty()) {
-            return new Tags(Collections.emptyMap());
+            return new Tags(ImmutableListMultimap.of());
         }
         checkArgument(!value.trim().isEmpty(), "Invalid tags: %s", value);
-        Map<String, String> tags = new HashMap<>();
+        Multimap<String, String> tags = ArrayListMultimap.create();
         String previousToken = null;
         StringTokenizer tokenizer = new StringTokenizer(value, Tags.LIST_DELIMITER, true);
         while (tokenizer.hasMoreTokens()) {
@@ -91,7 +91,7 @@ public class TagsConverter implements ParamConverter<Tags> {
 
     @Override
     public String toString(Tags value) {
-        return value.getTags().entrySet().stream()
+        return value.getTags().entries().stream()
                     .map(e -> e.getKey() + Tags.TAG_DELIMITER + e.getValue())
                     .collect(joining(Tags.LIST_DELIMITER));
     }

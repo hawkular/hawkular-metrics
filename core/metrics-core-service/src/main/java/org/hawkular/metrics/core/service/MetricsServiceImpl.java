@@ -86,9 +86,11 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -543,11 +545,11 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagQueries) {
-        Map<String, String> simpleTagQueries = new HashMap<String, String>();
-        Map<String, String> jsonTagQueries = new HashMap<String, String>();
+            Multimap<String, String> tagQueries) {
+        Multimap<String, String> simpleTagQueries = ArrayListMultimap.create();
+        Multimap<String, String> jsonTagQueries = ArrayListMultimap.create();
 
-        for (Map.Entry<String, String> e : tagQueries.entrySet()) {
+        for (Map.Entry<String, String> e : tagQueries.entries()) {
             if (e.getValue().startsWith(JsonTagQueryParser.JSON_PATH_PREFIX)) {
                 jsonTagQueries.put(e.getKey(), e.getValue());
             } else {
@@ -570,11 +572,15 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         if (simpleTagMetrics != null && jsonTagMetrics != null) {
-            return simpleTagMetrics.mergeWith(jsonTagMetrics).distinct();
+            return Observable.merge(simpleTagMetrics, jsonTagMetrics)
+                    .groupBy(m -> m)
+                    .flatMap(s -> s.skip(1).take(1));
         } else if (simpleTagMetrics != null) {
             return simpleTagMetrics;
-        } else {
+        } else if (jsonTagMetrics != null) {
             return jsonTagMetrics;
+        } else {
+            return Observable.empty();
         }
     }
 
@@ -586,7 +592,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
-                                    Map<String, String> tagsQueries) {
+            Multimap<String, String> tagsQueries) {
         return simpleTagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
     }
 
@@ -803,7 +809,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+            Multimap<String, String> tagFilters, long start, long end, int limit, Order order) {
         return findMetricsWithFilters(tenantId, metricType, tagFilters)
                 .map(Metric::getMetricId)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)
@@ -902,7 +908,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId,
-            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
+            Multimap<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, Order.DESC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
@@ -1002,7 +1008,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
-            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
+            Multimap<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, ASC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
