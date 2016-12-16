@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.tags;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
@@ -42,17 +44,12 @@ import rx.Observable;
  *
  * @author Stefan Negrea
  */
-public class JsonTagQueryParser {
+public class JsonTagQueryParser extends BaseTagQueryParser {
 
     public static final String JSON_PATH_PREFIX = "jsonpath:";
-    public static final int JSON_PATH_PREFIX_LENGTH = JSON_PATH_PREFIX.length();
-
-    private DataAccess dataAccess;
-    private MetricsService metricsService;
 
     public JsonTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
-        this.dataAccess = dataAccess;
-        this.metricsService = metricsService;
+        super(dataAccess, metricsService);
 
         Configuration.setDefaults(new Configuration.Defaults() {
 
@@ -80,7 +77,8 @@ public class JsonTagQueryParser {
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
             Multimap<String, String> jsonTagQueries) {
         return Observable.from(jsonTagQueries.entries())
-                .map(e -> new SimpleImmutableEntry<String, String>(e.getKey(), removePrefix(e.getValue())))
+                .map(e -> new SimpleImmutableEntry<String, String>(e.getKey(),
+                        removePrefix(e.getValue(), JSON_PATH_PREFIX)))
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                         .filter(r -> jsonPathFilter(r.getString(3), e.getValue()))
                         .compose(new TagsIndexRowTransformer<>(metricType))
@@ -104,9 +102,5 @@ public class JsonTagQueryParser {
         } catch (Exception ex) {
             return false;
         }
-    }
-
-    private String removePrefix(String filter) {
-        return filter.substring(JSON_PATH_PREFIX_LENGTH);
     }
 }

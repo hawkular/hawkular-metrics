@@ -47,6 +47,8 @@ import java.util.regex.Pattern;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.tags.JsonTagQueryParser;
+import org.hawkular.metrics.core.service.tags.RegexTagQueryParser;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
@@ -188,8 +190,7 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Tools that do tag queries and execution
      */
-    private SimpleTagQueryParser simpleTagQueryParser;
-
+    private RegexTagQueryParser regexTagQueryParser;
     private JsonTagQueryParser jsonTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
@@ -288,7 +289,7 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        simpleTagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
+        regexTagQueryParser = new RegexTagQueryParser(this.dataAccess, this);
         jsonTagQueryParser = new JsonTagQueryParser(this.dataAccess, this);
     }
 
@@ -546,21 +547,21 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
             Multimap<String, String> tagQueries) {
-        Multimap<String, String> simpleTagQueries = ArrayListMultimap.create();
+        Multimap<String, String> regexTagQueries = ArrayListMultimap.create();
         Multimap<String, String> jsonTagQueries = ArrayListMultimap.create();
 
         for (Map.Entry<String, String> e : tagQueries.entries()) {
             if (e.getValue().startsWith(JsonTagQueryParser.JSON_PATH_PREFIX)) {
                 jsonTagQueries.put(e.getKey(), e.getValue());
             } else {
-                simpleTagQueries.put(e.getKey(), e.getValue());
+                regexTagQueries.put(e.getKey(), e.getValue());
             }
         }
 
-        Observable<Metric<T>> simpleTagMetrics = null;
-        if (!simpleTagQueries.isEmpty()) {
-            simpleTagMetrics = simpleTagQueryParser
-                .findMetricsWithFilters(tenantId, metricType, simpleTagQueries)
+        Observable<Metric<T>> regexTagMetrics = null;
+        if (!regexTagQueries.isEmpty()) {
+            regexTagMetrics = regexTagQueryParser
+                .findMetricsWithFilters(tenantId, metricType, regexTagQueries)
                 .map(tMetric -> (Metric<T>) tMetric);
         }
 
@@ -571,12 +572,12 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(tMetric -> (Metric<T>) tMetric);
         }
 
-        if (simpleTagMetrics != null && jsonTagMetrics != null) {
-            return Observable.merge(simpleTagMetrics, jsonTagMetrics)
+        if (regexTagMetrics != null && jsonTagMetrics != null) {
+            return Observable.merge(regexTagMetrics, jsonTagMetrics)
                     .groupBy(m -> m)
                     .flatMap(s -> s.skip(1).take(1));
-        } else if (simpleTagMetrics != null) {
-            return simpleTagMetrics;
+        } else if (regexTagMetrics != null) {
+            return regexTagMetrics;
         } else if (jsonTagMetrics != null) {
             return jsonTagMetrics;
         } else {
@@ -593,7 +594,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
             Multimap<String, String> tagsQueries) {
-        return simpleTagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
+        return regexTagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
     }
 
     @Override
@@ -606,7 +607,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
-        return simpleTagQueryParser.getTagNames(tenantId, metricType, filter);
+        return regexTagQueryParser.getTagNames(tenantId, metricType, filter);
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,

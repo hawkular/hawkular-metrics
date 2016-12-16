@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.tags;
 
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,13 +26,15 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.PatternUtil;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 import rx.Observable;
@@ -44,17 +45,12 @@ import rx.functions.Func1;
  *
  * @author Michael Burman
  */
-public class SimpleTagQueryParser {
+public class RegexTagQueryParser extends BaseTagQueryParser {
 
     public static final String REGEX_PREFIX = "regex:";
-    public static final int REGEX_PREFIX_LENGTH = REGEX_PREFIX.length();
 
-    private DataAccess dataAccess;
-    private MetricsService metricsService;
-
-    public SimpleTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
-        this.dataAccess = dataAccess;
-        this.metricsService = metricsService;
+    public RegexTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
+        super(dataAccess, metricsService);
     }
 
     // Arrange the queries:
@@ -101,7 +97,7 @@ public class SimpleTagQueryParser {
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
             Multimap<String, String> tagsQueries) {
 
-        tagsQueries = removePrefixes(tagsQueries);
+        tagsQueries = removePrefixes(tagsQueries, REGEX_PREFIX);
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
@@ -154,7 +150,7 @@ public class SimpleTagQueryParser {
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
             Multimap<String, String> tagsQueries) {
 
-        tagsQueries = removePrefixes(tagsQueries);
+        tagsQueries = removePrefixes(tagsQueries, REGEX_PREFIX);
 
         // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
         return Observable.from(tagsQueries.entries())
@@ -255,20 +251,5 @@ public class SimpleTagQueryParser {
 
     public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
         return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
-    }
-
-    private Multimap<String, String> removePrefixes(Multimap<String, String> tagsQueries) {
-        return Observable.from(tagsQueries.entries())
-                .map(e -> new SimpleImmutableEntry<String, String>(e.getKey(), removePrefix(e.getValue())))
-                .collect(ArrayListMultimap::<String, String> create, (m, e) -> m.put(e.getKey(), e.getValue()))
-                .toBlocking().firstOrDefault(ArrayListMultimap.<String, String> create());
-    }
-
-    private String removePrefix(String filter) {
-        if (filter.startsWith(REGEX_PREFIX)) {
-            return filter.substring(REGEX_PREFIX_LENGTH);
-        } else {
-            return filter;
-        }
     }
 }
