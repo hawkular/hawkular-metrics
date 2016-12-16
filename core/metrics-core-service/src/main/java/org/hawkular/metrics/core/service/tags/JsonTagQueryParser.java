@@ -18,7 +18,9 @@ package org.hawkular.metrics.core.service.tags;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.hawkular.metrics.core.service.DataAccess;
@@ -30,6 +32,7 @@ import org.hawkular.metrics.model.MetricType;
 
 import com.google.common.collect.Multimap;
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
@@ -56,8 +59,10 @@ public class JsonTagQueryParser extends BaseTagQueryParser {
             private final JsonProvider jsonProvider = new JacksonJsonProvider();
             private final MappingProvider mappingProvider = new JacksonMappingProvider();
 
+
             @Override
             public JsonProvider jsonProvider() {
+                jsonProvider.createMap();
                 return jsonProvider;
             }
 
@@ -92,13 +97,32 @@ public class JsonTagQueryParser extends BaseTagQueryParser {
     @SuppressWarnings("rawtypes")
     private boolean jsonPathFilter(String text, String jsonPathFilter) {
         try {
-            Object reply = JsonPath.parse(text).read(jsonPathFilter);
+            DocumentContext document = null;
+            try {
+                document = JsonPath.parse(text);
+            } catch (Exception e) {
+                //Tranform tags values that are comma separate key:value pairs
+                //eg.  foo:bar,fizz:baz,hello:world
+                if (text.indexOf(',') != -1) {
+                    Map<String, String> propertyMap = new HashMap<>();
+
+                    for (String pair : text.split(",")) {
+                        String[] tokens = pair.split(":");
+                        propertyMap.put(tokens[0], tokens[1]);
+                    }
+
+                    document = JsonPath.parse(propertyMap);
+                } else {
+                    throw e;
+                }
+            }
+
+            Object reply = document.read(jsonPathFilter);
             if (reply instanceof List) {
                 return ((List) reply).size() > 0;
             } else {
                 return reply != null;
             }
-
         } catch (Exception ex) {
             return false;
         }

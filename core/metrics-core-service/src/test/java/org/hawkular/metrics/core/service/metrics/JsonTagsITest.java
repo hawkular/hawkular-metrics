@@ -168,6 +168,31 @@ public class JsonTagsITest extends BaseMetricsITest {
         assertEquals(counters.get(0).getId(), "c1");
     }
 
+    @Test
+    public void tagListSearch() throws Exception {
+        String tenantId = "jsonT2Tag";
+
+        createTagMetrics(tenantId);
+
+        List<Metric<Double>> gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("label", "jsonpath:$.test1"))
+                .toSortedList((a, b) -> {
+                    return a.getId().compareTo(b.getId());
+                })
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 2);
+        assertMetricListById(gauges, "gl1", "gl2");
+
+        gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("label", "jsonpath:$.test"))
+                .toSortedList((a, b) -> {
+                    return a.getId().compareTo(b.getId());
+                })
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 1);
+        assertMetricListById(gauges, "gl1");
+    }
+
     private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
         for (String expectedMetricId : expectedMetricIds) {
             boolean found = false;
@@ -196,6 +221,9 @@ public class JsonTagsITest extends BaseMetricsITest {
                 new MetricId<>(tenantId, GAUGE, "mE"),
                 new MetricId<>(tenantId, GAUGE, "mF"),
                 new MetricId<>(tenantId, GAUGE, "mG"),
+                new MetricId<>(tenantId, GAUGE, "gl1"),
+                new MetricId<>(tenantId, GAUGE, "gl2"),
+                new MetricId<>(tenantId, GAUGE, "gl3"),
                 new MetricId<>(tenantId, AVAILABILITY, "a1"),
                 new MetricId<>(tenantId, COUNTER, "c1"));
 
@@ -214,6 +242,9 @@ public class JsonTagsITest extends BaseMetricsITest {
                 ImmutableMap.of("owner", "hede"),
                 ImmutableMap.of("owner", "hades"),
                 ImmutableMap.of("owner", "had"),
+                ImmutableMap.of("label", "test:test,test1:test2,test3:test4"),
+                ImmutableMap.of("label", "test1:test2,test3:test4"),
+                ImmutableMap.of("label", "test:,test1:test2"),
                 ImmutableMap.of("a1", "{\"foo\": 3}"),
                 ImmutableMap.of("a1", "{\"foo\": 5}"));
         assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
