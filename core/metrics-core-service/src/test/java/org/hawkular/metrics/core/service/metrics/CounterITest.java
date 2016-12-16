@@ -76,7 +76,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createBasicCounterMetric() throws Exception {
-        String tenantId = getMethodTenant("counter-tenant");
+        String tenantId = getMethodTenant();
         String name = "basic-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
 
@@ -91,7 +91,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createCounterWithTags() throws Exception {
-        String tenantId = getMethodTenant("counter-tenant");
+        String tenantId = getMethodTenant();
         String name = "tags-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
         Map<String, String> tags = ImmutableMap.of("x", "1", "y", "2");
@@ -109,7 +109,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createCounterWithDataRetention() throws Exception {
-        String tenantId = "counter-tenant";
+        String tenantId = getMethodTenant();
         String name = "retention-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
         Integer retention = 100;
@@ -238,7 +238,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void addAndCompressData() throws Exception {
-        String tenantId = getMethodTenant("counter-tenant");
+        String tenantId = getMethodTenant();
         DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
         DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
 

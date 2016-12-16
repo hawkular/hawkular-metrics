@@ -49,7 +49,7 @@ public class JsonTagsITest extends BaseMetricsITest {
 
     @Test
     public void tagValueSearch() throws Exception {
-        String tenantId = "jsonT1Tag";
+        String tenantId = getMethodTenant();
 
         createTagMetrics(tenantId);
 
@@ -170,7 +170,7 @@ public class JsonTagsITest extends BaseMetricsITest {
 
     @Test
     public void tagListSearch() throws Exception {
-        String tenantId = "jsonT2Tag";
+        String tenantId = getMethodTenant();
 
         createTagMetrics(tenantId);
 

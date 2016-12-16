@@ -159,9 +159,9 @@ public abstract class BaseITest {
         }
     }
 
-    public static String getMethodTenant(String tenantPrefix) {
+    public static String getMethodTenant() {
         final StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        return tenantPrefix + '-' + stackTraceElements[stackTraceElements.length - 2].getMethodName();
+        return stackTraceElements[2].getClassName() + '-' + stackTraceElements[2].getMethodName();
     }
 
 }
