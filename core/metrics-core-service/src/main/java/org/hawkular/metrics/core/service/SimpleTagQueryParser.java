@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 import rx.Observable;
@@ -43,6 +45,9 @@ import rx.functions.Func1;
  * @author Michael Burman
  */
 public class SimpleTagQueryParser {
+
+    public static final String REGEX_PREFIX = "regex:";
+    public static final int REGEX_PREFIX_LENGTH = REGEX_PREFIX.length();
 
     private DataAccess dataAccess;
     private MetricsService metricsService;
@@ -96,6 +101,8 @@ public class SimpleTagQueryParser {
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
             Multimap<String, String> tagsQueries) {
 
+        tagsQueries = removePrefixes(tagsQueries);
+
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
         List<Map.Entry<String, String>> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
@@ -146,6 +153,8 @@ public class SimpleTagQueryParser {
 
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
             Multimap<String, String> tagsQueries) {
+
+        tagsQueries = removePrefixes(tagsQueries);
 
         // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
         return Observable.from(tagsQueries.entries())
@@ -246,5 +255,20 @@ public class SimpleTagQueryParser {
 
     public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
         return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
+    }
+
+    private Multimap<String, String> removePrefixes(Multimap<String, String> tagsQueries) {
+        return Observable.from(tagsQueries.entries())
+                .map(e -> new SimpleImmutableEntry<String, String>(e.getKey(), removePrefix(e.getValue())))
+                .collect(ArrayListMultimap::<String, String> create, (m, e) -> m.put(e.getKey(), e.getValue()))
+                .toBlocking().firstOrDefault(ArrayListMultimap.<String, String> create());
+    }
+
+    private String removePrefix(String filter) {
+        if (filter.startsWith(REGEX_PREFIX)) {
+            return filter.substring(REGEX_PREFIX_LENGTH);
+        } else {
+            return filter;
+        }
     }
 }

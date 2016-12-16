@@ -53,8 +53,18 @@ public class JsonTagsITest extends BaseMetricsITest {
 
         createTagMetrics(tenantId);
 
-        //JSON PATH queries
+        //Regex queries with the new syntax
         List<Metric<Double>> gauges = metricsService
+                .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "regex:*"))
+                .toSortedList((a, b) -> {
+                    return a.getId().compareTo(b.getId());
+                })
+                .toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 5);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
+
+        //JSON PATH queries
+        gauges = metricsService
                 .findMetricsWithFilters(tenantId, GAUGE, ImmutableListMultimap.of("a1", "jsonpath:$.foo"))
                 .toSortedList((a, b) -> {
                     return a.getId().compareTo(b.getId());
