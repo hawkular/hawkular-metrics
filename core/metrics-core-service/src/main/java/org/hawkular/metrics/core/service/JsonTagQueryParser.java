@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +45,7 @@ import rx.Observable;
 public class JsonTagQueryParser {
 
     public static final String JSON_PATH_PREFIX = "jsonpath:";
-    private final int JSON_PATH_PREFIX_LENGTH = JSON_PATH_PREFIX.length();
+    public static final int JSON_PATH_PREFIX_LENGTH = JSON_PATH_PREFIX.length();
 
     private DataAccess dataAccess;
     private MetricsService metricsService;
@@ -79,6 +80,7 @@ public class JsonTagQueryParser {
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
             Multimap<String, String> jsonTagQueries) {
         return Observable.from(jsonTagQueries.entries())
+                .map(e -> new SimpleImmutableEntry<String, String>(e.getKey(), removePrefix(e.getValue())))
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                         .filter(r -> jsonPathFilter(r.getString(3), e.getValue()))
                         .compose(new TagsIndexRowTransformer<>(metricType))
@@ -91,8 +93,6 @@ public class JsonTagQueryParser {
 
     @SuppressWarnings("rawtypes")
     private boolean jsonPathFilter(String text, String jsonPathFilter) {
-        jsonPathFilter = jsonPathFilter.substring(JSON_PATH_PREFIX_LENGTH);
-
         try {
             Object reply = JsonPath.parse(text).read(jsonPathFilter);
             if (reply instanceof List) {
@@ -104,5 +104,9 @@ public class JsonTagQueryParser {
         } catch (Exception ex) {
             return false;
         }
+    }
+
+    private String removePrefix(String filter) {
+        return filter.substring(JSON_PATH_PREFIX_LENGTH);
     }
 }
