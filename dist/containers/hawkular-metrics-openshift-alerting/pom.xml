@@ -67,9 +67,6 @@
             <overlay>
               <groupId>org.hawkular.alerts</groupId>
               <artifactId>hawkular-alerts-rest-metrics</artifactId>
-              <excludes>
-                <exclude>WEB-INF/lib/commons-codec*.jar</exclude>
-              </excludes>
             </overlay>
           </overlays>
         </configuration>
