@@ -22,6 +22,7 @@ import java.util.Base64.Encoder
 
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
+import scala.concurrent.duration._
 
 class MetricsSimulation extends Simulation {
 
@@ -37,7 +38,7 @@ class MetricsSimulation extends Simulation {
   // Number of concurrent clients (think of collectors on different machines)
   val clients = Integer.getInteger("clients", 10)
   // Delay before firing up another client
-  val ramp  = java.lang.Long.getLong("ramp", 1L)
+  val ramp = java.lang.Long.getLong("ramp", 1L)
 
   // The number of loops for each client
   val loops = Integer.getInteger("loops", 10).toInt
@@ -49,6 +50,8 @@ class MetricsSimulation extends Simulation {
   // Number of data points for a metric
   val points = Integer.getInteger("points", 1)
 
+  val duration = Integer.getInteger("duration", 0)
+
   // ---------------------------
 
   var httpProtocol = http
@@ -59,19 +62,19 @@ class MetricsSimulation extends Simulation {
 
   httpProtocol = authType match {
     case "openshiftHtpasswd" =>
-        httpProtocol
-          .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
-          .header("Hawkular-Tenant", tenant)
+      httpProtocol
+        .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+        .header("Hawkular-Tenant", tenant)
     case "openshiftToken" =>
-        httpProtocol
-          .authorizationHeader("Bearer $token")
-          .header("Hawkular-Tenant", tenant)
+      httpProtocol
+        .authorizationHeader("Bearer $token")
+        .header("Hawkular-Tenant", tenant)
     case "hawkular" =>
-        httpProtocol
-          .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
+      httpProtocol
+        .authorizationHeader("Basic " + encoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8)))
     case _ =>
-        httpProtocol
-          .header("Hawkular-Tenant", tenant)
+      httpProtocol
+        .header("Hawkular-Tenant", tenant)
   }
 
   val random = new util.Random
@@ -97,15 +100,23 @@ class MetricsSimulation extends Simulation {
     builder.toString
   }
 
-  val simulation = repeat(loops, "n") {
-    exec(http("Report ${n}")
-      .post("/gauges/raw")
-      .body(StringBody(session => genReport(metrics, points)))
-    ).pause(interval)
+  val simulation = doIfOrElse(session => duration > 0) {
+    during(duration minutes, "n") {
+      exec(http("Report ${n}")
+        .post("/gauges/raw")
+        .body(StringBody(session => genReport(metrics, points)))
+      ).pause(interval)
+    }
+  } {
+    repeat(loops, "n") {
+      exec(http("Report ${n}")
+        .post("/gauges/raw")
+        .body(StringBody(session => genReport(metrics, points)))
+      ).pause(interval)
+    }
   }
 
   val scn = scenario("MetricsSimulation").exec(simulation)
-
   setUp(scn.inject(rampUsers(clients) over (ramp seconds))).protocols(httpProtocol)
 }
 

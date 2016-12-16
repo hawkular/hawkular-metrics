@@ -36,6 +36,7 @@
     <dependency>
       <groupId>io.gatling.highcharts</groupId>
       <artifactId>gatling-charts-highcharts</artifactId>
+      <version>2.2.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -45,6 +46,7 @@
       <plugin>
         <groupId>io.gatling</groupId>
         <artifactId>gatling-maven-plugin</artifactId>
+        <version>2.2.1</version>
         <configuration>
           <simulationClass>org.hawkular.metrics.loadtest.MetricsSimulation</simulationClass>
           <propagateSystemProperties>true</propagateSystemProperties>
