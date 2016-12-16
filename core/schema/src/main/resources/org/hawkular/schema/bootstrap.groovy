@@ -76,7 +76,8 @@ if (!reset && keyspaceExists(keyspace)) {
     executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
   }
 
-  executeCQL("CREATE KEYSPACE $keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+  executeCQL("CREATE KEYSPACE $keyspace WITH replication = {'class': 'SimpleStrategy', " +
+      "'replication_factor': $replicationFactor}")
   executeCQL("USE $keyspace")
 
   // The retentions map entries are {metric type, retention} key/value paris where

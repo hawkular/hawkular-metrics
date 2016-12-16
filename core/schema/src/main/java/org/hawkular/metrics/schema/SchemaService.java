@@ -42,14 +42,17 @@ import com.google.common.collect.ImmutableMap;
 public class SchemaService {
 
     public void run(Session session, String keyspace, boolean resetDB) {
+        run(session, keyspace, resetDB, 1);
+    }
 
-
+    public void run(Session session, String keyspace, boolean resetDB, int replicationFactor) {
         CassalogBuilder builder = new CassalogBuilder();
         Cassalog cassalog = builder.withKeyspace(keyspace).withSession(session).build();
         Map<String, ?> vars  = ImmutableMap.of(
                 "keyspace", keyspace,
                 "reset", resetDB,
-                "session", session
+                "session", session,
+                "replicationFactor", replicationFactor
         );
         // TODO Add logic to determine the version tags we need to pass
         // For now, I am just hard coding the version tag, but a more robust solution would be
