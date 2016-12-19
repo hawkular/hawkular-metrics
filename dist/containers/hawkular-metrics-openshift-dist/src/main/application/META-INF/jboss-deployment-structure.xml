@@ -22,8 +22,7 @@
     <dependencies>
       <!-- common to metrics and alerting wars -->
       <module name="org.infinispan" export="true" />
-      <module name="org.jboss.xnio"/>
-      <module name="org.jboss.xnio.nio"/>
+      <module name="org.jboss.xnio" export="true" />
     </dependencies>
   </deployment>
 
