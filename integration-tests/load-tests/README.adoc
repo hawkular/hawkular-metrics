@@ -67,4 +67,9 @@ Authentication is disabled when unset.
 |points
 |Number of data points for a metric. Defaults to `1`.
 
+|duration
+|The number of minutes that the test should run. By default the test does not use this and executes
+ `loops` for each client. If this option is specified (with a non-zero value) as well as `loops`, the
+ latter will be ignored.
+
 |===
