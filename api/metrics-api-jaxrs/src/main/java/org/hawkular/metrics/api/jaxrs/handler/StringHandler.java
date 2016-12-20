@@ -285,7 +285,7 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
                         .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(STRING));
+                .subscribe(createNamedDataPointObserver(asyncResponse, STRING));
     }
 
     @GET

@@ -16,12 +16,15 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.model.ApiError;
+import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.NamedDataPoint;
@@ -30,7 +33,6 @@ import org.jboss.logging.Logger;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Throwables;
 
 import rx.Subscriber;
 
@@ -45,22 +47,18 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
         void call(NamedDataPoint<T> dataPoint) throws IOException;
     }
 
-    private final HttpServletRequest request;
-    private final HttpServletResponse response;
-    private final ObjectMapper mapper;
+    private final AsyncResponse response;
     private final JsonGenerator generator;
     private final WriteValue<T> writeValue;
+    private final ByteArrayOutputStream jsonOutputStream;
 
     private volatile String currentMetric;
 
-
-    public NamedDataPointObserver(HttpServletRequest request, HttpServletResponse response, ObjectMapper mapper,
-                                  MetricType<T> type) {
-        this.request = request;
+    public NamedDataPointObserver(AsyncResponse response, ObjectMapper mapper, MetricType<T> type) {
         this.response = response;
-        this.mapper = mapper;
+        jsonOutputStream = new ByteArrayOutputStream();
         try {
-            this.generator = mapper.getFactory().createGenerator(response.getOutputStream(), JsonEncoding.UTF8);
+            this.generator = mapper.getFactory().createGenerator(jsonOutputStream, JsonEncoding.UTF8);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -85,9 +83,6 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
     public void onNext(NamedDataPoint<T> dataPoint) {
         try {
             if (currentMetric == null) {
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.setHeader("Content-Type", "application/json");
-
                 generator.writeStartArray();
                 generator.writeStartObject();
                 generator.writeStringField("id", dataPoint.getName());
@@ -125,34 +120,37 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
         log.trace("Fetching data failed", e);
         try {
             if (currentMetric == null) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.setHeader("Content-Type", "application/json");
-                ApiError apiError = new ApiError(Throwables.getRootCause(e).getMessage());
-                mapper.writeValue(response.getOutputStream(), apiError);
+                response.resume(ApiUtils.serverError(e));
             } else {
                 generator.close();
             }
         } catch (IOException ignored) {
-        } finally {
-            request.getAsyncContext().complete();
         }
     }
 
     @Override
     public void onCompleted() {
+        Response result = null;
         try {
             if (currentMetric == null) {
-                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                generator.close();
+                result = Response.ok().status(HttpServletResponse.SC_NO_CONTENT).build();
             } else {
                 generator.writeEndArray();
                 generator.writeEndObject();
                 generator.writeEndArray();
+                generator.close();
+                result = Response.ok(new String(jsonOutputStream.toByteArray()), MediaType.APPLICATION_JSON_TYPE)
+                        .build();
             }
-            generator.close();
         } catch (IOException e) {
+            result = ApiUtils.serverError(e);
             log.trace("Error while finishing streaming data", e);
         } finally {
-            request.getAsyncContext().complete();
+            if (result == null) {
+                result = Response.serverError().build();
+            }
+            response.resume(result);
         }
     }
 }

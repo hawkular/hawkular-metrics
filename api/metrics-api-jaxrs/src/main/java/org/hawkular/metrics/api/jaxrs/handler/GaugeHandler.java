@@ -321,7 +321,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                         .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(GAUGE));
+                .subscribe(createNamedDataPointObserver(asyncResponse, GAUGE));
     }
 
     @POST
@@ -349,7 +349,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
                         .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(GAUGE_RATE));
+                .subscribe(createNamedDataPointObserver(asyncResponse, GAUGE_RATE));
     }
 
     @Deprecated

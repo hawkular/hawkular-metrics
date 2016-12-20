@@ -19,14 +19,14 @@ package org.hawkular.metrics.api.jaxrs.filter;
 import java.io.IOException;
 
 import javax.annotation.Priority;
-import javax.ws.rs.HttpMethod;
+import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
-import org.hawkular.metrics.api.jaxrs.util.Headers;
+import org.hawkular.jaxrs.filter.cors.CorsFilters;
+import org.hawkular.metrics.api.jaxrs.util.OriginValidation;
 
 /**
  * @author Stefan Negrea
@@ -37,16 +37,11 @@ import org.hawkular.metrics.api.jaxrs.util.Headers;
 @Priority(0)
 public class CorsRequestFilter implements ContainerRequestFilter {
 
+    @Inject
+    OriginValidation validator;
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        //NOT a CORS request
-        if (requestContext.getHeaderString(Headers.ORIGIN) == null) {
-            return;
-        }
-
-        //It is a CORS pre-flight request, there is no route for it, just return 200
-        if (requestContext.getMethod().equalsIgnoreCase(HttpMethod.OPTIONS)) {
-            requestContext.abortWith(Response.status(Response.Status.OK).build());
-        }
+        CorsFilters.filterRequest(requestContext, validator.getPredicate());
     }
 }
