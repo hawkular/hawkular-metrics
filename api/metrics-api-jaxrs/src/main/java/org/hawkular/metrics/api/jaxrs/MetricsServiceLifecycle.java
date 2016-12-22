@@ -112,6 +112,7 @@ import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
@@ -551,7 +552,18 @@ public class MetricsServiceLifecycle {
             SchemaService schemaService = new SchemaService();
             schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb), replicationFactor.get());
             session.execute("USE " + keyspace);
+            logReplicationFactor();
         });
+    }
+
+    private void logReplicationFactor() {
+        ResultSet resultSet = session.execute(
+                "SELECT replication FROM system_schema.keyspaces WHERE keyspace_name = '" + keyspace + "'");
+        if (resultSet.isExhausted()) {
+            log.warnf("Unable to determine replication_factor for keyspace %s", keyspace);
+        }
+        log.infof("The keyspace %s is using a replication_factor of %d", keyspace,
+                resultSet.one().getInt(0));
     }
 
     /**
