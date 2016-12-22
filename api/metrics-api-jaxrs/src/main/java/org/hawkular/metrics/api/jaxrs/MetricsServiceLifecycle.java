@@ -562,8 +562,9 @@ public class MetricsServiceLifecycle {
         if (resultSet.isExhausted()) {
             log.warnf("Unable to determine replication_factor for keyspace %s", keyspace);
         }
+        Map<String, String> replication = resultSet.one().getMap(0, String.class, String.class);
         log.infof("The keyspace %s is using a replication_factor of %d", keyspace,
-                resultSet.one().getInt(0));
+                replication.get("replication_factor"));
     }
 
     /**
