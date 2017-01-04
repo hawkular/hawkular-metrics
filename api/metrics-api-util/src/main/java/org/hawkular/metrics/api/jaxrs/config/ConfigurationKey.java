@@ -35,6 +35,8 @@ public enum ConfigurationKey {
     CASSANDRA_NODES("hawkular.metrics.cassandra.nodes", "127.0.0.1", "CASSANDRA_NODES", false),
     CASSANDRA_CQL_PORT("hawkular.metrics.cassandra.cql-port", "9042", "CASSANDRA_CQL_PORT", false),
     CASSANDRA_KEYSPACE("hawkular.metrics.cassandra.keyspace", "hawkular_metrics", null, false),
+    CASSANDRA_REPLICATION_FACTOR("hawkular.metrics.cassandra.replication-factor", "1", "CASSANDRA_REPLICATION_FACTOR",
+            false),
     CASSANDRA_RESETDB("hawkular.metrics.cassandra.resetdb", null, null, true),
     CASSANDRA_USESSL("hawkular.metrics.cassandra.use-ssl", "false", "CASSANDRA_USESSL", false),
     CASSANDRA_MAX_CONN_HOST("hawkular.metrics.cassandra.max-connections-per-host", "10", "CASSANDRA_MAX_CONN_HOST",
