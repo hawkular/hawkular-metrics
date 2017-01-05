@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ import rx.internal.util.unsafe.MpscLinkedQueue;
  *
  * Originally from https://gist.github.com/akarnokd/c86a89738199bbb37348
  *
- * This is modified with remove duplicates from stream
+ * This is modified with remove duplicates from stream and updated to use RxJava 1.2.x API
  *
  * @author Michael Burman
  */
@@ -110,7 +110,7 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
         /** */
         private static final long serialVersionUID = -812969080497027108L;
 
-        final NotificationLite<T> nl = NotificationLite.instance();
+//        final NotificationLite<T> nl = NotificationLite.instance();
 
         final boolean delayErrors;
         final Comparator<? super T> comparator;
@@ -239,7 +239,7 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
                         }
                         // if we already found a value, compare it against the current
                         if (hasAtLeastOne) {
-                            T v = nl.getValue(o);
+                            T v = NotificationLite.getValue(o);
                             int c = comparator.compare(minimum, v);
                             if (c > 0) {
                                 minimum = v;
@@ -250,7 +250,7 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
                             }
                         } else {
                             // this is the first value found
-                            minimum = nl.getValue(o);
+                            minimum = NotificationLite.getValue(o);
                             hasAtLeastOne = true;
                             toPoll = i;
                         }
@@ -333,7 +333,7 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
         @Override
         public void onNext(T t) {
             try {
-                queue.onNext(parent.nl.next(t));
+                queue.onNext(NotificationLite.next(t));
             } catch (MissingBackpressureException mbe) {
                 try {
                     onError(mbe);
