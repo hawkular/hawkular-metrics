@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -140,7 +140,8 @@ public class SchedulerImpl implements Scheduler {
     static final int SCHEDULING_LOCK_TIMEOUT_IN_SEC = 5;
 
     // TODO We probably want this to be configurable
-    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 3600;
+//    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 3600;
+    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 60;
 
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
@@ -150,6 +151,8 @@ public class SchedulerImpl implements Scheduler {
     private Optional<PublishSubject<JobDetails>> jobFinished;
 
     private final Object lock = new Object();
+
+    private final Object activeJobsLock = new Object();
 
     public SchedulerImpl(RxSession session) {
         this.session = session;
@@ -259,7 +262,7 @@ public class SchedulerImpl implements Scheduler {
         doOnTick(() -> {
             logger.debugf("Activating scheduler for [%s]", currentMinute().toDate());
             Observable.just(currentMinute().toDate())
-                    .flatMap(time -> jobsService.findActiveTimeSlices(time, queryScheduler))
+                    .concatMap(time -> jobsService.findActiveTimeSlices(time, queryScheduler))
                     .filter(d -> {
                         synchronized (lock) {
                             if (!activeTimeSlices.contains(d)) {
@@ -269,27 +272,42 @@ public class SchedulerImpl implements Scheduler {
                             return false;
                         }
                     })
-                    .doOnNext(d -> logger.debugf("Running job scheduler for [%s]", d))
-                    .flatMap(this::acquireTimeSliceLock)
-                    .flatMap(timeSliceLock -> findScheduledJobs(timeSliceLock.getTimeSlice())
+                    .concatMap(this::acquireTimeSliceLock)
+                    .concatMap(timeSliceLock -> findScheduledJobs(timeSliceLock.getTimeSlice())
                             .doOnError(t -> {
-                                logger.warnf("Failed to schedule jobs for time slice %s", timeSliceLock.timeSlice);
+                                logger.warnf("Failed to find schedule jobs for time slice %s", timeSliceLock
+                                        .timeSlice);
                             })
                             .doOnNext(jobs -> logger.debugf("[%s] scheduled jobs: %s", timeSliceLock.timeSlice, jobs))
                             .flatMap(scheduledJobs -> computeRemainingJobs(scheduledJobs, timeSliceLock.getTimeSlice(),
                                     activeJobs))
                             .doOnNext(jobs -> logger.debugf("[%s] remaining jobs: %s", timeSliceLock.timeSlice, jobs))
                             .flatMap(Observable::from)
-                            .filter(jobDetails -> !activeJobs.contains(jobDetails.getJobId()))
+                            .filter(jobDetails -> {
+                                synchronized (activeJobsLock) {
+                                    return !activeJobs.contains(jobDetails.getJobId());
+                                }
+                            })
                             .flatMap(this::acquireJobLock)
                             .filter(jobLock -> jobLock.acquired)
                             .map(jobLock -> jobLock.jobDetails)
-                            .doOnNext(details -> logger.debugf("Acquired job lock for %s in time slice %s", details,
-                                    timeSliceLock.timeSlice))
-                            .flatMap(details -> executeJob(details, timeSliceLock.timeSlice, activeJobs).toObservable()
+                            .doOnNext(details -> {
+                                logger.debugf("Acquired job lock for %s in time slice %s", details,
+                                        timeSliceLock.timeSlice);
+                                synchronized (activeJobsLock) {
+                                    activeJobs.add(details.getJobId());
+                                }
+                            })
+                            .flatMap(details -> executeJob(details, timeSliceLock.timeSlice, activeJobs)
+                                    .doOnTerminate(() -> {
+                                        synchronized (activeJobsLock) {
+                                            activeJobs.remove(details.getJobId());
+                                        }
+                                    })
+                                    .toObservable()
                                     .map(o -> timeSliceLock.getTimeSlice()))
                             .defaultIfEmpty(timeSliceLock.getTimeSlice()))
-                    .flatMap(time -> {
+                    .concatMap(time -> {
                         Observable<? extends Set<UUID>> scheduled = jobsService.findScheduledJobsForTime(time,
                                 queryScheduler)
                                 .map(JobDetails::getJobId)
@@ -435,7 +453,7 @@ public class SchedulerImpl implements Scheduler {
     private Completable doPostJobExecution(Completable job, JobDetails jobDetails, Date timeSlice,
             Set<UUID> activeJobs) {
         return job
-                .toSingle(() -> new JobExecutionState(jobDetails, activeJobs))
+                .toSingle(() -> new JobExecutionState(jobDetails, timeSlice, null, null, activeJobs))
                 .flatMap(state -> jobsService.updateStatusToFinished(timeSlice, state.currentDetails.getJobId())
                         .toSingle()
                         .map(resultSet -> state))
@@ -445,13 +463,10 @@ public class SchedulerImpl implements Scheduler {
                         return setJobFinished(state).flatMap(this::scheduleImmediateExecutionIfNecessary);
                     }
                     return releaseJobExecutionLock(state)
-                            .flatMap(this::deactivate)
                             .flatMap(this::setJobFinished);
                 })
                 .doOnError(t -> {
-                    logger.debugf(t, "There was an error during post-job execution. Making sure %s is removed from " +
-                            "active jobs cache", jobDetails);
-                    activeJobs.remove(jobDetails.getJobId());
+                    logger.debug("There was an error during post-job execution", t);
                     publishJobFinished(jobDetails);
                 })
                 .doOnSuccess(states -> publishJobFinished(states.currentDetails))
@@ -463,12 +478,10 @@ public class SchedulerImpl implements Scheduler {
         return job
                 .toSingle(() -> new JobExecutionState(jobDetails, activeJobs))
                 .flatMap(this::releaseJobExecutionLock)
-                .flatMap(this::deactivate)
                 .flatMap(this::setJobFinished)
                 .doOnError(t -> {
-                    logger.debugf(t, "There was an error during post-job execution, but the job has already been" +
-                            "rescheduled. Making sure %s is removed from active jobs cache.", jobDetails);
-                    activeJobs.remove(jobDetails.getJobId());
+                    logger.debug("There was an error during post-job execution, but the job has already been " +
+                            "rescheduled.", t);
                     publishJobFinished(jobDetails);
                 })
                 .doOnSuccess(states -> publishJobFinished(states.currentDetails))
@@ -541,30 +554,20 @@ public class SchedulerImpl implements Scheduler {
         worker.schedule(() -> {
             logger.debugf("Starting immediate execution of %s", state.nextDetails);
             String jobLock = "org.hawkular.metrics.scheduler.job." + state.nextDetails.getJobId();
-            lockManager.renewLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
+
+            Completable.merge(lockManager.renewLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
                     .map(renewed -> {
-                        if (!renewed) {
-                            throw new RuntimeException("Failed to renew job lock for " + state.nextDetails);
+                        if (renewed) {
+                            return renewed;
                         }
-                        return renewed;
+                        throw new RuntimeException("Failed to renew job lock for " + state.nextDetails);
                     })
-                    .toCompletable()
-                    .concatWith(executeJob(state.nextDetails, state.nextTimeSlice, state.activeJobs))
+                    .map(renewed -> executeJob(state.nextDetails, state.nextTimeSlice, state.activeJobs)))
                     .subscribe(
                             () -> logger.debugf("Finished executing %s", state.nextDetails),
                             t -> logger.warnf("There was an error executing %s", state.nextDetails)
                     );
         });
-        return Single.just(state);
-    }
-
-    /**
-     * Deactivating a job does two things. 1) The job is is removed from the activeJobs set, and 2) the job lock is
-     * released. If the job is repeating and behind schedule, then this method is a no-op.
-     */
-    private Single<JobExecutionState> deactivate(JobExecutionState state) {
-        logger.debugf("Removing %s from active jobs %s", state.currentDetails, state.activeJobs);
-        state.activeJobs.remove(state.currentDetails.getJobId());
         return Single.just(state);
     }
 
