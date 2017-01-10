@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -91,6 +91,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.server.XnioByteBufferPool;
 import io.undertow.util.AttachmentKey;
 import io.undertow.util.HttpString;
+import io.undertow.util.StatusCodes;
 import io.undertow.util.StringReadChannelListener;
 import io.undertow.util.StringWriteChannelListener;
 
@@ -491,6 +492,9 @@ class TokenAuthenticator implements Authenticator {
                 } catch (IOException e) {
                     onRequestFailure(serverExchange, connection, e);
                 }
+            } else {
+                IOException e = new IOException(StatusCodes.getReason(clientExchange.getResponse().getResponseCode()));
+                onRequestFailure(serverExchange, connection, e);
             }
         }
 
