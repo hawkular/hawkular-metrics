@@ -140,8 +140,7 @@ public class SchedulerImpl implements Scheduler {
     static final int SCHEDULING_LOCK_TIMEOUT_IN_SEC = 5;
 
     // TODO We probably want this to be configurable
-//    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 3600;
-    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 60;
+    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 3600;
 
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
@@ -151,8 +150,6 @@ public class SchedulerImpl implements Scheduler {
     private Optional<PublishSubject<JobDetails>> jobFinished;
 
     private final Object lock = new Object();
-
-    private final Object activeJobsLock = new Object();
 
     public SchedulerImpl(RxSession session) {
         this.session = session;
@@ -283,27 +280,17 @@ public class SchedulerImpl implements Scheduler {
                                     activeJobs))
                             .doOnNext(jobs -> logger.debugf("[%s] remaining jobs: %s", timeSliceLock.timeSlice, jobs))
                             .flatMap(Observable::from)
-                            .filter(jobDetails -> {
-                                synchronized (activeJobsLock) {
-                                    return !activeJobs.contains(jobDetails.getJobId());
-                                }
-                            })
+                            .filter(jobDetails -> !activeJobs.contains(jobDetails.getJobId()))
                             .flatMap(this::acquireJobLock)
                             .filter(jobLock -> jobLock.acquired)
                             .map(jobLock -> jobLock.jobDetails)
                             .doOnNext(details -> {
                                 logger.debugf("Acquired job lock for %s in time slice %s", details,
                                         timeSliceLock.timeSlice);
-                                synchronized (activeJobsLock) {
-                                    activeJobs.add(details.getJobId());
-                                }
+                                activeJobs.add(details.getJobId());
                             })
                             .flatMap(details -> executeJob(details, timeSliceLock.timeSlice, activeJobs)
-                                    .doOnTerminate(() -> {
-                                        synchronized (activeJobsLock) {
-                                            activeJobs.remove(details.getJobId());
-                                        }
-                                    })
+                                    .doOnTerminate(() -> activeJobs.remove(details.getJobId()))
                                     .toObservable()
                                     .map(o -> timeSliceLock.getTimeSlice()))
                             .defaultIfEmpty(timeSliceLock.getTimeSlice()))
