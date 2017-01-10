@@ -73,6 +73,11 @@
     </dependency>
 
     <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
     </dependency>
@@ -115,6 +120,23 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes combine.children="append">
+            <!-- Exclude ANTLR token files -->
+            <exclude>**/*tokens</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <excludes>src/main/java/org/hawkular/metrics/core/service/tags/parser/*.java</excludes>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <dependencies>
@@ -129,6 +151,25 @@
             <exclude>**/*ITest*</exclude>
           </excludes>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>4.6</version>
+        <executions>
+          <execution>
+            <id>antlr4</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <listener>true</listener>
+              <visitor>true</visitor>
+              <outputDirectory>src/main/java</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
