@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,7 @@ import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.tags.SimpleTagQueryParser;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
@@ -188,7 +189,7 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Tools that do tagQueryParsing and execution
      */
-    private TagQueryParser tagQueryParser;
+    private SimpleTagQueryParser tagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -286,7 +287,7 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        tagQueryParser = new TagQueryParser(this.dataAccess, this);
+        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
     }
 
     void loadDataRetentions() {
