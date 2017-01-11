@@ -47,6 +47,7 @@ import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.tags.ExpressionTagQueryParser;
 import org.hawkular.metrics.core.service.tags.SimpleTagQueryParser;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
@@ -187,9 +188,10 @@ public class MetricsServiceImpl implements MetricsService {
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
     /**
-     * Tools that do tagQueryParsing and execution
+     * Tools that do tag query parsing and execution
      */
     private SimpleTagQueryParser tagQueryParser;
+    private ExpressionTagQueryParser expresssionTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -288,6 +290,7 @@ public class MetricsServiceImpl implements MetricsService {
         initMetrics();
 
         tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
+        expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
     }
 
     void loadDataRetentions() {
@@ -549,6 +552,14 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
                                                             Map<String, String> tagsQueries) {
         return tagQueryParser.findMetricsWithFilters(tenantId, metricType, tagsQueries)
+                .map(tMetric -> (Metric<T>) tMetric);
+    }
+
+    @Override
+    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
+            String tagsQuery) {
+        return expresssionTagQueryParser
+                .parse(tenantId, metricType, tagsQuery)
                 .map(tMetric -> (Metric<T>) tMetric);
     }
 

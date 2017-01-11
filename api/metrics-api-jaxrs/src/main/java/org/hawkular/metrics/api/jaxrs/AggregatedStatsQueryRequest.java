@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,8 @@ public class AggregatedStatsQueryRequest {
     private String percentiles;
 
     private String tags;
+
+    private String tagsQuery;
 
     private boolean stacked;
 
@@ -107,6 +109,14 @@ public class AggregatedStatsQueryRequest {
 
     public void setTags(String tags) {
         this.tags = tags;
+    }
+
+    public String getTagsQuery() {
+        return tagsQuery;
+    }
+
+    public void setTagsQuery(String tagsQuery) {
+        this.tagsQuery = tagsQuery;
     }
 
     public boolean isStacked() {

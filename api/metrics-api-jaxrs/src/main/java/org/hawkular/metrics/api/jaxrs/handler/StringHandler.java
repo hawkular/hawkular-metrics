@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,11 +125,17 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery) {
 
-        Observable<Metric<String>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), STRING)
-                : metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
+        Observable<Metric<String>> metricObservable = null;
+        if (tags != null && tagsQuery == null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
+        } else if (tags == null && tagsQuery != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tagsQuery);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), STRING);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -275,7 +281,7 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), STRING)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), STRING)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)

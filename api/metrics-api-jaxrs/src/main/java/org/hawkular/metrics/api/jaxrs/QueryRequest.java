@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,8 @@ public class QueryRequest {
     private String order;
 
     private String tags;
+
+    private String tagsQuery;
 
     public List<String> getIds() {
         return ids;
@@ -91,6 +93,14 @@ public class QueryRequest {
 
     public void setTags(String tags) {
         this.tags = tags;
+    }
+
+    public String getTagsQuery() {
+        return tagsQuery;
+    }
+
+    public void setTagsQuery(String tagsQuery) {
+        this.tagsQuery = tagsQuery;
     }
 
     @Override public String toString() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -143,11 +142,17 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery) {
 
-        Observable<Metric<Long>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), COUNTER)
-                : metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags.getTags());
+        Observable<Metric<Long>> metricObservable = null;
+        if (tags != null && tagsQuery == null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags.getTags());
+        } else if (tags == null && tagsQuery != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tagsQuery);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -279,7 +284,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                             .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -307,7 +312,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -675,11 +680,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
-        findMetricsByNameOrTag(metricNames, tags, MetricType.COUNTER)
+        findMetricsByNameOrTag(metricNames, tags, tagsQuery, MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
@@ -713,7 +719,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
                     "The standard start, end, order, and limit query parameters are supported as well.")
                     AggregatedStatsQueryRequest query) {
-        findMetricsByNameOrTag(query.getMetrics(), query.getTags(), MetricType.COUNTER)
+        findMetricsByNameOrTag(query.getMetrics(), query.getTags(), query.getTagsQuery(), MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -747,7 +753,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
         getStats(asyncResponse, start, end, null,
-                bucketsCount, bucketDuration, percentiles, tags, metricNames, stacked);
+                bucketsCount, bucketDuration, percentiles, tags, null, metricNames, stacked);
     }
 
     @GET
@@ -774,11 +780,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
-        findMetricsByNameOrTag(metricNames, tags, MetricType.COUNTER)
+        findMetricsByNameOrTag(metricNames, tags, tagsQuery, MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
@@ -811,7 +818,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                     required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, metricNames,
+        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, null, metricNames,
                 stacked);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,34 +66,43 @@ abstract class MetricsServiceHandler {
         return new NamedDataPointObserver<>(response, mapper, type);
     }
 
-    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
+    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, String tagsQuery,
+            MetricType<T> type) {
         List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
         Map<String, String> mapTags = TagsConverter.fromNullable(tags).getTags();
-        return findMetricsByNameOrTag(nonNullNames, mapTags, type);
+        return findMetricsByNameOrTag(nonNullNames, mapTags, tagsQuery, type);
     }
 
-    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, Tags tags, MetricType<T> type) {
+    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, Tags tags, String tagsQuery,
+            MetricType<T> type) {
         List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
         Map<String, String> mapTags = tags == null ? Collections.emptyMap() : tags.getTags();
-        return findMetricsByNameOrTag(nonNullNames, mapTags, type);
+        return findMetricsByNameOrTag(nonNullNames, mapTags, tagsQuery, type);
     }
 
     private <T> Observable<MetricId<T>> findMetricsByNameOrTag(@NotNull List<String> metricNames, @NotNull Map<String,
-            String> tags, MetricType<T> type) {
+    String> tags, String tagsQuery, MetricType<T> type) {
 
-        if (metricNames.isEmpty() && tags.isEmpty()) {
-            return Observable.error(new RuntimeApiError("Either metrics or tags parameter must be used"));
+        if (metricNames.isEmpty() && tags.isEmpty() && tagsQuery == null) {
+            return Observable.error(new RuntimeApiError("Either metrics or tags query parameters must be used"));
         }
-        if (!metricNames.isEmpty() && !tags.isEmpty()) {
-            return Observable.error(new RuntimeApiError("Cannot use both the metrics and tags parameters"));
+        if (!metricNames.isEmpty() && (!tags.isEmpty() || tagsQuery != null)) {
+            return Observable.error(new RuntimeApiError("Cannot use both the metrics and tags query parameters"));
+        }
+        if (metricNames.isEmpty() && (!tags.isEmpty() && tagsQuery != null)) {
+            return Observable.error(new RuntimeApiError("Cannot specify both the tags query parameters"));
         }
 
         if (!metricNames.isEmpty()) {
             return Observable.from(metricNames)
                     .map(id -> new MetricId<>(getTenant(), type, id));
         }
-        // Tags case
-        return metricsService.findMetricsWithFilters(getTenant(), type, tags)
+        if (!tags.isEmpty()) {
+            return metricsService.findMetricsWithFilters(getTenant(), type, tags)
+                    .map(Metric::getMetricId);
+        }
+
+        return metricsService.findMetricsWithFilters(getTenant(), type, tagsQuery)
                 .map(Metric::getMetricId);
     }
 

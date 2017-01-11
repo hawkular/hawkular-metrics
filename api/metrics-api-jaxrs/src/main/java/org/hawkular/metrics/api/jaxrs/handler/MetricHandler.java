@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,6 +196,7 @@ public class MetricHandler {
                     "counter, string")
             @QueryParam("type") MetricType<T> metricType,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery,
             @ApiParam(value = "Regexp to match metricId if tags filtering is used, otherwise exact matching",
                     required = false) @QueryParam("id") String id) {
         if (metricType != null && !metricType.isUserType()) {
@@ -205,7 +206,17 @@ public class MetricHandler {
 
         Observable<Metric<T>> metricObservable;
 
-        if(tags == null) {
+        if (tags != null && tagsQuery == null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), metricType, tags.getTags());
+            if (!Strings.isNullOrEmpty(id)) {
+                metricObservable = metricObservable.filter(metricsService.idFilter(id));
+            }
+        } else if (tags == null && tagsQuery != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), metricType, tagsQuery);
+            if (!Strings.isNullOrEmpty(id)) {
+                metricObservable = metricObservable.filter(metricsService.idFilter(id));
+            }
+        } else {
             if(!Strings.isNullOrEmpty(id)) {
                 // HWKMETRICS-461
                 if(metricType == null) {
@@ -218,11 +229,6 @@ public class MetricHandler {
                         .flatMap(mId -> metricsService.findMetric(mId));
             } else {
                 metricObservable = metricsService.findMetrics(getTenant(), metricType);
-            }
-        } else {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), metricType, tags.getTags());
-            if(!Strings.isNullOrEmpty(id)) {
-                metricObservable = metricObservable.filter(metricsService.idFilter(id));
             }
         }
 

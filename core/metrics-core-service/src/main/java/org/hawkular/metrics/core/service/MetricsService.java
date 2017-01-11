@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import java.util.List;
@@ -124,6 +123,17 @@ public interface MetricsService {
      */
     <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
             tagsQueries);
+
+    /**
+     * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
+     * tag level. The following tags-filtering capabilities are provided in tagsQueries:
+     *
+     * @param tenantId The id of the tenant to which the metrics belong
+     * @param type If type is null, no type filtering is used
+     * @param tagsQuery If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
+     * @return Metric's that are filtered with given conditions
+     */
+    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, String tagsQuery);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
