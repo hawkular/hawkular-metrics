@@ -72,7 +72,7 @@ public class ExpressionTagQueryParser {
     private class StorageTagQueryListener<T> extends TagQueryBaseListener {
 
         private Map<Integer, List<String>> arrays = new HashMap<>();
-        private Map<Integer, Observable<Metric<T>>> observables = new HashMap<>();
+        private Map<Integer, List<Observable<Metric<T>>>> observables = new HashMap<>();
         private String tenantId;
         private MetricType<T> metricType;
 
@@ -82,7 +82,7 @@ public class ExpressionTagQueryParser {
         }
 
         public Observable<Metric<T>> getResult() {
-            return observables.values().iterator().next();
+            return observables.values().iterator().next().get(0);
         }
 
         @Override
@@ -137,14 +137,14 @@ public class ExpressionTagQueryParser {
                         .flatMap(metricsService::findMetric);
             }
 
-            observables.put(ctx.getText().hashCode(), result);
+            pushObservable(ctx.getText().hashCode(), result);
         }
 
         @Override
         public void exitObject(ObjectContext ctx) {
             if (ctx.logical_operator() != null) {
-                Observable<Metric<T>> leftObservable = observables.get(ctx.object(0).getText().hashCode());
-                Observable<Metric<T>> rightObservable = observables.get(ctx.object(1).getText().hashCode());
+                Observable<Metric<T>> leftObservable = popObservable(ctx.object(0).getText().hashCode());
+                Observable<Metric<T>> rightObservable = popObservable(ctx.object(1).getText().hashCode());
 
                 observables.remove(ctx.object(0).getText().hashCode());
                 observables.remove(ctx.object(1).getText().hashCode());
@@ -160,12 +160,12 @@ public class ExpressionTagQueryParser {
                             .flatMap(s -> s.skip(1).take(1));
                 }
 
-                observables.put(ctx.getText().hashCode(), result);
+                pushObservable(ctx.getText().hashCode(), result);
             } else {
                 if (ctx.object(0) != null && ctx.object(0).getText().hashCode() != ctx.getText().hashCode()) {
-                    Observable<Metric<T>> expressionObservable = observables.get(ctx.object(0).getText().hashCode());
+                    Observable<Metric<T>> expressionObservable = popObservable(ctx.object(0).getText().hashCode());
                     observables.remove(ctx.object(0).getText().hashCode());
-                    observables.put(ctx.getText().hashCode(), expressionObservable);
+                    pushObservable(ctx.getText().hashCode(), expressionObservable);
                 }
             }
         };
@@ -178,6 +178,33 @@ public class ExpressionTagQueryParser {
                 arrayContext.add(text.substring(1, text.length() - 1));
             }
             arrays.put(ctx.getText().hashCode(), arrayContext);
+        }
+
+        private void pushObservable(Integer hashCode, Observable<Metric<T>> observable) {
+            List<Observable<Metric<T>>> hashObservables = observables.get(hashCode);
+            if (hashObservables != null) {
+                hashObservables.add(observable);
+            } else {
+                hashObservables = new ArrayList<Observable<Metric<T>>>();
+                hashObservables.add(observable);
+                observables.put(hashCode, hashObservables);
+            }
+        }
+
+        private Observable<Metric<T>> popObservable(Integer hashCode) {
+            List<Observable<Metric<T>>> hashObservables = observables.get(hashCode);
+
+            if (hashObservables == null || hashObservables.isEmpty()) {
+                return null;
+            }
+
+            Observable<Metric<T>> observable = hashObservables.remove(0);
+
+            if (hashObservables.isEmpty()) {
+                observables.remove(hashCode);
+            }
+
+            return observable;
         }
     }
 }

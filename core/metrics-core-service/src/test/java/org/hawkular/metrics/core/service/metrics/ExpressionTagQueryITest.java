@@ -85,6 +85,10 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         gauges = test.parse(tenantId, GAUGE, "hostname =='web.*' or a1=='*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5", "mA", "mB");
+
+        gauges = test.parse(tenantId, GAUGE, "a1 =='1' and a1=='1'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1");
     }
 
     private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
