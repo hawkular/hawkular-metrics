@@ -178,7 +178,7 @@ public class DropWizardReporter extends ScheduledReporter {
         Observable.merge(insertedGauges, insertedCounters).subscribe(
                 aVoid -> {},
                 t -> logger.warn("Persisting metrics failed", t),
-                () -> logger.info("Finished persisting metrics")
+                () -> logger.debug("Finished persisting metrics")
         );
     }
 
