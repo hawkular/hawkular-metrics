@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -178,7 +178,7 @@ public class DropWizardReporter extends ScheduledReporter {
         Observable.merge(insertedGauges, insertedCounters).subscribe(
                 aVoid -> {},
                 t -> logger.warn("Persisting metrics failed", t),
-                () -> logger.info("Finished persisting metrics")
+                () -> logger.debug("Finished persisting metrics")
         );
     }
 
