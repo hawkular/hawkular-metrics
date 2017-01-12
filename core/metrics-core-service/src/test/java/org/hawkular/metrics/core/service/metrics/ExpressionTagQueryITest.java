@@ -62,7 +62,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m6");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='11' OR a2=='2'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 =='11' OR a2=='22'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges);
 
@@ -92,6 +92,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
     }
 
     private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
+        assertEquals(actualMetrics.size(), expectedMetricIds.length);
         for (String expectedMetricId : expectedMetricIds) {
             boolean found = false;
             for (Metric<T> actualMetric : actualMetrics) {
@@ -99,10 +100,6 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                     found = true;
                     break;
                 }
-            }
-
-            if (!found) {
-                System.out.println(actualMetrics);
             }
 
             assertTrue(found, "Metric " + expectedMetricId + " was not found in the list of returned metrics.");

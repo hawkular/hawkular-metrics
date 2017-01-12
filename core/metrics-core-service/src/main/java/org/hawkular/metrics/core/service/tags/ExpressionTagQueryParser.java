@@ -149,15 +149,16 @@ public class ExpressionTagQueryParser {
                 observables.remove(ctx.object(0).getText().hashCode());
                 observables.remove(ctx.object(1).getText().hashCode());
 
-                //concat is an implicit OR
                 Observable<Metric<T>> result = leftObservable.concatWith(rightObservable);
 
                 if (ctx.logical_operator().AND() != null) {
-                    //group by metric an then use one element from the groups with two elements
-                    //if a group has two elements that means it is in both sets of observables
+                    //group by metric and then use one element from the groups with two elements
+                    //if a group has two elements it is in both sets, hence AND
                     result = result
                             .groupBy(m -> m)
                             .flatMap(s -> s.skip(1).take(1));
+                } else if (ctx.logical_operator().OR() != null) {
+                    result = result.distinct();
                 }
 
                 pushObservable(ctx.getText().hashCode(), result);
