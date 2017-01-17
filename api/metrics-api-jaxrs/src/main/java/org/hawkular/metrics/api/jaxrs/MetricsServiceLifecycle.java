@@ -117,6 +117,8 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
+import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.hash.Hashing;
@@ -453,7 +455,7 @@ public class MetricsServiceLifecycle {
         if (Boolean.parseBoolean(cassandraUseSSL)) {
             SSLOptions sslOptions = null;
             try {
-                String[] defaultCipherSuites = { "TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA" };
+                String[] defaultCipherSuites = {"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA"};
                 sslOptions = JdkSSLOptions.builder().withSSLContext(SSLContext.getDefault())
                         .withCipherSuites(defaultCipherSuites).build();
                 clusterBuilder.withSSL(sslOptions);
@@ -534,7 +536,8 @@ public class MetricsServiceLifecycle {
                 .setConnectTimeoutMillis(driverConnectionTimeout)
         ).withQueryOptions(new QueryOptions()
                 .setFetchSize(driverPageSize)
-                .setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval));
+                .setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval)
+        ).withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build(), false));
 
         Cluster cluster = clusterBuilder.build();
         cluster.init();

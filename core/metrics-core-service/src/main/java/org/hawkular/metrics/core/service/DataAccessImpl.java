@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import static java.util.stream.Collectors.toMap;
@@ -29,11 +28,16 @@ import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
+import org.hawkular.metrics.core.service.log.CoreLogger;
+import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
+import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Interval;
@@ -45,14 +49,22 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.CodecRegistry;
+import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Token;
+import com.datastax.driver.core.TokenRange;
+import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
+import rx.exceptions.Exceptions;
 
 /**
  *
@@ -60,10 +72,14 @@ import rx.Observable;
  */
 public class DataAccessImpl implements DataAccess {
 
+    private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
+
     public static final long DPART = 0;
     private Session session;
 
     private RxSession rxSession;
+
+    private LoadBalancingPolicy loadBalancingPolicy;
 
     private PreparedStatement insertTenant;
 
@@ -199,10 +215,17 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
+    private CodecRegistry codecRegistry;
+    private Metadata metadata;
+
     public DataAccessImpl(Session session) {
         this.session = session;
         rxSession = new RxSessionImpl(session);
+        loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
         initPreparedStatements();
+
+        codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
+        metadata = session.getCluster().getMetadata();
     }
 
     protected void initPreparedStatements() {
@@ -632,6 +655,89 @@ public class DataAccessImpl implements DataAccess {
                 .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }
 
+    /*
+     * Applies micro-batching capabilities by taking advantage of token ranges in the Cassandra
+     */
+    private Observable.Transformer<BoundStatement, Integer> applyMicroBatching() {
+        return tObservable -> tObservable
+                .groupBy(b -> {
+                    ByteBuffer routingKey = b.getRoutingKey(ProtocolVersion.NEWEST_SUPPORTED,
+                            codecRegistry);
+                    Token token = metadata.newToken(routingKey);
+                    for (TokenRange tokenRange : session.getCluster().getMetadata().getTokenRanges()) {
+                        if (tokenRange.contains(token)) {
+                            return tokenRange;
+                        }
+                    }
+                    throw new RuntimeException("Unable to find any Cassandra node to insert token " + token.toString());
+                })
+                .flatMap(g -> g.compose(new BoundBatchStatementTransformer()))
+                .flatMap(batch -> rxSession
+                        .execute(batch)
+                        .compose(applyInsertRetryPolicy())
+                        .map(resultSet -> batch.size())
+                );
+    }
+
+    /*
+     * Apply our current retry policy to the insert behavior
+     */
+    private <T> Observable.Transformer<T, T> applyInsertRetryPolicy() {
+        return tObservable -> tObservable
+                .retryWhen(errors -> {
+                    Observable<Integer> range = Observable.range(1, 2);
+                    return errors
+                            .zipWith(range, (t, i) -> {
+                                if (t instanceof DriverException) {
+                                    return i;
+                                }
+                                throw Exceptions.propagate(t);
+                            })
+                            .flatMap(retryCount -> {
+                                long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, 3000);
+                                log.debug("Retrying batch insert in " + delay + " ms");
+                                return Observable.timer(delay, TimeUnit.MILLISECONDS);
+                            });
+                });
+    }
+
+    @Override
+    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer>
+            ttlFetcher) {
+
+        return gauges
+                .flatMap(gauge -> {
+                            int ttl = ttlFetcher.apply(gauge.getMetricId());
+                            return Observable.from(gauge.getDataPoints())
+                                    .compose(mapGaugeDatapoint(gauge, ttl));
+                        }
+                )
+                .compose(applyMicroBatching());
+    }
+
+    private Observable.Transformer<DataPoint<Double>, BoundStatement> mapGaugeDatapoint(Metric<Double> gauge, int ttl) {
+        return tObservable -> tObservable
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
+                                    dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
+                                    dataPoint.getTimestamp());
+                        }
+                    } else {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
+                    }
+                });
+    }
+
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
         return insertGaugeData(gauge, -1);
@@ -640,27 +746,52 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
         return Observable.from(gauge.getDataPoints())
-                .map(dataPoint ->  {
+                .compose(mapGaugeDatapoint(gauge, ttl))
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
+
+    private Observable.Transformer<DataPoint<String>, BoundStatement> mapStringDatapoint(Metric<String> metric, int
+            ttl, int maxSize) {
+        return tObservable -> tObservable
+                .map(dataPoint -> {
+                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
+                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
+                                " characters");
+                    }
+
                     if (dataPoint.getTags().isEmpty()) {
                         if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
-                                dataPoint.getTimestamp(), ttl);
+                            return bindDataPoint(insertStringDataUsingTTL, metric, dataPoint.getValue(),
+                                    dataPoint.getTimestamp(), ttl);
                         } else {
-                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
+                            return bindDataPoint(insertStringData, metric, dataPoint.getValue(),
                                     dataPoint.getTimestamp());
                         }
                     } else {
                         if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
-                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                            return bindDataPoint(insertStringDataWithTagsUsingTTL, metric, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
                         } else {
-                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
+                            return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
                                     dataPoint.getTags(), dataPoint.getTimestamp());
                         }
                     }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                });
+    }
+
+    @Override
+    public Observable<Integer> insertStringDatas(Observable<Metric<String>> strings, Function<MetricId, Integer>
+            ttlFetcher, int maxSize) {
+
+        return strings
+                .flatMap(string -> {
+                            int ttl = ttlFetcher.apply(string.getMetricId());
+                            return Observable.from(string.getDataPoints())
+                                    .compose(mapStringDatapoint(string, ttl, maxSize));
+                        }
+                )
+                .compose(applyMicroBatching());
     }
 
     @Override
@@ -671,32 +802,47 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return Observable.from(metric.getDataPoints())
-                .map(dataPoint -> {
-                    if (maxSize != -1 && dataPoint.getValue().length() > maxSize) {
-                        throw new IllegalArgumentException(dataPoint + " exceeds max string length of " + maxSize +
-                            " characters");
-                    }
+                .compose(mapStringDatapoint(metric, ttl, maxSize))
+                .compose(new BatchStatementTransformer())
+                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    }
 
+    private Observable.Transformer<DataPoint<Long>, BoundStatement> mapCounterDatapoint(Metric<Long> counter, int ttl) {
+        return o -> o
+                .map(dataPoint -> {
                     if (dataPoint.getTags().isEmpty()) {
                         if (ttl >= 0) {
-                            return bindDataPoint(insertStringDataUsingTTL, metric, dataPoint.getValue(),
-                                dataPoint.getTimestamp(), ttl);
+                            return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
+                                    dataPoint.getTimestamp(), ttl);
                         } else {
-                            return bindDataPoint(insertStringData, metric, dataPoint.getValue(),
+                            return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
                                     dataPoint.getTimestamp());
+
                         }
                     } else {
                         if (ttl >= 0) {
-                            return bindDataPoint(insertStringDataWithTagsUsingTTL, metric, dataPoint.getValue(),
-                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                            return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
                         } else {
-                            return bindDataPoint(insertStringDataWithTags, metric, dataPoint.getValue(),
+                            return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
                                     dataPoint.getTags(), dataPoint.getTimestamp());
                         }
                     }
-                })
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+                });
+    }
+
+    @Override
+    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters, Function<MetricId, Integer>
+            ttlFetcher) {
+
+        return counters
+                .flatMap(counter -> {
+                            int ttl = ttlFetcher.apply(counter.getMetricId());
+                            return Observable.from(counter.getDataPoints())
+                                    .compose(mapCounterDatapoint(counter, ttl));
+                        }
+                )
+                .compose(applyMicroBatching());
     }
 
     @Override
@@ -707,26 +853,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
         return Observable.from(counter.getDataPoints())
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
-                                dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
-                                    dataPoint.getTimestamp());
-
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
-                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                })
+                .compose(mapCounterDatapoint(counter, ttl))
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
@@ -902,6 +1029,44 @@ public class DataAccessImpl implements DataAccess {
                 interval.toString(), dpart));
     }
 
+    private Observable.Transformer<DataPoint<AvailabilityType>, BoundStatement> mapAvailabilityDatapoint(
+            Metric<AvailabilityType> metric, int ttl) {
+        return a -> a
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint),
+                                    dataPoint.getTimestamp(),
+                                    ttl);
+                        } else{
+                            return bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
+                                    dataPoint.getTimestamp());
+                        }
+                    } else {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
+                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
+                                                       Function<MetricId, Integer> ttlFetcher) {
+        return avail
+                .flatMap(a -> {
+                            int ttl = ttlFetcher.apply(a.getMetricId());
+                            return Observable.from(a.getDataPoints())
+                                    .compose(mapAvailabilityDatapoint(a, ttl));
+                        }
+                )
+                .compose(applyMicroBatching());
+    }
+
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
         return insertAvailabilityData(metric, -1);
@@ -910,26 +1075,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
         return Observable.from(metric.getDataPoints())
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp(),
-                                ttl);
-                        } else{
-                            return bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp());
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
-                                dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                })
+                .compose(mapAvailabilityDatapoint(metric, ttl))
                 .compose(new BatchStatementTransformer())
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }

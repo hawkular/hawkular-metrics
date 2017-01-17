@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
@@ -102,7 +101,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Completable;
 import rx.Observable;
-import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func6;
@@ -169,6 +167,8 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
 
+    private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
+
     /**
      * Measurements of the throughput of inserting data points.
      */
@@ -218,6 +218,30 @@ public class MetricsServiceImpl implements MetricsService {
         loadDataRetentions();
 
         this.metricRegistry = metricRegistry;
+
+        pointsInserter = ImmutableMap
+                .<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>>builder()
+                .put(GAUGE, metric -> {
+                    @SuppressWarnings("unchecked")
+                    Observable<Metric<Double>> gauge = (Observable<Metric<Double>>) metric;
+                    return dataAccess.insertGaugeDatas(gauge, this::getTTL);
+                })
+                .put(COUNTER, metric -> {
+                    @SuppressWarnings("unchecked")
+                    Observable<Metric<Long>> counter = (Observable<Metric<Long>>) metric;
+                    return dataAccess.insertCounterDatas(counter, this::getTTL);
+                })
+                .put(AVAILABILITY, metric -> {
+                    @SuppressWarnings("unchecked")
+                    Observable<Metric<AvailabilityType>> avail = (Observable<Metric<AvailabilityType>>) metric;
+                    return dataAccess.insertAvailabilityDatas(avail, this::getTTL);
+                })
+                .put(STRING, metric -> {
+                    @SuppressWarnings("unchecked")
+                    Observable<Metric<String>> string = (Observable<Metric<String>>) metric;
+                    return dataAccess.insertStringDatas(string, this::getTTL, maxStringSize);
+                })
+                .build();
 
         dataPointInserters = ImmutableMap
                 .<MetricType<?>, Func2<? extends Metric<?>, Integer,
@@ -626,51 +650,14 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
 
-        // We write to both the data and the metrics_idx tables. Each metric can have one or more data points. We
-        // currently write a separate batch statement for each metric.
-        //
-        // TODO Is there additional overhead of using batch statement when there is only a single insert?
-        //      If there is overhead, then we should avoid using batch statements when the metric has only a single
-        //      data point which could be quite often.
-        //
-        // The metrics_idx table stores the metric id along with any tags, and data retention. The update we perform
-        // here though only inserts the metric id (i.e., name and interval). We need to revisit this logic. The original
-        // intent for updating metrics_idx here is that even if the client does not explicitly create the metric, we
-        // still have it in metrics_idx. In reality, I think clients will be explicitly creating metrics. This will
-        // certainly be the case with the full, integrated hawkular server.
-        //
-        // TODO Determine how much overhead is caused by updating metrics_idx on every write
-        //      If there much overhead, then we might not want to update the index every time we insert data. Maybe
-        //      we periodically update it in the background, so we will still be aware of metrics that have not been
-        //      explicitly created, just not necessarily right away.
-
         Meter meter = getInsertMeter(metricType);
-        Func2<Metric<T>, Integer, Observable<Integer>> inserter = getInserter(metricType);
-
-        Observable<Integer> updates = metrics
-                .filter(metric -> !metric.getDataPoints().isEmpty())
-                .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
-                        .retryWhen(errors -> {
-                            Observable<Integer> range = Observable.range(1, insertMaxRetries);
-                            return errors
-                                    .zipWith(range, (t, i) -> {
-                                        if (t instanceof DriverException) {
-                                            return i;
-                                        }
-                                        throw Exceptions.propagate(t);
-                                    })
-                                    .flatMap(retryCount -> {
-                                        long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, insertRetryMaxDelay);
-                                        log.debug("Retrying insert for " + metric.getMetricId() + " in " + delay + " ms");
-                                        return Observable.timer((long) Math.min(Math.pow(2, retryCount) * 1000, 30000),
-                                                TimeUnit.SECONDS);
-                                    });
-                        })
-                        .doOnError(t -> log.debug("Failed to insert data points for " + metric.getMetricId()))
-                        .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
-                .doOnNext(meter::mark);
-
-        return updates.map(i -> null);
+        return pointsInserter
+                .get(metricType)
+                .call(metrics
+                        .filter(metric -> !metric.getDataPoints().isEmpty())
+                        .doOnNext(insertedDataPointEvents::onNext))
+                .doOnNext(meter::mark)
+                .map(i -> null);
     }
 
     private <T> Meter getInsertMeter(MetricType<T> metricType) {
@@ -683,8 +670,8 @@ public class MetricsServiceImpl implements MetricsService {
 
     @SuppressWarnings("unchecked")
     private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType<T> metricType) {
-        Func2<Metric<T>, Integer, Observable<Integer>> inserter;
-        inserter = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
+        Func2<Metric<T>, Integer, Observable<Integer>> inserter
+                = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
         if (inserter == null) {
             throw new UnsupportedOperationException(metricType.getText());
         }
