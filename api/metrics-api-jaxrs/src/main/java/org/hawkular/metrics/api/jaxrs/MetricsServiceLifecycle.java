@@ -255,7 +255,7 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(METRICS_REPOPRTING_HOSTNAME)
+    @ConfigurationProperty(METRICS_REPORTING_HOSTNAME)
     private String metricsReportingHostname;
 
     @Inject
