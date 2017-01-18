@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TENANT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TOKEN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CONNECTION_TIMEOUT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
@@ -41,7 +42,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPOPRTING_HOSTNAME;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
@@ -229,6 +231,11 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
+    @ConfigurationProperty(ADMIN_TENANT)
+    private String adminTenant;
+
+    @Inject
+    @Configurable
     @ConfigurationProperty(INGEST_MAX_RETRIES)
     private String ingestMaxRetries;
 
@@ -254,8 +261,13 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(METRICS_REPOPRTING_HOSTNAME)
+    @ConfigurationProperty(METRICS_REPORTING_HOSTNAME)
     private String metricsReportingHostname;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_REPORTING_ENABLED)
+    private String metricsReportingEnabled;
 
     @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
@@ -396,8 +408,10 @@ public class MetricsServiceLifecycle {
 
             new MetricsInitializer(metricRegistry, metricsService, metricNameService).run();
 
-            DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
-            reporter.start(30, SECONDS);
+            if (Boolean.valueOf(metricsReportingEnabled)) {
+                DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
+                reporter.start(30, SECONDS);
+            }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
