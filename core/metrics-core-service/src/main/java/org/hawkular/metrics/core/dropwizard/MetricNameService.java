@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,11 +33,11 @@ import com.google.common.base.Preconditions;
  */
 public class MetricNameService implements MetricFilter {
 
-    public static final String TENANT_ID = "admin";
 
     private static final String separator = ":";
 
-    private String hostname;
+    private final String adminTenant;
+    private final String hostname;
 
     public MetricNameService() {
         try {
@@ -45,14 +45,31 @@ public class MetricNameService implements MetricFilter {
         } catch (UnknownHostException e) {
             throw new RuntimeException("Failed to get hostname", e);
         }
+
+        this.adminTenant = "admin";
     }
 
-    public MetricNameService(String hostname) {
+    public MetricNameService(String adminTenant) {
+        try {
+            hostname = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Failed to get hostname", e);
+        }
+
+        this.adminTenant = adminTenant;
+    }
+
+    public MetricNameService(String hostname, String adminTenant) {
         this.hostname = hostname;
+        this.adminTenant = adminTenant;
     }
 
     public String getHostName() {
         return hostname;
+    }
+
+    public String getTenantId() {
+        return adminTenant;
     }
 
     /**
