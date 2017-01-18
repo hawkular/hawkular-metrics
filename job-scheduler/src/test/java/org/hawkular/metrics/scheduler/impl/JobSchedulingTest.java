@@ -25,6 +25,8 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -52,7 +54,11 @@ public class JobSchedulingTest extends JobSchedulerTest {
 
     @BeforeClass
     public void initClass() {
-        jobScheduler = new SchedulerImpl(rxSession);
+        try {
+            jobScheduler = new SchedulerImpl(rxSession, InetAddress.getLocalHost().getHostName());
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @BeforeMethod(alwaysRun = true)

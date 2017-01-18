@@ -139,7 +139,9 @@ public class SchedulerImpl implements Scheduler {
 
     private final Object lock = new Object();
 
-    public SchedulerImpl(RxSession session) {
+    private String hostname;
+
+    public SchedulerImpl(RxSession session, String hostname) {
         this.session = session;
         jobFactories = new HashMap<>();
         retryFunctions = new HashMap<>();
@@ -167,6 +169,8 @@ public class SchedulerImpl implements Scheduler {
 
         finishedTimeSlices = Optional.empty();
         jobFinished = Optional.empty();
+
+        this.hostname = hostname;
     }
 
     private PreparedStatement initQuery(String cql) {
@@ -351,8 +355,15 @@ public class SchedulerImpl implements Scheduler {
 
     private Observable<JobLock> acquireJobLock(JobDetails jobDetails) {
         String jobLock = "org.hawkular.metrics.scheduler.job." + jobDetails.getJobId();
-        return lockManager.acquireExclusiveLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
-                .map(acquired -> new JobLock(jobDetails, acquired));
+        int timeout = calculateTimeout(jobDetails.getTrigger());
+        return lockManager.acquireExclusiveLock(jobLock, hostname, timeout)
+                .map(acquired -> new JobLock(jobDetails, acquired))
+                .doOnNext(lock -> logger.debugf("Acquired lock for %s? %s", jobDetails.getJobName(),
+                        lock.acquired));
+    }
+
+    private int calculateTimeout(Trigger trigger) {
+        return JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC;
     }
 
     private Completable executeJob(JobDetails details, Date timeSlice, Set<UUID> activeJobs) {
@@ -388,7 +399,7 @@ public class SchedulerImpl implements Scheduler {
                         }
                         if (details.getTrigger().nextTrigger() != null) {
                             logger.warnf("Retry policies cannot be used with jobs that repeat. %s will execute " +
-                                    "again according to its next triger", details);
+                                    "again according to its next trigger", details);
                             return Completable.complete();
                         }
                         if (retryPolicy == RetryPolicy.NOW) {
@@ -433,13 +444,7 @@ public class SchedulerImpl implements Scheduler {
                         .toSingle()
                         .map(resultSet -> state))
                 .flatMap(this::reschedule)
-                .flatMap(state -> {
-                    if (state.isBehindSchedule()) {
-                        return setJobFinished(state).flatMap(this::scheduleImmediateExecutionIfNecessary);
-                    }
-                    return releaseJobExecutionLock(state)
-                            .flatMap(this::setJobFinished);
-                })
+                .flatMap(state -> releaseJobExecutionLock(state).flatMap(this::setJobFinished))
                 .doOnError(t -> {
                     logger.debug("There was an error during post-job execution", t);
                     publishJobFinished(jobDetails);
@@ -512,6 +517,9 @@ public class SchedulerImpl implements Scheduler {
                             newDetails, new Date(nextTimeSlice.get()), executionState.activeJobs))
                     .flatMap(state -> jobsService.insert(state.nextTimeSlice, state.nextDetails)
                             .map(updated -> state))
+                    .doOnNext(state -> logger.debugf("Rescheduled %s to execute in time slice %s with trigger time " +
+                            "of %s", state.nextDetails.getJobName(), state.nextTimeSlice, new Date(state.nextDetails
+                            .getTrigger().getTriggerTime())))
                     .toSingle();
         }
 
@@ -524,36 +532,12 @@ public class SchedulerImpl implements Scheduler {
                 .toSingle();
     }
 
-    private Single<JobExecutionState> scheduleImmediateExecutionIfNecessary(JobExecutionState state) {
-        rx.Scheduler.Worker worker = Schedulers.io().createWorker();
-        worker.schedule(() -> {
-            logger.debugf("Starting immediate execution of %s", state.nextDetails);
-            String jobLock = "org.hawkular.metrics.scheduler.job." + state.nextDetails.getJobId();
-
-            Completable.merge(lockManager.renewLock(jobLock, JOB_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
-                    .map(renewed -> {
-                        if (renewed) {
-                            return renewed;
-                        }
-                        throw new RuntimeException("Failed to renew job lock for " + state.nextDetails);
-                    })
-                    .observeOn(Schedulers.io())
-                    .map(renewed -> executeJob(state.nextDetails, state.nextTimeSlice, state.activeJobs)))
-                    .subscribe(
-                            () -> logger.debugf("Finished executing %s", state.nextDetails),
-                            t -> logger.warnf("There was an error executing %s", state.nextDetails)
-                    );
-        });
-        return Single.just(state);
-    }
-
     private Single<JobExecutionState> releaseJobExecutionLock(JobExecutionState state) {
         String jobLock = "org.hawkular.metrics.scheduler.job." + state.currentDetails.getJobId();
-        return lockManager.releaseLock(jobLock, JOB_EXECUTION_LOCK)
+        return lockManager.releaseLock(jobLock, hostname)
                 .map(released -> {
                     if (!released) {
                         logger.warnf("Failed to release job lock for %s", state.currentDetails);
-                        throw new RuntimeException("Failed to release job lock for " + state.currentDetails);
                     }
                     return state;
                 })
