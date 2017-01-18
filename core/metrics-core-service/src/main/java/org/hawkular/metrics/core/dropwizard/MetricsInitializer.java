@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,7 +71,7 @@ public class MetricsInitializer {
         List<Metric<Long>> counterMetrics = new ArrayList<>();
 
         metricRegistry.getMeters(metricNameService).entrySet().forEach(entry -> {
-            String tenantId = MetricNameService.TENANT_ID;
+            String tenantId = metricNameService.getTenantId();
             String metricName = entry.getKey();
             Map<String, String> tags = getTags(metricName);
 
@@ -84,7 +84,7 @@ public class MetricsInitializer {
         });
 
         metricRegistry.getTimers(metricNameService).entrySet().forEach(entry -> {
-            String tenantId = MetricNameService.TENANT_ID;
+            String tenantId = metricNameService.getTenantId();
             String metricName = entry.getKey();
             Map<String, String> tags = getTags(metricName);
 

@@ -183,7 +183,7 @@ public class DropWizardReporter extends ScheduledReporter {
     }
 
     private <T> MetricId<T> getMetricId(String metric, MetricType<T> type) {
-        String tenantId = MetricNameService.TENANT_ID;
+        String tenantId = metricNameService.getTenantId();
         return new MetricId<>(tenantId, type, metric);
     }
 
