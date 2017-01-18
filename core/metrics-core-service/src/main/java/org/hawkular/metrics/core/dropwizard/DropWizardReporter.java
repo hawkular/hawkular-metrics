@@ -64,6 +64,7 @@ public class DropWizardReporter extends ScheduledReporter {
             MetricsService metricsService) {
         super(registry, REPORTER_NAME, metricNameService, TimeUnit.SECONDS, TimeUnit.SECONDS);
         this.metricsService = metricsService;
+        this.metricNameService = metricNameService;
     }
 
     @Override
