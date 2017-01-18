@@ -61,6 +61,7 @@ public enum ConfigurationKey {
     ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
     ADMIN_TENANT("hawkular.metrics.admin-tenant", "admin", "ADMIN_TENANT", false),
     METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
+    METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
 
     INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
