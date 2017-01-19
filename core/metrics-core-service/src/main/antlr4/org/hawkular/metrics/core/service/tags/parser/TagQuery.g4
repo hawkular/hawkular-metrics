@@ -76,10 +76,10 @@ array
 //parser
 OR: O R;
 AND: A N D;
-EQUAL: '==';
+EQUAL: '=';
 NOTEQUAL: '!=';
 IN: I N;
-NOTIN: N I N;
+NOTIN: N O T I N;
 
 KEY  : [a-zA-Z_0-9]+ ;
 VALUE :  '\'' (ESC | ~[\'\\])* '\'' ;

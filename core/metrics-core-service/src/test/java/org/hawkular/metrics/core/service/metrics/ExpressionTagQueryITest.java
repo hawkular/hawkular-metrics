@@ -54,39 +54,43 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
 
         ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
 
-        List<Metric<Double>> gauges = test.parse(tenantId, GAUGE, "a1 =='1'").toList().toBlocking()
+        List<Metric<Double>> gauges = test.parse(tenantId, GAUGE, "a1 ='1'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='1' OR a2=='2'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 != '1'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m2", "m3", "m4", "m5");
+
+        gauges = test.parse(tenantId, GAUGE, "a1 ='1' OR a2='2'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m6");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='11' OR a2=='22'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='11' OR a2 = '22'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges);
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='2' AND (a2=='3' OR a2=='4')").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1='2' AND (a2='3' OR a2='4')").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='2' AND (a2 in ['3', '4'])").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='2' AND (a2 in ['3', '4'])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='2' AND (a2 nin ['3'])").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='2' AND (a2 notin ['3'])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "hostname =='web.*'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "hostname ='web.*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "mA", "mB");
 
-        gauges = test.parse(tenantId, GAUGE, "hostname =='web.*' or a1=='*'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "hostname ='web.*' or a1='*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5", "mA", "mB");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 =='1' and a1=='1'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='1' and a1='1'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
     }
