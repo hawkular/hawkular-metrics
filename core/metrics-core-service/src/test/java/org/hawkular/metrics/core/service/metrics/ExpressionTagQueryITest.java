@@ -54,15 +54,15 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
 
         ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
 
-        List<Metric<Double>> gauges = test.parse(tenantId, GAUGE, "a1 ='1'").toList().toBlocking()
+        List<Metric<Double>> gauges = test.parse(tenantId, GAUGE, "a1 ='abc'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 != '1'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 != 'abc'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m2", "m3", "m4", "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 ='1' OR a2='2'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='abc' OR a2='defg'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m6");
 
@@ -70,15 +70,15 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges);
 
-        gauges = test.parse(tenantId, GAUGE, "a1='2' AND (a2='3' OR a2='4')").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1='defg' AND (a2='jkl' OR a2='xyz')").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 ='2' AND (a2 in ['3', '4'])").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='defg' AND (a2 in ['jkl', 'xyz'])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 ='2' AND (a2 notin ['3'])").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='defg' AND (a2 notin ['jkl'])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m5");
 
@@ -90,15 +90,15 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5", "mA", "mB");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 ='1' and a1='1'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ='abc' and a1='abc'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
-        gauges = test.parse(tenantId, GAUGE, "a1=1 or a1=3").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1=abc or a1=jkl").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m3");
 
-        gauges = test.parse(tenantId, GAUGE, "a1=2 AND (a2 in [3, 4])").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1=defg AND (a2 in [jkl, xyz])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
     }
@@ -141,12 +141,12 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
 
         @SuppressWarnings("unchecked")
         ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
-                ImmutableMap.of("a1", "1", "a2", "3"),//m1
-                ImmutableMap.of("a1", "2"),//m2
-                ImmutableMap.of("a1", "3"),//m3
-                ImmutableMap.of("a1", "2", "a2", "3"),//m4
-                ImmutableMap.of("a1", "2", "a2", "4"),//m5
-                ImmutableMap.of("a2", "2"),//m6
+                ImmutableMap.of("a1", "abc", "a2", "jkl"),//m1
+                ImmutableMap.of("a1", "defg"),//m2
+                ImmutableMap.of("a1", "jkl"),//m3
+                ImmutableMap.of("a1", "defg", "a2", "jkl"),//m4
+                ImmutableMap.of("a1", "defg", "a2", "xyz"),//m5
+                ImmutableMap.of("a2", "defg"),//m6
                 ImmutableMap.of("hostname", "webfin01"),//mA
                 ImmutableMap.of("hostname", "webswe02"),//mB
                 ImmutableMap.of("hostname", "backendfin01"),//mC
@@ -157,7 +157,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 ImmutableMap.of("label", "test:test,test1:test2,test3:test4"),
                 ImmutableMap.of("label", "test1:test2,test3:test4"),
                 ImmutableMap.of("label", "test:,test1:test2"),
-                ImmutableMap.of("a1", "3"),
+                ImmutableMap.of("a1", "jkl"),
                 ImmutableMap.of("a1", "5"));
         assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
 
