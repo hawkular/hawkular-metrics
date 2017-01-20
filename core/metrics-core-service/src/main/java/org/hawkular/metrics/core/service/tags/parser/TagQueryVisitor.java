@@ -70,4 +70,16 @@ public interface TagQueryVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitArray(TagQueryParser.ArrayContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TagQueryParser#value}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitValue(TagQueryParser.ValueContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TagQueryParser#key}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitKey(TagQueryParser.KeyContext ctx);
 }

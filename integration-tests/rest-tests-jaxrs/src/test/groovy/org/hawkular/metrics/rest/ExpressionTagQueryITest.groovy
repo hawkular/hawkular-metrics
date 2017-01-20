@@ -126,7 +126,24 @@ class ExpressionTagsQueryITest extends RESTTest {
       assertEquals(204, response.status)
 
       response = hawkularMetrics.get(path: "metrics",
+        query: [tagsQuery: "c1 = 100"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(204, response.status)
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tagsQuery: "a1 = d OR a1 = 4"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm1', 'm3')
+
+      response = hawkularMetrics.get(path: "metrics",
         query: [tagsQuery: "c1 = '100' OR a1 = '3' OR a1 IN ['4']" ],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm2', 'm3', 'm5')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tagsQuery: "c1 = '100' OR a1 = 3 OR a1 IN [4]" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
@@ -134,7 +151,6 @@ class ExpressionTagsQueryITest extends RESTTest {
       response = hawkularMetrics.get(path: "metrics",
         query: [tagsQuery: "A1 in ['3', '4']"],
         headers: [(tenantHeaderName): tenantId])
-      System.out.println(response.data);
       assertEquals(204, response.status)
     }
   }

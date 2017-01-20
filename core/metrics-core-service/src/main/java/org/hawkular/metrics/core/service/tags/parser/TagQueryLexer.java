@@ -36,16 +36,16 @@ public class TagQueryLexer extends Lexer {
 		new PredictionContextCache();
 	public static final int
 		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, OR=6, AND=7, EQUAL=8, NOTEQUAL=9, 
-		IN=10, NOTIN=11, KEY=12, VALUE=13, WS=14;
+		IN=10, NOTIN=11, SIMPLETEXT=12, COMPLEXTEXT=13, WS=14;
 	public static String[] modeNames = {
 		"DEFAULT_MODE"
 	};
 
 	public static final String[] ruleNames = {
 		"T__0", "T__1", "T__2", "T__3", "T__4", "OR", "AND", "EQUAL", "NOTEQUAL", 
-		"IN", "NOTIN", "KEY", "VALUE", "WS", "ESC", "UNICODE", "HEX", "A", "B", 
-		"C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", 
-		"Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+		"IN", "NOTIN", "SIMPLETEXT", "COMPLEXTEXT", "WS", "ESC", "UNICODE", "HEX", 
+		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", 
+		"O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
@@ -53,7 +53,7 @@ public class TagQueryLexer extends Lexer {
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
 		null, null, null, null, null, null, "OR", "AND", "EQUAL", "NOTEQUAL", 
-		"IN", "NOTIN", "KEY", "VALUE", "WS"
+		"IN", "NOTIN", "SIMPLETEXT", "COMPLEXTEXT", "WS"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 

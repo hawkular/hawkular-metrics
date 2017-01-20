@@ -48,8 +48,8 @@ object
   ;
 
 pair
-  : KEY boolean_operator VALUE
-  | KEY array_operator array
+  : key boolean_operator value
+  | key array_operator array
   ;
 
 logical_operator
@@ -68,8 +68,17 @@ array_operator
   ;
 
 array
-  : '[' VALUE (',' VALUE)* ']'
+  : '[' value (',' value)* ']'
   | '[' ']' // empty array
+  ;
+
+value
+  : SIMPLETEXT
+  | COMPLEXTEXT
+  ;
+
+key
+  : SIMPLETEXT
   ;
 
 
@@ -81,8 +90,8 @@ NOTEQUAL: '!=';
 IN: I N;
 NOTIN: N O T I N;
 
-KEY  : [a-zA-Z_0-9]+ ;
-VALUE :  '\'' (ESC | ~[\'\\])* '\'' ;
+SIMPLETEXT  : [a-zA-Z_0-9]+ ;
+COMPLEXTEXT :  '\'' (ESC | ~[\'\\])* '\'' ;
 
 WS  :   [ \t\n\r]+ -> skip ;
 

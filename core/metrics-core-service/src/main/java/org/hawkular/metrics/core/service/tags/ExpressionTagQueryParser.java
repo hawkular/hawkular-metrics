@@ -26,7 +26,6 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.PatternUtil;
@@ -36,9 +35,11 @@ import org.hawkular.metrics.core.service.tags.parser.TagQueryParser;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ArrayContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ObjectContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.PairContext;
+import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ValueContext;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 
 import rx.Observable;
@@ -72,7 +73,7 @@ public class ExpressionTagQueryParser {
     private class StorageTagQueryListener<T> extends TagQueryBaseListener {
 
         private Map<Integer, List<String>> arrays = new HashMap<>();
-        private Map<Integer, List<Observable<Metric<T>>>> observables = new HashMap<>();
+        private Map<Integer, List<Observable<MetricId<T>>>> observables = new HashMap<>();
         private String tenantId;
         private MetricType<T> metricType;
 
@@ -82,14 +83,19 @@ public class ExpressionTagQueryParser {
         }
 
         public Observable<Metric<T>> getResult() {
-            return observables.values().iterator().next().get(0);
+            if (observables.size() == 1) {
+                return observables.values().iterator().next().get(0)
+                    .flatMap(metricsService::findMetric);
+            }
+
+            return Observable.empty();
         }
 
         @Override
         public void exitPair(PairContext ctx) {
-            String tagName = ctx.KEY().getText();
+            String tagName = ctx.key().getText();
 
-            Observable<Metric<T>> result = null;
+            Observable<MetricId<T>> result = null;
             int dataIndex = 3;
 
             if (ctx.array_operator() != null) {
@@ -117,11 +123,17 @@ public class ExpressionTagQueryParser {
                             s1.addAll(s2);
                             return s1;
                         })
-                        .flatMap(Observable::from)
-                        .flatMap(metricsService::findMetric);
+                        .flatMap(Observable::from);
             } else if (ctx.boolean_operator() != null) {
-                String tagValue = ctx.VALUE().getText();
-                tagValue = tagValue.substring(1, tagValue.length() - 1);
+                String tagValue = null;
+
+                if (ctx.value().COMPLEXTEXT() != null) {
+                    tagValue = ctx.value().COMPLEXTEXT().getText();
+                    tagValue = tagValue.substring(1, tagValue.length() - 1);
+                } else if (ctx.value().SIMPLETEXT() != null) {
+                    tagValue = ctx.value().SIMPLETEXT().getText();
+                }
+
                 Pattern p = PatternUtil.filterPattern(tagValue);
                 boolean positive = ctx.boolean_operator().EQUAL() != null;
 
@@ -133,8 +145,7 @@ public class ExpressionTagQueryParser {
                             s1.addAll(s2);
                             return s1;
                         })
-                        .flatMap(Observable::from)
-                        .flatMap(metricsService::findMetric);
+                        .flatMap(Observable::from);
             }
 
             pushObservable(ctx.getText().hashCode(), result);
@@ -143,13 +154,13 @@ public class ExpressionTagQueryParser {
         @Override
         public void exitObject(ObjectContext ctx) {
             if (ctx.logical_operator() != null) {
-                Observable<Metric<T>> leftObservable = popObservable(ctx.object(0).getText().hashCode());
-                Observable<Metric<T>> rightObservable = popObservable(ctx.object(1).getText().hashCode());
+                Observable<MetricId<T>> leftObservable = popObservable(ctx.object(0).getText().hashCode());
+                Observable<MetricId<T>> rightObservable = popObservable(ctx.object(1).getText().hashCode());
 
                 observables.remove(ctx.object(0).getText().hashCode());
                 observables.remove(ctx.object(1).getText().hashCode());
 
-                Observable<Metric<T>> result = leftObservable.concatWith(rightObservable);
+                Observable<MetricId<T>> result = leftObservable.concatWith(rightObservable);
 
                 if (ctx.logical_operator().AND() != null) {
                     //group by metric and then use one element from the groups with two elements
@@ -164,7 +175,7 @@ public class ExpressionTagQueryParser {
                 pushObservable(ctx.getText().hashCode(), result);
             } else {
                 if (ctx.object(0) != null && ctx.object(0).getText().hashCode() != ctx.getText().hashCode()) {
-                    Observable<Metric<T>> expressionObservable = popObservable(ctx.object(0).getText().hashCode());
+                    Observable<MetricId<T>> expressionObservable = popObservable(ctx.object(0).getText().hashCode());
                     observables.remove(ctx.object(0).getText().hashCode());
                     pushObservable(ctx.getText().hashCode(), expressionObservable);
                 }
@@ -174,32 +185,38 @@ public class ExpressionTagQueryParser {
         @Override
         public void enterArray(ArrayContext ctx) {
             List<String> arrayContext = new ArrayList<String>();
-            for (TerminalNode node : ctx.VALUE()) {
-                String text = node.getText();
-                arrayContext.add(text.substring(1, text.length() - 1));
+            for (ValueContext node : ctx.value()) {
+                if (node.COMPLEXTEXT() != null) {
+                    String text = node.COMPLEXTEXT().getText();
+                    arrayContext.add(text.substring(1, text.length() - 1));
+                } else if (node.SIMPLETEXT() != null) {
+                    String text = node.SIMPLETEXT().getText();
+                    arrayContext.add(text);
+                }
+
             }
             arrays.put(ctx.getText().hashCode(), arrayContext);
         }
 
-        private void pushObservable(Integer hashCode, Observable<Metric<T>> observable) {
-            List<Observable<Metric<T>>> hashObservables = observables.get(hashCode);
+        private void pushObservable(Integer hashCode, Observable<MetricId<T>> observable) {
+            List<Observable<MetricId<T>>> hashObservables = observables.get(hashCode);
             if (hashObservables != null) {
                 hashObservables.add(observable);
             } else {
-                hashObservables = new ArrayList<Observable<Metric<T>>>();
+                hashObservables = new ArrayList<Observable<MetricId<T>>>();
                 hashObservables.add(observable);
                 observables.put(hashCode, hashObservables);
             }
         }
 
-        private Observable<Metric<T>> popObservable(Integer hashCode) {
-            List<Observable<Metric<T>>> hashObservables = observables.get(hashCode);
+        private Observable<MetricId<T>> popObservable(Integer hashCode) {
+            List<Observable<MetricId<T>>> hashObservables = observables.get(hashCode);
 
             if (hashObservables == null || hashObservables.isEmpty()) {
                 return null;
             }
 
-            Observable<Metric<T>> observable = hashObservables.remove(0);
+            Observable<MetricId<T>> observable = hashObservables.remove(0);
 
             if (hashObservables.isEmpty()) {
                 observables.remove(hashCode);

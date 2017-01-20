@@ -93,6 +93,14 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         gauges = test.parse(tenantId, GAUGE, "a1 ='1' and a1='1'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
+
+        gauges = test.parse(tenantId, GAUGE, "a1=1 or a1=3").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1", "m3");
+
+        gauges = test.parse(tenantId, GAUGE, "a1=2 AND (a2 in [3, 4])").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m4", "m5");
     }
 
     private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
@@ -135,7 +143,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
                 ImmutableMap.of("a1", "1", "a2", "3"),//m1
                 ImmutableMap.of("a1", "2"),//m2
-                ImmutableMap.of("a1", "3}}"),//m3
+                ImmutableMap.of("a1", "3"),//m3
                 ImmutableMap.of("a1", "2", "a2", "3"),//m4
                 ImmutableMap.of("a1", "2", "a2", "4"),//m5
                 ImmutableMap.of("a2", "2"),//m6

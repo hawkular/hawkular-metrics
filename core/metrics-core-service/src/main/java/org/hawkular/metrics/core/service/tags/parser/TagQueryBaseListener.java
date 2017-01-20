@@ -113,6 +113,30 @@ public class TagQueryBaseListener implements TagQueryListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArray(TagQueryParser.ArrayContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterValue(TagQueryParser.ValueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitValue(TagQueryParser.ValueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterKey(TagQueryParser.KeyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitKey(TagQueryParser.KeyContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

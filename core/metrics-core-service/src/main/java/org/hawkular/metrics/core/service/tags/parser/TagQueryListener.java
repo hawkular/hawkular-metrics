@@ -95,4 +95,24 @@ public interface TagQueryListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitArray(TagQueryParser.ArrayContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TagQueryParser#value}.
+	 * @param ctx the parse tree
+	 */
+	void enterValue(TagQueryParser.ValueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TagQueryParser#value}.
+	 * @param ctx the parse tree
+	 */
+	void exitValue(TagQueryParser.ValueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TagQueryParser#key}.
+	 * @param ctx the parse tree
+	 */
+	void enterKey(TagQueryParser.KeyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TagQueryParser#key}.
+	 * @param ctx the parse tree
+	 */
+	void exitKey(TagQueryParser.KeyContext ctx);
 }
