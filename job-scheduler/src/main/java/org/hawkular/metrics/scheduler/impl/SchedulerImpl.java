@@ -90,27 +90,15 @@ public class SchedulerImpl implements Scheduler {
 
     private RxSession session;
 
-    private PreparedStatement insertJob;
-
-    private PreparedStatement insertScheduledJob;
-
     private PreparedStatement deleteScheduleJob;
 
-    private PreparedStatement findScheduledJobs;
-
     private PreparedStatement deleteScheduledJobs;
-
-    private PreparedStatement deleteScheduledJob;
 
     private PreparedStatement findFinishedJobs;
 
     private PreparedStatement deleteFinishedJobs;
 
     private PreparedStatement updateJobToFinished;
-
-    private PreparedStatement findJob;
-
-    private PreparedStatement findAllJobs;
 
     private PreparedStatement addActiveTimeSlice;
 
@@ -169,16 +157,10 @@ public class SchedulerImpl implements Scheduler {
         lockManager = new LockManager(session);
         jobsService = new JobsService(session);
 
-        insertJob = initQuery("INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
-        insertScheduledJob = initQuery("INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
-        findScheduledJobs = initQuery("SELECT job_id FROM scheduled_jobs_idx WHERE time_slice = ?");
         deleteScheduledJobs = initQuery("DELETE FROM scheduled_jobs_idx WHERE time_slice = ?");
-        deleteScheduledJob = initQuery("DELETE FROM scheduled_jobs_idx WHERE time_slice = ? AND job_id = ?");
         findFinishedJobs = initQuery("SELECT job_id FROM finished_jobs_idx WHERE time_slice = ?");
         deleteFinishedJobs = initQuery("DELETE FROM finished_jobs_idx WHERE time_slice = ?");
         updateJobToFinished = initQuery("INSERT INTO finished_jobs_idx (time_slice, job_id) VALUES (?, ?)");
-        findJob = initQuery("SELECT type, name, params, trigger FROM jobs WHERE id = ?");
-        findAllJobs = initQuery("SELECT id, type, name, params, trigger FROM jobs");
         addActiveTimeSlice = initQuery("INSERT INTO active_time_slices (time_slice) VALUES (?)");
         findActiveTimeSlices = initQuery("SELECT DISTINCT time_slice FROM active_time_slices");
         deleteActiveTimeSlice = initQuery("DELETE FROM active_time_slices WHERE time_slice = ?");
@@ -289,11 +271,18 @@ public class SchedulerImpl implements Scheduler {
                                         timeSliceLock.timeSlice);
                                 activeJobs.add(details.getJobId());
                             })
+                            // The following observeOn call is critical as it causes execution of the job Completable
+                            // subscription to execute on the I/O scheduler. We do not want subscription to run on
+                            // either the computation or the queryScheduler. See HWKMETRICS-579 for more details.
+                            .observeOn(Schedulers.io())
                             .flatMap(details -> executeJob(details, timeSliceLock.timeSlice, activeJobs)
                                     .doOnTerminate(() -> activeJobs.remove(details.getJobId()))
                                     .toObservable()
                                     .map(o -> timeSliceLock.getTimeSlice()))
                             .defaultIfEmpty(timeSliceLock.getTimeSlice()))
+                    // Resume execution back on the queryScheduler (and the computation scheduler) since everything
+                    // else that happens from this point on is either non-block or very short lived computations.
+                    .observeOn(queryScheduler)
                     .concatMap(time -> {
                         Observable<? extends Set<UUID>> scheduled = jobsService.findScheduledJobsForTime(time,
                                 queryScheduler)
@@ -316,7 +305,6 @@ public class SchedulerImpl implements Scheduler {
                     .subscribe(
                             d -> {
                                 logger.debugf("Finished post job execution clean up for [%s]", d);
-                                // TODO should this be in a synchronized block?
                                 activeTimeSlices.remove(d);
                                 finishedTimeSlices.ifPresent(subject -> subject.onNext(d));
                             },
@@ -549,6 +537,7 @@ public class SchedulerImpl implements Scheduler {
                         }
                         throw new RuntimeException("Failed to renew job lock for " + state.nextDetails);
                     })
+                    .observeOn(Schedulers.io())
                     .map(renewed -> executeJob(state.nextDetails, state.nextTimeSlice, state.activeJobs)))
                     .subscribe(
                             () -> logger.debugf("Finished executing %s", state.nextDetails),
