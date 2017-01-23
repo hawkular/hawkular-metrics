@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -62,10 +63,11 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createTenants() throws Exception {
-        Tenant t1 = new Tenant("t1", ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
-        Tenant t2 = new Tenant("t2", ImmutableMap.of(GAUGE, 7));
-        Tenant t3 = new Tenant("t3", ImmutableMap.of(AVAILABILITY, 2));
-        Tenant t4 = new Tenant("t4");
+        String t1Id = createRandomTenantId();
+        Tenant t1 = new Tenant(t1Id, ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
+        Tenant t2 = new Tenant(createRandomTenantId(), ImmutableMap.of(GAUGE, 7));
+        Tenant t3 = new Tenant(createRandomTenantId(), ImmutableMap.of(AVAILABILITY, 2));
+        Tenant t4 = new Tenant(createRandomTenantId());
 
         Observable.concat(
                 metricsService.createTenant(t1, false),
@@ -92,7 +94,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
         assertDataRetentionsIndexMatches(t1.getId(), AVAILABILITY, ImmutableSet.of(new Retention(
                 new MetricId<>(t1.getId(), AVAILABILITY, makeSafe(AVAILABILITY.getText())), 1)));
 
-        t1 = new Tenant("t1", ImmutableMap.of(GAUGE, 101, AVAILABILITY, 102));
+        t1 = new Tenant(t1Id, ImmutableMap.of(GAUGE, 101, AVAILABILITY, 102));
         try {
             metricsService.createTenant(t1, false).toBlocking().lastOrDefault(null);
             fail("Tenant should already exist and not overwritten.");
@@ -115,29 +117,31 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createMetricsIdxTenants() throws Exception {
-        Metric<Double> em1 = new Metric<>(new MetricId<>("t123", GAUGE, "em1"));
+        String tenantId = createRandomTenantId();
+        Metric<Double> em1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "em1"));
         metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
 
         Metric<Double> actual = metricsService.<Double> findMetric(em1.getMetricId())
                 .toBlocking()
                 .lastOrDefault(null);
         assertNotNull(actual);
-        Metric<Double> em2 = new Metric<Double>(em1.getMetricId(), 7);
+        Metric<Double> em2 = new Metric<>(em1.getMetricId(), 7);
         assertEquals(actual, em2, "The metric does not match the expected value");
 
         Set<Tenant> actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
-        assertEquals(actualTenants.size(), 1);
+        assertTrue(actualTenants.contains(new Tenant(tenantId)));
 
-        Tenant t1 = new Tenant("t123", ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
+        Tenant t1 = new Tenant(tenantId, ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
         metricsService.createTenant(t1, false).toBlocking().lastOrDefault(null);
 
         actualTenants = ImmutableSet.copyOf(metricsService.getTenants().toBlocking().toIterable());
-        assertEquals(actualTenants.size(), 1);
+        assertTrue(actualTenants.contains(t1));
     }
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        Metric<Double> em1 = new Metric<>(new MetricId<>("t1", GAUGE, "em1"));
+        String tenantId = createRandomTenantId();
+        Metric<Double> em1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "em1"));
         metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
         Metric<Double> actual = metricsService.<Double> findMetric(em1.getMetricId())
                 .toBlocking()
@@ -146,13 +150,14 @@ public class MixedMetricsITest extends BaseMetricsITest {
         Metric<Double> em2 = new Metric<>(em1.getMetricId(), 7);
         assertEquals(actual, em2, "The metric does not match the expected value");
 
-        Metric<Double> m1 = new Metric<>(new MetricId<>("t1", GAUGE, "m1"), ImmutableMap.of("a1", "1", "a2", "2"), 24);
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), ImmutableMap.of("a1", "1", "a2", "2"),
+                24);
         metricsService.createMetric(m1, false).toBlocking().lastOrDefault(null);
 
         actual = metricsService.<Double> findMetric(m1.getMetricId()).toBlocking().last();
         assertEquals(actual, m1, "The metric does not match the expected value");
 
-        Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>("t1", AVAILABILITY, "m2"),
+        Metric<AvailabilityType> m2 = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m2"),
                 ImmutableMap.of("a3", "3", "a4", "3"), DEFAULT_TTL);
         metricsService.createMetric(m2, false).toBlocking().lastOrDefault(null);
 
@@ -162,7 +167,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
         tagMap.putAll(ImmutableMap.of("a3", "3", "a4", "3"));
 
         // Test that distinct filtering does not remove same name from different types
-        Metric<Double> gm2 = new Metric<>(new MetricId<>("t1", GAUGE, "m2"),
+        Metric<Double> gm2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m2"),
                 ImmutableMap.of("a3", "3", "a4", "3"), null);
         metricsService.createMetric(gm2, false).toBlocking().lastOrDefault(null);
 
@@ -185,30 +190,30 @@ public class MixedMetricsITest extends BaseMetricsITest {
         assertTrue(exceptionRef.get() != null && exceptionRef.get() instanceof MetricAlreadyExistsException,
                 "Expected a " + MetricAlreadyExistsException.class.getSimpleName() + " to be thrown");
 
-        Metric<Double> m3 = new Metric<>(new MetricId<>("t1", GAUGE, "m3"), emptyMap(), 24);
+        Metric<Double> m3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m3"), emptyMap(), 24);
         metricsService.createMetric(m3, false).toBlocking().lastOrDefault(null);
 
-        Metric<Double> m4 = new Metric<>(new MetricId<>("t1", GAUGE, "m4"),
+        Metric<Double> m4 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m4"),
                 ImmutableMap.of("a1", "A", "a2", ""), null);
         metricsService.createMetric(m4, false).toBlocking().lastOrDefault(null);
 
-        assertMetricIndexMatches("t1", GAUGE, asList(new Metric<>(em1.getMetricId(), 7), m1,
+        assertMetricIndexMatches(tenantId, GAUGE, asList(new Metric<>(em1.getMetricId(), 7), m1,
                 new Metric<>(gm2.getMetricId(), gm2.getTags(), 7),
                 m3,
                 new Metric<>(m4.getMetricId(), m4.getTags(), 7)));
-        assertMetricIndexMatches("t1", AVAILABILITY, singletonList(m2));
+        assertMetricIndexMatches(tenantId, AVAILABILITY, singletonList(m2));
 
-        assertDataRetentionsIndexMatches("t1", GAUGE, ImmutableSet.of(new Retention(m3.getMetricId(), 24),
+        assertDataRetentionsIndexMatches(tenantId, GAUGE, ImmutableSet.of(new Retention(m3.getMetricId(), 24),
                 new Retention(m1.getMetricId(), 24)));
 
-        assertMetricsTagsIndexMatches("t1", "a1", asList(
+        assertMetricsTagsIndexMatches(tenantId, "a1", asList(
                 new MetricsTagsIndexEntry("1", m1.getMetricId()),
                 new MetricsTagsIndexEntry("A", m4.getMetricId())));
     }
 
     @Test
     public void shouldReceiveInsertedDataNotifications() throws Exception {
-        String tenantId = "shouldReceiveInsertedDataNotifications";
+        String tenantId = createRandomTenantId();
         ImmutableList<MetricType<?>> metricTypes = ImmutableList.of(GAUGE, COUNTER, AVAILABILITY);
         AvailabilityType[] availabilityTypes = AvailabilityType.values();
 
@@ -267,5 +272,9 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
         assertEquals(actual.size(), expected.size());
         assertTrue(actual.containsAll(expected));
+    }
+
+    private String createRandomTenantId() {
+        return UUID.randomUUID().toString();
     }
 }
