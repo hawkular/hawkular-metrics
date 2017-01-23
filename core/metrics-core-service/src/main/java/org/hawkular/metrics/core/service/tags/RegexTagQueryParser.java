@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.tags;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,12 +26,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.PatternUtil;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
+import com.google.common.collect.Multimap;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -41,14 +45,12 @@ import rx.functions.Func1;
  *
  * @author Michael Burman
  */
-public class TagQueryParser {
+public class RegexTagQueryParser extends BaseTagQueryParser {
 
-    private DataAccess dataAccess;
-    private MetricsService metricsService;
+    public static final String REGEX_PREFIX = "regex:";
 
-    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
-        this.dataAccess = dataAccess;
-        this.metricsService = metricsService;
+    public RegexTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
+        super(dataAccess, metricsService);
     }
 
     // Arrange the queries:
@@ -71,12 +73,12 @@ public class TagQueryParser {
          * @param tagsQuery User's TagQL
          * @return TreeMap with Long key indicating query cost (lower is better)
          */
-        public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Map<String, String> tagsQuery) {
+        public static Map<Long, List<Map.Entry<String, String>>> reOrderTagsQuery(Multimap<String, String> tagsQuery) {
             Map<Long, List<Map.Entry<String, String>>> costSortedMap = new TreeMap<>();
             costSortedMap.put(GROUP_B_COST, new ArrayList<>());
             costSortedMap.put(GROUP_C_COST, new ArrayList<>());
 
-            for (Map.Entry<String, String> tagQuery : tagsQuery.entrySet()) {
+            for (Map.Entry<String, String> tagQuery : tagsQuery.entries()) {
                 if(tagQuery.getKey().startsWith("!")) {
                     // In-memory sorted query, requires fetching all the definitions
                     List<Map.Entry<String, String>> entries = costSortedMap.get(GROUP_C_COST);
@@ -93,7 +95,9 @@ public class TagQueryParser {
     }
 
     public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
-                                                            Map<String, String> tagsQueries) {
+            Multimap<String, String> tagsQueries) {
+
+        tagsQueries = removePrefixes(tagsQueries, REGEX_PREFIX);
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
@@ -144,10 +148,12 @@ public class TagQueryParser {
     }
 
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
-                                                             Map<String, String> tagsQueries) {
+            Multimap<String, String> tagsQueries) {
+
+        tagsQueries = removePrefixes(tagsQueries, REGEX_PREFIX);
 
         // Row: 0 = type, 1 = metricName, 2 = tagValue, e.getKey = tagName, e.getValue = regExp
-        return Observable.from(tagsQueries.entrySet())
+        return Observable.from(tagsQueries.entries())
                 .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                         .filter(typeFilter(metricType, 1))
                         .filter(tagValueFilter(e.getValue(), 3))

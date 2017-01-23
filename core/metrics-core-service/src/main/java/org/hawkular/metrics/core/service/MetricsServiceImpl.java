@@ -47,6 +47,8 @@ import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
+import org.hawkular.metrics.core.service.tags.JsonTagQueryParser;
+import org.hawkular.metrics.core.service.tags.RegexTagQueryParser;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
@@ -86,9 +88,11 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -186,9 +190,10 @@ public class MetricsServiceImpl implements MetricsService {
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
     /**
-     * Tools that do tagQueryParsing and execution
+     * Tools that do tag queries and execution
      */
-    private TagQueryParser tagQueryParser;
+    private RegexTagQueryParser regexTagQueryParser;
+    private JsonTagQueryParser jsonTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
 
@@ -286,7 +291,8 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        tagQueryParser = new TagQueryParser(this.dataAccess, this);
+        regexTagQueryParser = new RegexTagQueryParser(this.dataAccess, this);
+        jsonTagQueryParser = new JsonTagQueryParser(this.dataAccess, this);
     }
 
     void loadDataRetentions() {
@@ -546,9 +552,43 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-                                                            Map<String, String> tagsQueries) {
-        return tagQueryParser.findMetricsWithFilters(tenantId, metricType, tagsQueries)
+            Multimap<String, String> tagQueries) {
+        Multimap<String, String> regexTagQueries = ArrayListMultimap.create();
+        Multimap<String, String> jsonTagQueries = ArrayListMultimap.create();
+
+        for (Map.Entry<String, String> e : tagQueries.entries()) {
+            if (e.getValue().startsWith(JsonTagQueryParser.JSON_PATH_PREFIX)) {
+                jsonTagQueries.put(e.getKey(), e.getValue());
+            } else {
+                regexTagQueries.put(e.getKey(), e.getValue());
+            }
+        }
+
+        Observable<Metric<T>> regexTagMetrics = null;
+        if (!regexTagQueries.isEmpty()) {
+            regexTagMetrics = regexTagQueryParser
+                .findMetricsWithFilters(tenantId, metricType, regexTagQueries)
                 .map(tMetric -> (Metric<T>) tMetric);
+        }
+
+        Observable<Metric<T>> jsonTagMetrics = null;
+        if (!jsonTagQueries.isEmpty()) {
+            jsonTagMetrics = jsonTagQueryParser
+                .findMetricsWithFilters(tenantId, metricType, jsonTagQueries)
+                .map(tMetric -> (Metric<T>) tMetric);
+        }
+
+        if (regexTagMetrics != null && jsonTagMetrics != null) {
+            return Observable.merge(regexTagMetrics, jsonTagMetrics)
+                    .groupBy(m -> m)
+                    .flatMap(s -> s.skip(1).take(1));
+        } else if (regexTagMetrics != null) {
+            return regexTagMetrics;
+        } else if (jsonTagMetrics != null) {
+            return jsonTagMetrics;
+        } else {
+            return Observable.empty();
+        }
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
@@ -559,8 +599,8 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, Set<String>>> getTagValues(String tenantId, MetricType<?> metricType,
-                                    Map<String, String> tagsQueries) {
-        return tagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
+            Multimap<String, String> tagsQueries) {
+        return regexTagQueryParser.getTagValues(tenantId, metricType, tagsQueries);
     }
 
     @Override
@@ -573,7 +613,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<String> getTagNames(String tenantId, MetricType<?> metricType, String filter) {
-        return tagQueryParser.getTagNames(tenantId, metricType, filter);
+        return regexTagQueryParser.getTagNames(tenantId, metricType, filter);
     }
 
     // Adding/deleting metric tags currently involves writing to three tables - data,
@@ -776,7 +816,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+            Multimap<String, String> tagFilters, long start, long end, int limit, Order order) {
         return findMetricsWithFilters(tenantId, metricType, tagFilters)
                 .map(Metric::getMetricId)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)
@@ -875,7 +915,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findGaugeStats(MetricId<Double> metricId,
-            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
+            Multimap<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, Order.DESC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }
@@ -975,7 +1015,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public Observable<Map<String, TaggedBucketPoint>> findCounterStats(MetricId<Long> metricId,
-            Map<String, String> tags, long start, long end, List<Percentile> percentiles) {
+            Multimap<String, String> tags, long start, long end, List<Percentile> percentiles) {
         return findDataPoints(metricId, start, end, 0, ASC)
                 .compose(new TaggedBucketPointTransformer(tags, percentiles));
     }

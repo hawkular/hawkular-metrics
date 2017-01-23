@@ -21,7 +21,6 @@ import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_N
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.inject.Inject;
@@ -41,6 +40,8 @@ import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 
 import rx.Observable;
 
@@ -68,18 +69,18 @@ abstract class MetricsServiceHandler {
 
     <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
         List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
-        Map<String, String> mapTags = TagsConverter.fromNullable(tags).getTags();
+        Multimap<String, String> mapTags = TagsConverter.fromNullable(tags).getTags();
         return findMetricsByNameOrTag(nonNullNames, mapTags, type);
     }
 
     <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, Tags tags, MetricType<T> type) {
         List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
-        Map<String, String> mapTags = tags == null ? Collections.emptyMap() : tags.getTags();
+        Multimap<String, String> mapTags = tags == null ? ImmutableListMultimap.of() : tags.getTags();
         return findMetricsByNameOrTag(nonNullNames, mapTags, type);
     }
 
-    private <T> Observable<MetricId<T>> findMetricsByNameOrTag(@NotNull List<String> metricNames, @NotNull Map<String,
-            String> tags, MetricType<T> type) {
+    private <T> Observable<MetricId<T>> findMetricsByNameOrTag(@NotNull List<String> metricNames,
+            @NotNull Multimap<String, String> tags, MetricType<T> type) {
 
         if (metricNames.isEmpty() && tags.isEmpty()) {
             return Observable.error(new RuntimeApiError("Either metrics or tags parameter must be used"));

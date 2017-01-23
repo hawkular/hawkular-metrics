@@ -63,8 +63,10 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 import rx.Completable;
 import rx.Observable;
@@ -74,7 +76,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createBasicCounterMetric() throws Exception {
-        String tenantId = "counter-tenant";
+        String tenantId = getMethodTenant();
         String name = "basic-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
 
@@ -89,7 +91,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createCounterWithTags() throws Exception {
-        String tenantId = "counter-tenant";
+        String tenantId = getMethodTenant();
         String name = "tags-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
         Map<String, String> tags = ImmutableMap.of("x", "1", "y", "2");
@@ -107,7 +109,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void createCounterWithDataRetention() throws Exception {
-        String tenantId = "counter-tenant";
+        String tenantId = getMethodTenant();
         String name = "retention-counter";
         MetricId<Long> id = new MetricId<>(tenantId, COUNTER, name);
         Integer retention = 100;
@@ -236,7 +238,7 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void addAndCompressData() throws Exception {
-        String tenantId = "t1-counter";
+        String tenantId = getMethodTenant();
         DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
         DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
 
@@ -331,7 +333,8 @@ public class CounterITest extends BaseMetricsITest {
         doAction(() -> metricsService.addTags(c3, ImmutableMap.of("type", "counter_cpu_usage", "node", "server3")));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
-        Map<String, String> tagFilters = ImmutableMap.of("type", "counter_cpu_usage", "node", "server1|server2");
+        Multimap<String, String> tagFilters = ImmutableListMultimap.of("type", "counter_cpu_usage", "node",
+                "server1|server2");
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(
                 () -> metricsService.findRateData(c1.getMetricId(),

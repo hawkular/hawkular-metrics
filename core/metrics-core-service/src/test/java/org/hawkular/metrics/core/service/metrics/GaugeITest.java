@@ -30,7 +30,6 @@ import static org.testng.Assert.assertTrue;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,7 +52,9 @@ import org.joda.time.DateTimeUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 import rx.Completable;
 import rx.Observable;
@@ -288,7 +289,7 @@ public class GaugeITest extends BaseMetricsITest {
         doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
-        Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
+        Multimap<String, String> tagFilters = ImmutableListMultimap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(
                 () -> metricsService.findMetricsWithFilters(tenantId, GAUGE, tagFilters)
