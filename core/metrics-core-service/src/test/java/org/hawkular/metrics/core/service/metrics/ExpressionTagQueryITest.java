@@ -58,6 +58,22 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
+        gauges = test.parse(tenantId, GAUGE, "a1 = '*'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
+
+        gauges = test.parse(tenantId, GAUGE, "a1").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
+
+        gauges = test.parse(tenantId, GAUGE, "not a1").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m6", "mA", "mB", "mC", "mD", "mE", "mF", "mG", "gl1", "gl2", "gl3");
+
+        gauges = test.parse(tenantId, GAUGE, "not a1 and not a2").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "mA", "mB", "mC", "mD", "mE", "mF", "mG", "gl1", "gl2", "gl3");
+
         gauges = test.parse(tenantId, GAUGE, "a1 != 'abc'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m2", "m3", "m4", "m5");

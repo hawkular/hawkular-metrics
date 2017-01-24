@@ -106,6 +106,18 @@ public class TagQueryBaseListener implements TagQueryListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterExistence_operator(TagQueryParser.Existence_operatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExistence_operator(TagQueryParser.Existence_operatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterArray(TagQueryParser.ArrayContext ctx) { }
 	/**
 	 * {@inheritDoc}

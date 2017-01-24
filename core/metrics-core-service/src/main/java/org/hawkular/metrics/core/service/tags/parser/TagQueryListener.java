@@ -86,6 +86,16 @@ public interface TagQueryListener extends ParseTreeListener {
 	 */
 	void exitArray_operator(TagQueryParser.Array_operatorContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TagQueryParser#existence_operator}.
+	 * @param ctx the parse tree
+	 */
+	void enterExistence_operator(TagQueryParser.Existence_operatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TagQueryParser#existence_operator}.
+	 * @param ctx the parse tree
+	 */
+	void exitExistence_operator(TagQueryParser.Existence_operatorContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TagQueryParser#array}.
 	 * @param ctx the parse tree
 	 */

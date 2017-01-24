@@ -36,7 +36,7 @@ import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ArrayContext
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ObjectContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.PairContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ValueContext;
-import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricIdFromMetricIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
@@ -118,12 +118,7 @@ public class ExpressionTagQueryParser {
                             return !positive;
                         })
                         .compose(new TagsIndexRowTransformer<>(metricType))
-                        .compose(new ItemsToSetTransformer<>())
-                        .reduce((s1, s2) -> {
-                            s1.addAll(s2);
-                            return s1;
-                        })
-                        .flatMap(Observable::from);
+                        .distinct();
             } else if (ctx.boolean_operator() != null) {
                 String tagValue = null;
 
@@ -140,12 +135,18 @@ public class ExpressionTagQueryParser {
                 result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
                         .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
                         .compose(new TagsIndexRowTransformer<>(metricType))
-                        .compose(new ItemsToSetTransformer<>())
-                        .reduce((s1, s2) -> {
-                            s1.addAll(s2);
-                            return s1;
-                        })
-                        .flatMap(Observable::from);
+                        .distinct();
+            } else if (ctx.existence_operator() != null) {
+                if (ctx.existence_operator().NOT() != null) {
+                    result = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
+                            .filter(r -> r.getMap(1, String.class, String.class).get(tagName) == null)
+                            .compose(new MetricIdFromMetricIndexRowTransformer<>(tenantId, metricType))
+                            .distinct();
+                }
+            } else {
+                result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
+                        .compose(new TagsIndexRowTransformer<>(metricType))
+                        .distinct();
             }
 
             pushObservable(ctx.getText().hashCode(), result);

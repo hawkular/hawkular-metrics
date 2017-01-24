@@ -65,6 +65,12 @@ public interface TagQueryVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArray_operator(TagQueryParser.Array_operatorContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TagQueryParser#existence_operator}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExistence_operator(TagQueryParser.Existence_operatorContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TagQueryParser#array}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

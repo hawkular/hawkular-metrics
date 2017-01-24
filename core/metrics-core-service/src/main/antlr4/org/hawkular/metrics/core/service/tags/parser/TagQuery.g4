@@ -48,7 +48,9 @@ object
   ;
 
 pair
-  : key boolean_operator value
+  : key
+  | existence_operator key
+  | key boolean_operator value
   | key array_operator array
   ;
 
@@ -65,6 +67,10 @@ boolean_operator
 array_operator
   : IN
   | NOT IN
+  ;
+
+existence_operator
+  : NOT
   ;
 
 array
