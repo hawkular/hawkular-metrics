@@ -64,7 +64,7 @@ boolean_operator
 
 array_operator
   : IN
-  | NOTIN
+  | NOT IN
   ;
 
 array
@@ -85,10 +85,10 @@ key
 //parser
 OR: O R;
 AND: A N D;
+NOT: N O T;
 EQUAL: '=';
 NOTEQUAL: '!=';
 IN: I N;
-NOTIN: N O T I N;
 
 SIMPLETEXT  : [a-zA-Z_0-9]+ ;
 COMPLEXTEXT :  '\'' (ESC | ~[\'\\])* '\'' ;

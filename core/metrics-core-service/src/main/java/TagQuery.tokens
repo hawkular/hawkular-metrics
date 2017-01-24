@@ -5,10 +5,10 @@ T__3=4
 T__4=5
 OR=6
 AND=7
-EQUAL=8
-NOTEQUAL=9
-IN=10
-NOTIN=11
+NOT=8
+EQUAL=9
+NOTEQUAL=10
+IN=11
 SIMPLETEXT=12
 COMPLEXTEXT=13
 WS=14
@@ -17,5 +17,5 @@ WS=14
 '['=3
 ','=4
 ']'=5
-'='=8
-'!='=9
+'='=9
+'!='=10

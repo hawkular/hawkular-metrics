@@ -103,13 +103,13 @@ class ExpressionTagsQueryITest extends RESTTest {
       assertMetricListById(response.data, 'm3', 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 NOTIN ['xyz', 'abcd']" ],
+        query: [tagsQuery: "a1 NOT IN ['xyz', 'abcd']" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 NOTIN ['xyz','abcd'] OR b1 = 'B'" ],
+        query: [tagsQuery: "a1 NOT IN ['xyz','abcd'] OR b1 = 'B'" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm4')

@@ -103,7 +103,7 @@ public class ExpressionTagQueryParser {
                 List<String> valueArray = arrays.get(ctx.array().getText().hashCode());
                 List<Pattern> patterns = new ArrayList<>(valueArray.size());
                 valueArray.forEach(tagValue -> patterns.add(PatternUtil.filterPattern(tagValue)));
-                boolean positive = ctx.array_operator().IN() != null;
+                boolean positive = ctx.array_operator().NOT() == null;
 
                 result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
                         .filter(r -> {
