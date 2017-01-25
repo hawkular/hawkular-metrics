@@ -399,7 +399,7 @@ public class MetricsServiceLifecycle {
             if (metricsReportingHostname == null) {
                 metricNameService = new MetricNameService(adminTenant);
             } else {
-                metricNameService = new MetricNameService(metricsReportingHostname);
+                metricNameService = new MetricNameService(metricsReportingHostname, adminTenant);
             }
             metricsService.setMetricNameService(metricNameService);
 
