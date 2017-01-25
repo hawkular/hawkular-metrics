@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.JobStatus;
+import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
@@ -128,7 +129,7 @@ public class SchedulerImpl implements Scheduler {
     static final int SCHEDULING_LOCK_TIMEOUT_IN_SEC = 5;
 
     // TODO We probably want this to be configurable
-    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 3600;
+    static final int JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC = 1800;
 
     /**
      * Test hook. See {@link #setTimeSlicesSubject(PublishSubject)}.
@@ -222,9 +223,12 @@ public class SchedulerImpl implements Scheduler {
             return Single.error(new RuntimeException("Trigger time has already passed"));
         }
         String lockName = QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
-        return lockManager.acquireSharedLock(lockName, SCHEDULING_LOCK, SCHEDULING_LOCK_TIMEOUT_IN_SEC)
-                .map(acquired -> {
-                    if (acquired) {
+        // The lock we obtain here is basically a shared lock. We need a lock to avoid a possible race condition.
+        // Without the lock the job could could be written to scheduled_jobs_idx and wind up having the partition to
+        // which it was written deleted before the job is ever executed. The job would then never get executed.
+        return lockManager.acquireLock(lockName, SCHEDULING_LOCK, SCHEDULING_LOCK_TIMEOUT_IN_SEC, false)
+                .map(lock -> {
+                    if (lock.isLocked()) {
                         UUID jobId = UUID.randomUUID();
                         return new JobDetails(jobId, type, name,parameter, trigger);
                     }
@@ -334,14 +338,15 @@ public class SchedulerImpl implements Scheduler {
         String lockName = QUEUE_LOCK_PREFIX + timeSlice.getTime();
         int delay = 5;
         Observable<TimeSliceLock> observable = Observable.create(subscriber -> {
-            lockManager.acquireSharedLock(lockName, TIME_SLICE_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC)
-                    .map(acquired -> {
-                        if (!acquired) {
+            // This is a shared lock and it is mutually exclusive with the one that is acquired for scheduling a job.
+            lockManager.acquireLock(lockName, TIME_SLICE_EXECUTION_LOCK, JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC, false)
+                    .map(lock -> {
+                        if (!lock.isLocked()) {
                             logger.debugf("Failed to acquire time slice lock for [%s]. Will attempt to acquire it " +
                                     "again in %d seconds", timeSlice, delay);
                             throw new RuntimeException();
                         }
-                        return new TimeSliceLock(timeSlice, lockName, acquired);
+                        return new TimeSliceLock(timeSlice, lockName, lock.isLocked());
                     })
                     .subscribe(subscriber::onNext, subscriber::onError, subscriber::onCompleted);
         });
@@ -356,13 +361,17 @@ public class SchedulerImpl implements Scheduler {
     private Observable<JobLock> acquireJobLock(JobDetails jobDetails) {
         String jobLock = "org.hawkular.metrics.scheduler.job." + jobDetails.getJobId();
         int timeout = calculateTimeout(jobDetails.getTrigger());
-        return lockManager.acquireExclusiveLock(jobLock, hostname, timeout)
-                .map(acquired -> new JobLock(jobDetails, acquired))
+        return lockManager.acquireLock(jobLock, hostname, timeout, true)
+                .map(lock -> new JobLock(jobDetails, lock))
                 .doOnNext(lock -> logger.debugf("Acquired lock for %s? %s", jobDetails.getJobName(),
                         lock.acquired));
     }
 
     private int calculateTimeout(Trigger trigger) {
+        if (trigger instanceof RepeatingTrigger) {
+            int interval = (int) (((RepeatingTrigger) trigger).getInterval() / 1000);
+            return (int) (interval + (interval * 0.25));
+        }
         return JOB_EXECUTION_LOCK_TIMEOUT_IN_SEC;
     }
 
@@ -502,18 +511,18 @@ public class SchedulerImpl implements Scheduler {
             logger.infof("%s missed its next execution at %d. It will be rescheduled for immediate execution.",
                     details, nextTrigger.getTriggerTime());
             AtomicLong nextTimeSlice = new AtomicLong(currentMinute().getMillis());
-            Observable<Boolean> scheduled = Observable.defer(() ->
-                    lockManager.acquireSharedLock(QUEUE_LOCK_PREFIX + nextTimeSlice.addAndGet(60000L), SCHEDULING_LOCK,
-                            SCHEDULING_LOCK_TIMEOUT_IN_SEC))
-                    .map(acquired -> {
-                        if (!acquired) {
+            Observable<Lock> scheduled = Observable.defer(() ->
+                    lockManager.acquireLock(QUEUE_LOCK_PREFIX + nextTimeSlice.addAndGet(60000L), SCHEDULING_LOCK,
+                            SCHEDULING_LOCK_TIMEOUT_IN_SEC, false))
+                    .map(lock -> {
+                        if (!lock.isLocked()) {
                             throw new RuntimeException();
                         }
-                        return acquired;
+                        return lock;
                     })
                     .retry();
             return scheduled
-                    .map(acquired -> new JobExecutionState(executionState.currentDetails, executionState.timeSlice,
+                    .map(lock -> new JobExecutionState(executionState.currentDetails, executionState.timeSlice,
                             newDetails, new Date(nextTimeSlice.get()), executionState.activeJobs))
                     .flatMap(state -> jobsService.insert(state.nextTimeSlice, state.nextDetails)
                             .map(updated -> state))
@@ -571,7 +580,7 @@ public class SchedulerImpl implements Scheduler {
             tickExecutor.awaitTermination(5, TimeUnit.SECONDS);
             queryExecutor.shutdown();
             queryExecutor.awaitTermination(30, TimeUnit.SECONDS);
-
+            lockManager.shutdown();
             logger.info("Shutdown complete");
         } catch (InterruptedException e) {
             logger.warn("Interrupted during shutdown", e);
@@ -682,9 +691,9 @@ public class SchedulerImpl implements Scheduler {
         final boolean acquired;
         final String name;
 
-        public JobLock(JobDetails jobDetails, boolean acquired) {
+        public JobLock(JobDetails jobDetails, Lock lock) {
             this.jobDetails = jobDetails;
-            this.acquired = acquired;
+            this.acquired = lock.isLocked();
             this.name = "org.hawkular.metrics.scheduler.job." + jobDetails.getJobId();
         }
     }
