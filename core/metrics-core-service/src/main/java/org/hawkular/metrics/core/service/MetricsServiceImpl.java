@@ -97,7 +97,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import rx.Completable;
 import rx.Observable;
-import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func6;
@@ -633,23 +632,23 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Integer> updates = metrics
                 .filter(metric -> !metric.getDataPoints().isEmpty())
                 .flatMap(metric -> inserter.call(metric, getTTL(metric.getMetricId()))
-                        .retryWhen(errors -> {
-                            Observable<Integer> range = Observable.range(1, insertMaxRetries);
-                            return errors
-                                    .zipWith(range, (t, i) -> {
-                                        if (t instanceof DriverException) {
-                                            return i;
-                                        }
-                                        throw Exceptions.propagate(t);
-                                    })
-                                    .flatMap(retryCount -> {
-                                        long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, insertRetryMaxDelay);
-                                        log.debug("Retrying insert for " + metric.getMetricId() + " in " + delay + " ms");
-                                        return Observable.timer((long) Math.min(Math.pow(2, retryCount) * 1000, 30000),
-                                                TimeUnit.SECONDS);
-                                    });
-                        })
-                        .doOnError(t -> log.debug("Failed to insert data points for " + metric.getMetricId()))
+//                        .retryWhen(errors -> {
+//                            Observable<Integer> range = Observable.range(1, insertMaxRetries);
+//                            return errors
+//                                    .zipWith(range, (t, i) -> {
+//                                        if (t instanceof DriverException) {
+//                                            return i;
+//                                        }
+//                                        throw Exceptions.propagate(t);
+//                                    })
+//                                    .flatMap(retryCount -> {
+//                                        long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, insertRetryMaxDelay);
+//                                        log.debug("Retrying insert for " + metric.getMetricId() + " in " + delay + " ms");
+//                                        return Observable.timer((long) Math.min(Math.pow(2, retryCount) * 1000, 30000),
+//                                                TimeUnit.SECONDS);
+//                                    });
+//                        })
+                        .doOnError(t -> log.warn("Failed to insert data points for " + metric.getMetricId()))
                         .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
                 .doOnNext(meter::mark);
 
