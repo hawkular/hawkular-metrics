@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -926,6 +926,44 @@ Actual:   ${response.data}
                     [timestamp: start.plusHours(3).millis, value: 20.0],
                     [timestamp: start.plusHours(2).millis, value: 30.0]
             ]
+    ]))
+  }
+
+  @Test
+  void fetchRawDataWithDatapointTags() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusHours(2)
+
+    def response = hawkularMetrics.post(
+        path: "gauges/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [
+                id: 'G1',
+                data: [
+                    [timestamp: start.millis, value: 1.23, tags: [someKey: "someValue"]],
+                    [timestamp: start.plusMinutes(1).millis, value: 3.45]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/raw/query",
+        headers: [(tenantHeaderName): tenantId],
+        body: [ids: ['G1']]
+    )
+    assertEquals(200, response.status)
+
+    assertEquals(1, response.data.size)
+
+    assertTrue(response.data.contains([
+        id: 'G1',
+        data: [
+            [timestamp: start.plusMinutes(1).millis, value: 3.45],
+            [timestamp: start.millis, value: 1.23, tags: [someKey: "someValue"]]
+        ]
     ]))
   }
 

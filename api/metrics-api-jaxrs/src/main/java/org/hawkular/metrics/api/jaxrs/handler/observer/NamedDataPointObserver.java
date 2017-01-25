@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@ package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.container.AsyncResponse;
@@ -91,11 +92,17 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
                 generator.writeStartObject();
                 generator.writeNumberField("timestamp", dataPoint.getTimestamp());
                 writeValue.call(dataPoint);
+                if (!dataPoint.getTags().isEmpty()) {
+                    writeTags(dataPoint.getTags());
+                }
                 generator.writeEndObject();
             } else if (currentMetric.equals(dataPoint.getName())) {
                 generator.writeStartObject();
                 generator.writeNumberField("timestamp", dataPoint.getTimestamp());
                 writeValue.call(dataPoint);
+                if (!dataPoint.getTags().isEmpty()) {
+                    writeTags(dataPoint.getTags());
+                }
                 generator.writeEndObject();
             } else {
                 generator.writeEndArray();
@@ -107,12 +114,23 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
                 generator.writeStartObject();
                 generator.writeNumberField("timestamp", dataPoint.getTimestamp());
                 writeValue.call(dataPoint);
+                if (!dataPoint.getTags().isEmpty()) {
+                    writeTags(dataPoint.getTags());
+                }
                 generator.writeEndObject();
             }
             currentMetric = dataPoint.getName();
         } catch (IOException e) {
             throw new RuntimeException("Streaming data to client failed", e);
         }
+    }
+
+    private void writeTags(Map<String, String> tags) throws IOException {
+        generator.writeObjectFieldStart("tags");
+        for (Map.Entry<String, String> tag : tags.entrySet()) {
+            generator.writeStringField(tag.getKey(), tag.getValue());
+        }
+        generator.writeEndObject();
     }
 
     @Override
