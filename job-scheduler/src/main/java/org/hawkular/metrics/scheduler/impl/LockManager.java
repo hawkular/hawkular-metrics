@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,11 +47,9 @@ class LockManager {
         acquireLock = session.getSession().prepare(
                 "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value IN (NULL, ?)");
         acquireExclusiveLock = session.getSession().prepare(
-                "UPDATE locks USING TTL? SET value = ? WHERE name = ? IF value = NULL");
+                "UPDATE locks USING TTL? SET value = ? WHERE name = ? IF value IN (NULL, ?)");
         releaseLock = session.getSession().prepare(
                 "UPDATE locks SET value = NULL WHERE name = ? IF value = ?");
-        renewLock = session.getSession().prepare(
-                "UPDATE locks USING TTL ? SET value = ? WHERE name = ? IF value = ?");
     }
 
     public Observable<Boolean> acquireSharedLock(String name, String value, int timeout) {
@@ -63,16 +61,15 @@ class LockManager {
     }
 
     public Observable<Boolean> acquireExclusiveLock(String name, String value, int timeout) {
-        return session.execute(acquireExclusiveLock.bind(timeout, value, name)).map(ResultSet::wasApplied);
+        return session.execute(acquireExclusiveLock.bind(timeout, value, name, value)).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> releaseLock(String name, String value) {
-        logger.debug("Releasing lock " + name);
         return session.execute(releaseLock.bind(name, value)).map(ResultSet::wasApplied);
     }
 
     public Observable<Boolean> renewLock(String name, String value, int timeout) {
-        return session.execute(renewLock.bind(timeout, value, name, value)).map(ResultSet::wasApplied);
+        return acquireExclusiveLock(name, value, timeout);
     }
 
 }
