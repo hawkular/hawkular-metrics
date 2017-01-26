@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,8 @@ package org.hawkular.metrics.scheduler.impl;
 
 import static org.hawkular.metrics.datetime.DateTimeService.currentMinute;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -128,10 +130,14 @@ public class TestScheduler implements Scheduler {
     }
 
     private void initJobScheduler() {
-        scheduler = new SchedulerImpl(session);
-        scheduler.setTickScheduler(tickScheduler);
-        scheduler.setTimeSlicesSubject(finishedTimeSlices);
-        scheduler.setJobFinishedSubject(jobFinished);
+        try {
+            scheduler = new SchedulerImpl(session, InetAddress.getLocalHost().getHostName());
+            scheduler.setTickScheduler(tickScheduler);
+            scheduler.setTimeSlicesSubject(finishedTimeSlices);
+            scheduler.setJobFinishedSubject(jobFinished);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void initTickScheduler() {

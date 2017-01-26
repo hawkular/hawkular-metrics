@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,15 +106,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         logger.debug("Setting active time slices to " + timeSlice.toDate());
 
-        CountDownLatch timeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceFinished.countDown();
-            }
-        });
-
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
         Set<DateTime> activeTimeSlices = getActiveTimeSlices();
         assertFalse(activeTimeSlices.contains(timeSlice), "Did not expect " + timeSlice + " to be in active " +
@@ -143,16 +135,7 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(jobDetails);
 
-        CountDownLatch timeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceFinished.countDown();
-            }
-        });
-
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-
-        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
         assertEquals(executionCountRef.get(), 1, jobDetails + " should have been executed once");
 
@@ -191,16 +174,8 @@ public class JobExecutionTest extends JobSchedulerTest {
             logger.debug("Execution Counts = " + executionCounts);
         }));
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
-        CountDownLatch timeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceFinished.countDown();
-            }
-        });
-
-        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(executionCounts, ImmutableMap.of("Test Job 0", 1, "Test Job 1", 1, "Test Job 2", 1));
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getFinishedJobs(timeSlice), emptySet());
@@ -298,6 +273,7 @@ public class JobExecutionTest extends JobSchedulerTest {
                 logger.debug("Executing " + details);
                 executions.add(new Date(details.getTrigger().getTriggerTime()));
                 if (details.getTrigger().getTriggerTime() == job.getTrigger().getTriggerTime()) {
+                    logger.debug("");
                     jobStarted.countDown();
                     jobRunning.await();
                 }
@@ -336,7 +312,12 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         jobRunning.countDown();
         assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-        assertTrue(jobExecutions.await(10, TimeUnit.SECONDS));
+
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(3));
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(4));
+
+        assertTrue(jobExecutions.await(10, TimeUnit.SECONDS), "There are " + jobExecutions.getCount() +
+                " remaining executions");
         logger.debug("All executions for " + job.getJobType() + " should be done");
 
         List<Date> expectedExecutions = asList(timeSlice.toDate(), timeSlice.plusMinutes(1).toDate(),
@@ -363,26 +344,9 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(jobDetails);
 
-        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
-        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (timeSlice.equals(finishedTimeSlice)) {
-                firstTimeSliceFinished.countDown();
-            }
-        });
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (timeSlice.plusMinutes(1).equals(finishedTimeSlice)) {
-                secondTimeSliceFinished.countDown();
-            }
-        });
-
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-
-        jobScheduler.advanceTimeBy(1);
-
-        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(job.getExecutionTimes(), asList(timeSlice, timeSlice.plusMinutes(1)));
         assertEquals(getScheduledJobs(timeSlice), emptySet());
         assertEquals(getScheduledJobs(timeSlice.plusMinutes(1)), emptySet());
@@ -439,7 +403,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     }
 
     @Test
-    public void executeJobThatFailsAndRetrysImmediately() throws Exception {
+    public void executeJobThatFailsAndRetriesImmediately() throws Exception {
         Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
         JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
@@ -457,15 +421,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(jobDetails);
 
-        CountDownLatch timeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceFinished.countDown();
-            }
-        });
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        assertTrue(timeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }
 
@@ -489,21 +446,9 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(jobDetails);
 
-        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
-        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                firstTimeSliceFinished.countDown();
-            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
-                secondTimeSliceFinished.countDown();
-            }
-        });
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-
-        jobScheduler.advanceTimeBy(1);
-        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }
 
@@ -528,21 +473,9 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         scheduleJob(jobDetails);
 
-        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
-        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                firstTimeSliceFinished.countDown();
-            } else if (finishedTimeSlice.equals(timeSlice.plusMinutes(1))) {
-                secondTimeSliceFinished.countDown();
-            }
-        });
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-
-        jobScheduler.advanceTimeBy(1);
-        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
         assertEquals(attempts.get(), 2);
     }
 
@@ -572,27 +505,8 @@ public class JobExecutionTest extends JobSchedulerTest {
             executionTimes.add(currentMinute());
         }));
 
-        CountDownLatch firstTimeSliceFinished = new CountDownLatch(1);
-        CountDownLatch secondTimeSliceFinished = new CountDownLatch(1);
-
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (timeSlice.equals(finishedTimeSlice)) {
-                firstTimeSliceFinished.countDown();
-            }
-        });
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (timeSlice.plusMinutes(1).equals(finishedTimeSlice)) {
-                secondTimeSliceFinished.countDown();
-            }
-        });
-
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-        logger.debug("Waiting for time slice [" + timeSlice.toDate() + "] to finish");
-        assertTrue(firstTimeSliceFinished.await(10, TimeUnit.SECONDS));
-
-        jobScheduler.advanceTimeTo(timeSlice.plusMinutes(1).getMillis());
-        logger.debug("Waiting for time slice [" + timeSlice.plusMinutes(1).toDate() + "] to finish");
-        assertTrue(secondTimeSliceFinished.await(10, TimeUnit.SECONDS));
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
         List<DateTime> expectedTimes = asList(timeSlice, timeSlice.plusMinutes(1));
         executions.entrySet().forEach(entry -> assertEquals(entry.getValue(), expectedTimes));
@@ -733,23 +647,15 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         jobScheduler.register(job.getJobType(), details -> Completable.fromAction(() -> executed.set(true)));
 
-        CountDownLatch timeSliceDone = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceDone.countDown();
-            }
-        });
-
         String lock = SchedulerImpl.QUEUE_LOCK_PREFIX + trigger.getTriggerTime();
         session.execute("INSERT INTO locks (name, value) VALUES ('" + lock + "', 'scheduling') USING TTL 5");
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
-        assertTrue(timeSliceDone.await(20, TimeUnit.SECONDS));
         assertTrue(executed.get());
     }
 
-//    @Test
+    @Test
     public void resumeExecutionAfterJobHasBeenRescheduled() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
@@ -762,16 +668,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         jobScheduler.register(details.getJobType(), jobDetails -> Completable.fromAction(() -> {
             logger.debug("Executing " + jobDetails);
         }));
-        CountDownLatch jobDone = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                jobDone.countDown();
-            }
-        });
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-
-        assertTrue(jobDone.await(10, TimeUnit.HOURS));
+        waitForSchedulerToFinishTimeSlice(timeSlice);
     }
 
     @Test
@@ -787,16 +685,8 @@ public class JobExecutionTest extends JobSchedulerTest {
 
         jobScheduler.register(job.getJobType(), jobDetails -> Completable.fromAction(executions::incrementAndGet));
 
-        CountDownLatch timeSliceDone = new CountDownLatch(1);
-        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
-            if (finishedTimeSlice.equals(timeSlice)) {
-                timeSliceDone.countDown();
-            }
-        });
+        waitForSchedulerToFinishTimeSlice(timeSlice);
 
-        jobScheduler.advanceTimeTo(timeSlice.getMillis());
-
-        assertTrue(timeSliceDone.await(10, TimeUnit.SECONDS));
         assertEquals(executions.get(), 0);
     }
 
@@ -919,6 +809,18 @@ public class JobExecutionTest extends JobSchedulerTest {
         logger.debug("Scheduling " + job + " for execution at " + timeSlice);
         session.execute(insertJob.bind(new Date(job.getTrigger().getTriggerTime()), job.getJobId(), job.getJobType(),
                 job.getJobName(), job.getParameters(), JobsService.getTriggerValue(rxSession, job.getTrigger())));
+    }
+
+    private void waitForSchedulerToFinishTimeSlice(DateTime timeSlice) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        jobScheduler.onTimeSliceFinished(finishedTimeSlice -> {
+            if (finishedTimeSlice.equals(timeSlice)) {
+                latch.countDown();
+            }
+        });
+        jobScheduler.advanceTimeTo(timeSlice.getMillis());
+        assertTrue(latch.await(10, TimeUnit.SECONDS), "The job scheduler did not finish for time slice " +
+                timeSlice.toDate());
     }
 
     private class TestJob implements Action1<JobDetails> {
