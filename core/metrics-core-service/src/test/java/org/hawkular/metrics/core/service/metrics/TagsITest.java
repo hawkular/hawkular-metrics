@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,97 +80,95 @@ public class TagsITest extends BaseMetricsITest {
 
         // Check different scenarios..
         List<Metric<Double>> gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*"))
+                .findMetricsWithFilters(tenantId, GAUGE, "a1:*")
                 .toList()
                 .toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 5, "Metrics m1-m5 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "2"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*,a2:2")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("a1", "*", "a2", "2|3")).toList().toBlocking().lastOrDefault(null);
-        assertEquals(gauges.size(), 2, "Metrics m3-m4 should have been returned");
-
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "2|3"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*,a2:2|3")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Metrics m3-m4 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a2", "*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a2:2|3")
+                .toList().toBlocking().lastOrDefault(null);
+        assertEquals(gauges.size(), 2, "Metrics m3-m4 should have been returned");
+
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*,a2:*")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 3, "Metrics m3-m5 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "*", "a5", "*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*,a5:*")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0, "No gauges should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("a4", "*", "a5", "none")).toList().toBlocking().lastOrDefault(null);
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a4:*,a5:none")
+                .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 0, "No gauges should have been returned");
 
-        List<Metric<Object>> metrics = metricsService
-                .findMetricsWithFilters(tenantId, null, ImmutableMap.of("a1", "*"))
+        List<Metric<Object>> metrics = metricsService.findMetricsWithFilters(tenantId, null, "a1:*")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(metrics.size(), 6, "Metrics m1-m5 and a1 should have been returned");
 
         // Test that we actually get correct gauges also, not just correct size
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "2"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:2,a2:2")
                 .toList().toBlocking().lastOrDefault(null);
         Metric m3 = metricsToAdd.get(2);
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
         assertEquals(gauges.get(0), m3, "m3 did not match the original inserted metric");
 
         // Test for NOT operator
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "!4"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a2:!4")
+                .toList().toBlocking().lastOrDefault(null);
+        System.out.println(gauges);
+        assertEquals(gauges.size(), 2, "Only gauges m3-m4 should have been returned");
+
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:2,a2:!4")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only gauges m3-m4 should have been returned");
 
-        gauges = metricsService
-                .findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "!4"))
-                .toList().toBlocking().lastOrDefault(null);
-        assertEquals(gauges.size(), 2, "Only gauges m3-m4 should have been returned");
-
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "!4|3"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a2:!4|3")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1, "Only gauges m3 should have been returned");
         assertEquals(gauges.get(0), m3, "m3 did not match the original inserted metric");
 
         // What about incorrect query?
         try {
-            metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("a2", "**"))
+            metricsService.findMetricsWithFilters(tenantId, GAUGE, "a2:**")
                     .toList().toBlocking().lastOrDefault(null);
             fail("Should have thrown an PatternSyntaxException");
         } catch (PatternSyntaxException ignored) {
         }
 
         // More regexp tests
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", "web.*"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "hostname:web.*")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only websrv01 and websrv02 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, ImmutableMap.of("hostname", ".*01"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "hostname:.*01")
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only websrv01 and backend01 should have been returned");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("owner", "h[e|a]de(s?)")).toList().toBlocking().lastOrDefault(null);
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "owner:h[e|a]de(s?)")
+                .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Both hede and hades should have been returned, but not 'had'");
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("owner", "h[e|a]de(s?)"))
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "owner:h[e|a]de(s?)")
                 .filter(metricsService.idFilter(".F"))
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 1, "Only hades should have been returned");
 
         // Not existing tags
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("!a2", "*", "a1", "*")).doOnError(Throwable::printStackTrace)
+        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, "!a2:*,a1:*")
+                .doOnError(Throwable::printStackTrace)
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 2, "Only metrics with a1, but without a2 and type GAUGE should have been found");
 
-        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE,
-                ImmutableMap.of("!a1", "*")).doOnError(Throwable::printStackTrace)
+        gauges = metricsService.<Double> findMetricsWithFilters(tenantId, GAUGE, "!a1:*")
+                .doOnError(Throwable::printStackTrace)
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 8, "Only metrics without a1 and type GAUGE should have been found");
     }
@@ -562,7 +560,7 @@ public class TagsITest extends BaseMetricsITest {
         doAction(() -> metricsService.addTags(m3, ImmutableMap.of("type", "cpu_usage", "node", "server3")));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
-        Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
+        String tagFilters = "type:cpu_usage,node:server1|server2";
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(
                 () -> metricsService.findMetricsWithFilters(tenantId, GAUGE, tagFilters)

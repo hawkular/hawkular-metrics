@@ -142,14 +142,11 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
 
         Observable<Metric<Long>> metricObservable = null;
-        if (tags != null && tagsQuery == null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags.getTags());
-        } else if (tags == null && tagsQuery != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tagsQuery);
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
         }
@@ -284,7 +281,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), COUNTER)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                             .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -312,7 +309,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), COUNTER)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -679,13 +676,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
-        findMetricsByNameOrTag(metricNames, tags, tagsQuery, MetricType.COUNTER)
+        findMetricsByNameOrTag(metricNames, tags, MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
@@ -719,7 +715,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids. " +
                     "The standard start, end, order, and limit query parameters are supported as well.")
                     AggregatedStatsQueryRequest query) {
-        findMetricsByNameOrTag(query.getMetrics(), query.getTags(), query.getTagsQuery(), MetricType.COUNTER)
+        findMetricsByNameOrTag(query.getMetrics(), query.getTags(), MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
@@ -748,12 +744,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-        getStats(asyncResponse, start, end, null,
-                bucketsCount, bucketDuration, percentiles, tags, null, metricNames, stacked);
+        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, metricNames,
+                stacked);
     }
 
     @GET
@@ -779,13 +775,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                 required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
-        findMetricsByNameOrTag(metricNames, tags, tagsQuery, MetricType.COUNTER)
+        findMetricsByNameOrTag(metricNames, tags, MetricType.COUNTER)
                 .toList()
                 .flatMap(metricIds -> TimeAndBucketParams.<Long>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
@@ -814,11 +809,11 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names", required = false) @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)",
                     required = false) @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
-        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, null, metricNames,
+        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, metricNames,
                 stacked);
     }
 

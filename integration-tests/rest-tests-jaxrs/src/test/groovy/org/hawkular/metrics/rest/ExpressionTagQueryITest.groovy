@@ -30,11 +30,11 @@ import groovy.json.JsonOutput
 /**
  * @author Stefan Negrea
  */
-class ExpressionTagsQueryITest extends RESTTest {
+class ExpressionTagQueryITest extends RESTTest {
 
   static metrics =  [
-    ['id': 'm1', 'tags': ['a1': 'd', 'b1': 'B']],
-    ['id': 'm2', 'tags': ['a1': 'xyz', 'b1': 'B']],
+    ['id': 'm1', 'tags': ['a1': 'd', 'b1': 'B', 'a2': 'a']],
+    ['id': 'm2', 'tags': ['a1': 'xyz', 'b1': 'B', 'a2': 'b']],
     ['id': 'm3', 'tags': ['a1': 'abcd', 'b1': 'C']],
     ['id': 'm4', 'tags': ['a1': 'ab', 'b1': 'B']],
     ['id': 'm5', 'tags': ['a1': 'xyz', 'b1': 'C']],
@@ -66,92 +66,110 @@ class ExpressionTagsQueryITest extends RESTTest {
         ], response.data)
       }
 
-      def response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 = '*'"],
+      /*def response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a1 = '*'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm3', 'm4', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 = '*' AND b1 = 'B'"],
+        query: [tags: "a1 = '*' AND b1 = 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 = '*' AND b1 != 'B'"],
+        query: [tags: "a1 = '*' AND b1 != 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 IN ['xyz','abcd'] AND b1 = '*'"],
+        query: [tags: "a1 IN ['xyz','abcd'] AND b1 = '*'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = '*' OR b1 != 'B'"],
+        query: [tags: "c1 = '*' OR b1 != 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5', 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = '*' OR (b1 != 'B' AND a1 = 'abcd')"],
+        query: [tags: "c1 = '*' OR (b1 != 'B' AND a1 = 'abcd')"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 NOT IN ['xyz', 'abcd']" ],
+        query: [tags: "a1 NOT IN ['xyz', 'abcd']" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 NOT IN ['xyz','abcd'] OR b1 = 'B'" ],
+        query: [tags: "a1 NOT IN ['xyz','abcd'] OR b1 = 'B'" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 = 'd' OR ( a1 = 'ab' OR ( c1 = '*'))" ],
+        query: [tags: "a1 = 'd' OR ( a1 = 'ab' OR ( c1 = '*'))" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm4', 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = '100'"],
+        query: [tags: "c1 = '100'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(204, response.status)
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = 100"],
+        query: [tags: "c1 = 100"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(204, response.status)
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "a1 = d OR a1 = abcd"],
+        query: [tags: "a1 = d OR a1 = abcd"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm3')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = '100' OR a1 = 'xyz' OR a1 IN ['abcd']" ],
+        query: [tags: "c1 = '100' OR a1 = 'xyz' OR a1 IN ['abcd']" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "c1 = '100' OR a1 = xyz OR a1 IN [abcd]" ],
+        query: [tags: "c1 = '100' OR a1 = xyz OR a1 IN [abcd]" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tagsQuery: "A1 in ['xyz', 'abcd']"],
+        query: [tags: "A1 in ['xyz', 'abcd']"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(204, response.status)
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a1 NOT IN ['xyz', 'abcd']"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm1', 'm4')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a2"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm1', 'm2')*/
+
+      def response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "not a2"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm3', 'm4', 'm5', 'm6')
     }
   }
 

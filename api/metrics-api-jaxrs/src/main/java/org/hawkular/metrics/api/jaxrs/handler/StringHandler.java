@@ -125,14 +125,11 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags) {
 
         Observable<Metric<String>> metricObservable = null;
-        if (tags != null && tagsQuery == null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
-        } else if (tags == null && tagsQuery != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tagsQuery);
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tags);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), STRING);
         }
@@ -281,7 +278,7 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), STRING)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), STRING)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)

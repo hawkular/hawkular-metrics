@@ -23,7 +23,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.hawkular.metrics.core.service.DataAccess;
@@ -60,14 +64,30 @@ public class ExpressionTagQueryParser {
     public <T> Observable<Metric<T>> parse(String tenantId, MetricType<T> metricType, String expression) {
         ANTLRInputStream input = new ANTLRInputStream(expression);
         TagQueryLexer tql = new TagQueryLexer(input);
+        tql.removeErrorListeners();
+        tql.addErrorListener(new ThrowingErrorListener());
+
         CommonTokenStream tokens = new CommonTokenStream(tql);
+
         TagQueryParser parser = new TagQueryParser(tokens);
+        parser.removeErrorListeners();
+        parser.addErrorListener(new ThrowingErrorListener());
+
         ParseTree parseTree = parser.tagquery();
 
         StorageTagQueryListener<T> listener = new StorageTagQueryListener<>(tenantId, metricType);
         ParseTreeWalker.DEFAULT.walk(listener, parseTree);
 
         return listener.getResult();
+    }
+
+    public class ThrowingErrorListener extends BaseErrorListener {
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+                String msg, RecognitionException e)
+                throws ParseCancellationException {
+            throw new ParseCancellationException("line " + line + ":" + charPositionInLine + " " + msg);
+        }
     }
 
     private class StorageTagQueryListener<T> extends TagQueryBaseListener {
@@ -138,10 +158,26 @@ public class ExpressionTagQueryParser {
                         .distinct();
             } else if (ctx.existence_operator() != null) {
                 if (ctx.existence_operator().NOT() != null) {
-                    result = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
-                            .filter(r -> r.getMap(1, String.class, String.class).get(tagName) == null)
-                            .compose(new MetricIdFromMetricIndexRowTransformer<>(tenantId, metricType))
-                            .distinct();
+                    if (metricType != null) {
+                        result = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
+                                .filter(r -> r.getMap(1, String.class, String.class).get(tagName) == null)
+                                .compose(new MetricIdFromMetricIndexRowTransformer<T>(tenantId, metricType))
+                                .distinct();
+                    } else {
+                        for (MetricType<?> ltype : MetricType.userTypes()) {
+                            @SuppressWarnings({ "unchecked", "rawtypes" })
+                            Observable<MetricId<T>> lresult = dataAccess.findMetricsInMetricsIndex(tenantId, ltype)
+                                    .filter(r -> r.getMap(1, String.class, String.class).get(tagName) == null)
+                                    .compose(new MetricIdFromMetricIndexRowTransformer(tenantId, ltype))
+                                    .distinct();
+
+                            if (result != null) {
+                                result = result.concatWith(lresult);
+                            } else {
+                                result = lresult;
+                            }
+                        }
+                    }
                 }
             } else {
                 result = dataAccess.findMetricsByTagName(this.tenantId, tagName)

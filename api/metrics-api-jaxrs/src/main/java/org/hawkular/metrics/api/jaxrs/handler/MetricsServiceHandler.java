@@ -19,25 +19,20 @@ package org.hawkular.metrics.api.jaxrs.handler;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
-import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
-import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,43 +61,19 @@ abstract class MetricsServiceHandler {
         return new NamedDataPointObserver<>(response, mapper, type);
     }
 
-    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, String tagsQuery,
-            MetricType<T> type) {
-        List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
-        Map<String, String> mapTags = TagsConverter.fromNullable(tags).getTags();
-        return findMetricsByNameOrTag(nonNullNames, mapTags, tagsQuery, type);
-    }
-
-    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, Tags tags, String tagsQuery,
-            MetricType<T> type) {
-        List<String> nonNullNames = metricNames == null ? Collections.emptyList() : metricNames;
-        Map<String, String> mapTags = tags == null ? Collections.emptyMap() : tags.getTags();
-        return findMetricsByNameOrTag(nonNullNames, mapTags, tagsQuery, type);
-    }
-
-    private <T> Observable<MetricId<T>> findMetricsByNameOrTag(@NotNull List<String> metricNames, @NotNull Map<String,
-    String> tags, String tagsQuery, MetricType<T> type) {
-
-        if (metricNames.isEmpty() && tags.isEmpty() && tagsQuery == null) {
+    <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
+        if ((metricNames == null || metricNames.isEmpty()) && tags == null) {
             return Observable.error(new RuntimeApiError("Either metrics or tags query parameters must be used"));
         }
-        if (!metricNames.isEmpty() && (!tags.isEmpty() || tagsQuery != null)) {
+        if (metricNames != null && !metricNames.isEmpty() && tags != null) {
             return Observable.error(new RuntimeApiError("Cannot use both the metrics and tags query parameters"));
         }
-        if (metricNames.isEmpty() && (!tags.isEmpty() && tagsQuery != null)) {
-            return Observable.error(new RuntimeApiError("Cannot specify both the tags query parameters"));
-        }
-
-        if (!metricNames.isEmpty()) {
+        if (metricNames != null && !metricNames.isEmpty()) {
             return Observable.from(metricNames)
                     .map(id -> new MetricId<>(getTenant(), type, id));
         }
-        if (!tags.isEmpty()) {
-            return metricsService.findMetricsWithFilters(getTenant(), type, tags)
-                    .map(Metric::getMetricId);
-        }
 
-        return metricsService.findMetricsWithFilters(getTenant(), type, tagsQuery)
+        return metricsService.findMetricsWithFilters(getTenant(), type, tags)
                 .map(Metric::getMetricId);
     }
 

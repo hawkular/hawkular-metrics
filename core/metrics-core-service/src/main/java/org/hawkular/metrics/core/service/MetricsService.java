@@ -109,7 +109,9 @@ public interface MetricsService {
 
     /**
      * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
-     * tag level. The following tags-filtering capabilities are provided in tagsQueries:
+     * tag level.
+     *
+     * The following tags-filtering capabilities are provided in tagsQueries:
      *
      * key: tagName ; value: *                -> Find all metrics with tag tagName and any value
      * key: tagName ; value: tagValue         -> Find all metrics with tag tagName and having value tagValue
@@ -118,22 +120,10 @@ public interface MetricsService {
      *
      * @param tenantId The id of the tenant to which the metrics belong
      * @param type If type is null, no type filtering is used
-     * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
-     * @return Metric's that are filtered with given conditions
-     */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
-            tagsQueries);
-
-    /**
-     * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
-     * tag level. The following tags-filtering capabilities are provided in tagsQueries:
-     *
-     * @param tenantId The id of the tenant to which the metrics belong
-     * @param type If type is null, no type filtering is used
      * @param tagsQuery If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @return Metric's that are filtered with given conditions
      */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, String tagsQuery);
+    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, String tags);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
@@ -211,7 +201,7 @@ public interface MetricsService {
      * @return an {@link Observable} that emits {@link NamedDataPoint named data points}
      */
     <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
-         Map<String, String> tagFilters, long start, long end, int limit, Order order);
+            String tagFilters, long start, long end, int limit, Order order);
 
     /**
      * This method applies one or more functions to an Observable that emits data points of a gauge metric. The data

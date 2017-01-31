@@ -43,8 +43,6 @@ public class AggregatedStatsQueryRequest {
 
     private String tags;
 
-    private String tagsQuery;
-
     private boolean stacked;
 
     public List<String> getMetrics() {
@@ -109,14 +107,6 @@ public class AggregatedStatsQueryRequest {
 
     public void setTags(String tags) {
         this.tags = tags;
-    }
-
-    public String getTagsQuery() {
-        return tagsQuery;
-    }
-
-    public void setTagsQuery(String tagsQuery) {
-        this.tagsQuery = tagsQuery;
     }
 
     public boolean isStacked() {

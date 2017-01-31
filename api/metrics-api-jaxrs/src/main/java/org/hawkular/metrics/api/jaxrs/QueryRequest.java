@@ -37,8 +37,6 @@ public class QueryRequest {
 
     private String tags;
 
-    private String tagsQuery;
-
     public List<String> getIds() {
         return ids;
     }
@@ -93,14 +91,6 @@ public class QueryRequest {
 
     public void setTags(String tags) {
         this.tags = tags;
-    }
-
-    public String getTagsQuery() {
-        return tagsQuery;
-    }
-
-    public void setTagsQuery(String tagsQuery) {
-        this.tagsQuery = tagsQuery;
     }
 
     @Override public String toString() {

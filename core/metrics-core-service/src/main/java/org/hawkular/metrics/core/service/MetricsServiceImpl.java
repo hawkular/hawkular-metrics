@@ -49,6 +49,7 @@ import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.tags.ExpressionTagQueryParser;
 import org.hawkular.metrics.core.service.tags.SimpleTagQueryParser;
+import org.hawkular.metrics.core.service.tags.TagsConverter;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
@@ -73,8 +74,10 @@ import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.model.TaggedBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
+import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
@@ -549,18 +552,20 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-                                                            Map<String, String> tagsQueries) {
-        return tagQueryParser.findMetricsWithFilters(tenantId, metricType, tagsQueries)
-                .map(tMetric -> (Metric<T>) tMetric);
-    }
-
-    @Override
-    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType,
-            String tagsQuery) {
-        return expresssionTagQueryParser
-                .parse(tenantId, metricType, tagsQuery)
-                .map(tMetric -> (Metric<T>) tMetric);
+    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, String tags) {
+        try {
+            return expresssionTagQueryParser
+                    .parse(tenantId, metricType, tags)
+                    .map(tMetric -> (Metric<T>) tMetric);
+        } catch (Exception e1) {
+            try {
+                Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
+                return tagQueryParser.findMetricsWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
+                        .map(tMetric -> (Metric<T>) tMetric);
+            } catch (Exception e2) {
+                return Observable.error(new RuntimeApiError("Unparseable tag query expression."));
+            }
+        }
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
@@ -788,7 +793,7 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
-            Map<String, String> tagFilters, long start, long end, int limit, Order order) {
+            String tagFilters, long start, long end, int limit, Order order) {
         return findMetricsWithFilters(tenantId, metricType, tagFilters)
                 .map(Metric::getMetricId)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)

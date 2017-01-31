@@ -136,14 +136,11 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
-            @ApiParam(value = "Tags query expression", required = false) @QueryParam("tagsQuery") String tagsQuery) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
 
         Observable<Metric<AvailabilityType>> metricObservable = null;
-        if (tags != null && tagsQuery == null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags.getTags());
-        } else if (tags == null && tagsQuery != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tagsQuery);
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
         }
@@ -313,7 +310,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), query.getTagsQuery(), AVAILABILITY)
+        findMetricsByNameOrTag(query.getIds(), query.getTags(), AVAILABILITY)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<AvailabilityType>deferredBuilder(query.getStart(), query.getEnd())
                         .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)

@@ -24,6 +24,7 @@ import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.hawkular.metrics.core.service.tags.ExpressionTagQueryParser;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -49,7 +51,6 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
     @Test
     public void tagValueSearch() throws Exception {
         String tenantId = "jsonT1Tag";
-
         createTagMetrics(tenantId);
 
         ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
@@ -117,6 +118,28 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         gauges = test.parse(tenantId, GAUGE, "a1=defg AND (a2 in [jkl, xyz])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
+    }
+
+    @Test
+    public void badTagValueSearch() throws Exception {
+        String tenantId = "jsonT2Tag";
+        createTagMetrics(tenantId);
+
+        List<Metric<Double>> gauges = null;
+
+        try {
+            gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1 == abc'").toList()
+                .toBlocking()
+                .lastOrDefault(null);
+            fail("Expected error");
+        } catch (Exception e) {
+            assertEquals(e.getClass(), RuntimeApiError.class);
+        }
+
+        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*").toList()
+                .toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
     }
 
     private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
