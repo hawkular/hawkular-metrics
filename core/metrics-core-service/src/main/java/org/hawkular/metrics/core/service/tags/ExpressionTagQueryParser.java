@@ -41,7 +41,7 @@ import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ObjectContex
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.PairContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ValueContext;
 import org.hawkular.metrics.core.service.transformers.MetricIdFromMetricIndexRowTransformer;
-import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -137,7 +137,7 @@ public class ExpressionTagQueryParser {
 
                             return !positive;
                         })
-                        .compose(new TagsIndexRowTransformer<>(metricType))
+                        .compose(new TagsIndexRowTransformerFilter<>(metricType))
                         .distinct();
             } else if (ctx.boolean_operator() != null) {
                 String tagValue = null;
@@ -154,7 +154,7 @@ public class ExpressionTagQueryParser {
 
                 result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
                         .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
-                        .compose(new TagsIndexRowTransformer<>(metricType))
+                        .compose(new TagsIndexRowTransformerFilter<>(metricType))
                         .distinct();
             } else if (ctx.existence_operator() != null) {
                 if (ctx.existence_operator().NOT() != null) {
@@ -181,7 +181,7 @@ public class ExpressionTagQueryParser {
                 }
             } else {
                 result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
-                        .compose(new TagsIndexRowTransformer<>(metricType))
+                        .compose(new TagsIndexRowTransformerFilter<>(metricType))
                         .distinct();
             }
 

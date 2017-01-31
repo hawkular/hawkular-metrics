@@ -30,7 +30,7 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.PatternUtil;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
-import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
@@ -109,7 +109,7 @@ public class SimpleTagQueryParser {
         groupMetrics = Observable.from(groupBEntries)
                         .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                 .filter(tagValueFilter(e.getValue(), 3))
-                                .compose(new TagsIndexRowTransformer<>(metricType))
+                                .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
                                 .reduce((s1, s2) -> {
                                     s1.addAll(s2);
@@ -126,7 +126,7 @@ public class SimpleTagQueryParser {
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
             Observable<? extends Metric<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
-                    .compose(new TagsIndexRowTransformer<>(metricType))
+                    .compose(new TagsIndexRowTransformerFilter<>(metricType))
                     .filter(mId -> mId.getTenantId().equals(tenantId))
                     .flatMap(metricsService::findMetric);
 
