@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.hawkular.metrics.core.service.transformers;
 
+import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 
@@ -25,27 +27,24 @@ import rx.Observable;
 import rx.Observable.Transformer;
 
 /**
- * Transforms {@link Row}s from metrics_tags_idx to a {@link MetricId}. Requires the following order on select:
- * {@code type, metric, interval}.
+ * Transforms {@link Row}s from data table to a {@link Metric}. Requires the following order on select:
+ * {@code metric_id}.
  *
- * @author Michael Burman
+ * @author Stefan Negrea
  */
-public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>> {
+public class MetricIdFromMetricIndexRowTransformer<T> implements Transformer<Row, MetricId<T>> {
     private final MetricType<T> type;
+    private final String tenantId;
 
-    public TagsIndexRowTransformer(MetricType<T> type) {
+    public MetricIdFromMetricIndexRowTransformer(String tenantId, MetricType<T> type) {
         this.type = type;
+        this.tenantId = tenantId;
     }
 
     @Override
     public Observable<MetricId<T>> call(Observable<Row> rows) {
-        return rows.filter(row -> {
-            MetricType<?> metricType = MetricType.fromCode(row.getByte(1));
-            return (type == null && metricType.isUserType()) || metricType == type;
-        }).map(row1 -> {
-            @SuppressWarnings("unchecked")
-            MetricType<T> metricType = (MetricType<T>) MetricType.fromCode(row1.getByte(1));
-            return new MetricId<>(row1.getString(0), metricType, row1.getString(2));
+        return rows.map(row -> {
+            return new MetricId<>(tenantId, type, row.getString(0));
         });
     }
 }

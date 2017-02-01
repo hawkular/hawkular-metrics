@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -137,11 +136,14 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
 
-        Observable<Metric<AvailabilityType>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), AVAILABILITY)
-                : metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags.getTags());
+        Observable<Metric<AvailabilityType>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))

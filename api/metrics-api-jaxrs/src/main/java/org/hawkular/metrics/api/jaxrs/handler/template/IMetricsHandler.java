@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.handler.template;
 
 import java.util.List;
@@ -36,7 +35,7 @@ import org.hawkular.metrics.model.param.Tags;
 public interface IMetricsHandler<T> {
 
     //Metric
-    void getMetrics(AsyncResponse asyncResponse, Tags tags);
+    void getMetrics(AsyncResponse asyncResponse, String tags);
 
     void createMetric(AsyncResponse asyncResponse, Metric<T> metric, Boolean overwrite, UriInfo uriInfo);
 

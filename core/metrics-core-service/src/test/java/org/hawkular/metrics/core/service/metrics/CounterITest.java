@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -331,7 +331,7 @@ public class CounterITest extends BaseMetricsITest {
         doAction(() -> metricsService.addTags(c3, ImmutableMap.of("type", "counter_cpu_usage", "node", "server3")));
 
         Buckets buckets = Buckets.fromCount(start.getMillis(), start.plusMinutes(5).getMillis(), 1);
-        Map<String, String> tagFilters = ImmutableMap.of("type", "counter_cpu_usage", "node", "server1|server2");
+        String tagFilters = "type:counter_cpu_usage,node:server1|server2";
 
         List<DataPoint<Double>> c1Rate = getOnNextEvents(
                 () -> metricsService.findRateData(c1.getMetricId(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,11 +125,14 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags) {
 
-        Observable<Metric<String>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), STRING)
-                : metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
+        Observable<Metric<String>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tags);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), STRING);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))

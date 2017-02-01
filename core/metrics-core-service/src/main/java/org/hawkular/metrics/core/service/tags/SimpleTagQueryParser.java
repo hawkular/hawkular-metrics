@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.service;
+package org.hawkular.metrics.core.service.tags;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,8 +26,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.PatternUtil;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
-import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
@@ -41,12 +44,12 @@ import rx.functions.Func1;
  *
  * @author Michael Burman
  */
-public class TagQueryParser {
+public class SimpleTagQueryParser {
 
     private DataAccess dataAccess;
     private MetricsService metricsService;
 
-    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
+    public SimpleTagQueryParser(DataAccess dataAccess, MetricsService metricsService) {
         this.dataAccess = dataAccess;
         this.metricsService = metricsService;
     }
@@ -106,7 +109,7 @@ public class TagQueryParser {
         groupMetrics = Observable.from(groupBEntries)
                         .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                 .filter(tagValueFilter(e.getValue(), 3))
-                                .compose(new TagsIndexRowTransformer<>(metricType))
+                                .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
                                 .reduce((s1, s2) -> {
                                     s1.addAll(s2);
@@ -123,7 +126,7 @@ public class TagQueryParser {
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
             Observable<? extends Metric<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
-                    .compose(new TagsIndexRowTransformer<>(metricType))
+                    .compose(new TagsIndexRowTransformerFilter<>(metricType))
                     .filter(mId -> mId.getTenantId().equals(tenantId))
                     .flatMap(metricsService::findMetric);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -143,11 +142,14 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags) {
 
-        Observable<Metric<Double>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), GAUGE)
-                : metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags.getTags());
+        Observable<Metric<Double>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), GAUGE);
+        }
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
@@ -568,7 +570,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
@@ -672,13 +674,13 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
 
-        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags,
-        metricNames, stacked);
+        getStats(asyncResponse, start, end, null, bucketsCount, bucketDuration, percentiles, tags, metricNames,
+                stacked);
     }
 
     @GET
@@ -840,7 +842,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(value = "Total number of buckets") @QueryParam("buckets") Integer bucketsCount,
             @ApiParam(value = "Bucket duration") @QueryParam("bucketDuration") Duration bucketDuration,
             @ApiParam(value = "Percentiles to calculate") @QueryParam("percentiles") Percentiles percentiles,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags,
             @ApiParam(value = "List of metric names") @QueryParam("metrics") List<String> metricNames,
             @ApiParam(value = "Downsample method (if true then sum of stacked individual stats; defaults to false)")
             @DefaultValue("false") @QueryParam("stacked") Boolean stacked) {
