@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     private final Long lastNotUptime;
     private final Double uptimeRatio;
     private final Long notUpCount;
+    private final Long samples;
 
     ////
     // Deprecated fields/methods kept for backward compatibility with 0.16.0.Final on June 22, 2016
@@ -57,6 +58,7 @@ public final class AvailabilityBucketPoint extends BucketPoint {
         this.lastNotUptime = lastDowntime;
         this.uptimeRatio = getDoubleValue(uptimeRatio);
         this.notUpCount = downtimeCount;
+        this.samples = 0L;
 
         this.downtimeCount = downtimeCount;
         this.downtimeDuration = downtimeDuration;
@@ -94,12 +96,13 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     ////
 
     protected AvailabilityBucketPoint(long start, long end, Map<AvailabilityType, Long> durationMap,
-            long lastNotUptime, double uptimeRatio, long notUpCount) {
+            long lastNotUptime, double uptimeRatio, long notUpCount, long samples) {
         super(start, end);
         this.durationMap = durationMap;
         this.lastNotUptime = lastNotUptime;
         this.uptimeRatio = getDoubleValue(uptimeRatio);
         this.notUpCount = notUpCount;
+        this.samples = samples;
 
         this.downtimeCount = notUpCount;
         this.downtimeDuration = getDownDuration();
@@ -168,6 +171,17 @@ public final class AvailabilityBucketPoint extends BucketPoint {
         return uptimeRatio;
     }
 
+    public Long getSamples() {
+        return samples;
+    }
+
+    /**
+     * @return Convenience method to return number of up segments <code>(samples - notUpCount)</code>
+     */
+    public Long getUpCount() {
+        return samples - notUpCount;
+    }
+
     @Override
     public boolean isEmpty() {
         return uptimeRatio == null;
@@ -176,7 +190,7 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     @Override
     public String toString() {
         return "AvailabilityBucketPoint [durationMap=" + durationMap + ", lastNotUptime=" + lastNotUptime
-                + ", uptimeRatio=" + uptimeRatio + ", notUpCount=" + notUpCount + "]";
+                + ", uptimeRatio=" + uptimeRatio + ", notUpCount=" + notUpCount + ", samples=" + samples + "]";
     }
 
     /**
@@ -193,6 +207,7 @@ public final class AvailabilityBucketPoint extends BucketPoint {
         private long lastNotUptime = 0;
         private double uptimeRatio = NaN;
         private long notUpCount = 0;
+        private long samples = 0;
 
         /**
          * Creates a builder for an initially empty instance, configurable with the builder setters.
@@ -245,8 +260,14 @@ public final class AvailabilityBucketPoint extends BucketPoint {
             return this;
         }
 
+        public Builder setSamples(long samples) {
+            this.samples = samples;
+            return this;
+        }
+
         public AvailabilityBucketPoint build() {
-            return new AvailabilityBucketPoint(start, end, durationMap, lastNotUptime, uptimeRatio, notUpCount);
+            return new AvailabilityBucketPoint(start, end, durationMap, lastNotUptime, uptimeRatio, notUpCount,
+                    samples);
         }
     }
 }

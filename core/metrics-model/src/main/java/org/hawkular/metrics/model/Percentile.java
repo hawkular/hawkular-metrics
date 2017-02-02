@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ package org.hawkular.metrics.model;
  * @author Michael Burman
  */
 public class Percentile {
+
     private double target;
     private double value = 0.0;
     private String originalQuantile;
@@ -49,5 +50,10 @@ public class Percentile {
 
     public void setValue(double value) {
         this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return "p(" + originalQuantile + ")=" + value;
     }
 }
