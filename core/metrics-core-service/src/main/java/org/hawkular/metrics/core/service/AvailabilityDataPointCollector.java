@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,7 @@ final class AvailabilityDataPointCollector {
     private Map<AvailabilityType, Long> durationMap;
     private long lastNotUptime;
     private long notUpCount;
+    private long samples;
 
     AvailabilityDataPointCollector(Buckets buckets, int bucketIndex) {
         this.buckets = buckets;
@@ -55,6 +56,8 @@ final class AvailabilityDataPointCollector {
         if (previous != null && timestamp <= previous.getTimestamp()) {
             throw new IllegalStateException("Expected stream sorted in time ascending order");
         }
+
+        ++samples;
 
         if (previous == null) {
             Long availTypeDuration = durationMap.getOrDefault(availType, 0L);
@@ -101,6 +104,7 @@ final class AvailabilityDataPointCollector {
                 .setLastNotUptime(lastNotUptime)
                 .setUptimeRatio(((double) durationMap.getOrDefault(AvailabilityType.UP, 0L) / buckets.getStep()))
                 .setNotUptimeCount(notUpCount)
+                .setSamples(samples)
                 .build();
     }
 }

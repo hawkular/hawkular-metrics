@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,8 +65,6 @@ import org.junit.runner.RunWith;
 import rx.Observable;
 
 /**
- * Note that this test no longer tests filtering, as data is now filtered in alerting, not metrics.
- *
  * @author jsanda
  */
 @RunWith(Arquillian.class)
