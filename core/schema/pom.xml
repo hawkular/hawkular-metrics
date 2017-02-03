@@ -38,6 +38,7 @@
       <groupId>org.cassalog</groupId>
       <artifactId>cassalog</artifactId>
       <version>${version.org.cassalog}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>

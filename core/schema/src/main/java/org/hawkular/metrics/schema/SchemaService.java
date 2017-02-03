@@ -29,6 +29,7 @@ import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -41,6 +42,8 @@ import com.google.common.collect.ImmutableMap;
  */
 public class SchemaService {
 
+    private static Logger logger = Logger.getLogger(SchemaService.class);
+
     public void run(Session session, String keyspace, boolean resetDB) {
 
 
@@ -49,7 +52,9 @@ public class SchemaService {
         Map<String, ?> vars  = ImmutableMap.of(
                 "keyspace", keyspace,
                 "reset", resetDB,
-                "session", session
+                "session", session,
+                "replicationFactor", replicationFactor,
+                "logger", logger
         );
         // TODO Add logic to determine the version tags we need to pass
         // For now, I am just hard coding the version tag, but a more robust solution would be
