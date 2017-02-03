@@ -197,9 +197,7 @@ class TokenAuthenticator implements Authenticator {
         // this method returns, but we need to wait for Kubernetes' master response.
         serverExchange.dispatch();
         XnioIoThread ioThread = serverExchange.getIoThread();
-        ConnectionPool connectionPool = connectionPools.computeIfAbsent(ioThread, t -> {
-            return new ConnectionPool(connectionFactory, componentName);
-        });
+        ConnectionPool connectionPool = connectionPools.computeIfAbsent(ioThread, t -> new ConnectionPool(connectionFactory, componentName));
         PooledConnectionWaiter waiter = createWaiter(serverExchange);
         if (!connectionPool.offer(waiter)) {
             endExchange(serverExchange, INTERNAL_SERVER_ERROR, TOO_MANY_PENDING_REQUESTS);
@@ -265,8 +263,6 @@ class TokenAuthenticator implements Authenticator {
 
     /**
      * Determine the verb we should apply based on the HTTP method being requested.
-     *
-     * @param method the http method
      *
      * @return the verb to use
      */
@@ -335,13 +331,14 @@ class TokenAuthenticator implements Authenticator {
     /**
      * Called if an exception occurs at any stage in the process.
      */
-    private void onRequestFailure(HttpServerExchange serverExchange, PooledConnection connection, IOException e) {
+    private void onRequestFailure(HttpServerExchange serverExchange, PooledConnection connection, IOException e,
+                                  boolean retry) {
         log.debug("Client request failure", e);
         IoUtils.safeClose(connection);
         ConnectionPool connectionPool = connectionPools.get(serverExchange.getIoThread());
         connectionPool.release(connection);
         AuthContext context = serverExchange.getAttachment(AUTH_CONTEXT_KEY);
-        if (context.retries < MAX_RETRY) {
+        if (context.retries < MAX_RETRY && retry) {
             context.retries++;
             PooledConnectionWaiter waiter = createWaiter(serverExchange);
             if (!connectionPool.offer(waiter)) {
@@ -434,7 +431,7 @@ class TokenAuthenticator implements Authenticator {
 
         @Override
         public void failed(IOException e) {
-            onRequestFailure(serverExchange, connection, e);
+            onRequestFailure(serverExchange, connection, e, true);
         }
     }
 
@@ -459,7 +456,7 @@ class TokenAuthenticator implements Authenticator {
 
         @Override
         public void failed(IOException e) {
-            onRequestFailure(serverExchange, connection, e);
+            onRequestFailure(serverExchange, connection, e, true);
         }
     }
 
@@ -483,24 +480,30 @@ class TokenAuthenticator implements Authenticator {
         protected void stringDone(String body) {
             AuthContext context = serverExchange.getAttachment(AUTH_CONTEXT_KEY);
             context.clientResponseReceived();
-            if (clientExchange.getResponse().getResponseCode() == CREATED) {
+            int responseCode = clientExchange.getResponse().getResponseCode();
+            if (responseCode == CREATED) {
                 try {
                     JsonNode jsonNode = objectMapper.readTree(body);
                     JsonNode allowedNode = jsonNode == null ? null : jsonNode.get("allowed");
                     boolean allowed = allowedNode != null && allowedNode.asBoolean();
                     onRequestResult(serverExchange, connection, allowed);
                 } catch (IOException e) {
-                    onRequestFailure(serverExchange, connection, e);
+                    onRequestFailure(serverExchange, connection, e, true);
                 }
             } else {
-                IOException e = new IOException(StatusCodes.getReason(clientExchange.getResponse().getResponseCode()));
-                onRequestFailure(serverExchange, connection, e);
+                IOException e = new IOException(StatusCodes.getReason(responseCode));
+                if(responseCode >= 500) {
+                    onRequestFailure(serverExchange, connection, e, true);
+                } else {
+                    // Retries will not help to solve the issue - client issue
+                    onRequestFailure(serverExchange, connection, e, false);
+                }
             }
         }
 
         @Override
         protected void error(IOException e) {
-            onRequestFailure(serverExchange, connection, e);
+            onRequestFailure(serverExchange, connection, e, true);
         }
     }
 
