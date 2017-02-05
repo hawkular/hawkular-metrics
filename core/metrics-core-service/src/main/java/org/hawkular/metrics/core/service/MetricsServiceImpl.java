@@ -262,21 +262,25 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Double> gaugeId = (MetricId<Double>) metricId;
+                    end = normalizeEndTime(gaugeId, start, end);
                     return dataAccess.findGaugeData(gaugeId, start, end, limit, order, pageSize);
                 })
                 .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
+                    end = normalizeEndTime(availabilityId, start, end);
                     return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
                 })
                 .put(COUNTER, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Long> counterId = (MetricId<Long>) metricId;
+                    end = normalizeEndTime(counterId, start, end);
                     return dataAccess.findCounterData(counterId, start, end, limit, order, pageSize);
                 })
                 .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<String> stringId = (MetricId<String>) metricId;
+                    end = normalizeEndTime(stringId, start, end);
                     return dataAccess.findStringData(stringId, start, end, limit, order, pageSize);
                 })
                 .build();
@@ -715,8 +719,9 @@ public class MetricsServiceImpl implements MetricsService {
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
 
+            long sliceEnd = normalizeEndTime(metricId, sliceStart, end);
             Observable<DataPoint<T>> compressedPoints =
-                    dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
+                    dataAccess.findCompressedData(metricId, sliceStart, sliceEnd, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
             Comparator<DataPoint<T>> comparator;
@@ -1043,6 +1048,19 @@ public class MetricsServiceImpl implements MetricsService {
             ttl = Duration.standardDays(ttl).toStandardSeconds().getSeconds();
         }
         return ttl;
+    }
+
+    /**
+     * We do not want to query past the TTL. Doing so may cause Cassandra to read and load into heap space a large
+     * number of tombstones that could substantial increase read latencies and even lead to OOMEs in Cassandra. See
+     * https://bugzilla.redhat.com/show_bug.cgi?id=1416850 for more info.
+     */
+    private long normalizeEndTime(MetricId<?> metricId, long start, long end) {
+        long ttl = Duration.standardSeconds(getTTL(metricId)).getMillis();
+        if ((end - start) > ttl) {
+            return start + ttl;
+        }
+        return end;
     }
 
     public void shutdown() {
