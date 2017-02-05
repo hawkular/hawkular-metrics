@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,13 +15,22 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
+schemaChange {
+  version '6.0'
+  author 'jsanda'
+  tags '0.23.x'
+  cql """
+ALTER TABLE data_compressed WITH compaction = {
+  'class': 'TimeWindowCompactionStrategy',
+  'compaction_window_unit': 'DAYS',
+  'compaction_window_size': '1'
+}
+"""
+}
 
-setKeyspace keyspace
-
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
+schemaChange {
+  version '6.1'
+  author 'jsanda'
+  tags '0.23.x'
+  cql "ALTER TABLE data WITH compaction = {'class': 'SizeTieredCompactionStrategy'}"
+}
