@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.23.4.Final</version>
+    <version>0.23.5.Final</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
