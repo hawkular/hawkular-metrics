@@ -13,21 +13,20 @@ endif::[]
 
 == About
 
-Hawkular Metrics is the metric data store for the http://www.hawkular.org/[Hawkular] project.
-It can also be used independently.
+Hawkular Metrics is the metric data storage engine part of http://www.hawkular.org/[Hawkular] community.
 
 It relies on https://cassandra.apache.org/[Apache Cassandra] as a backend and is comprised of:
 
 - a core library
 - a REST/HTTP interface
 
-IMPORTANT: Cassandra {cassandra-version} or later is required. It is recommended to use the latest {cassandra-version}.x release if possible.
+IMPORTANT: Cassandra {cassandra-version} or later is required.
 
 === The core library
 
 A Java library, built with https://github.com/ReactiveX/RxJava[RxJava] on top of the Cassandra Java driver.
 
-This is for advanced users only, if you want to embed the core functionnality in another product.
+This is for advanced users only, for embedding the core functionality in another project.
 
 === REST/HTTP interface
 
@@ -112,7 +111,9 @@ https://lists.jboss.org/mailman/listinfo/hawkular-dev[Hawkular developer mailing
 
 We love contributions and pull-requests :-)
 
-To meet the guys, join us on irc://irc.freenode.net/#hawkular[Freenode IRC] in channel #hawkular.
+To file an issue, please use the http://issues.jboss.org/browse/HWKMETRICS[Hawkular-Metrics JIRA].
+
+To chat, join us on irc://irc.freenode.net/#hawkular[Freenode IRC] in channel #hawkular.
 If you can not use the irc protocol, you can also use a web to irc gateway like
 http://webchat.freenode.net/?channels=hawkular[Web chat on Freenode].
 
