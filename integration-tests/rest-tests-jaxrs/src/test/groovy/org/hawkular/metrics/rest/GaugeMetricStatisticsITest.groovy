@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -171,11 +171,22 @@ class GaugeMetricStatisticsITest extends RESTTest {
     String tenantId = nextTenantId()
     String metric = "test"
     int nbOfBuckets = 10
-    long bucketSize = Duration.standardDays(1).millis
+    long bucketSize = Duration.standardMinutes(2).millis
     int interval = Duration.standardMinutes(1).millis
     int sampleSize = (bucketSize / interval) - 1
 
     def start = new DateTimeService().currentHour().minus(3 * nbOfBuckets * bucketSize)
+
+    def response = hawkularMetrics.post(path: "tenants",
+        headers: [
+            (tenantHeaderName): tenantId,
+            (adminTokenHeaderName): adminToken
+        ],
+        body: [
+            id        : tenantId,
+            retentions: [gauge: 100]
+        ])
+    assertEquals(201, response.status)
 
     def expectedData = []
 
@@ -201,7 +212,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
         perc95th.increment(value);
       }
 
-      def response = hawkularMetrics.post(path: "gauges/$metric/raw",
+      response = hawkularMetrics.post(path: "gauges/$metric/raw",
           body: data, headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
 
@@ -218,7 +229,7 @@ class GaugeMetricStatisticsITest extends RESTTest {
       ])
     }
 
-    def response = hawkularMetrics.get(path: "gauges/$metric/stats",
+    response = hawkularMetrics.get(path: "gauges/$metric/stats",
         query: [
             start: start.millis, end: start.plus(nbOfBuckets * bucketSize).millis, bucketDuration: "${bucketSize}ms"
         ],

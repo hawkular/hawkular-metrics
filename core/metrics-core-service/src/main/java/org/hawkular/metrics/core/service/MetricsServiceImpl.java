@@ -262,26 +262,27 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    end = normalizeEndTime(gaugeId, start, end);
-                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order, pageSize);
+                    DateRange dateRange = getDateRange(gaugeId, start, end);
+                    return dataAccess.findGaugeData(gaugeId, dateRange.start, dateRange.end, limit, order, pageSize);
                 })
                 .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    end = normalizeEndTime(availabilityId, start, end);
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
+                    DateRange dateRange = getDateRange(availabilityId, start, end);
+                    return dataAccess.findAvailabilityData(availabilityId, dateRange.start, dateRange.end, limit, order,
+                            pageSize);
                 })
                 .put(COUNTER, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<Long> counterId = (MetricId<Long>) metricId;
-                    end = normalizeEndTime(counterId, start, end);
-                    return dataAccess.findCounterData(counterId, start, end, limit, order, pageSize);
+                    DateRange dateRange = getDateRange(counterId, start, end);
+                    return dataAccess.findCounterData(counterId, dateRange.start, dateRange.end, limit, order, pageSize);
                 })
                 .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<String> stringId = (MetricId<String>) metricId;
-                    end = normalizeEndTime(stringId, start, end);
-                    return dataAccess.findStringData(stringId, start, end, limit, order, pageSize);
+                    DateRange dateRange = getDateRange(stringId, start, end);
+                    return dataAccess.findStringData(stringId, dateRange.start, dateRange.end, limit, order, pageSize);
                 })
                 .build();
 
@@ -719,9 +720,9 @@ public class MetricsServiceImpl implements MetricsService {
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
 
-            long sliceEnd = normalizeEndTime(metricId, sliceStart, end);
+            DateRange dateRange = getDateRange(metricId, sliceStart, end);
             Observable<DataPoint<T>> compressedPoints =
-                    dataAccess.findCompressedData(metricId, sliceStart, sliceEnd, limit, safeOrder)
+                    dataAccess.findCompressedData(metricId, dateRange.start, dateRange.end, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
             Comparator<DataPoint<T>> comparator;
@@ -1055,12 +1056,15 @@ public class MetricsServiceImpl implements MetricsService {
      * number of tombstones that could substantial increase read latencies and even lead to OOMEs in Cassandra. See
      * https://bugzilla.redhat.com/show_bug.cgi?id=1416850 for more info.
      */
-    private long normalizeEndTime(MetricId<?> metricId, long start, long end) {
+    private DateRange getDateRange(MetricId<?> metricId, long start, long end) {
         long ttl = Duration.standardSeconds(getTTL(metricId)).getMillis();
-        if ((end - start) > ttl) {
-            return start + ttl;
+        if ((System.currentTimeMillis() - end) >= ttl) {
+            return DateRange.OUT_OF_RANGE;
         }
-        return end;
+        if ((end - start) >= ttl) {
+            return new DateRange(end - ttl, end);
+        }
+        return new DateRange(start, end);
     }
 
     public void shutdown() {
@@ -1076,6 +1080,18 @@ public class MetricsServiceImpl implements MetricsService {
             return timer.time(callable);
         } catch (Exception e) {
             throw new RuntimeException("There was an error during a timed event", e);
+        }
+    }
+
+    private static class DateRange {
+        static final DateRange OUT_OF_RANGE = new DateRange(-1, -1);
+
+        final long start;
+        final long end;
+
+        public DateRange(long start, long end) {
+            this.start = start;
+            this.end = end;
         }
     }
 }

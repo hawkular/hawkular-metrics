@@ -308,6 +308,7 @@ class GaugesITest extends RESTTest {
   void minMaxTimestamps() {
     def tenantId = nextTenantId()
     def metricId = 'minmaxtest'
+    long start = now().minusHours(4).millis
 
     def response = hawkularMetrics.post(path: 'gauges', headers: [(tenantHeaderName): tenantId], body: [
         id: metricId
@@ -320,54 +321,55 @@ class GaugesITest extends RESTTest {
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
 
     response = hawkularMetrics.post(path: "gauges/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 3, value: 4.2]
+        [timestamp: start + 3000, value: 4.2]
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "gauges/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(3, response.data.minTimestamp)
-    assertEquals(3, response.data.maxTimestamp)
+    assertEquals(start + 3000, response.data.minTimestamp)
+    assertEquals(start + 3000, response.data.maxTimestamp)
 
     response = hawkularMetrics.post(path: "gauges/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 1, value: 2.2],
-        [timestamp: 2, value: 1.2],
-        [timestamp: 4, value: 7.2],
+        [timestamp: start + 1000, value: 2.2],
+        [timestamp: start + 2000, value: 1.2],
+        [timestamp: start + 4000, value: 7.2],
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "gauges/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(1, response.data.minTimestamp)
-    assertEquals(4, response.data.maxTimestamp)
+    assertEquals(start + 1000, response.data.minTimestamp)
+    assertEquals(start + 4000, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "gauges", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     def metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
   }
 
   @Test
   void findRate() {
     String gauge = "G1"
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 321.8],
-            [timestamp: 60_000 * 1.5, value: 475.3],
-            [timestamp: 60_000 * 3.5, value: 125.1],
-            [timestamp: 60_000 * 5.0, value: 123.6],
-            [timestamp: 60_000 * 7.0, value: 468.8],
-            [timestamp: 60_000 * 7.5, value: 568.1],
+            [timestamp: start + (60_000 * 1.0), value: 321.8],
+            [timestamp: start + (60_000 * 1.5), value: 475.3],
+            [timestamp: start + (60_000 * 3.5), value: 125.1],
+            [timestamp: start + (60_000 * 5.0), value: 123.6],
+            [timestamp: start + (60_000 * 7.0), value: 468.8],
+            [timestamp: start + (60_000 * 7.5), value: 568.1],
         ]
     )
     assertEquals(200, response.status)
@@ -375,16 +377,16 @@ class GaugesITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "gauges/$gauge/rate",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 0, order: 'asc']
+        query: [start: start, order: 'asc']
     )
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: (60_000 * 1.5).toLong(), value: 307.0],
-        [timestamp: (60_000 * 3.5).toLong(), value: -175.1],
-        [timestamp: (60_000 * 5.0).toLong(), value: -1.0],
-        [timestamp: (60_000 * 7.0).toLong(), value: 172.6],
-        [timestamp: (60_000 * 7.5).toLong(), value: 198.6],
+        [timestamp: start + (60_000 * 1.5).toLong(), value: 307.0],
+        [timestamp: start + (60_000 * 3.5).toLong(), value: -175.1],
+        [timestamp: start + (60_000 * 5.0).toLong(), value: -1.0],
+        [timestamp: start + (60_000 * 7.0).toLong(), value: 172.6],
+        [timestamp: start + (60_000 * 7.5).toLong(), value: 198.6],
     ]
 
     def actualData = response.data ?: []
@@ -402,17 +404,18 @@ Actual:   ${response.data}
   @Test
   void findRateStats() {
     String gauge = "G1"
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "gauges/$gauge/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 321.8],
-            [timestamp: 60_000 * 1.5, value: 475.3],
-            [timestamp: 60_000 * 3.5, value: 125.1],
-            [timestamp: 60_000 * 5.0, value: 123.6],
-            [timestamp: 60_000 * 7.0, value: 468.8],
-            [timestamp: 60_000 * 7.5, value: 568.1],
+            [timestamp: start + (60_000 * 1.0), value: 321.8],
+            [timestamp: start + (60_000 * 1.5), value: 475.3],
+            [timestamp: start + (60_000 * 3.5), value: 125.1],
+            [timestamp: start + (60_000 * 5.0), value: 123.6],
+            [timestamp: start + (60_000 * 7.0), value: 468.8],
+            [timestamp: start + (60_000 * 7.5), value: 568.1],
         ]
     )
     assertEquals(200, response.status)
@@ -420,13 +423,13 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: "gauges/$gauge/rate/stats",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+        query: [start: start + 60_000, end: start + (60_000 * 8), bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
 
     def expectedData = []
     (1..7).each { i ->
-      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      Map bucketPoint = [start: start + (60_000 * i), end: start + (60_000 * (i + 1))]
       double val
       switch (i) {
         case 1:
@@ -674,35 +677,36 @@ Actual:   ${response.data}
   @Test
   void fetchRatesFromMultipleMetrics() {
     String tenantId = nextTenantId()
+    long start = now().minusHours(8).millis
     def dataPoints = [
         [
             id: 'G1',
             data: [
-                [timestamp: 60_000, value: 1.23],
-                [timestamp: 60_000 * 1.5, value: 3.45],
-                [timestamp: 60_000 * 2, value: 5.34],
-                [timestamp: 60_000 * 2.5, value: 2.22],
-                [timestamp: 60_000 * 3, value: 5.22]
+                [timestamp: start + 60_000, value: 1.23],
+                [timestamp: start + (60_000 * 1.5), value: 3.45],
+                [timestamp: start + (60_000 * 2), value: 5.34],
+                [timestamp: start + (60_000 * 2.5), value: 2.22],
+                [timestamp: start + (60_000 * 3), value: 5.22]
             ]
         ],
         [
             id: 'G2',
             data: [
-                [timestamp: 60_000, value: 1.45],
-                [timestamp: 60_000 * 1.5, value: 2.36],
-                [timestamp: 60_000 * 2, value: 3.62],
-                [timestamp: 60_000 * 2.5, value: 2.63],
-                [timestamp: 60_000 * 3, value: 3.99]
+                [timestamp: start + 60_000, value: 1.45],
+                [timestamp: start + (60_000 * 1.5), value: 2.36],
+                [timestamp: start + (60_000 * 2), value: 3.62],
+                [timestamp: start + (60_000 * 2.5), value: 2.63],
+                [timestamp: start + (60_000 * 3), value: 3.99]
             ]
         ],
         [
             id: 'G3',
             data: [
-                [timestamp: 60_000, value: 4.45],
-                [timestamp: 60_000 * 1.5, value: 5.55],
-                [timestamp: 60_000 * 2, value: 4.44],
-                [timestamp: 60_000 * 2.5, value: 3.33],
-                [timestamp: 60_000 * 3, value: 3.77]
+                [timestamp: start + 60_000, value: 4.45],
+                [timestamp: start + (60_000 * 1.5), value: 5.55],
+                [timestamp: start + (60_000 * 2), value: 4.44],
+                [timestamp: start + (60_000 * 2.5), value: 3.33],
+                [timestamp: start + (60_000 * 3), value: 3.77]
             ]
         ]
     ]
@@ -719,8 +723,8 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId],
         body: [
             ids: ['G1', 'G2', 'G3'],
-            start: 60_000 * 1.5,
-            end: 60_000 * 3,
+            start: start + (60_000 * 1.5),
+            end: start + (60_000 * 3),
             limit: 2,
             order: 'asc'
         ]
@@ -732,24 +736,24 @@ Actual:   ${response.data}
     assertListOfGaugesContains(response.data, [
         id: 'G1',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
         ]
     ])
 
     assertListOfGaugesContains(response.data, [
         id: 'G2',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
         ]
     ])
 
     assertListOfGaugesContains(response.data, [
         id: 'G3',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
         ]
     ])
   }
