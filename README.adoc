@@ -13,7 +13,7 @@ endif::[]
 
 == About
 
-Hawkular Metrics is the metric data store engine part of http://www.hawkular.org/[Hawkular] community.
+Hawkular Metrics is the metric data storage engine part of http://www.hawkular.org/[Hawkular] community.
 
 It relies on https://cassandra.apache.org/[Apache Cassandra] as a backend and is comprised of:
 
@@ -110,6 +110,8 @@ To contribute or participate in design discussion, please use the
 https://lists.jboss.org/mailman/listinfo/hawkular-dev[Hawkular developer mailing list].
 
 We love contributions and pull-requests :-)
+
+To file an issue, please use the http://issues.jboss.org/browse/HWKMETRICS[Hawkular-Metrics JIRA].
 
 To chat, join us on irc://irc.freenode.net/#hawkular[Freenode IRC] in channel #hawkular.
 If you can not use the irc protocol, you can also use a web to irc gateway like
