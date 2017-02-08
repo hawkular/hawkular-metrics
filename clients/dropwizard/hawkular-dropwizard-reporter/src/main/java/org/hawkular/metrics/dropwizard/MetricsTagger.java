@@ -16,13 +16,15 @@
  */
 package org.hawkular.metrics.dropwizard;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.hawkular.metrics.reporter.http.HawkularHttpClient;
-import org.hawkular.metrics.reporter.http.HawkularJson;
+import org.hawkular.metrics.client.common.http.HawkularHttpClient;
+import org.hawkular.metrics.client.common.http.HawkularJson;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
@@ -60,9 +62,9 @@ class MetricsTagger implements MetricRegistryListener {
                   MetricRegistry registry,
                   MetricFilter metricFilter) {
         this.prefix = prefix;
-        this.globalTags = globalTags;
-        this.perMetricTags = perMetricTags;
-        this.regexTags = regexTags;
+        this.globalTags = new HashMap<>(globalTags);
+        this.perMetricTags = new HashMap<>(perMetricTags);
+        this.regexTags = new ArrayList<>(regexTags);
         this.enableTagComposition = enableTagComposition;
         this.metricsDecomposer = metricsDecomposer;
         this.hawkularClient = hawkularClient;
@@ -89,8 +91,7 @@ class MetricsTagger implements MetricRegistryListener {
         tags.putAll(getTagsForMetrics(baseName));
         tags.putAll(getTagsForMetrics(nameWithSuffix));
         if (!tags.isEmpty()) {
-            hawkularClient.putTags("/" + metricPart.getMetricType()
-                    + "/" + fullName + "/tags", HawkularJson.tagsToString(tags));
+            hawkularClient.putTags(metricPart.getMetricType(), fullName, HawkularJson.tagsToString(tags));
         }
     }
 
@@ -100,8 +101,7 @@ class MetricsTagger implements MetricRegistryListener {
         // Don't use prefixed name for per-metric tagging
         tags.putAll(getTagsForMetrics(baseName));
         if (!tags.isEmpty()) {
-            hawkularClient.putTags("/" + metricType
-                    + "/" + fullName + "/tags", HawkularJson.tagsToString(tags));
+            hawkularClient.putTags(metricType, fullName, HawkularJson.tagsToString(tags));
         }
     }
 
@@ -174,4 +174,7 @@ class MetricsTagger implements MetricRegistryListener {
         return enableTagComposition;
     }
 
+    void addTag(String m, String key, String value) {
+        perMetricTags.computeIfAbsent(m, k -> new HashMap<>()).put(key, value);
+    }
 }

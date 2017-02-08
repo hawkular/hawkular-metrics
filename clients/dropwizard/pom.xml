@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-clients</artifactId>
-    <version>0.24.0-SNAPSHOT</version>
+    <version>0.25.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>hawkular-dropwizard-reporter-parent</artifactId>
@@ -33,7 +33,6 @@
   <description>Dropwizard reporter for Hawkular</description>
 
   <modules>
-    <module>hawkular-dropwizard-reporter-common</module>
     <module>hawkular-dropwizard-reporter</module>
     <module>hawkular-dropwizard-reporter-factory</module>
   </modules>
@@ -49,7 +48,7 @@
     <dependencies>
       <dependency>
         <groupId>org.hawkular.metrics</groupId>
-        <artifactId>hawkular-dropwizard-reporter-common</artifactId>
+        <artifactId>hawkular-metrics-clients-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

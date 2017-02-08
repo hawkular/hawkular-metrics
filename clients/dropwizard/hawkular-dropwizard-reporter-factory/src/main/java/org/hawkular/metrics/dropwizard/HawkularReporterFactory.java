@@ -32,7 +32,7 @@ import io.dropwizard.metrics.BaseReporterFactory;
  * @author Joel Takvorian
  */
 @JsonTypeName("hawkular")
-public class HawkularReporterFactory extends BaseReporterFactory implements HawkularReporterNullableConfig {
+public class HawkularReporterFactory extends BaseReporterFactory implements HawkularReporterConfig {
     @NotNull
     private String tenant;
     private String uri;

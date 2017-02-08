@@ -25,8 +25,8 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.reporter.http.HawkularHttpClient;
-import org.hawkular.metrics.reporter.http.HawkularJson;
+import org.hawkular.metrics.client.common.http.HawkularHttpClient;
+import org.hawkular.metrics.client.common.http.HawkularJson;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
@@ -150,6 +150,10 @@ public class HawkularReporter extends ScheduledReporter {
 
     public Optional<Collection<String>> getAllowedParts(String metricName) {
         return decomposer.getAllowedParts(metricName);
+    }
+
+    public void addTag(String m, String key, String value) {
+        tagger.addTag(m, key, value);
     }
 
     public boolean isEnableTagComposition() {

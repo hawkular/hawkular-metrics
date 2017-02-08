@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.reporter.http;
+package org.hawkular.metrics.client.common.http;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -62,8 +64,14 @@ public class JdkHawkularHttpClient implements HawkularHttpClient {
     }
 
     @Override
-    public HawkularHttpResponse putTags(String resourcePath, String jsonBody) {
-        return buildURLAndSend("PUT", resourcePath, jsonBody.getBytes());
+    public HawkularHttpResponse putTags(String metricType, String metricName, String jsonBody) {
+        try {
+            String encodedFullName = URLEncoder.encode(metricName, "UTF-8");
+            String resourcePath = "/" + metricType + "/" + encodedFullName + "/tags";
+            return buildURLAndSend("PUT", resourcePath, jsonBody.getBytes());
+        } catch (UnsupportedEncodingException e) {
+            return new HawkularHttpResponse("", -1, "Message not sent, unsupported encoding: " + e.getMessage());
+        }
     }
 
     public HawkularHttpResponse readMetric(String type, String name) throws IOException {
@@ -150,7 +158,6 @@ public class JdkHawkularHttpClient implements HawkularHttpClient {
         try {
             final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-            connection.setRequestProperty("Content-Type", "application/json");
             headers.forEach(connection::setRequestProperty);
             responseCode = connection.getResponseCode();
             is = connection.getInputStream();

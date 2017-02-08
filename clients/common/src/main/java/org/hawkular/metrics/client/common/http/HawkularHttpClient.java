@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.reporter.http;
+package org.hawkular.metrics.client.common.http;
 
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +26,7 @@ import java.util.Optional;
 public interface HawkularHttpClient {
     void addHeaders(Map<String, String> headers);
     HawkularHttpResponse postMetrics(String jsonBody);
-    HawkularHttpResponse putTags(String resourcePath, String jsonBody);
+    HawkularHttpResponse putTags(String type, String metricName, String jsonBody);
     void setFailoverOptions(Optional<Long> failoverCacheDuration, Optional<Integer> failoverCacheMaxSize);
     void manageFailover();
 }

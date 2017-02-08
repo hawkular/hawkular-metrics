@@ -35,8 +35,8 @@ import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.iterable.Extractor;
 import org.assertj.core.util.Lists;
-import org.hawkular.metrics.reporter.http.HawkularHttpClient;
-import org.hawkular.metrics.reporter.http.HawkularHttpResponse;
+import org.hawkular.metrics.client.common.http.HawkularHttpClient;
+import org.hawkular.metrics.client.common.http.HawkularHttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -399,8 +399,8 @@ public class HawkularReporterTest {
             return null;
         }
 
-        @Override public HawkularHttpResponse putTags(String resourcePath, String jsonBody) {
-            tagsRestCalls.add(Pair.of(resourcePath, jsonBody));
+        @Override public HawkularHttpResponse putTags(String type, String metricName, String jsonBody) {
+            tagsRestCalls.add(Pair.of("/" + type + "/" + metricName + "/tags", jsonBody));
             return null;
         }
 

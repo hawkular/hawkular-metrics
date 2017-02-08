@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import org.hawkular.metrics.reporter.http.HawkularHttpClient;
-import org.hawkular.metrics.reporter.http.JdkHawkularHttpClient;
+import org.hawkular.metrics.client.common.http.HawkularHttpClient;
+import org.hawkular.metrics.client.common.http.JdkHawkularHttpClient;
 
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
@@ -70,7 +70,7 @@ import com.codahale.metrics.MetricRegistry;
     /**
      * This is a shortcut function to use with automatically populated pojos such as coming from yaml config
      */
-    public HawkularReporterBuilder withNullableConfig(HawkularReporterNullableConfig config) {
+    public HawkularReporterBuilder withNullableConfig(HawkularReporterConfig config) {
         if (config.getUri() != null) {
             this.uri(config.getUri());
         }

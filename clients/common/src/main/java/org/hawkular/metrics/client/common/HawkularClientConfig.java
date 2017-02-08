@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.dropwizard;
+package org.hawkular.metrics.client.common;
 
-import java.util.Collection;
 import java.util.Map;
 
 /**
  * @author Joel Takvorian
  */
-public interface HawkularReporterNullableConfig {
+public interface HawkularClientConfig {
+    String getTenant();
     String getUri();
     String getBearerToken();
     String getPrefix();
     Map<String, String> getHeaders();
     Map<String, String> getGlobalTags();
     Map<String, Map<String, String>> getPerMetricTags();
-    Boolean getTagComposition();
     String getUsername();
     String getPassword();
     Long getFailoverCacheDuration();
     Integer getFailoverCacheMaxSize();
-    Map<String, Collection<String>> getMetricComposition();
 }
