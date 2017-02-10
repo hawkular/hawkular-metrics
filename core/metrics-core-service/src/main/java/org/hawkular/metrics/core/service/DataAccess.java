@@ -32,6 +32,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
+import io.reactivex.Flowable;
 import rx.Observable;
 
 /**
@@ -66,6 +67,9 @@ public interface DataAccess {
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
     Observable<Row> findAllMetricsInData();
+
+    Flowable<Integer> insertGauges(Flowable<Metric<Double>> gauges, Function<MetricId, Integer>
+            ttlFetcher);
 
     Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer> ttlFunc);
 

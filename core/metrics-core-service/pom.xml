@@ -93,6 +93,16 @@
     </dependency>
 
     <dependency>
+      <groupId>io.reactivex.rxjava2</groupId>
+      <artifactId>rxjava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.akarnokd</groupId>
+      <artifactId>rxjava2-interop</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>fi.iki.yak</groupId>
       <artifactId>compression-gorilla</artifactId>
     </dependency>

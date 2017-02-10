@@ -36,6 +36,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.param.BucketConfig;
 
+import io.reactivex.Flowable;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
@@ -144,6 +145,8 @@ public interface MetricsService {
     Observable<Void> addTags(Metric<?> metric, Map<String, String> tags);
 
     Observable<Void> deleteTags(Metric<?> metric, Set<String> tags);
+
+    io.reactivex.Completable addGaugePoints(Flowable<Metric<Double>> gauges);
 
     /**
      * Insert data points for the specified {@code metrics}.

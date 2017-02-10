@@ -32,6 +32,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
+import io.reactivex.Flowable;
 import rx.Observable;
 
 /**
@@ -112,6 +113,11 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Row> findAllMetricsInData() {
         return delegate.findAllMetricsInData();
+    }
+
+    @Override
+    public Flowable<Integer> insertGauges(Flowable<Metric<Double>> gauges, Function<MetricId, Integer> ttlFetcher) {
+        return delegate.insertGauges(gauges, ttlFetcher);
     }
 
     @Override

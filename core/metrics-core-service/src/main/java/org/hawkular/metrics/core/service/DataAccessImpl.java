@@ -38,6 +38,7 @@ import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer;
+import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer2;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Interval;
@@ -63,6 +64,9 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.utils.UUIDs;
 
+import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableTransformer;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 
@@ -655,6 +659,49 @@ public class DataAccessImpl implements DataAccess {
                 .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }
 
+    private FlowableTransformer<BoundStatement, Integer> applyMicroBatching2() {
+        return tObservable -> tObservable
+                .groupBy(b -> {
+                    ByteBuffer routingKey = b.getRoutingKey(ProtocolVersion.NEWEST_SUPPORTED,
+                            codecRegistry);
+                    Token token = metadata.newToken(routingKey);
+                    for (TokenRange tokenRange : session.getCluster().getMetadata().getTokenRanges()) {
+                        if (tokenRange.contains(token)) {
+                            return tokenRange;
+                        }
+                    }
+                    throw new RuntimeException("Unable to find any Cassandra node to insert token " + token.toString());
+                })
+                .flatMap(g -> g.compose(new BoundBatchStatementTransformer2()))
+                .flatMap(batch ->
+                    RxJavaInterop.toV2Flowable(rxSession.execute(batch))
+                                    .compose(applyInsertRetryPolicy2())
+                                    .map(resultSet -> batch.size())
+                );
+    }
+
+    /*
+     * Apply our current retry policy to the insert behavior
+     */
+    private <T> FlowableTransformer<T, T> applyInsertRetryPolicy2() {
+        return tObservable -> tObservable
+                .retryWhen(errors -> {
+                    return errors
+                            .zipWith(Flowable.range(1, 2), (t, i) -> {
+                                if (t instanceof DriverException) {
+                                    return i;
+                                }
+                                throw Exceptions.propagate(t);
+                            })
+                            .flatMap(retryCount -> {
+                                long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, 3000);
+                                log.debug("Retrying batch insert in " + delay + " ms");
+                                return Flowable.timer(delay, TimeUnit.MILLISECONDS);
+                            });
+                });
+    }
+
+
     /*
      * Applies micro-batching capabilities by taking advantage of token ranges in the Cassandra
      */
@@ -702,6 +749,17 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
+    public Flowable<Integer> insertGauges(Flowable<Metric<Double>> gauges, Function<MetricId, Integer>
+            ttlFetcher) {
+        return gauges.flatMap(g -> {
+            int ttl = ttlFetcher.apply(g.getMetricId());
+            return Flowable.fromIterable(g.getDataPoints())
+                    .compose(mapGaugePointToStatement(g, ttl));
+        })
+                .compose(applyMicroBatching2());
+    }
+
+    @Override
     public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer>
             ttlFetcher) {
 
@@ -714,6 +772,30 @@ public class DataAccessImpl implements DataAccess {
                 )
                 .compose(applyMicroBatching());
     }
+
+    private FlowableTransformer<DataPoint<Double>, BoundStatement> mapGaugePointToStatement(Metric<Double> gauge, int ttl) {
+        return tObservable -> tObservable
+                .map(dataPoint -> {
+                    if (dataPoint.getTags().isEmpty()) {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
+                                    dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
+                                    dataPoint.getTimestamp());
+                        }
+                    } else {
+                        if (ttl >= 0) {
+                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
+                        } else {
+                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
+                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        }
+                    }
+                });
+    }
+
 
     private Observable.Transformer<DataPoint<Double>, BoundStatement> mapGaugeDatapoint(Metric<Double> gauge, int ttl) {
         return tObservable -> tObservable

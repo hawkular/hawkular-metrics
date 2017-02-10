@@ -99,6 +99,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import io.reactivex.CompletableSource;
+import io.reactivex.Flowable;
+import io.reactivex.functions.Function;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
@@ -643,6 +646,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .flatMap(tagsToDelete -> {
                     return dataAccess.deleteTags(metric, tagsToDelete.keySet()).mergeWith(
                             dataAccess.deleteFromMetricsTagsIndex(metric, tagsToDelete)).toList().map(r -> null);
+                });
+    }
+
+    @Override
+    public io.reactivex.Completable addGaugePoints(Flowable<Metric<Double>> gauges) {
+        return dataAccess.insertGauges(gauges, this::getTTL)
+                .doOnNext(i -> getInsertMeter(MetricType.GAUGE).mark(i))
+                .flatMapCompletable(new Function<Integer, CompletableSource>() {
+                    @Override public CompletableSource apply(Integer integer) throws Exception {
+                        return io.reactivex.Completable.complete();
+                    }
                 });
     }
 
