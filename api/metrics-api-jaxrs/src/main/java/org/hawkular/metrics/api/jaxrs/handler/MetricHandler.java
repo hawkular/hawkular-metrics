@@ -80,6 +80,8 @@ import org.hawkular.metrics.model.param.TimeRange;
 
 import com.google.common.base.Strings;
 
+import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.Flowable;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -266,8 +268,8 @@ public class MetricHandler {
             return;
         }
 
-        Observable<Metric<Double>> gauges =
-                Functions.metricToObservable(getTenant(), metricsRequest.getGauges(), GAUGE);
+//        Observable<Metric<Double>> gauges =
+//                Functions.metricToObservable(getTenant(), metricsRequest.getGauges(), GAUGE);
         Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(getTenant(),
                 metricsRequest.getAvailabilities(), AVAILABILITY);
         Observable<Metric<Long>> counters = Functions.metricToObservable(getTenant(), metricsRequest.getCounters(),
@@ -275,7 +277,12 @@ public class MetricHandler {
         Observable<Metric<String>> strings = Functions.metricToObservable(getTenant(), metricsRequest.getStrings(),
                 STRING);
 
-        metricsService.addDataPoints(GAUGE, gauges)
+        RxJavaInterop.toV1Completable(metricsService.addGaugePoints(Flowable.fromIterable(metricsRequest.getGauges())
+                .map(g -> new Metric<>(new MetricId<>(getTenant(), GAUGE, g.getMetricId().getName()),
+                        g.getDataPoints()))))
+                .toObservable()
+
+//        metricsService.addDataPoints(GAUGE, gauges)
                 .mergeWith(metricsService.addDataPoints(AVAILABILITY, availabilities))
                 .mergeWith(metricsService.addDataPoints(COUNTER, counters))
                 .mergeWith(metricsService.addDataPoints(STRING, strings))

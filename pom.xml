@@ -110,7 +110,9 @@
     <version.org.jboss.logging.jboss-logging-tools>2.0.1.Final</version.org.jboss.logging.jboss-logging-tools>
     <version.org.infinispan.wildfly>8.0.1.Final</version.org.infinispan.wildfly>
     <version.org.slf4j>1.7.7</version.org.slf4j>
-    <version.io.reactivex.rxjava>1.2.4</version.io.reactivex.rxjava>
+    <version.io.reactivex.rxjava>1.2.6</version.io.reactivex.rxjava>
+    <version.io.reactivex.rxjava2>2.0.5</version.io.reactivex.rxjava2>
+    <version.rxjava2-interop>0.9.0</version.rxjava2-interop>
     <version.io.reactivex.rxjava-math>1.0.0</version.io.reactivex.rxjava-math>
     <version.io.reactivex.rxjava-guava>1.0.3</version.io.reactivex.rxjava-guava>
     <version.org.codehaus.mojo.findbugs-maven-plugin>3.0.0</version.org.codehaus.mojo.findbugs-maven-plugin>
@@ -204,9 +206,19 @@
         <version>${version.io.reactivex.rxjava-math}</version>
       </dependency>
       <dependency>
+        <groupId>io.reactivex.rxjava2</groupId>
+        <artifactId>rxjava</artifactId>
+        <version>${version.io.reactivex.rxjava2}</version>
+      </dependency>
+      <dependency>
         <groupId>io.reactivex</groupId>
         <artifactId>rxjava-guava</artifactId>
         <version>${version.io.reactivex.rxjava-guava}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.akarnokd</groupId>
+        <artifactId>rxjava2-interop</artifactId>
+        <version>${version.rxjava2-interop}</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>

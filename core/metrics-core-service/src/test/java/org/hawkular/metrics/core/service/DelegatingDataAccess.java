@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -32,6 +32,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
+import io.reactivex.Flowable;
 import rx.Observable;
 
 /**
@@ -115,6 +116,17 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Flowable<Integer> insertGauges(Flowable<Metric<Double>> gauges, Function<MetricId, Integer> ttlFetcher) {
+        return delegate.insertGauges(gauges, ttlFetcher);
+    }
+
+    @Override
+    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId,
+            Integer> ttlFunction) {
+        return delegate.insertGaugeDatas(gauges, ttlFunction);
+    }
+
+    @Override
     public Observable<Integer> insertGaugeData(Metric<Double> metric) {
         return delegate.insertGaugeData(metric);
     }
@@ -122,6 +134,12 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
         return delegate.insertGaugeData(gauge, ttl);
+    }
+
+    @Override
+    public Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
+                                                           Function<MetricId, Integer> ttlFetcher, int maxSize) {
+        return delegate.insertStringDatas(strings, ttlFetcher, maxSize);
     }
 
     @Override
@@ -162,6 +180,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
+                                                            Function<MetricId, Integer> ttlFetcher) {
+        return delegate.insertCounterDatas(counters, ttlFetcher);
+    }
+
+    @Override
     public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
             int pageSize) {
         return delegate.findStringData(id, startTime, endTime, limit, order, pageSize);
@@ -176,6 +200,12 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
         return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
+    }
+
+    @Override
+    public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
+                                                                 Function<MetricId, Integer> ttlFetcher) {
+        return delegate.insertAvailabilityDatas(avail, ttlFetcher);
     }
 
     @Override

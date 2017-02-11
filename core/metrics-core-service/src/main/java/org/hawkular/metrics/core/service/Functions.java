@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,9 +107,7 @@ public class Functions {
 
     public static <S> Observable<Metric<S>> metricToObservable(
             String tenantId, List<Metric<S>> metrics, MetricType<S> type) {
-        return Observable.from(metrics).map(g -> {
-            return new Metric<>(new MetricId<>(tenantId, type, g.getMetricId().getName()), g.getDataPoints());
-        });
+        return Observable.from(metrics).map(g -> new Metric<>(new MetricId<>(tenantId, type, g.getMetricId().getName()), g.getDataPoints()));
     }
 
     public static <T> Observable<Metric<T>> dataPointToObservable(String tenantId, String metricId,

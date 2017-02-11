@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,6 +44,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import io.reactivex.Flowable;
 import rx.Observable;
 import rx.Subscriber;
 
@@ -58,8 +59,8 @@ import rx.Subscriber;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
 @Fork(1)
-@Warmup(iterations = 5)
-@Measurement(iterations = 10) // Reduce the amount of iterations if you start to see GC interference
+@Warmup(iterations = 3)
+@Measurement(iterations = 5) // Reduce the amount of iterations if you start to see GC interference
 public class InsertBenchmark {
 
     @State(Scope.Benchmark)
@@ -91,7 +92,8 @@ public class InsertBenchmark {
         @Param({"100000"}) // 1M caused some GC issues and unstable test results
         public int size;
 
-        @Param({"1", "10"})
+//        @Param({"1", "10"})
+        @Param({"1"})
         public int datapointsPerMetric;
 
         private List<Metric<Double>> metricList;
@@ -119,19 +121,23 @@ public class InsertBenchmark {
         public Observable<Metric<Double>> getMetricObservable() {
             return Observable.from(metricList);
         }
+
+        public Flowable<Metric<Double>> getMetricFlowable() {
+            return Flowable.fromIterable(metricList);
+        }
     }
 
     // Equivalent to REST-tests for inserting size-amount of metrics in one call
-//    @Benchmark
-//    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
-    public void insertBenchmark(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
+    @Benchmark
+    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+    public void insertBenchmarkRxJava1(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
         bh.consume(service.getMetricsService().addDataPoints(GAUGE, creator.getMetricObservable())
                 .toBlocking().lastOrDefault(null));
     }
 
     // Equivalent of REST-test for inserting for single-metric id one call
-    @Benchmark
-    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+//    @Benchmark
+//    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
 //    @Fork(jvmArgsAppend =
 //            {"-XX:+UnlockCommercialFeatures",
 //                    "-XX:+FlightRecorder",
@@ -142,6 +148,12 @@ public class InsertBenchmark {
         bh.consume(creator.getMetricObservable()
                 .flatMap(m -> service.getMetricsService().addDataPoints(GAUGE, Observable.just(m)))
                 .toBlocking().lastOrDefault(null));
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+    public void insertBenchmarkRxJava2(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
+        service.getMetricsService().addGaugePoints(creator.getMetricFlowable()).blockingAwait();
     }
 
     private static final class GenericSubscriber<T> extends Subscriber<T> {

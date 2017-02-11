@@ -76,6 +76,9 @@ import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.jboss.logging.Logger;
 
+import io.reactivex.CompletableObserver;
+import io.reactivex.Flowable;
+import io.reactivex.disposables.Disposable;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -292,9 +295,24 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     public void addData(
             @Suspended final AsyncResponse asyncResponse,
             @ApiParam(value = "List of metrics", required = true) List<Metric<Double>> gauges) {
-        Observable<Metric<Double>> metrics = Functions.metricToObservable(getTenant(), gauges, GAUGE);
-        Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
-        observable.subscribe(new ResultSetObserver(asyncResponse));
+
+        metricsService.addGaugePoints(Flowable.fromIterable(gauges).map(g -> new Metric<>(new MetricId<>(getTenant(),
+                GAUGE, g.getMetricId().getName()), g.getDataPoints())))
+                .subscribe(new CompletableObserver() {
+                    @Override public void onSubscribe(Disposable disposable) {
+                    }
+
+                    @Override public void onComplete() {
+                        asyncResponse.resume(Response.ok().build());
+                    }
+
+                    @Override public void onError(Throwable throwable) {
+
+                    }
+                });
+//        Observable<Metric<Double>> metrics = Functions.metricToObservable(getTenant(), gauges, GAUGE);
+//        Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
+//        observable.subscribe(new ResultSetObserver(asyncResponse));
     }
 
     @POST

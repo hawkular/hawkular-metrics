@@ -18,33 +18,37 @@ package org.hawkular.metrics.core.service.transformers;
 
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
+import java.util.concurrent.Callable;
+
+import org.reactivestreams.Publisher;
+
 import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Statement;
 
-import rx.Observable;
-import rx.Observable.Transformer;
-import rx.functions.Func0;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableTransformer;
 
 /**
  * Groups {@link Statement} items into {@link BatchStatement} items.
  *
  * @author Thomas Segismont
  */
-public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
-    public static final int DEFAULT_BATCH_SIZE = 10;
+public class BoundBatchStatementTransformer2 implements FlowableTransformer<BoundStatement, BatchStatement> {
+    public static final int DEFAULT_BATCH_SIZE = 50;
 
     /**
-     * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
+     * Creates {@link BatchStatement.Type#UNLOGGED} batch statements.
      */
-    public static final Func0<BatchStatement> DEFAULT_BATCH_STATEMENT_FACTORY = () -> new BatchStatement(UNLOGGED);
+    public static final Callable<BatchStatement> DEFAULT_BATCH_STATEMENT_FACTORY = () -> new BatchStatement(UNLOGGED);
 
-    private final Func0<BatchStatement> batchStatementFactory;
+    private final Callable<BatchStatement> batchStatementFactory;
     private final int batchSize;
 
     /**
      * Creates a new transformer using the {@link #DEFAULT_BATCH_STATEMENT_FACTORY}.
      */
-    public BatchStatementTransformer() {
+    public BoundBatchStatementTransformer2() {
         this(DEFAULT_BATCH_STATEMENT_FACTORY, DEFAULT_BATCH_SIZE);
     }
 
@@ -52,16 +56,15 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
      * @param batchStatementFactory function used to initialize a new {@link BatchStatement}
      * @param batchSize             maximum number of statements in the batch
      */
-    public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {
+    public BoundBatchStatementTransformer2(Callable<BatchStatement> batchStatementFactory, int batchSize) {
         this.batchSize = batchSize;
-//        checkArgument(batchSize <= DEFAULT_BATCH_SIZE, "batchSize exceeds limit");
         this.batchStatementFactory = batchStatementFactory;
     }
 
     @Override
-    public Observable<BatchStatement> call(Observable<Statement> statements) {
+    public Publisher<BatchStatement> apply(Flowable<BoundStatement> statements) {
         return statements
                 .window(batchSize)
-                .flatMap(window -> window.collect(batchStatementFactory, BatchStatement::add));
+                .flatMapSingle(w -> w.collect(batchStatementFactory, BatchStatement::add));
     }
 }

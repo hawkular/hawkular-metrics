@@ -19,6 +19,7 @@ package org.hawkular.metrics.core.service.transformers;
 import static com.datastax.driver.core.BatchStatement.Type.UNLOGGED;
 
 import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Statement;
 
 import rx.Observable;
@@ -30,11 +31,11 @@ import rx.functions.Func0;
  *
  * @author Thomas Segismont
  */
-public class BatchStatementTransformer implements Transformer<Statement, BatchStatement> {
-    public static final int DEFAULT_BATCH_SIZE = 10;
+public class BoundBatchStatementTransformer implements Transformer<BoundStatement, BatchStatement> {
+    public static final int DEFAULT_BATCH_SIZE = 50;
 
     /**
-     * Creates {@link com.datastax.driver.core.BatchStatement.Type#UNLOGGED} batch statements.
+     * Creates {@link BatchStatement.Type#UNLOGGED} batch statements.
      */
     public static final Func0<BatchStatement> DEFAULT_BATCH_STATEMENT_FACTORY = () -> new BatchStatement(UNLOGGED);
 
@@ -44,7 +45,7 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
     /**
      * Creates a new transformer using the {@link #DEFAULT_BATCH_STATEMENT_FACTORY}.
      */
-    public BatchStatementTransformer() {
+    public BoundBatchStatementTransformer() {
         this(DEFAULT_BATCH_STATEMENT_FACTORY, DEFAULT_BATCH_SIZE);
     }
 
@@ -52,14 +53,14 @@ public class BatchStatementTransformer implements Transformer<Statement, BatchSt
      * @param batchStatementFactory function used to initialize a new {@link BatchStatement}
      * @param batchSize             maximum number of statements in the batch
      */
-    public BatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {
+    public BoundBatchStatementTransformer(Func0<BatchStatement> batchStatementFactory, int batchSize) {
         this.batchSize = batchSize;
 //        checkArgument(batchSize <= DEFAULT_BATCH_SIZE, "batchSize exceeds limit");
         this.batchStatementFactory = batchStatementFactory;
     }
 
     @Override
-    public Observable<BatchStatement> call(Observable<Statement> statements) {
+    public Observable<BatchStatement> call(Observable<BoundStatement> statements) {
         return statements
                 .window(batchSize)
                 .flatMap(window -> window.collect(batchStatementFactory, BatchStatement::add));
