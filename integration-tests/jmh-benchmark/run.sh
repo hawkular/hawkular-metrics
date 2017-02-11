@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+# Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,5 +16,8 @@
 # limitations under the License.
 #
 
-#mvn clean install
-java -Xmx2048m -Xms1024m -jar target/benchmark.jar
+cd ../../core/metrics-core-service/
+mvn clean install -DskipTests=true -Dlicense.skip
+cd -
+mvn clean install
+java -Xmx1024m -Xms1024m -jar target/benchmark.jar
