@@ -53,7 +53,7 @@ public class SchemaService {
                 "keyspace", keyspace,
                 "reset", resetDB,
                 "session", session,
-                "replicationFactor", replicationFactor,
+                "replicationFactor", 1,
                 "logger", logger
         );
         // TODO Add logic to determine the version tags we need to pass
