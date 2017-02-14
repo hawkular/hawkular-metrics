@@ -2,9 +2,8 @@ package org.hawkular.schema
 
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.SimpleStatement
-
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,75 +19,49 @@ import com.datastax.driver.core.SimpleStatement
  * limitations under the License.
  */
 
-/**
- * Because we have releases of Hawkular Metrics prior to using cassalog, we need some special logic to initially
- * get things set up. That is the purpose of this script. If the target keyspace does not exist, then we have a new
- * installation and the script installs the schema as it exists prior to cassalog integration. If the target keyspace
- * exists, we check to see if it is already versions, i.e., managed by cassalog. If so, then we assume that there
- * is nothing left for this script to do. If the keyspace is not versioned, then we check that the schema matches
- * what we expect it to be to ensure we are in a known, consistent state before we start managing it with cassalog.
- */
-
 def executeCQL(String cql, Integer readTimeoutMillis = null) {
+  logger.debug("CQL: $cql")
   def statement = new SimpleStatement(cql)
   statement.consistencyLevel = ConsistencyLevel.LOCAL_QUORUM
 
   if (readTimeoutMillis) {
     statement.readTimeoutMillis = readTimeoutMillis
   }
-
   return session.execute(statement)
 }
 
-// We check the reset flag here because if we are resetting the database as would be the case in a dev/test environment,
-// we don't need to worry about the state of the schema since we are dropping it.
-if (!reset && keyspaceExists(keyspace)) {
-  if (isSchemaVersioned(keyspace)) {
-    // nothing to do
-  } else {
-    // If the schema exists and is not versioned, then we want to check that it matches what we expect it to be prior
-    // to being managed with cassalog. We perform this check simply by checking the tables and UDTs in the keyspace.
-
-    def expectedTables = [
-        'tenants', 'tenants_by_time', 'data', 'metrics_tags_idx', 'metrics_idx', 'retentions_idx',
-        'tasks', 'task_queue', 'leases'
-    ] as Set
-    def expectedTypes = ['aggregation_template', 'aggregate_data', 'trigger_def', ] as Set
-
-    def actualTables = getTables(keyspace) as Set
-    def actualTypes = getUDTs(keyspace) as Set
-
-    if (actualTables != expectedTables) {
-      throw new RuntimeException("The schema is in an unknown state and cannot be versioned. Expected tables to be " +
-        "$expectedTables but found $actualTables.")
-    }
-    if (actualTypes != expectedTypes) {
-      throw new RuntimeException("The schema is in an unknown state and cannot be versioned. Expected user defined " +
-        "types to be $expectedTypes but found $actualTypes")
-    }
+def createTable(String table, String cql) {
+  if (tableDoesNotExist(keyspace, table)) {
+    logger.info("Creating table $table")
+    executeCQL(cql)
   }
-} else {
-  // If the schema does not already exist, we bypass cassalog's API and create it without
-  // being versioned. This allows to use the same logic for subsequent schema changes
-  // regardless of whether we are dealing with a new install or an upgrade.
+}
 
-  if (reset) {
-    executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
+def createType(String type, String cql) {
+  if (typeDoesNotExist(keyspace, type)) {
+    logger.info("Creating type $type")
+    executeCQL(cql)
   }
+}
 
-  executeCQL("CREATE KEYSPACE $keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-  executeCQL("USE $keyspace")
+if (reset) {
+  executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
+}
 
-  // The retentions map entries are {metric type, retention} key/value paris where
-  // retention is specified in days
-  executeCQL("""
+executeCQL("CREATE KEYSPACE IF NOT EXISTS $keyspace WITH replication = {'class': 'SimpleStrategy', " +
+    "'replication_factor': $replicationFactor}")
+executeCQL("USE $keyspace")
+
+// The retentions map entries are {metric type, retention} key/value paris where
+// retention is specified in days
+createTable('tenants', """
 CREATE TABLE tenants (
     id text PRIMARY KEY,
     retentions map<text, int>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  executeCQL("""
+createType('aggregation_template', """
 CREATE TYPE aggregation_template (
     type int,
     src text,
@@ -97,7 +70,7 @@ CREATE TYPE aggregation_template (
 )
 """)
 
-  executeCQL("""
+createTable('tenants_by_time', """
 CREATE TABLE tenants_by_time (
   bucket timestamp,
     tenant text,
@@ -105,7 +78,7 @@ CREATE TABLE tenants_by_time (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  executeCQL("""
+createType('aggregate_data', """
 CREATE TYPE aggregate_data (
     type text,
     value double,
@@ -115,7 +88,7 @@ CREATE TYPE aggregate_data (
 )
 """)
 
-  executeCQL("""
+createTable('data', """
 CREATE TABLE data (
     tenant_id text,
     type tinyint,
@@ -131,7 +104,7 @@ CREATE TABLE data (
 ) WITH CLUSTERING ORDER BY (time DESC)
 """)
 
-  executeCQL("""
+createTable('metrics_tags_idx', """
 CREATE TABLE metrics_tags_idx (
     tenant_id text,
     tname text,
@@ -142,7 +115,7 @@ CREATE TABLE metrics_tags_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  executeCQL("""
+createTable('metrics_idx', """
 CREATE TABLE metrics_idx (
      tenant_id text,
     type tinyint,
@@ -153,7 +126,7 @@ CREATE TABLE metrics_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  executeCQL("""
+createTable('retentions_idx', """
 CREATE TABLE retentions_idx (
     tenant_id text,
     type tinyint,
@@ -163,7 +136,7 @@ CREATE TABLE retentions_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  executeCQL("""
+createType('trigger_def', """
 CREATE TYPE trigger_def (
     type int,
     trigger_time bigint,
@@ -174,7 +147,7 @@ CREATE TYPE trigger_def (
 )
 """)
 
-  executeCQL("""
+createTable('tasks', """
 CREATE TABLE tasks (
     id uuid,
     group_key text,
@@ -186,7 +159,7 @@ CREATE TABLE tasks (
 )
 """)
 
- executeCQL("""
+createTable('leases', """
 CREATE TABLE leases (
     time_slice timestamp,
     shard int,
@@ -195,4 +168,3 @@ CREATE TABLE leases (
     PRIMARY KEY (time_slice, shard)
 )
 """)
-}
