@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,8 @@ package org.hawkular.metrics.benchmark.jmh.util;
 import java.util.Arrays;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
 
 /**
@@ -39,11 +41,19 @@ public class LiveCassandraManager implements ClusterManager {
 
     @Override
     public Session createSession() {
-        Cluster.Builder clusterBuilder = new Cluster.Builder();
+        Cluster.Builder clusterBuilder = new Cluster.Builder()
+                .withPort(9042)
+                .withoutJMXReporting()
+                .withPoolingOptions(new PoolingOptions()
+                                .setMaxConnectionsPerHost(HostDistance.LOCAL, 1024)
+                                .setCoreConnectionsPerHost(HostDistance.LOCAL, 1024)
+                                .setMaxConnectionsPerHost(HostDistance.REMOTE, 1024)
+                                .setCoreConnectionsPerHost(HostDistance.REMOTE, 1024)
+                                .setMaxRequestsPerConnection(HostDistance.LOCAL, 1024)
+                                .setMaxRequestsPerConnection(HostDistance.REMOTE, 1024)
+                                .setMaxQueueSize(1024));
 
         Arrays.stream(nodes.split(",")).forEach(clusterBuilder::addContactPoints);
-        clusterBuilder.withPort(9042);
-        clusterBuilder.withoutJMXReporting();
 
         cluster = clusterBuilder.build();
         cluster.init();

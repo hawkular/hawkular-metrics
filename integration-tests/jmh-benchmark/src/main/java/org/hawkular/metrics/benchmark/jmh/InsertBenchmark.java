@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,8 +58,8 @@ import rx.Subscriber;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
 @Fork(1)
-@Warmup(iterations = 5)
-@Measurement(iterations = 10) // Reduce the amount of iterations if you start to see GC interference
+@Warmup(iterations = 3)
+@Measurement(iterations = 5) // Reduce the amount of iterations if you start to see GC interference
 public class InsertBenchmark {
 
     @State(Scope.Benchmark)
@@ -122,9 +122,9 @@ public class InsertBenchmark {
     }
 
     // Equivalent to REST-tests for inserting size-amount of metrics in one call
-//    @Benchmark
-//    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
-    public void insertBenchmark(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
+    @Benchmark
+    @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
+    public void insertBenchmarkRxJava1(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
         bh.consume(service.getMetricsService().addDataPoints(GAUGE, creator.getMetricObservable())
                 .toBlocking().lastOrDefault(null));
     }
