@@ -92,9 +92,6 @@ public class SchemaService {
             if (resultSet.one().getString(0).equals(TWCS_CLASS)) {
                 return;
             }
-            if (resultSet.one().getString(0).equals(TWCS_CLASS)) {
-                return;
-            }
         } else {
             getCompactionClass = "SELECT compaction FROM system_schema.tables WHERE keyspace_name = '" +
                     keyspace + "' AND table_name = 'data'";
