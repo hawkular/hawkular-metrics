@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -40,6 +41,10 @@ import com.google.common.collect.ImmutableMap;
  * @author jsanda
  */
 public class SchemaService {
+
+    private static Logger logger = Logger.getLogger(SchemaService.class);
+
+    private static final String TWCS_CLASS = "com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy";
 
     public void run(Session session, String keyspace, boolean resetDB) {
 
@@ -61,6 +66,59 @@ public class SchemaService {
 
         session.execute("INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES " +
                 "('org.hawkular.metrics', 'version', '" + getNewHawkularMetricsVersion() + "')");
+
+        maybeUseTWCS(session, keyspace);
+    }
+
+    /**
+     * TWCS is not available in all versions of Cassandra on which we run. We attempt to update to TWCS, but if doing
+     * so fails, we just log a warning so that start up is not disrupted.
+     *
+     * See HWKMETRICS-608 and HWKMETRICS-603 for more info.
+     */
+    private void maybeUseTWCS(Session session, String keyspace) {
+        String cassandraVersion = getCassandraVersion(session);
+        String getCompactionClass;
+        ResultSet resultSet;
+
+        if (cassandraVersion.startsWith("2")) {
+            getCompactionClass = "SELECT compaction_strategy_class FROM system.schema_columnfamilies WHERE " +
+                    "keyspace_name = '" + keyspace + "' AND columnfamily_name = 'data'";
+            resultSet = session.execute(getCompactionClass);
+            if (resultSet.isExhausted()) {
+                logger.warn("Unable to determine the compaction strategy for the data table due to empty result set");
+                return;
+            }
+            if (resultSet.one().getString(0).equals(TWCS_CLASS)) {
+                return;
+            }
+        } else {
+            getCompactionClass = "SELECT compaction FROM system_schema.tables WHERE keyspace_name = '" +
+                    keyspace + "' AND table_name = 'data'";
+            resultSet = session.execute(getCompactionClass);
+            if (resultSet.isExhausted()) {
+                logger.warn("Unable to determine the compaction strategy for the data table due to empty result set");
+                return;
+            }
+            Map<String, String> compactionProps = resultSet.one().getMap(0, String.class, String.class);
+            if (compactionProps.get("class").equals(TWCS_CLASS)) {
+                return;
+            }
+        }
+
+        try {
+            String updateCompaction = "ALTER TABLE " + keyspace + ".data WITH compaction = {'class': '" + TWCS_CLASS +
+                    "', 'compaction_window_unit': 'DAYS', 'compaction_window_size': 1}";
+            session.execute(updateCompaction);
+            logger.infof("The compaction strategy for the data table has been updated to %s", TWCS_CLASS);
+        } catch (Exception e) {
+            logger.warn("Failed to update compaction strategy for the data table", e);
+        }
+    }
+
+    private String getCassandraVersion(Session session) {
+        ResultSet resultSet = session.execute("SELECT release_version FROM system.local");
+        return resultSet.one().getString(0);
     }
 
     private URI getScript() {
