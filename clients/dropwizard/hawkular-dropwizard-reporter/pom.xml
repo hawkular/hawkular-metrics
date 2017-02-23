@@ -34,6 +34,12 @@
   <name>Hawkular Dropwizard Reporter</name>
   <description>Dropwizard reporter for Hawkular</description>
 
+  <properties>
+    <!-- for integration tests -->
+    <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
+    <cassandra.keyspace>hawkular_metrics_dropwizard_integration_tests</cassandra.keyspace>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
@@ -47,6 +53,8 @@
       <groupId>org.glassfish</groupId>
       <artifactId>javax.json</artifactId>
     </dependency>
+
+    <!-- Tests -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
@@ -68,10 +76,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- Only used for tests! -->
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20160810</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-standalone-dist</artifactId>
+      <version>${project.version}</version>
+      <type>ear</type>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -95,7 +109,180 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*ITest*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>dropwizard-integration-tests</id>
+      <activation>
+        <property>
+          <name>!skipTests</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/*ITest*</include>
+              </includes>
+              <systemPropertyVariables>
+                <keyspace>${cassandra.keyspace}</keyspace>
+                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+              </systemPropertyVariables>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <configuration>
+              <skip>${wildfly-maven-plugin.skip}</skip>
+              <port>${dropwizard.wildfly.management.port}</port>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-wildfly</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <javaOpts>
+                    <javaOpt>-Xms64m</javaOpt>
+                    <javaOpt>-Xmx512m</javaOpt>
+                    <javaOpt>-Xss256k</javaOpt>
+                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Djboss.socket.binding.port-offset=${dropwizard.wildfly.port.offset}</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.resetdb</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
+                  </javaOpts>
+                </configuration>
+              </execution>
+              <execution>
+                <id>configure-loggers-and-caches</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>execute-commands</goal>
+                </goals>
+                <configuration>
+                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
+                  <executeCommands>
+                    <commands>
+                      <!-- loggers -->
+                      <command>
+                        /subsystem=logging/logger=org.hawkular:add(level="TRACE")
+                      </command>
+                      <command>
+                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
+                      </command>
+                      <command>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${wildfly.logging.file.level}")
+                      </command>
+                      <commmand>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/wildfly-test.log"})
+                      </commmand>
+                      <!-- caches -->
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=partition/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=triggers/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=data/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=publish/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=dataIds/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=globalActions/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-metrics/local-cache=locks/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                    </commands>
+                  </executeCommands>
+                </configuration>
+              </execution>
+              <execution>
+                <id>deploy-dist</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <configuration>
+                  <groupId>org.hawkular.metrics</groupId>
+                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
+                  <name>hawkular-metrics.ear</name>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-wildfly</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>shutdown</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>wildfly.deployment</id>
+      <activation>
+        <property>
+          <name>!running.service</name>
+        </property>
+      </activation>
+      <properties>
+        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <base-uri>http://127.0.0.1:55989</base-uri>
+        <dropwizard.wildfly.port.offset>47909</dropwizard.wildfly.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+        <dropwizard.wildfly.management.port>57899</dropwizard.wildfly.management.port>
+        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+        <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

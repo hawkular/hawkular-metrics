@@ -11,7 +11,7 @@ To use the Hawkular Dropwizard Reporter in any Java application:
     <dependency>
         <groupId>org.hawkular.metrics</groupId>
         <artifactId>hawkular-dropwizard-reporter</artifactId>
-        <version>0.24.0</version>
+        <version>0.25.0</version>
     </dependency>
 ````
 
@@ -80,7 +80,7 @@ You must also add a module dependency to hawkular-dropwizard-reporter-factory (i
     <dependency>
         <groupId>org.hawkular.metrics</groupId>
         <artifactId>hawkular-dropwizard-reporter-factory</artifactId>
-        <version>0.24.0</version>
+        <version>0.25.0</version>
     </dependency>
 ````
 

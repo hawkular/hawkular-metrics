@@ -19,7 +19,6 @@ package org.hawkular.metrics.dropwizard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,33 +38,39 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 
 /**
- * Note: these integration tests require an Hawkular Metrics server running on localhost:8080
- * On CI it is done through a docker container described in Travis YAML
+ * Note: these integration tests can be run in 2 ways:<br/>
+ * - with maven install and profile "dropwizard-integration-tests" (it requires Cassandra running on host)<br/>
+ * - without maven, you need to turn off profile "wildfly.deployment" and start hawkular-metrics on localhost:8080<br/>
  * @author Joel Takvorian
  */
 public class HawkularReporterITest {
 
-    private static final String USERNAME = "jdoe";
-    private static final String PASSWORD = "password";
+    private static final String BASE_URI;
+
+    static {
+        String baseUri = System.getProperty("hawkular-metrics.base-uri");
+        if (baseUri == null || baseUri.trim().isEmpty()) {
+            baseUri = "http://localhost:8080";
+        }
+        BASE_URI = baseUri;
+    }
 
     private final MetricRegistry registry = new MetricRegistry();
     private final String defaultTenant = "unit-test";
-    private final JdkHawkularHttpClient defaultClient = new JdkHawkularHttpClient("http://localhost:8080");
+    private final JdkHawkularHttpClient defaultClient = new JdkHawkularHttpClient(BASE_URI);
     private final Extractor<Object, Double> doubleExtractor = e -> (Double) ((JSONObject)e).get("value");
     private final Extractor<Object, Integer> intExtractor = e -> (Integer) ((JSONObject)e).get("value");
 
     @Before
     public void setup() {
         defaultClient.addHeaders(Collections.singletonMap("Hawkular-Tenant", defaultTenant));
-        String encoded = Base64.getEncoder().encodeToString((USERNAME + ":" + PASSWORD).getBytes());
-        defaultClient.addHeaders(Collections.singletonMap("Authorization", "Basic " + encoded));
     }
 
     @Test
     public void shouldReportCounter() throws IOException {
         String metricName = randomName();
         HawkularReporter reporter = HawkularReporter.builder(registry, defaultTenant)
-                .basicAuth(USERNAME, PASSWORD)
+                .uri(BASE_URI)
                 .build();
 
         final Counter counter = registry.counter(metricName);
@@ -92,7 +97,7 @@ public class HawkularReporterITest {
     public void shouldReportGauge() throws InterruptedException, IOException {
         String metricName = randomName();
         HawkularReporter reporter = HawkularReporter.builder(registry, defaultTenant)
-                .basicAuth(USERNAME, PASSWORD)
+                .uri(BASE_URI)
                 .build();
 
         final AtomicReference<Double> gauge = new AtomicReference<>(10d);
@@ -118,7 +123,7 @@ public class HawkularReporterITest {
     public void shouldReportMeter() throws InterruptedException, IOException {
         String metricName = randomName();
         HawkularReporter reporter = HawkularReporter.builder(registry, defaultTenant)
-                .basicAuth(USERNAME, PASSWORD)
+                .uri(BASE_URI)
                 .build();
 
         Meter meter = registry.meter(metricName);
@@ -148,7 +153,7 @@ public class HawkularReporterITest {
     public void shouldReportWithPrefix() throws IOException {
         String metricName = randomName();
         HawkularReporter reporter = HawkularReporter.builder(registry, defaultTenant)
-                .basicAuth(USERNAME, PASSWORD)
+                .uri(BASE_URI)
                 .prefixedWith("prefix-")
                 .build();
 
