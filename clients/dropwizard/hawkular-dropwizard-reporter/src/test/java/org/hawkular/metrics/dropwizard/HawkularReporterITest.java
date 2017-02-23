@@ -139,7 +139,7 @@ public class HawkularReporterITest {
         assertThat(result).hasSize(1);
         Double rate = doubleExtractor.extract(result.get(0));
         // Should be around 15000 ~ 18000, never more than 20000
-        assertThat(rate).isBetween(10000d, 20000d);
+        assertThat(rate).isBetween(3000d, 20000d);
 
         // It must also have posted a counter
         response = defaultClient.readMetric("counters", metricName + ".count");
