@@ -669,7 +669,8 @@ public class DataAccessImpl implements DataAccess {
                             return tokenRange;
                         }
                     }
-                    throw new RuntimeException("Unable to find any Cassandra node to insert token " + token.toString());
+                    log.warn("Unable to find any Cassandra node to insert token " + token.toString());
+                    return session.getCluster().getMetadata().getTokenRanges().iterator().next();
                 })
                 .flatMap(g -> g.compose(new BoundBatchStatementTransformer()))
                 .flatMap(batch -> rxSession
