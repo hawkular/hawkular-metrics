@@ -121,6 +121,38 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
     }
 
     @Test
+    public void tagValueSearchWithDot() throws Exception {
+        String tenantId = "jsonT1Tag";
+        createTagMetrics(tenantId);
+
+        ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
+
+        List<Metric<Long>> counters = test.parse(tenantId, COUNTER, "a2.label1 =5").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c2");
+
+        counters = test.parse(tenantId, COUNTER, "a2.label1 = '5'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c2");
+
+        counters = test.parse(tenantId, COUNTER, "a2.label1 = '5.6.7'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c3");
+
+        counters = test.parse(tenantId, COUNTER, "a2.label1 = 5.6.7").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c3");
+
+        counters = test.parse(tenantId, COUNTER, "a2.label1").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c2", "c3");
+
+        counters = test.parse(tenantId, COUNTER, "a2.label1 = '5.*'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(counters, "c2", "c3");
+    }
+
+    @Test
     public void badTagValueSearch() throws Exception {
         String tenantId = "jsonT2Tag";
         createTagMetrics(tenantId);
@@ -176,7 +208,9 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 new MetricId<>(tenantId, GAUGE, "gl2"),
                 new MetricId<>(tenantId, GAUGE, "gl3"),
                 new MetricId<>(tenantId, AVAILABILITY, "a1"),
-                new MetricId<>(tenantId, COUNTER, "c1"));
+                new MetricId<>(tenantId, COUNTER, "c1"),
+                new MetricId<>(tenantId, COUNTER, "c2"),
+                new MetricId<>(tenantId, COUNTER, "c3"));
 
         @SuppressWarnings("unchecked")
         ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
@@ -189,15 +223,18 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 ImmutableMap.of("hostname", "webfin01"),//mA
                 ImmutableMap.of("hostname", "webswe02"),//mB
                 ImmutableMap.of("hostname", "backendfin01"),//mC
-                ImmutableMap.of("hostname", "backendswe02"),
-                ImmutableMap.of("owner", "hede"),
-                ImmutableMap.of("owner", "hades"),
-                ImmutableMap.of("owner", "had"),
-                ImmutableMap.of("label", "test:test,test1:test2,test3:test4"),
-                ImmutableMap.of("label", "test1:test2,test3:test4"),
-                ImmutableMap.of("label", "test:,test1:test2"),
-                ImmutableMap.of("a1", "jkl"),
-                ImmutableMap.of("a1", "5"));
+                ImmutableMap.of("hostname", "backendswe02"),//mD
+                ImmutableMap.of("owner", "hede"),//mE
+                ImmutableMap.of("owner", "hades"),//mF
+                ImmutableMap.of("owner", "had"),//mG
+                ImmutableMap.of("label", "test:test,test1:test2,test3:test4"),//gl1
+                ImmutableMap.of("label", "test1:test2,test3:test4"),//gl2
+                ImmutableMap.of("label", "test:,test1:test2"),//gl3
+                ImmutableMap.of("a1", "jkl"),//a1 - availability
+                ImmutableMap.of("a1", "5"),//c1 - counter
+                ImmutableMap.of("a2.label1", "5"),//c2 - counter
+                ImmutableMap.of("a2.label1", "5.6.7"));//c3 - counter
+
         assertEquals(ids.size(), maps.size(), "ids' size should equal to maps' size");
 
         // Create the metrics
