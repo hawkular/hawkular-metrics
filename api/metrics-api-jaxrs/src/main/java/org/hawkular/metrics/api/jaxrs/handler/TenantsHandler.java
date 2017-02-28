@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,6 +42,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.handler.observer.TenantCreatedObserver;
+import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
@@ -64,6 +65,7 @@ import io.swagger.annotations.ApiResponses;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Tenant")
 @ApplicationScoped
+@Logged
 public class TenantsHandler {
 
     private Logger logger = Logger.getLogger(TenantsHandler.class);

@@ -52,6 +52,7 @@ import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.param.TimeAndSortParams;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
@@ -80,6 +81,7 @@ import rx.schedulers.Schedulers;
 @Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
         "releases that are not backwards compatible.")
 @ApplicationScoped
+@Logged
 public class StringHandler extends MetricsServiceHandler implements IMetricsHandler<String> {
 
     @POST
