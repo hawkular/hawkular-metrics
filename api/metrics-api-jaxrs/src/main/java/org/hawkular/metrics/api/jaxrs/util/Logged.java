@@ -17,6 +17,12 @@
 package org.hawkular.metrics.api.jaxrs.util;
 
 /**
+ * Annotation that can be applied to a JAX-RS resource class (i.e., handler) or method to enable logging of HTTP
+ * requests for REST endpoints. The
+ * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL REQUEST_LOGGING_LEVEL} and
+ * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL_WRITES REQUEST_LOGGING_LEVEL_WRITES}
+ * configuration properties specify the level at which to log requests.
+ *
  * @author jsanda
  */
 
