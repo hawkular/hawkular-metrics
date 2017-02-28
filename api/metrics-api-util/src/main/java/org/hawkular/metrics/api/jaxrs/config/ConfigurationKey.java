@@ -63,6 +63,12 @@ public enum ConfigurationKey {
     METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
     METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
 
+    // Request logging properties
+    // Useful for debugging
+    REQUEST_LOGGING_LEVEL("hawkular.metrics.request.logging.level", "DEBUG", "REQUEST_LOGGING_LEVEL", false),
+    REQUEST_LOGGING_LEVEL_WRITES("hawkular.metrics.request.logging.level.writes", null, "REQUEST_LOGGING_LEVEL_WRITES",
+            false),
+
     INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
 

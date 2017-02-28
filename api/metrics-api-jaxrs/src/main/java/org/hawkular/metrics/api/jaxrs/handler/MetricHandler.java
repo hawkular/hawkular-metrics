@@ -62,6 +62,7 @@ import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransfo
 import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
@@ -98,6 +99,7 @@ import rx.Observable;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Metric")
 @ApplicationScoped
+@Logged
 public class MetricHandler {
     @Inject
     private MetricsService metricsService;

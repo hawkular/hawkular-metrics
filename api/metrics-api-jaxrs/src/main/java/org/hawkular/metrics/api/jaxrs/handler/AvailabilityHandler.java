@@ -53,6 +53,7 @@ import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransfo
 import org.hawkular.metrics.api.jaxrs.param.TimeAndBucketParams;
 import org.hawkular.metrics.api.jaxrs.param.TimeAndSortParams;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.ApiError;
@@ -88,6 +89,7 @@ import rx.schedulers.Schedulers;
 @Produces(APPLICATION_JSON)
 @Api(tags = "Availability")
 @ApplicationScoped
+@Logged
 public class AvailabilityHandler extends MetricsServiceHandler implements IMetricsHandler<AvailabilityType> {
 
     @POST
