@@ -65,7 +65,7 @@ public enum ConfigurationKey {
 
     // Request logging properties
     // Useful for debugging
-    REQUEST_LOGGING_LEVEL("hawkular.metrics.request.logging.level", "DEBUG", "REQUEST_LOGGING_LEVEL", false),
+    REQUEST_LOGGING_LEVEL("hawkular.metrics.request.logging.level", null, "REQUEST_LOGGING_LEVEL", false),
     REQUEST_LOGGING_LEVEL_WRITES("hawkular.metrics.request.logging.level.writes", null, "REQUEST_LOGGING_LEVEL_WRITES",
             false),
 

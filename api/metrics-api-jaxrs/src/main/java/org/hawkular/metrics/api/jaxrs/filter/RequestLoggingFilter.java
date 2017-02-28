@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.api.jaxrs.util;
+package org.hawkular.metrics.api.jaxrs.filter;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.REQUEST_LOGGING_LEVEL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.REQUEST_LOGGING_LEVEL_WRITES;
+import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,6 +32,7 @@ import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.jboss.logging.Logger;
 
 /**
@@ -79,16 +81,22 @@ public class RequestLoggingFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         try {
-            if (isInsertDataRequest(requestContext)) {
-                if (writesLogLevel != null) {
-                    logRequest(writesLogLevel, requestContext);
+            if (isRequestLoggingEnabled()) {
+                if (isInsertDataRequest(requestContext)) {
+                    if (writesLogLevel != null) {
+                        logRequest(writesLogLevel, requestContext);
+                    }
+                } else if (logLevel != null) {
+                    logRequest(logLevel, requestContext);
                 }
-            } else if (logLevel != null) {
-                logRequest(logLevel, requestContext);
             }
         } catch (Exception e) {
             logger.info("Failed to log request", e);
         }
+    }
+
+    private boolean isRequestLoggingEnabled() {
+        return !(logLevel == null && writesLogLevel == null);
     }
 
     private boolean isInsertDataRequest(ContainerRequestContext requestContext) {
@@ -106,10 +114,10 @@ public class RequestLoggingFilter implements ContainerRequestFilter {
                 "segments: " + requestContext.getUriInfo().getPathSegments() + "\n" +
                 "method: " + requestContext.getMethod() + "\n" +
                 "query parameters: " + requestContext.getUriInfo().getQueryParameters() + "\n" +
-                "headers: " + requestContext.getHeaders() + "\n" +
+                // Only log the tenant header to avoid logging any security sensitive information
+                "Tenant: " + requestContext.getHeaders().get(TENANT_HEADER_NAME) + "\n" +
                 "--------------------------------------\n";
         logger.log(level, request);
     }
-
 
 }

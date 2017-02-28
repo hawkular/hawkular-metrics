@@ -28,9 +28,13 @@ import javax.ws.rs.NameBinding;
 /**
  * Annotation that can be applied to a JAX-RS resource class (i.e., handler) or method to enable logging of HTTP
  * requests for REST endpoints. The
- * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL REQUEST_LOGGING_LEVEL} and
+ * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL REQUEST_LOGGING_LEVEL} property
+ * must be set to enable logging for most endpoints. The value should a logging level, e.g., TRACE, DEBUG, INFO, WARN,
+ * ERROR, or FATAL. The value should be upper case. If the value does not match any of the logging levels, then DEBUG is
+ * used. The
  * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL_WRITES REQUEST_LOGGING_LEVEL_WRITES}
- * configuration properties specify the level at which to log requests.
+ * property must be set to enable logging for endpoints that write data points. Its value should also be an upper case
+ * logging level.
  *
  * @author jsanda
  */
