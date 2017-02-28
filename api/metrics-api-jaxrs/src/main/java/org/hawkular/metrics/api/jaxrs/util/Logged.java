@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,6 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-/**
- * Annotation that can be applied to a JAX-RS resource class (i.e., handler) or method to enable logging of HTTP
- * requests for REST endpoints. The
- * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL REQUEST_LOGGING_LEVEL} and
- * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL_WRITES REQUEST_LOGGING_LEVEL_WRITES}
- * configuration properties specify the level at which to log requests.
- *
- * @author jsanda
- */
-
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -35,6 +25,15 @@ import java.lang.annotation.Target;
 
 import javax.ws.rs.NameBinding;
 
+/**
+ * Annotation that can be applied to a JAX-RS resource class (i.e., handler) or method to enable logging of HTTP
+ * requests for REST endpoints. The
+ * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL REQUEST_LOGGING_LEVEL} and
+ * {@link org.hawkular.metrics.api.jaxrs.config.ConfigurationKey#REQUEST_LOGGING_LEVEL_WRITES REQUEST_LOGGING_LEVEL_WRITES}
+ * configuration properties specify the level at which to log requests.
+ *
+ * @author jsanda
+ */
 @NameBinding
 @Retention(RUNTIME)
 @Target({TYPE, METHOD})
