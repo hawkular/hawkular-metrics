@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -67,13 +67,21 @@ public interface DataAccess {
 
     Observable<Row> findAllMetricsInData();
 
+    Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer> ttlFunc);
+
     Observable<Integer> insertGaugeData(Metric<Double> metric);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
+    Observable<Integer> insertStringDatas(Observable<Metric<String>> strings, Function<MetricId, Integer>
+            ttlFetcher, int maxSize);
+
     Observable<Integer> insertStringData(Metric<String> metric, int maxSize);
 
     Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
+
+    Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters, Function<MetricId, Integer>
+            ttlFetcher);
 
     Observable<Integer> insertCounterData(Metric<Long> counter);
 
@@ -97,6 +105,9 @@ public interface DataAccess {
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 
     Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
+
+    Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail, Function<MetricId,
+            Integer> ttlFetcher);
 
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
 
