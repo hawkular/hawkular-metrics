@@ -38,7 +38,7 @@ class ExpressionTagQueryITest extends RESTTest {
     ['id': 'm3', 'tags': ['a1': 'abcd', 'b1': 'C']],
     ['id': 'm4', 'tags': ['a1': 'ab', 'b1': 'B']],
     ['id': 'm5', 'tags': ['a1': 'xyz', 'b1': 'C']],
-    ['id': 'm6', 'tags': ['c1': 'C']]
+    ['id': 'm6', 'tags': ['c1': 'C', 'a.b': 'c.d']]
   ];
 
   @Test
@@ -170,6 +170,30 @@ class ExpressionTagQueryITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm4', 'm5', 'm6')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a.b"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm6')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a.b = c.d"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm6')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a.b = 'c.d'"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm6')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a.b = 'c.*'"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm6')
     }
   }
 
