@@ -17,37 +17,31 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.hawkular.metrics</groupId>
-    <artifactId>hawkular-metrics-clients</artifactId>
+    <artifactId>hawkular-dropwizard-reporter-parent</artifactId>
     <version>0.25.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>hawkular-metrics-clients-common</artifactId>
+  <artifactId>hawkular-dropwizard-reporter-factory</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Hawkular Dropwizard Reporter Factory</name>
+  <description>Dropwizard reporter factory for Hawkular, to be used in Dropwizard applications</description>
 
   <dependencies>
     <dependency>
-      <groupId>org.glassfish</groupId>
-      <artifactId>javax.json</artifactId>
-      <version>1.0.4</version>
-      <scope>provided</scope>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-dropwizard-reporter</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.7</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-metrics</artifactId>
     </dependency>
   </dependencies>
 </project>
