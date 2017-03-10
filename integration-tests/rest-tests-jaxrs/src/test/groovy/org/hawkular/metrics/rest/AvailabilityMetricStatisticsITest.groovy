@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -100,7 +100,7 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
             start           : buckets[0], end: buckets[0] + bucketSize, empty: true,
         ], [
             start           : buckets[1], end: buckets[1] + bucketSize, empty: false,
-            downtimeDuration: 0, lastDowntime: 0, uptimeRatio: 1.0, downtimeCount: 0,
+            downDuration: 0, lastNotUptime: 0, uptimeRatio: 1.0, notUpCount: 0,
         ], [
             start           : buckets[2], end: buckets[2] + bucketSize, empty: true
         ]
@@ -141,10 +141,10 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
       expectedData.add([
           start           : start.plusHours(step - 1).millis,
           end             : start.plusHours(step).millis,
-          downtimeDuration: minutes(15).toStandardDuration().millis,
-          lastDowntime    : start.plusHours(step).millis,
+          downDuration: minutes(15).toStandardDuration().millis,
+          lastNotUptime   : start.plusHours(step).millis,
           uptimeRatio     : 0.75,
-          downtimeCount   : 15,
+          notUpCount      : 15,
           empty           : false
       ]
       )
@@ -159,10 +159,10 @@ class AvailabilityMetricStatisticsITest extends RESTTest {
     assertEquals(expected.end, actual.end)
     assertEquals(expected.empty, actual.empty)
     if (!expected.empty) {
-      assertEquals(expected.downtimeDuration, actual.downtimeDuration)
-      assertEquals(expected.lastDowntime, actual.lastDowntime)
+      assertEquals(expected.downDuration, actual.downDuration)
+      assertEquals(expected.lastNotUptime, actual.lastNotUptime)
       assertDoubleEquals(expected.uptimeRatio, actual.uptimeRatio)
-      assertEquals(expected.downtimeCount, actual.downtimeCount)
+      assertEquals(expected.notUpCount, actual.notUpCount)
     }
   }
 }

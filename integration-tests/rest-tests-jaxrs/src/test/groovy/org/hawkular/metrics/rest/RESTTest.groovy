@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -221,8 +221,8 @@ Actual: ${actual}
       assertEquals(msg, expected.lastNotUptime, actual.lastNotUptime)
       assertDoubleEquals(msg, expected.uptimeRatio, actual.uptimeRatio)
       assertEquals(msg, expected.notUpCount, actual.notUpCount)
-      assertEquals(msg, expected.downtimeDuration, actual.downtimeDuration)
-      assertEquals(msg, expected.lastDowntime, actual.lastDowntime)
+      assertEquals(msg, expected.downDuration, actual.downDuration)
+      assertEquals(msg, expected.lastNotUptime, actual.lastNotUptime)
       assertEquals(msg, expected.adminDuration, actual.adminDuration)
       assertEquals(msg, expected.unknownDuration, actual.unknownDuration)
       assertEquals(msg, expected.upDuration, actual.upDuration)
