@@ -89,6 +89,8 @@ If you want to send or fetch metrics from your own application, there are client
 
 - https://github.com/hawkular/hawkular-client-python[Python]
 - https://github.com/hawkular/hawkular-client-go[Go]
+- https://github.com/hawkular/hawkular-client-ruby[Ruby]
+- https://github.com/hawkular/hawkular-client-java[Java]
 
 == Working with monitoring tools
 
