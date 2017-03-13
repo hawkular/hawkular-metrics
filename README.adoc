@@ -2,7 +2,7 @@
 :source-language: java
 
 // just major.minor
-:cassandra-version: 3.0.9
+:cassandra-version: 3.0.12
 
 ifdef::env-github[]
 [link=https://travis-ci.org/hawkular/hawkular-metrics]
