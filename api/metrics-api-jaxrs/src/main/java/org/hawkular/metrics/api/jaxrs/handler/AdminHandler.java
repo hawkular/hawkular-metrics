@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response;
 import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.model.Status;
+import org.jboss.resteasy.annotations.GZIP;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -42,6 +43,7 @@ import io.swagger.annotations.ApiOperation;
 @Path("/admin")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @ApplicationScoped
 public class AdminHandler {
 

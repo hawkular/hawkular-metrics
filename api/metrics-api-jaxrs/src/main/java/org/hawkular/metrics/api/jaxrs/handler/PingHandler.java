@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
+import org.jboss.resteasy.annotations.GZIP;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -38,6 +39,7 @@ import io.swagger.annotations.ApiOperation;
 @Path("/ping")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @ApplicationScoped
 public class PingHandler {
 

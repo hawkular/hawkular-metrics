@@ -76,6 +76,7 @@ import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.jboss.logging.Logger;
+import org.jboss.resteasy.annotations.GZIP;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -92,6 +93,7 @@ import rx.schedulers.Schedulers;
 @Path("/gauges")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "Gauge")
 @ApplicationScoped
 @Logged

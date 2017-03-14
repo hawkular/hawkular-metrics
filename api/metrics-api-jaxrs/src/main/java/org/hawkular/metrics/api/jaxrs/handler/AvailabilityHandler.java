@@ -69,6 +69,7 @@ import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.annotations.GZIP;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
@@ -87,6 +88,7 @@ import rx.schedulers.Schedulers;
 @Path("/availability")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "Availability")
 @ApplicationScoped
 @Logged

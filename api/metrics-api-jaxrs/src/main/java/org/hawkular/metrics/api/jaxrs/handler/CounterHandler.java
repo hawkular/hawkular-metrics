@@ -73,6 +73,7 @@ import org.hawkular.metrics.model.param.Percentiles;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.annotations.GZIP;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -89,6 +90,7 @@ import rx.schedulers.Schedulers;
 @Path("/counters")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "Counter")
 @ApplicationScoped
 @Logged
