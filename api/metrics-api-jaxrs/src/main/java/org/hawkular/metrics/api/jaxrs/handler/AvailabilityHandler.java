@@ -149,15 +149,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> {
-                    if (t instanceof PatternSyntaxException) {
-                        asyncResponse.resume(badRequest(t));
-                    } else {
-                        asyncResponse.resume(serverError(t));
-                    }
-                });
+                .observeOn(Schedulers.io())
+                .subscribe(createMetricObserver(asyncResponse, AVAILABILITY));
     }
 
     @GET

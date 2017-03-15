@@ -21,7 +21,6 @@ import static java.util.Collections.emptyMap;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
@@ -36,7 +35,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -87,6 +85,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -100,16 +99,12 @@ import rx.Observable;
 @Api(tags = "Metric")
 @ApplicationScoped
 @Logged
-public class MetricHandler {
+public class MetricHandler extends MetricsServiceHandler {
     @Inject
     private MetricsService metricsService;
 
     @Context
     private HttpHeaders httpHeaders;
-
-    private String getTenant() {
-        return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
-    }
 
     @POST
     @Path("/")
@@ -229,15 +224,8 @@ public class MetricHandler {
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> {
-                    if (t instanceof PatternSyntaxException) {
-                        asyncResponse.resume(badRequest(t));
-                    } else {
-                        asyncResponse.resume(serverError(t));
-                    }
-                });
+                .observeOn(Schedulers.io())
+                .subscribe(createMetricObserver(asyncResponse, metricType));
     }
 
     @Deprecated

@@ -27,6 +27,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
+import org.hawkular.metrics.api.jaxrs.handler.observer.MetricObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.Metric;
@@ -105,5 +106,9 @@ abstract class MetricsServiceHandler {
             return Observable.error(new RuntimeApiError(timeRange.getProblem()));
         }
         return Observable.just(timeRange);
+    }
+
+    <T> MetricObserver<T> createMetricObserver(AsyncResponse response, MetricType<T> type) {
+        return new MetricObserver<>(response, mapper);
     }
 }
