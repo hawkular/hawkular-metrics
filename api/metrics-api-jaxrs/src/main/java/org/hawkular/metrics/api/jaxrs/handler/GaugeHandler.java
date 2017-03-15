@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,14 +143,20 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<Double>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), GAUGE)
                 : metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags.getTags());
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

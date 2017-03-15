@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.handler;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -137,14 +136,21 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
+
 
         Observable<Metric<AvailabilityType>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), AVAILABILITY)
                 : metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags.getTags());
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

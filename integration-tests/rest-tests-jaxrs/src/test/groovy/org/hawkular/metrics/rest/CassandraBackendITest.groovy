@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -487,7 +487,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
 
     // Now query for the gauge metrics
-    response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge'], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "metrics", query: [type: 'gauge', timestamps: 'true'], headers: [
+            (tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
     assertEquals([
@@ -524,7 +525,8 @@ class CassandraBackendITest extends RESTTest {
     assertEquals(201, response.status)
 
     // Query for the availability metrics
-    response = hawkularMetrics.get(path: "metrics", query: [type: 'availability'], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "metrics", query: [type: 'availability', timestamps: 'true'], headers: [
+            (tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
     assertEquals([

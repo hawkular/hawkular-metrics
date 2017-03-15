@@ -195,6 +195,8 @@ public class MetricHandler {
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, " +
                     "counter, string")
             @QueryParam("type") MetricType<T> metricType,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "Regexp to match metricId if tags filtering is used, otherwise exact matching",
                     required = false) @QueryParam("id") String id) {
@@ -226,8 +228,12 @@ public class MetricHandler {
             }
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
