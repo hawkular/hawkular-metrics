@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1687,7 +1687,8 @@ Actual:   ${response.data}
     ])
     assertEquals(201, response.status)
 
-    response = hawkularMetrics.get(path: "counters/${metricId}", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "counters/${metricId}", query: [timestamps: "true"], headers: [
+            (tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     assertFalse("Metric should not have the minTimestamp attribute: ${response.data}", response.data.containsKey('minTimestamp'))
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
@@ -1714,13 +1715,15 @@ Actual:   ${response.data}
     assertEquals(1, response.data.minTimestamp)
     assertEquals(4, response.data.maxTimestamp)
 
-    response = hawkularMetrics.get(path: "counters", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "counters", query: [timestamps: "true"], headers: [(tenantHeaderName):
+                                                                                                   tenantId])
     assertEquals(200, response.status)
     def metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
 
-    response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "metrics", query: [timestamps: "true"], headers: [(tenantHeaderName):
+                                                                                                   tenantId])
     assertEquals(200, response.status)
     metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)

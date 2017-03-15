@@ -144,7 +144,9 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<Double>> metricObservable = null;
         if (tags != null) {
@@ -153,8 +155,12 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             metricObservable = metricsService.findMetrics(getTenant(), GAUGE);
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

@@ -144,7 +144,9 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<Long>> metricObservable = null;
         if (tags != null) {
@@ -153,8 +155,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

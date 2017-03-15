@@ -127,7 +127,9 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags) {
+            @ApiParam(value = "List of tags filters") @QueryParam("tags") String tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<String>> metricObservable = null;
         if (tags != null) {
@@ -136,8 +138,12 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             metricObservable = metricsService.findMetrics(getTenant(), STRING);
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

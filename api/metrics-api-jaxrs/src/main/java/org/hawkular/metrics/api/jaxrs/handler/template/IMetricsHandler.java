@@ -35,7 +35,7 @@ import org.hawkular.metrics.model.param.Tags;
 public interface IMetricsHandler<T> {
 
     //Metric
-    void getMetrics(AsyncResponse asyncResponse, String tags);
+    void getMetrics(AsyncResponse asyncResponse, String tags, Boolean fetchTimestamps);
 
     void createMetric(AsyncResponse asyncResponse, Metric<T> metric, Boolean overwrite, UriInfo uriInfo);
 

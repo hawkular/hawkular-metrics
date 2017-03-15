@@ -138,7 +138,9 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<AvailabilityType>> metricObservable = null;
         if (tags != null) {
@@ -147,8 +149,12 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
