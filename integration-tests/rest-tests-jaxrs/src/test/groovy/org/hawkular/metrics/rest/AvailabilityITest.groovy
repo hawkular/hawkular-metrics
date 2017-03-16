@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -97,6 +97,7 @@ class AvailabilityITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/$metric", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(metric, response.data.id)
   }
 
@@ -160,6 +161,7 @@ class AvailabilityITest extends RESTTest {
     )
     assertEquals(200, response.status)
     response = hawkularMetrics.get(path: "availability/$id/raw", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     def expectedData = [
         [
             timestamp: start.plusMinutes(3).millis,
@@ -192,6 +194,7 @@ class AvailabilityITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertFalse("Metric should not have the minTimestamp attribute: ${response.data}", response.data.containsKey('minTimestamp'))
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
 
@@ -202,6 +205,7 @@ class AvailabilityITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(3, response.data.minTimestamp)
     assertEquals(3, response.data.maxTimestamp)
 
@@ -214,17 +218,20 @@ class AvailabilityITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(1, response.data.minTimestamp)
     assertEquals(4, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "availability", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     def metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)

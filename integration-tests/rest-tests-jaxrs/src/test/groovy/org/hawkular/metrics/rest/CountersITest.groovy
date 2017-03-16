@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,6 +92,7 @@ class CountersITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "counters/$id", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [tenantId: tenantId, id: id, type: 'counter', dataRetention: 7]
     assertEquals(expectedData, response.data)
@@ -130,6 +131,7 @@ class CountersITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "counters/$id", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         tenantId: tenantId,
@@ -171,6 +173,7 @@ class CountersITest extends RESTTest {
         query: [type: 'counter']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [
@@ -246,6 +249,7 @@ class CountersITest extends RESTTest {
         query: [start: start.millis, end: start.plusMinutes(1).millis]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.millis, value: 10]
@@ -258,6 +262,7 @@ class CountersITest extends RESTTest {
         query: [start: start.millis, end: start.plusMinutes(2).millis]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(1).millis, value: 225],
@@ -288,6 +293,7 @@ class CountersITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId],
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusHours(4).millis, value: 500],
@@ -322,6 +328,7 @@ class CountersITest extends RESTTest {
         query: [limit: 2]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600],
@@ -335,6 +342,7 @@ class CountersITest extends RESTTest {
         query: [limit: 2, order: 'desc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600],
@@ -348,6 +356,7 @@ class CountersITest extends RESTTest {
         query: [limit: 3, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100],
@@ -362,6 +371,7 @@ class CountersITest extends RESTTest {
         query: [limit: 3, start: start.plusMinutes(1).millis]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(1).millis, value: 200],
@@ -376,6 +386,7 @@ class CountersITest extends RESTTest {
         query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600],
@@ -404,6 +415,7 @@ class CountersITest extends RESTTest {
         query: [limit: -1, order: 'desc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600],
@@ -421,6 +433,7 @@ class CountersITest extends RESTTest {
         query: [limit: -100, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100],
@@ -460,6 +473,7 @@ class CountersITest extends RESTTest {
         query: [order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusHours(2).millis, value: 303],
@@ -476,6 +490,7 @@ class CountersITest extends RESTTest {
         query: [fromEarliest: true, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100],
@@ -551,6 +566,7 @@ class CountersITest extends RESTTest {
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = []
     (1..7).each { i ->
@@ -610,6 +626,7 @@ class CountersITest extends RESTTest {
         query: [start: 0, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: (60_000 * 1.5).toLong(), value: 400],
@@ -658,6 +675,7 @@ Actual:   ${response.data}
         query: [start: 0, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: (60_000 * 1.5) as Long, value: 2],
@@ -704,6 +722,7 @@ Actual:   ${response.data}
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = []
     (1..7).each { i ->
@@ -795,6 +814,7 @@ Actual:   ${response.data}
           query: [start: 60_000, end: 60_000 * 8, buckets: '1', percentiles: '50.0,90.0,99.9']
       )
       assertEquals(200, response.status)
+      assertContentEncoding(response)
 
       assertEquals(1, response.data.size)
       assertEquals(3, response.data[0].percentiles.size)
@@ -886,6 +906,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
@@ -897,6 +918,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c2Rates = response.data[0];
 
     //Tests start here
@@ -911,6 +933,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     assertEquals(200, response.status)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
@@ -940,6 +963,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     assertEquals(200, response.status)
 
     def actualCounterBucketById = response.data[0]
@@ -1026,6 +1050,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     assertEquals(200, response.status)
 
     assertEquals("Expected to get back five buckets", 5, response.data.size())
@@ -1049,6 +1074,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     assertEquals(200, response.status)
 
     def actualCounterBucketsById = response.data
@@ -1140,6 +1166,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
@@ -1151,6 +1178,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c2Rates = response.data[0];
 
     //Tests start here
@@ -1165,6 +1193,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
@@ -1190,6 +1219,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def actualSimpleCounterBucketById = response.data[0]
 
@@ -1287,6 +1317,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
@@ -1298,6 +1329,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c2Rates = response.data[0];
 
     //Tests start here
@@ -1313,6 +1345,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
@@ -1339,6 +1372,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
@@ -1438,6 +1472,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c1Rates = response.data[0];
 
     response = hawkularMetrics.get(
@@ -1449,6 +1484,7 @@ Actual:   ${response.data}
         ],
         headers: [(tenantHeaderName): tenantId]
     )
+    assertContentEncoding(response)
     def c2Rates = response.data[0];
 
     //Tests start here
@@ -1464,6 +1500,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
@@ -1490,6 +1527,7 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     assertEquals("Expected to get back one bucket", 1, response.data.size())
 
@@ -1528,8 +1566,8 @@ Actual:   ${response.data}
 
     response = hawkularMetrics.get(path: "counters/$metric/stats",
         query: [fromEarliest: "true", bucketDuration: "1h"], headers: [(tenantHeaderName): tenantId])
-
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(4, response.data.size)
 
     def expectedArray = [3.0, 2.0, null, null].toArray()
@@ -1552,6 +1590,7 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(path: "counters/$metric/stats",
       query: [start: 1, end: now().millis, bucketDuration: "1000d"], headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     badGet(path: "counters/$metric/stats",
         query: [fromEarliest: "true", bucketDuration: "a"], headers: [(tenantHeaderName): tenantId]) {
@@ -1594,6 +1633,7 @@ Actual:   ${response.data}
     )
     assertEquals(200, response.status)
     response = hawkularMetrics.get(path: "counters/$id/raw", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     def expectedData = [
         [
             timestamp: start.plusMinutes(3).millis,
@@ -1651,6 +1691,7 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: "counters/$id/stats/tags/x:*,y:2,z:2|3", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(2, response.data.size())
 
     def expectedData = [
@@ -1699,6 +1740,7 @@ Actual:   ${response.data}
 
     response = hawkularMetrics.get(path: "counters/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(3, response.data.minTimestamp)
     assertEquals(3, response.data.maxTimestamp)
 
@@ -1711,17 +1753,20 @@ Actual:   ${response.data}
 
     response = hawkularMetrics.get(path: "counters/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(1, response.data.minTimestamp)
     assertEquals(4, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "counters", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     def metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
