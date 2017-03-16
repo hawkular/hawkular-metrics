@@ -21,7 +21,6 @@ import static java.util.Collections.emptyMap;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.emptyPayload;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
@@ -36,11 +35,12 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -78,6 +78,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.google.common.base.Strings;
 
@@ -87,6 +88,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -100,16 +102,12 @@ import rx.Observable;
 @Api(tags = "Metric")
 @ApplicationScoped
 @Logged
-public class MetricHandler {
+public class MetricHandler extends MetricsServiceHandler {
     @Inject
     private MetricsService metricsService;
 
     @Context
     private HttpHeaders httpHeaders;
-
-    private String getTenant() {
-        return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
-    }
 
     @POST
     @Path("/")
@@ -227,17 +225,13 @@ public class MetricHandler {
             }
         }
 
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .toList()
-                .map(ApiUtils::collectionToResponse)
-                .subscribe(asyncResponse::resume, t -> {
-                    if (t instanceof PatternSyntaxException) {
-                        asyncResponse.resume(badRequest(t));
-                    } else {
-                        asyncResponse.resume(serverError(t));
-                    }
-                });
+                .observeOn(Schedulers.io())
+                .subscribe(createMetricObserver(metricType));
     }
 
     @Deprecated

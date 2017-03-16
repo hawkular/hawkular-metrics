@@ -26,6 +26,62 @@ import static org.junit.Assert.assertEquals
 class MetricsITest extends RESTTest {
 
   @Test
+  void createAndFindMetrics() {
+    String tenantId = nextTenantId()
+    createMetric(tenantId, [
+        id: 'M1',
+        type: 'gauge',
+        tags: [
+            x: 1,
+            y: 2,
+            z: 3
+        ]
+    ])
+    createMetric(tenantId, [
+        id: 'M2',
+        type: 'gauge',
+        tags: [
+            x: 4,
+            y: 5,
+            z: 6
+        ]
+    ])
+
+    def response = hawkularMetrics.get(path: 'metrics', headers: [(tenantHeaderName): tenantId], query: [type: 'gauge'])
+    assertEquals(200, response.status)
+    printJson(response.data)
+    assertEquals([
+        [
+            id: 'M1',
+            tags: [
+                x: '1',
+                y: '2',
+                z: '3'
+            ],
+            dataRetention: 7,
+            type: 'gauge',
+            tenantId: tenantId
+        ],
+        [
+            id: 'M2',
+            tags: [
+                x: '4',
+                y: '5',
+                z: '6'
+            ],
+            dataRetention: 7,
+            type: 'gauge',
+            tenantId: tenantId
+        ]
+    ], response.data)
+  }
+
+  def createMetric(String tenantId, Map metric) {
+    def response = hawkularMetrics.post(path: 'metrics', headers: [(tenantHeaderName): tenantId], body: metric)
+    assertEquals(201, response.status)
+  }
+
+  @Test
   void addMixedData() {
     String tenantId = nextTenantId()
     DateTime start = DateTime.now().minusMinutes(10)
