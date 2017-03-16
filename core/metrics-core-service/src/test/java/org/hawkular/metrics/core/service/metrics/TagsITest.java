@@ -480,26 +480,28 @@ public class TagsITest extends BaseMetricsITest {
     @Test
     public void findCounterStats() {
         String tenantId = "counter-stats-test";
+        long start = now().minusHours(8).getMillis();
 
         Metric<Long> counter = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"), asList(
-                new DataPoint<>((long) (60_000 * 1.0), 0L),
-                new DataPoint<>((long) (60_000 * 1.5), 200L),
-                new DataPoint<>((long) (60_000 * 3.5), 400L),
-                new DataPoint<>((long) (60_000 * 5.0), 550L),
-                new DataPoint<>((long) (60_000 * 7.0), 950L),
-                new DataPoint<>((long) (60_000 * 7.5), 1000L)));
+                new DataPoint<>(start + (long) (60_000 * 1.0), 0L),
+                new DataPoint<>(start + (long) (60_000 * 1.5), 200L),
+                new DataPoint<>(start + (long) (60_000 * 3.5), 400L),
+                new DataPoint<>(start + (long) (60_000 * 5.0), 550L),
+                new DataPoint<>(start + (long) (60_000 * 7.0), 950L),
+                new DataPoint<>(start + (long) (60_000 * 7.5), 1000L)));
 
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         BucketConfig bucketConfig = mock(BucketConfig.class);
-        when(bucketConfig.getTimeRange()).thenReturn(new TimeRange(0L, now().getMillis()));
-        when(bucketConfig.getBuckets()).thenReturn(Buckets.fromStep(60_000, 60_000 * 8, 60_000));
+        when(bucketConfig.getTimeRange()).thenReturn(new TimeRange(start, now().getMillis()));
+        when(bucketConfig.getBuckets()).thenReturn(Buckets.fromStep(start + 60_000, start + (60_000 * 8), 60_000));
         List<NumericBucketPoint> actual = metricsService.findCounterStats(counter.getMetricId(),
                 bucketConfig, asList(new Percentile("95.0"))).toBlocking().single();
 
         List<NumericBucketPoint> expected = new ArrayList<>();
         for (int i = 1; i < 8; i++) {
-            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(60_000 * i, 60_000 * (i + 1));
+            NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start + (60_000 * i),
+                    start + (60_000 * (i + 1)));
             switch (i) {
                 case 1:
                     builder.setAvg(100D).setMax(200D).setMedian(0D).setMin(0D)

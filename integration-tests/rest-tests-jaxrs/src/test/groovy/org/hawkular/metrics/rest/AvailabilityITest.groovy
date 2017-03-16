@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -184,6 +184,7 @@ class AvailabilityITest extends RESTTest {
   void minMaxTimestamps() {
     def tenantId = nextTenantId()
     def metricId = 'minmaxtest'
+    long start = now().minusHours(4).millis
 
     def response = hawkularMetrics.post(path: 'availability', headers: [(tenantHeaderName): tenantId], body: [
         id: metricId
@@ -196,38 +197,38 @@ class AvailabilityITest extends RESTTest {
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
 
     response = hawkularMetrics.post(path: "availability/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 3, value: 'up']
+        [timestamp: start + 3000, value: 'up']
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(3, response.data.minTimestamp)
-    assertEquals(3, response.data.maxTimestamp)
+    assertEquals(start + 3000, response.data.minTimestamp)
+    assertEquals(start + 3000, response.data.maxTimestamp)
 
     response = hawkularMetrics.post(path: "availability/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 1, value: 'down'],
-        [timestamp: 2, value: 'up'],
-        [timestamp: 4, value: 'down'],
+        [timestamp: start + 1000, value: 'down'],
+        [timestamp: start + 2000, value: 'up'],
+        [timestamp: start + 4000, value: 'down'],
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "availability/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(1, response.data.minTimestamp)
-    assertEquals(4, response.data.maxTimestamp)
+    assertEquals(start + 1000, response.data.minTimestamp)
+    assertEquals(start + 4000, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "availability", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     def metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
   }
 
   @Test

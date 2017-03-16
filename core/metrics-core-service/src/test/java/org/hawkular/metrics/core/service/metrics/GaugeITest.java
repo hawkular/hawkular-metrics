@@ -100,6 +100,33 @@ public class GaugeITest extends BaseMetricsITest {
     }
 
     @Test
+    public void queryForDataOlderThanDataRetention() throws Exception {
+        DateTime start = now().minusHours(8);
+
+        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
+
+        Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), asList(
+                new DataPoint<>(start.getMillis(), 1.1),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
+                new DataPoint<>(start.minusWeeks(3).getMillis(), 4.4)));
+
+        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
+        insertObservable.toBlocking().lastOrDefault(null);
+
+        Observable<DataPoint<Double>> observable = metricsService.findDataPoints(new MetricId<>(tenantId, GAUGE,
+                        "m1"), start.minusWeeks(3).minusMinutes(1).getMillis(), start.plusHours(1).getMillis(), 0,
+                Order.DESC);
+        List<DataPoint<Double>> actual = toList(observable);
+        List<DataPoint<Double>> expected = asList(
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
+                new DataPoint<>(start.getMillis(), 1.1));
+
+        assertEquals(actual, expected, "The data does not match the expected values");
+    }
+
+    @Test
     public void addGaugeDataForMultipleMetrics() throws Exception {
         DateTime start = now().minusMinutes(10);
         DateTime end = start.plusMinutes(8);
@@ -347,56 +374,59 @@ public class GaugeITest extends BaseMetricsITest {
 
     @Test
     public void addAndCompressData() throws Exception {
-        DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
-        DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
+        try {
+            DateTime now = now().minusDays(3);
+            // Causes writes to go to compressed and one uncompressed row
+            DateTime dt = new DateTime(now.getYear(), now.getMonthOfYear() + 1, now.getDayOfMonth(), 13, 15);
+            DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
 
-        DateTime start = dt.minusMinutes(30);
-        DateTime end = start.plusMinutes(20);
+            DateTime start = dt.minusMinutes(30);
+            DateTime end = start.plusMinutes(20);
 
-        MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
+            MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
+            metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
 
-        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
+            Metric<Double> m1 = new Metric<>(mId, asList(
+                    new DataPoint<>(start.getMillis(), 1.1),
+                    new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
+                    new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
+                    new DataPoint<>(end.getMillis(), 4.4)));
 
-        Metric<Double> m1 = new Metric<>(mId, asList(
-                new DataPoint<>(start.getMillis(), 1.1),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-                new DataPoint<>(end.getMillis(), 4.4)));
+            Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
+            insertObservable.toBlocking().lastOrDefault(null);
 
-        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
-        insertObservable.toBlocking().lastOrDefault(null);
+            DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
+            DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
 
-        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
-        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+            Completable compressCompletable =
+                    metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+                            COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
 
-        Completable compressCompletable =
-                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
+            TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
+            compressCompletable.subscribe(testSubscriber);
+            testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            testSubscriber.assertCompleted();
+            testSubscriber.assertNoErrors();
 
-        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
-        compressCompletable.subscribe(testSubscriber);
-        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
-        testSubscriber.assertCompleted();
-        testSubscriber.assertNoErrors();
+            Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
+                    end.getMillis() + 1, 0, Order.DESC);
+            List<DataPoint<Double>> actual = toList(observable);
+            List<DataPoint<Double>> expected = asList(
+                    new DataPoint<>(end.getMillis(), 4.4),
+                    new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
+                    new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
+                    new DataPoint<>(start.getMillis(), 1.1));
 
-        Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
-                end.getMillis() + 1, 0, Order.DESC);
-        List<DataPoint<Double>> actual = toList(observable);
-        List<DataPoint<Double>> expected = asList(
-                new DataPoint<>(end.getMillis(), 4.4),
-                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-                new DataPoint<>(start.getMillis(), 1.1));
+            assertEquals(actual, expected, "The data does not match the expected values");
+            assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
 
-        assertEquals(actual, expected, "The data does not match the expected values");
-        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
-
-        observable = metricsService.findDataPoints(mId, start.getMillis(),
-                end.getMillis(), 0, Order.DESC);
-        actual = toList(observable);
-        assertEquals(3, actual.size(), "Last datapoint should be missing (<)");
-
-        DateTimeUtils.setCurrentMillisSystem();
+            observable = metricsService.findDataPoints(mId, start.getMillis(),
+                    end.getMillis(), 0, Order.DESC);
+            actual = toList(observable);
+            assertEquals(3, actual.size(), "Last datapoint should be missing (<)");
+        } finally {
+            DateTimeUtils.setCurrentMillisSystem();
+        }
     }
 
     @Test

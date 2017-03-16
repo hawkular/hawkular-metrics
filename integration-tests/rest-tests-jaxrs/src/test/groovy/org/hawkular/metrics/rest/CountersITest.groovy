@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -530,17 +530,18 @@ class CountersITest extends RESTTest {
   @Test
   void findCounterStats() {
     String counter = "C1"
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 0],
-            [timestamp: 60_000 * 1.5, value: 200],
-            [timestamp: 60_000 * 3.5, value: 400],
-            [timestamp: 60_000 * 5.0, value: 550],
-            [timestamp: 60_000 * 7.0, value: 950],
-            [timestamp: 60_000 * 7.5, value: 1000],
+            [timestamp: start + (60_000 * 1.0), value: 0],
+            [timestamp: start + (60_000 * 1.5), value: 200],
+            [timestamp: start + (60_000 * 3.5), value: 400],
+            [timestamp: start + (60_000 * 5.0), value: 550],
+            [timestamp: start + (60_000 * 7.0), value: 950],
+            [timestamp: start + (60_000 * 7.5), value: 1000],
         ]
     )
     assertEquals(200, response.status)
@@ -548,13 +549,13 @@ class CountersITest extends RESTTest {
     response = hawkularMetrics.get(
         path: "counters/$counter/stats",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+        query: [start: start + 60_000, end: start + (60_000 * 8), bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
 
     def expectedData = []
     (1..7).each { i ->
-      def bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      def bucketPoint = [start: start + (60_000 * i), end: start + (60_000 * (i + 1))]
       double val;
       switch (i) {
         case 1:
@@ -589,17 +590,18 @@ class CountersITest extends RESTTest {
   @Test
   void findRate() {
     String counter = "C1"
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 0],
-            [timestamp: 60_000 * 1.5, value: 200],
-            [timestamp: 60_000 * 3.5, value: 400],
-            [timestamp: 60_000 * 5.0, value: 550],
-            [timestamp: 60_000 * 7.0, value: 950],
-            [timestamp: 60_000 * 7.5, value: 1000],
+            [timestamp: start + (60_000 * 1.0), value: 0],
+            [timestamp: start + (60_000 * 1.5), value: 200],
+            [timestamp: start + (60_000 * 3.5), value: 400],
+            [timestamp: start + (60_000 * 5.0), value: 550],
+            [timestamp: start + (60_000 * 7.0), value: 950],
+            [timestamp: start + (60_000 * 7.5), value: 1000],
         ]
     )
     assertEquals(200, response.status)
@@ -612,11 +614,11 @@ class CountersITest extends RESTTest {
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: (60_000 * 1.5).toLong(), value: 400],
-        [timestamp: (60_000 * 3.5).toLong(), value: 100],
-        [timestamp: (60_000 * 5.0).toLong(), value: 100],
-        [timestamp: (60_000 * 7.0).toLong(), value: 200],
-        [timestamp: (60_000 * 7.5).toLong(), value: 100],
+        [timestamp: start + (60_000 * 1.5).toLong(), value: 400],
+        [timestamp: start + (60_000 * 3.5).toLong(), value: 100],
+        [timestamp: start + (60_000 * 5.0).toLong(), value: 100],
+        [timestamp: start + (60_000 * 7.0).toLong(), value: 200],
+        [timestamp: start + (60_000 * 7.5).toLong(), value: 100],
     ]
 
     def actualData = response.data ?: []
@@ -634,20 +636,21 @@ Actual:   ${response.data}
   @Test
   void findRateWhenThereAreResets() {
     String counter = 'C1'
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 1],
-            [timestamp: 60_000 * 1.5, value: 2],
-            [timestamp: 60_000 * 3.5, value: 3],
-            [timestamp: 60_000 * 5.0, value: 1],
-            [timestamp: 60_000 * 7.0, value: 2],
-            [timestamp: 60_000 * 7.5, value: 3],
-            [timestamp: 60_000 * 8.0, value: 1],
-            [timestamp: 60_000 * 8.5, value: 2],
-            [timestamp: 60_000 * 9.0, value: 3]
+            [timestamp: start + (60_000 * 1.0), value: 1],
+            [timestamp: start + (60_000 * 1.5), value: 2],
+            [timestamp: start + (60_000 * 3.5), value: 3],
+            [timestamp: start + (60_000 * 5.0), value: 1],
+            [timestamp: start + (60_000 * 7.0), value: 2],
+            [timestamp: start + (60_000 * 7.5), value: 3],
+            [timestamp: start + (60_000 * 8.0), value: 1],
+            [timestamp: start + (60_000 * 8.5), value: 2],
+            [timestamp: start + (60_000 * 9.0), value: 3]
         ]
     )
     assertEquals(200, response.status)
@@ -660,12 +663,12 @@ Actual:   ${response.data}
     assertEquals(200, response.status)
 
     def expectedData = [
-        [timestamp: (60_000 * 1.5) as Long, value: 2],
-        [timestamp: (60_000 * 3.5) as Long, value: 0.5],
-        [timestamp: (60_000 * 7.0) as Long, value: 0.5],
-        [timestamp: (60_000 * 7.5) as Long, value: 2],
-        [timestamp: (60_000 * 8.5) as Long, value: 2],
-        [timestamp: (60_000 * 9.0) as Long, value: 2]
+        [timestamp: start + (60_000 * 1.5) as Long, value: 2],
+        [timestamp: start + (60_000 * 3.5) as Long, value: 0.5],
+        [timestamp: start + (60_000 * 7.0) as Long, value: 0.5],
+        [timestamp: start + (60_000 * 7.5) as Long, value: 2],
+        [timestamp: start + (60_000 * 8.5) as Long, value: 2],
+        [timestamp: start + (60_000 * 9.0) as Long, value: 2]
     ]
 
     def actualData = response.data ?: []
@@ -683,17 +686,18 @@ Actual:   ${response.data}
   @Test
   void findRateStats() {
     String counter = "C1"
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(
         path: "counters/$counter/raw",
         headers: [(tenantHeaderName): tenantId],
         body: [
-            [timestamp: 60_000 * 1.0, value: 0],
-            [timestamp: 60_000 * 1.5, value: 200],
-            [timestamp: 60_000 * 3.5, value: 400],
-            [timestamp: 60_000 * 5.0, value: 550],
-            [timestamp: 60_000 * 7.0, value: 950],
-            [timestamp: 60_000 * 7.5, value: 1000],
+            [timestamp: start + (60_000 * 1.0), value: 0],
+            [timestamp: start + (60_000 * 1.5), value: 200],
+            [timestamp: start + (60_000 * 3.5), value: 400],
+            [timestamp: start + (60_000 * 5.0), value: 550],
+            [timestamp: start + (60_000 * 7.0), value: 950],
+            [timestamp: start + (60_000 * 7.5), value: 1000],
         ]
     )
     assertEquals(200, response.status)
@@ -701,13 +705,13 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: "counters/$counter/rate/stats",
         headers: [(tenantHeaderName): tenantId],
-        query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
+        query: [start: start + 60_000, end: start + (60_000 * 8), bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
 
     def expectedData = []
     (1..7).each { i ->
-      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      Map bucketPoint = [start: start + (60_000 * i), end: start + (60_000 * (i + 1))]
       double val
       switch (i) {
         case 1:
@@ -773,34 +777,35 @@ Actual:   ${response.data}
 
   @Test
   void percentileParameter() {
-      String counter = "C1"
+    String counter = "C1"
+    long start = now().minusHours(8).millis
 
-      def response = hawkularMetrics.post(
-          path: "counters/$counter/raw",
-          headers: [(tenantHeaderName): tenantId],
-          body: [
-              [timestamp: 60_000 * 1.0, value: 0],
-              [timestamp: 60_000 * 1.5, value: 200],
-              [timestamp: 60_000 * 3.5, value: 400],
-              [timestamp: 60_000 * 5.0, value: 550],
-              [timestamp: 60_000 * 7.0, value: 950],
-              [timestamp: 60_000 * 7.5, value: 1000],
-          ]
-      )
-      assertEquals(200, response.status)
+    def response = hawkularMetrics.post(
+        path: "counters/$counter/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: start + (60_000 * 1.0), value: 0],
+            [timestamp: start + (60_000 * 1.5), value: 200],
+            [timestamp: start + (60_000 * 3.5), value: 400],
+            [timestamp: start + (60_000 * 5.0), value: 550],
+            [timestamp: start + (60_000 * 7.0), value: 950],
+            [timestamp: start + (60_000 * 7.5), value: 1000],
+        ]
+    )
+    assertEquals(200, response.status)
 
-      response = hawkularMetrics.get(
-          path: "counters/$counter/stats",
-          headers: [(tenantHeaderName): tenantId],
-          query: [start: 60_000, end: 60_000 * 8, buckets: '1', percentiles: '50.0,90.0,99.9']
-      )
-      assertEquals(200, response.status)
+    response = hawkularMetrics.get(
+        path: "counters/$counter/stats",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: start + 60_000, end: start + (60_000 * 8), buckets: '1', percentiles: '50.0,90.0,99.9']
+    )
+    assertEquals(200, response.status)
 
-      assertEquals(1, response.data.size)
-      assertEquals(3, response.data[0].percentiles.size)
+    assertEquals(1, response.data.size)
+    assertEquals(3, response.data[0].percentiles.size)
 
-      assertEquals(50.0, response.data[0].percentiles[0].quantile)
-      assertEquals(400, response.data[0].percentiles[0].value, 0.1)
+    assertEquals(50.0, response.data[0].percentiles[0].quantile)
+    assertEquals(400, response.data[0].percentiles[0].value, 0.1)
   }
 
   @Test
@@ -835,32 +840,32 @@ Actual:   ${response.data}
     randomList.sort()
 
     def c1 = [
-      [timestamp: start.millis, value: 510 + randomList[0]],
-      [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
-      [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
-      [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
-      [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
+        [timestamp: start.millis, value: 510 + randomList[0]],
+        [timestamp: start.plusMinutes(1).millis, value: 512 + randomList[1]],
+        [timestamp: start.plusMinutes(2).millis, value: 514 + randomList[2]],
+        [timestamp: start.plusMinutes(3).millis, value: 516 + randomList[3]],
+        [timestamp: start.plusMinutes(4).millis, value: 518 + randomList[4]]
     ]
     def c2 = [
-      [timestamp: start.millis, value: 378 + randomList[5]],
-      [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
-      [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
-      [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
-      [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
+        [timestamp: start.millis, value: 378 + randomList[5]],
+        [timestamp: start.plusMinutes(1).millis, value: 381 + randomList[6]],
+        [timestamp: start.plusMinutes(2).millis, value: 384 + randomList[7]],
+        [timestamp: start.plusMinutes(3).millis, value: 387 + randomList[8]],
+        [timestamp: start.plusMinutes(4).millis, value: 390 + randomList[9]]
     ]
 
     // insert data points
     response = hawkularMetrics.post(path: "counters/raw", body: [
         [
-            id: 'C1',
+            id  : 'C1',
             data: c1
         ],
         [
-            id: 'C2',
+            id  : 'C2',
             data: c2
         ],
         [
-            id: 'C3',
+            id  : 'C3',
             data: [
                 [timestamp: start.millis, value: 5712],
                 [timestamp: start.plusMinutes(1).millis, value: 5773],
@@ -880,8 +885,8 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: 'counters/C1/rate/stats',
         query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
+            start  : start.millis,
+            end    : start.plusMinutes(4).millis,
             buckets: 1,
         ],
         headers: [(tenantHeaderName): tenantId]
@@ -891,8 +896,8 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: 'counters/C2/rate/stats',
         query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
+            start  : start.millis,
+            end    : start.plusMinutes(4).millis,
             buckets: 1,
         ],
         headers: [(tenantHeaderName): tenantId]
@@ -903,10 +908,10 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: 'counters/stats',
         query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
+            start  : start.millis,
+            end    : start.plusMinutes(4).millis,
             buckets: 1,
-            tags: 'type:counter_cpu_usage,host:server1|server2',
+            tags   : 'type:counter_cpu_usage,host:server1|server2',
             stacked: true
         ],
         headers: [(tenantHeaderName): tenantId]
@@ -919,12 +924,12 @@ Actual:   ${response.data}
 
     assertEquals("The start time is wrong", start.millis, actualCounterBucketByTag.start)
     assertEquals("The end time is wrong", start.plusMinutes(4).millis, actualCounterBucketByTag.end)
-    assertDoubleEquals("The min is wrong", (c1.min {it.value}).value + (c2.min {it.value}).value,
+    assertDoubleEquals("The min is wrong", (c1.min { it.value }).value + (c2.min { it.value }).value,
         actualCounterBucketByTag.min)
-    assertDoubleEquals("The max is wrong", (c1.max {it.value}).value + (c2.max {it.value}).value,
+    assertDoubleEquals("The max is wrong", (c1.max { it.value }).value + (c2.max { it.value }).value,
         actualCounterBucketByTag.max)
     assertDoubleEquals("The sum is wrong", (c1 + c2).sum() { it.value }, actualCounterBucketByTag.sum)
-    assertDoubleEquals("The avg is wrong", avg(c1.collect {it.value}) + avg(c2.collect {it.value}),
+    assertDoubleEquals("The avg is wrong", avg(c1.collect { it.value }) + avg(c2.collect { it.value }),
         actualCounterBucketByTag.avg)
     assertEquals("The [empty] property is wrong", false, actualCounterBucketByTag.empty)
     assertTrue("Expected the [median] property to be set", actualCounterBucketByTag.median != null)
@@ -932,8 +937,8 @@ Actual:   ${response.data}
     response = hawkularMetrics.get(
         path: 'counters/stats',
         query: [
-            start: start.millis,
-            end: start.plusMinutes(4).millis,
+            start  : start.millis,
+            end    : start.plusMinutes(4).millis,
             buckets: 1,
             metrics: ['C1', 'C2'],
             stacked: true
@@ -1681,6 +1686,7 @@ Actual:   ${response.data}
   void minMaxTimestamps() {
     def tenantId = nextTenantId()
     def metricId = 'minmaxtest'
+    long start = now().minusHours(8).millis
 
     def response = hawkularMetrics.post(path: 'counters', headers: [(tenantHeaderName): tenantId], body: [
         id: metricId
@@ -1693,38 +1699,38 @@ Actual:   ${response.data}
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
 
     response = hawkularMetrics.post(path: "counters/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 3, value: 4.2]
+        [timestamp: start + 3000, value: 4.2]
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "counters/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(3, response.data.minTimestamp)
-    assertEquals(3, response.data.maxTimestamp)
+    assertEquals(start + 3000, response.data.minTimestamp)
+    assertEquals(start + 3000, response.data.maxTimestamp)
 
     response = hawkularMetrics.post(path: "counters/${metricId}/raw", headers: [(tenantHeaderName): tenantId], body: [
-        [timestamp: 1, value: 2.2],
-        [timestamp: 2, value: 1.2],
-        [timestamp: 4, value: 7.2],
+        [timestamp: start + 1000, value: 2.2],
+        [timestamp: start + 2000, value: 1.2],
+        [timestamp: start + 4000, value: 7.2],
     ])
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "counters/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
-    assertEquals(1, response.data.minTimestamp)
-    assertEquals(4, response.data.maxTimestamp)
+    assertEquals(start + 1000, response.data.minTimestamp)
+    assertEquals(start + 4000, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "counters", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     def metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
     metric = (response.data as List).find { it.id.equals(metricId) }
-    assertEquals(1, metric.minTimestamp)
-    assertEquals(4, metric.maxTimestamp)
+    assertEquals(start + 1000, metric.minTimestamp)
+    assertEquals(start + 4000, metric.maxTimestamp)
 
   }
 
@@ -1928,35 +1934,36 @@ Actual:   ${response.data}
   @Test
   void fetchRatesFromMultipleMetrics() {
     String tenantId = nextTenantId()
+    long start = now().minusHours(8).millis
     def dataPoints = [
         [
             id: 'C1',
             data: [
-                [timestamp: 60_000, value: 12],
-                [timestamp: 60_000 * 1.5, value: 34],
-                [timestamp: 60_000 * 2, value: 53],
-                [timestamp: 60_000 * 2.5, value: 72],
-                [timestamp: 60_000 * 3, value: 102]
+                [timestamp: start + 60_000, value: 12],
+                [timestamp: start + (60_000 * 1.5), value: 34],
+                [timestamp: start + (60_000 * 2), value: 53],
+                [timestamp: start + (60_000 * 2.5), value: 72],
+                [timestamp: start + (60_000 * 3), value: 102]
             ]
         ],
         [
             id: 'C2',
             data: [
-                [timestamp: 60_000, value: 14],
-                [timestamp: 60_000 * 1.5, value: 26],
-                [timestamp: 60_000 * 2, value: 51],
-                [timestamp: 60_000 * 2.5, value: 88],
-                [timestamp: 60_000 * 3, value: 109]
+                [timestamp: start + 60_000, value: 14],
+                [timestamp: start + (60_000 * 1.5), value: 26],
+                [timestamp: start + (60_000 * 2), value: 51],
+                [timestamp: start + (60_000 * 2.5), value: 88],
+                [timestamp: start + (60_000 * 3), value: 109]
             ]
         ],
         [
             id: 'C3',
             data: [
-                [timestamp: 60_000, value: 43],
-                [timestamp: 60_000 * 1.5, value: 48],
-                [timestamp: 60_000 * 2, value: 73],
-                [timestamp: 60_000 * 2.5, value: 89],
-                [timestamp: 60_000 * 3, value: 99]
+                [timestamp: start + 60_000, value: 43],
+                [timestamp: start + (60_000 * 1.5), value: 48],
+                [timestamp: start + (60_000 * 2), value: 73],
+                [timestamp: start + (60_000 * 2.5), value: 89],
+                [timestamp: start + (60_000 * 3), value: 99]
             ]
         ]
     ]
@@ -1973,8 +1980,8 @@ Actual:   ${response.data}
         headers: [(tenantHeaderName): tenantId],
         body: [
             ids: ['C1', 'C2', 'C3'],
-            start: 60_000 * 1.5,
-            end: 60_000 * 3,
+            start: start + (60_000 * 1.5),
+            end: start + (60_000 * 3),
             limit: 2,
             order: 'asc'
         ]
@@ -1986,24 +1993,24 @@ Actual:   ${response.data}
     assertListOfGaugesContains(response.data, [
         id: 'C1',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[0].data[2], dataPoints[0].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[0].data[3], dataPoints[0].data[2])]
         ]
     ])
 
     assertListOfGaugesContains(response.data, [
         id: 'C2',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[1].data[2], dataPoints[1].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[1].data[3], dataPoints[1].data[2])]
         ]
     ])
 
     assertListOfGaugesContains(response.data, [
         id: 'C3',
         data: [
-            [timestamp: 60_000 * 2, value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
-            [timestamp: 60_000 * 2.5, value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
+            [timestamp: start + (60_000 * 2), value: rate(dataPoints[2].data[2], dataPoints[2].data[1])],
+            [timestamp: start + (60_000 * 2.5), value: rate(dataPoints[2].data[3], dataPoints[2].data[2])]
         ]
     ])
   }

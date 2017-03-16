@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package org.hawkular.metrics.rest
 import org.joda.time.DateTime
 import org.junit.Test
 
+import static org.joda.time.DateTime.now
 import static org.junit.Assert.assertEquals
 /**
  * @author jsanda
@@ -28,7 +29,7 @@ class MetricsITest extends RESTTest {
   @Test
   void addMixedData() {
     String tenantId = nextTenantId()
-    DateTime start = DateTime.now().minusMinutes(10)
+    DateTime start = now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
         path: "metrics/raw",
@@ -188,7 +189,7 @@ class MetricsITest extends RESTTest {
   @Test
   void addMixedDataMissingGauges() {
     String tenantId = nextTenantId()
-    DateTime start = DateTime.now().minusMinutes(10)
+    DateTime start = now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
         path: "metrics/raw",
@@ -240,7 +241,7 @@ class MetricsITest extends RESTTest {
   @Test
   void addMixedDataMissingCounters() {
     String tenantId = nextTenantId()
-    DateTime start = DateTime.now().minusMinutes(10)
+    DateTime start = now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
         path: "metrics/raw",
@@ -293,7 +294,7 @@ class MetricsITest extends RESTTest {
   @Test
   void addMixedDataMissingAvailabilities() {
     String tenantId = nextTenantId()
-    DateTime start = DateTime.now().minusMinutes(10)
+    DateTime start = now().minusMinutes(10)
 
     def response = hawkularMetrics.post(
         path: "metrics/raw",
@@ -395,7 +396,7 @@ class MetricsITest extends RESTTest {
     }
   }
 
-  static def withDataPoints(String tenantId, Closure callback) {
+  static withDataPoints(String tenantId, long start, Closure callback) {
     def createGauge = { id, tags ->
       def response = hawkularMetrics.post(
           path: 'gauges',
@@ -440,31 +441,31 @@ class MetricsITest extends RESTTest {
             [
                 id: 'G1',
                 data: [
-                    [timestamp: 100, value: 1.23],
-                    [timestamp: 200, value: 3.45],
-                    [timestamp: 300, value: 5.34],
-                    [timestamp: 400, value: 2.22],
-                    [timestamp: 500, value: 5.22]
+                    [timestamp: start + 100, value: 1.23],
+                    [timestamp: start + 200, value: 3.45],
+                    [timestamp: start + 300, value: 5.34],
+                    [timestamp: start + 400, value: 2.22],
+                    [timestamp: start + 500, value: 5.22]
                 ]
             ],
             [
                 id: 'G2',
                 data: [
-                    [timestamp: 100, value: 1.45],
-                    [timestamp: 200, value: 2.36],
-                    [timestamp: 300, value: 3.62],
-                    [timestamp: 400, value: 2.63],
-                    [timestamp: 500, value: 3.99]
+                    [timestamp: start + 100, value: 1.45],
+                    [timestamp: start + 200, value: 2.36],
+                    [timestamp: start + 300, value: 3.62],
+                    [timestamp: start + 400, value: 2.63],
+                    [timestamp: start + 500, value: 3.99]
                 ]
             ],
             [
                 id: 'G3',
                 data: [
-                    [timestamp: 100, value: 4.45],
-                    [timestamp: 200, value: 5.55],
-                    [timestamp: 300, value: 4.44],
-                    [timestamp: 400, value: 3.33],
-                    [timestamp: 500, value: 3.77]
+                    [timestamp: start + 100, value: 4.45],
+                    [timestamp: start + 200, value: 5.55],
+                    [timestamp: start + 300, value: 4.44],
+                    [timestamp: start + 400, value: 3.33],
+                    [timestamp: start + 500, value: 3.77]
                 ]
             ]
         ]
@@ -477,31 +478,31 @@ class MetricsITest extends RESTTest {
             [
                 id: 'C1',
                 data: [
-                    [timestamp: 100, value: 12],
-                    [timestamp: 200, value: 17],
-                    [timestamp: 300, value: 19],
-                    [timestamp: 400, value: 26],
-                    [timestamp: 500, value: 37]
+                    [timestamp: start + 100, value: 12],
+                    [timestamp: start + 200, value: 17],
+                    [timestamp: start + 300, value: 19],
+                    [timestamp: start + 400, value: 26],
+                    [timestamp: start + 500, value: 37]
                 ]
             ],
             [
                 id: 'C2',
                 data: [
-                    [timestamp: 100, value: 41],
-                    [timestamp: 200, value: 49],
-                    [timestamp: 300, value: 64],
-                    [timestamp: 400, value: 71],
-                    [timestamp: 500, value: 95]
+                    [timestamp: start + 100, value: 41],
+                    [timestamp: start + 200, value: 49],
+                    [timestamp: start + 300, value: 64],
+                    [timestamp: start + 400, value: 71],
+                    [timestamp: start + 500, value: 95]
                 ]
             ],
             [
                 id: 'C3',
                 data: [
-                    [timestamp: 100, value: 28],
-                    [timestamp: 200, value: 35],
-                    [timestamp: 300, value: 42],
-                    [timestamp: 400, value: 49],
-                    [timestamp: 500, value: 59]
+                    [timestamp: start + 100, value: 28],
+                    [timestamp: start + 200, value: 35],
+                    [timestamp: start + 300, value: 42],
+                    [timestamp: start + 400, value: 49],
+                    [timestamp: start + 500, value: 59]
                 ]
             ]
         ]
@@ -514,31 +515,31 @@ class MetricsITest extends RESTTest {
             [
                 id: 'A1',
                 data: [
-                    [timestamp: 100, value: 'up'],
-                    [timestamp: 200, value: 'up'],
-                    [timestamp: 300, value: 'down'],
-                    [timestamp: 400, value: 'down'],
-                    [timestamp: 500, value: 'up']
+                    [timestamp: start + 100, value: 'up'],
+                    [timestamp: start + 200, value: 'up'],
+                    [timestamp: start + 300, value: 'down'],
+                    [timestamp: start + 400, value: 'down'],
+                    [timestamp: start + 500, value: 'up']
                 ]
             ],
             [
                 id: 'A2',
                 data: [
-                    [timestamp: 100, value: 'down'],
-                    [timestamp: 200, value: 'up'],
-                    [timestamp: 300, value: 'down'],
-                    [timestamp: 400, value: 'up'],
-                    [timestamp: 500, value: 'up']
+                    [timestamp: start + 100, value: 'down'],
+                    [timestamp: start + 200, value: 'up'],
+                    [timestamp: start + 300, value: 'down'],
+                    [timestamp: start + 400, value: 'up'],
+                    [timestamp: start + 500, value: 'up']
                 ]
             ],
             [
                 id: 'A3',
                 data: [
-                    [timestamp: 100, value: 'up'],
-                    [timestamp: 200, value: 'down'],
-                    [timestamp: 300, value: 'down'],
-                    [timestamp: 400, value: 'up'],
-                    [timestamp: 500, value: 'up']
+                    [timestamp: start + 100, value: 'up'],
+                    [timestamp: start + 200, value: 'down'],
+                    [timestamp: start + 300, value: 'down'],
+                    [timestamp: start + 400, value: 'up'],
+                    [timestamp: start + 500, value: 'up']
                 ]
             ]
         ]
@@ -550,7 +551,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -561,8 +563,8 @@ class MetricsITest extends RESTTest {
                   availability: ['A2', 'A3']
               ],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -571,8 +573,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -582,8 +584,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -595,8 +597,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -606,8 +608,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -621,8 +623,8 @@ class MetricsITest extends RESTTest {
           counter: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 64,
                       min: 49,
                       avg: avg([49, 64]),
@@ -632,8 +634,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 71,
                       min: 71,
                       avg: 71,
@@ -645,8 +647,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 42,
                       min: 35,
                       avg: avg([35, 42]),
@@ -656,8 +658,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 49,
                       min: 49,
                       avg: 49,
@@ -671,17 +673,17 @@ class MetricsITest extends RESTTest {
           availability: [
               A2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       durationMap: [
                           "down": 50,
                           "up": 100
                       ],
-                      lastNotUptime: 350,
+                      lastNotUptime: start + 350,
                       uptimeRatio: 100 / 150,
                       notUpCount: 1,
                       downtimeDuration: 50,
-                      lastDowntime: 350,
+                      lastDowntime: start + 350,
                       empty: false,
                       adminDuration: 0,
                       unknownDuration: 0,
@@ -689,8 +691,8 @@ class MetricsITest extends RESTTest {
                       notUpDuration: 50
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       durationMap: [
                           "up": 150
                       ],
@@ -708,16 +710,16 @@ class MetricsITest extends RESTTest {
               ],
               A3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       durationMap: [
                           "down": 150
                       ],
-                      lastNotUptime: 350,
+                      lastNotUptime: start + 350,
                       uptimeRatio: 0.0,
                       notUpCount: 1,
                       downtimeDuration: 150,
-                      lastDowntime: 350,
+                      lastDowntime: start + 350,
                       empty: false,
                       adminDuration: 0,
                       unknownDuration: 0,
@@ -725,8 +727,8 @@ class MetricsITest extends RESTTest {
                       notUpDuration: 150
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       durationMap: [
                           "up": 150
                       ],
@@ -794,8 +796,8 @@ class MetricsITest extends RESTTest {
                   availability: ['A2', 'A3']
               ],
               bucketDuration: '150ms',
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -808,8 +810,8 @@ class MetricsITest extends RESTTest {
           headers: [(tenantHeaderName): tenantId],
           body: [
               buckets: 2,
-              start: 200,
-              end: 500,
+              start: start + 200,
+              end: start + 500,
               tags: 'z:1'
           ]
       )
@@ -821,7 +823,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -830,8 +833,8 @@ class MetricsITest extends RESTTest {
                   gauge: ['G1', 'G3'],
               ],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -840,8 +843,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -851,8 +854,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -864,8 +867,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -875,8 +878,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -901,7 +904,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeStatsWithRates() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -911,8 +915,8 @@ class MetricsITest extends RESTTest {
               ],
               types: ['gauge', 'gauge_rate'],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -921,8 +925,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -932,8 +936,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -945,8 +949,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -956,8 +960,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -971,8 +975,8 @@ class MetricsITest extends RESTTest {
           gauge_rate: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 1134,
                       min: 1134,
                       avg: 1134,
@@ -982,8 +986,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -1872,
                       min: -1872,
                       avg: -1872,
@@ -995,8 +999,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1006,8 +1010,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1040,7 +1044,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeStatsWithPercentiles() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1050,8 +1055,8 @@ class MetricsITest extends RESTTest {
               ],
               buckets: 2,
               percentiles: '95,99',
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1060,8 +1065,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -1075,8 +1080,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -1092,8 +1097,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -1107,8 +1112,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -1138,7 +1143,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchCounterStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1147,8 +1153,8 @@ class MetricsITest extends RESTTest {
                   counter: ['C2', 'C3'],
               ],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1157,8 +1163,8 @@ class MetricsITest extends RESTTest {
           counter: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 64,
                       min: 49,
                       avg: avg([49, 64]),
@@ -1168,8 +1174,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 71,
                       min: 71,
                       avg: 71,
@@ -1181,8 +1187,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 42,
                       min: 35,
                       avg: avg([35, 42]),
@@ -1192,8 +1198,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 49,
                       min: 49,
                       avg: 49,
@@ -1224,7 +1230,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchCounterStatsWithRates() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1234,8 +1241,8 @@ class MetricsITest extends RESTTest {
               ],
               types: ['counter', 'counter_rate'],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1244,8 +1251,8 @@ class MetricsITest extends RESTTest {
           counter: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 64,
                       min: 49,
                       avg: avg([49, 64]),
@@ -1255,8 +1262,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 71,
                       min: 71,
                       avg: 71,
@@ -1268,8 +1275,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 42,
                       min: 35,
                       avg: avg([35, 42]),
@@ -1279,8 +1286,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 49,
                       min: 49,
                       avg: 49,
@@ -1294,8 +1301,8 @@ class MetricsITest extends RESTTest {
           counter_rate: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 9000,
                       avg: 9000,
                       min: 9000,
@@ -1305,8 +1312,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1318,8 +1325,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1329,8 +1336,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1373,7 +1380,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeAndCounterRateStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1384,8 +1392,8 @@ class MetricsITest extends RESTTest {
               ],
               types: ['gauge', 'counter_rate'],
               buckets    : 2,
-              start      : 200,
-              end        : 500
+              start      : start + 200,
+              end        : start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1393,8 +1401,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -1404,8 +1412,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -1417,8 +1425,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -1428,8 +1436,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -1443,8 +1451,8 @@ class MetricsITest extends RESTTest {
           counter_rate: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 9000,
                       avg: 9000,
                       min: 9000,
@@ -1454,8 +1462,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1467,8 +1475,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1478,8 +1486,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1517,7 +1525,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchRateStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1528,8 +1537,8 @@ class MetricsITest extends RESTTest {
               ],
               types: ['gauge_rate', 'counter_rate'],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1538,8 +1547,8 @@ class MetricsITest extends RESTTest {
           gauge_rate: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 1134,
                       min: 1134,
                       avg: 1134,
@@ -1549,8 +1558,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -1872,
                       min: -1872,
                       avg: -1872,
@@ -1562,8 +1571,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start +  200,
+                      end: start + 350,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1573,8 +1582,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1588,8 +1597,8 @@ class MetricsITest extends RESTTest {
           counter_rate: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 9000,
                       avg: 9000,
                       min: 9000,
@@ -1599,8 +1608,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1612,8 +1621,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1623,8 +1632,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1662,7 +1671,8 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchAvailabilityStats() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
@@ -1671,8 +1681,8 @@ class MetricsITest extends RESTTest {
                   availability: ['A2', 'A3'],
               ],
               buckets: 2,
-              start: 200,
-              end: 500
+              start: start + 200,
+              end: start + 500
           ]
       )
       assertEquals(200, response.status)
@@ -1681,17 +1691,17 @@ class MetricsITest extends RESTTest {
           availability: [
               A2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       durationMap: [
                           "down": 50,
                           "up": 100
                       ],
-                      lastNotUptime: 350,
+                      lastNotUptime: start + 350,
                       uptimeRatio: 100 / 150,
                       notUpCount: 1,
                       downtimeDuration: 50,
-                      lastDowntime: 350,
+                      lastDowntime: start + 350,
                       empty: false,
                       adminDuration: 0,
                       unknownDuration: 0,
@@ -1699,8 +1709,8 @@ class MetricsITest extends RESTTest {
                       notUpDuration: 50
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       durationMap: [
                           "up": 150
                       ],
@@ -1718,16 +1728,16 @@ class MetricsITest extends RESTTest {
               ],
               A3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       durationMap: [
                           "down": 150
                       ],
-                      lastNotUptime: 350,
+                      lastNotUptime: start + 350,
                       uptimeRatio: 0.0,
                       notUpCount: 1,
                       downtimeDuration: 150,
-                      lastDowntime: 350,
+                      lastDowntime: start + 350,
                       empty: false,
                       adminDuration: 0,
                       unknownDuration: 0,
@@ -1735,8 +1745,8 @@ class MetricsITest extends RESTTest {
                       notUpDuration: 150
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       durationMap: [
                           "up": 150
                       ],
@@ -1774,15 +1784,16 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeAndCounterRateStatsByTags() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       // now query by tags instead of ids
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
           body: [
               buckets: 2,
-              start: 200,
-              end: 500,
+              start: start + 200,
+              end: start + 500,
               tags: 'z:1',
               types: ['gauge', 'counter_rate']
           ]
@@ -1793,8 +1804,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -1804,8 +1815,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -1817,8 +1828,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -1828,8 +1839,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -1843,8 +1854,8 @@ class MetricsITest extends RESTTest {
           counter_rate: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 9000,
                       avg: 9000,
                       min: 9000,
@@ -1854,8 +1865,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1867,8 +1878,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1878,8 +1889,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -1917,15 +1928,16 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeRateAndCounterStatsByTags() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       // now query by tags instead of ids
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
           body: [
               buckets: 2,
-              start: 200,
-              end: 500,
+              start: start + 200,
+              end: start + 500,
               tags: 'z:1',
               types: ['gauge_rate', 'counter']
           ]
@@ -1936,8 +1948,8 @@ class MetricsITest extends RESTTest {
           gauge_rate: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 1134,
                       min: 1134,
                       avg: 1134,
@@ -1947,8 +1959,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -1872,
                       min: -1872,
                       avg: -1872,
@@ -1960,8 +1972,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1971,8 +1983,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -1986,8 +1998,8 @@ class MetricsITest extends RESTTest {
           counter: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 64,
                       min: 49,
                       avg: avg([49, 64]),
@@ -1997,8 +2009,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 71,
                       min: 71,
                       avg: 71,
@@ -2010,8 +2022,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 42,
                       min: 35,
                       avg: avg([35, 42]),
@@ -2021,8 +2033,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 49,
                       min: 49,
                       avg: 49,
@@ -2060,15 +2072,16 @@ class MetricsITest extends RESTTest {
   @Test
   void fetchGaugeAndCounterStatsWithRatesByTags() {
     String tenantId = nextTenantId()
-    withDataPoints(tenantId, {
+    long start = now().minusHours(8).millis
+    withDataPoints(tenantId, start, {
       // now query by tags instead of ids
       def response = hawkularMetrics.post(
           path: 'metrics/stats/query',
           headers: [(tenantHeaderName): tenantId],
           body: [
               buckets: 2,
-              start: 200,
-              end: 500,
+              start: start + 200,
+              end: start + 500,
               tags: 'z:1',
               types: ['gauge', 'gauge_rate', 'counter', 'counter_rate']
           ]
@@ -2079,8 +2092,8 @@ class MetricsITest extends RESTTest {
           gauge: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       samples: 2,
                       max: 5.34,
                       min: 3.45,
@@ -2090,8 +2103,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 2.22,
                       min: 2.22,
                       avg: 2.22,
@@ -2103,8 +2116,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 5.55,
                       min: 4.44,
                       avg: avg([5.55, 4.44]),
@@ -2114,8 +2127,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 3.33,
                       min: 3.33,
                       avg: 3.33,
@@ -2129,8 +2142,8 @@ class MetricsITest extends RESTTest {
           gauge_rate: [
               G1: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 1134,
                       min: 1134,
                       avg: 1134,
@@ -2140,8 +2153,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -1872,
                       min: -1872,
                       avg: -1872,
@@ -2153,8 +2166,8 @@ class MetricsITest extends RESTTest {
               ],
               G3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -2164,8 +2177,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: -666,
                       min: -666,
                       avg: -666,
@@ -2179,8 +2192,8 @@ class MetricsITest extends RESTTest {
           counter: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 64,
                       min: 49,
                       avg: avg([49, 64]),
@@ -2190,8 +2203,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 71,
                       min: 71,
                       avg: 71,
@@ -2203,8 +2216,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 42,
                       min: 35,
                       avg: avg([35, 42]),
@@ -2214,8 +2227,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 49,
                       min: 49,
                       avg: 49,
@@ -2229,8 +2242,8 @@ class MetricsITest extends RESTTest {
           counter_rate: [
               C2: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 9000,
                       avg: 9000,
                       min: 9000,
@@ -2240,8 +2253,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -2253,8 +2266,8 @@ class MetricsITest extends RESTTest {
               ],
               C3: [
                   [
-                      start: 200,
-                      end: 350,
+                      start: start + 200,
+                      end: start + 350,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -2264,8 +2277,8 @@ class MetricsITest extends RESTTest {
                       empty: false
                   ],
                   [
-                      start: 350,
-                      end: 500,
+                      start: start + 350,
+                      end: start + 500,
                       max: 4200,
                       min: 4200,
                       avg: 4200,
@@ -2340,7 +2353,7 @@ class MetricsITest extends RESTTest {
     @Test
     void relativeTimeStamps() {
         String tenantId = nextTenantId()
-        DateTime start = DateTime.now().minusMinutes(10)
+        DateTime start = now().minusMinutes(10)
 
         def createResponse = hawkularMetrics.post(
                 path: "metrics/raw",

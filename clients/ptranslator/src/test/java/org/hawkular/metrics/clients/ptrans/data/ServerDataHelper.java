@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -111,6 +111,7 @@ public class ServerDataHelper {
     }
 
     private String findGaugeDataUrl(String metricName) {
-        return "http://" + BASE_URI + "/gauges/" + metricName + "/raw?start=0";
+        long start = System.currentTimeMillis() - (8 * (60000 * 60));
+        return "http://" + BASE_URI + "/gauges/" + metricName + "/raw?start=" + start;
     }
 }
