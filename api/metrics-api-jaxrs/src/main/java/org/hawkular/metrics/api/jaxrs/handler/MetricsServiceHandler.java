@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.inject.Inject;
-import javax.ws.rs.container.AsyncResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
@@ -35,6 +36,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.exception.RuntimeApiError;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -58,8 +60,10 @@ abstract class MetricsServiceHandler {
         return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
     }
 
-    <T> NamedDataPointObserver<T> createNamedDataPointObserver(AsyncResponse response, MetricType<T> type) {
-        return new NamedDataPointObserver<>(response, mapper, type);
+    <T> NamedDataPointObserver<T> createNamedDataPointObserver(MetricType<T> type) {
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+        return new NamedDataPointObserver<>(request, response, mapper, type);
     }
 
     <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
@@ -108,7 +112,9 @@ abstract class MetricsServiceHandler {
         return Observable.just(timeRange);
     }
 
-    <T> MetricObserver<T> createMetricObserver(AsyncResponse response, MetricType<T> type) {
-        return new MetricObserver<>(response, mapper);
+    <T> MetricObserver<T> createMetricObserver(MetricType<T> type) {
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+        return new MetricObserver<>(request, response, mapper);
     }
 }

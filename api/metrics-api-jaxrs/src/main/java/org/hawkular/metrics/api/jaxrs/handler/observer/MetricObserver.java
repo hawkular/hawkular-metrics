@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,18 +21,17 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
+import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Metric;
 import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 
 import rx.Subscriber;
 
@@ -49,19 +48,23 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
         void call(Metric<T> dataPoint) throws IOException;
     }
 
-    private final AsyncResponse response;
+    private final HttpServletRequest request;
+    private final HttpServletResponse response;
     private final JsonGenerator generator;
+    private final ObjectMapper mapper;
     private AtomicInteger count;
     private final ByteArrayOutputStream jsonOutputStream;
 
     private volatile Metric<T> current;
 
-    public MetricObserver(AsyncResponse response, ObjectMapper mapper) {
+    public MetricObserver(HttpServletRequest request, HttpServletResponse response, ObjectMapper mapper) {
+        this.request = request;
         this.response = response;
+        this.mapper = mapper;
         count = new AtomicInteger();
         jsonOutputStream = new ByteArrayOutputStream();
         try {
-            generator = mapper.getFactory().createGenerator(jsonOutputStream, JsonEncoding.UTF8);
+            generator = mapper.getFactory().createGenerator(response.getOutputStream(), JsonEncoding.UTF8);
             generator.writeStartArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -71,7 +74,10 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
     @Override
     public void onNext(Metric<T> metric) {
         try {
-            count.incrementAndGet();
+            if (count.incrementAndGet() == 1) {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setHeader("Content-Type", "application/json");
+            }
             generator.writeStartObject();
             generator.writeStringField("id", metric.getMetricId().getName());
             generator.writeStringField("tenantId", metric.getMetricId().getTenantId());
@@ -93,6 +99,7 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
                 generator.writeNumberField("maxTimestamp", metric.getMaxTimestamp());
             }
             generator.writeEndObject();
+            generator.flush();
         } catch (IOException e) {
             throw new RuntimeException("Streaming data to client failed", e);
         }
@@ -103,36 +110,33 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
         logger.warn("Fetching data failed", e);
         try {
             if (count.get() == 0) {
-                response.resume(ApiUtils.serverError(e));
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setHeader("Content-Type", "application/json");
+                ApiError apiError = new ApiError(Throwables.getRootCause(e).getMessage());
+                mapper.writeValue(response.getOutputStream(), apiError);
             } else {
                 generator.close();
             }
         } catch (IOException ie) {
             logger.warn("There was an error closing the JSON generator", ie);
+        } finally {
+            request.getAsyncContext().complete();
         }
     }
 
     @Override
     public void onCompleted() {
-        Response result = null;
         try {
             if (count.get() == 0) {
-                generator.close();
-                result = Response.ok().status(HttpServletResponse.SC_NO_CONTENT).build();
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
             } else {
                 generator.writeEndArray();
-                generator.close();
-                result = Response.ok(new String(jsonOutputStream.toByteArray()), MediaType.APPLICATION_JSON_TYPE)
-                        .build();
             }
+            generator.close();
         } catch (IOException e) {
             logger.warn("There was an error while finishing streaming data", e);
-            result = ApiUtils.serverError(e);
         } finally {
-            if (result == null) {
-                result = Response.serverError().build();
-            }
-            response.resume(result);
+            request.getAsyncContext().complete();
         }
     }
 }

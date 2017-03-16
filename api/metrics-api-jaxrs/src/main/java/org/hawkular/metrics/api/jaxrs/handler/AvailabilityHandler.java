@@ -26,7 +26,6 @@ import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.PatternSyntaxException;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
@@ -150,7 +149,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(asyncResponse, AVAILABILITY));
+                .subscribe(createMetricObserver(AVAILABILITY));
     }
 
     @GET
@@ -314,7 +313,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
                         .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(asyncResponse, AVAILABILITY));
+                .subscribe(createNamedDataPointObserver(AVAILABILITY));
     }
 
     @Deprecated

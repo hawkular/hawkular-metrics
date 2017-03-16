@@ -155,7 +155,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(asyncResponse, COUNTER));
+                .subscribe(createMetricObserver(COUNTER));
     }
 
     @GET
@@ -284,7 +284,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
                             .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
                                     p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(asyncResponse, COUNTER));
+                .subscribe(createNamedDataPointObserver(COUNTER));
     }
 
     @POST
@@ -312,7 +312,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
                         .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                             .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(asyncResponse, COUNTER_RATE));
+                .subscribe(createNamedDataPointObserver(COUNTER_RATE));
     }
 
     @Deprecated

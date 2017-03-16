@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -76,6 +78,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import com.google.common.base.Strings;
 
@@ -222,10 +225,13 @@ public class MetricHandler extends MetricsServiceHandler {
             }
         }
 
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
+        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(asyncResponse, metricType));
+                .subscribe(createMetricObserver(metricType));
     }
 
     @Deprecated
