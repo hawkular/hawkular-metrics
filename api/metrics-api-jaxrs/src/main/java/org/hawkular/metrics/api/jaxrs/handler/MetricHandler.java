@@ -58,7 +58,6 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.StatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
@@ -66,6 +65,7 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.transformers.MinMaxTimestampTransformer;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;
