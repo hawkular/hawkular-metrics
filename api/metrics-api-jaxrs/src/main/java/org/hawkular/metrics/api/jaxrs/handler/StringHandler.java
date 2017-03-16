@@ -61,6 +61,7 @@ import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
+import org.jboss.resteasy.annotations.GZIP;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
@@ -78,6 +79,7 @@ import rx.schedulers.Schedulers;
 @Path("/strings")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "String", description = "This resource is experimental and changes may be made to it in subsequent " +
         "releases that are not backwards compatible.")
 @ApplicationScoped

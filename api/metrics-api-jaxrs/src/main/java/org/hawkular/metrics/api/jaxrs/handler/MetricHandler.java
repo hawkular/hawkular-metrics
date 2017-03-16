@@ -78,6 +78,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.resteasy.annotations.GZIP;
 
 import com.google.common.base.Strings;
 
@@ -97,6 +98,7 @@ import rx.Observable;
 @Path("/metrics")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "Metric")
 @ApplicationScoped
 @Logged

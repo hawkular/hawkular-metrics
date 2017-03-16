@@ -48,6 +48,7 @@ import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.TenantDefinition;
 import org.jboss.logging.Logger;
+import org.jboss.resteasy.annotations.GZIP;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -63,6 +64,7 @@ import io.swagger.annotations.ApiResponses;
 @Path("/tenants")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
+@GZIP
 @Api(tags = "Tenant")
 @ApplicationScoped
 @Logged
