@@ -52,13 +52,13 @@ import org.hawkular.metrics.api.jaxrs.QueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
-import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.param.TimeAndBucketParams;
 import org.hawkular.metrics.api.jaxrs.param.TimeAndSortParams;
 import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.Logged;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.core.service.transformers.MinMaxTimestampTransformer;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Buckets;
 import org.hawkular.metrics.model.DataPoint;
@@ -146,7 +146,9 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
     })
     public void getMetrics(
             @Suspended AsyncResponse asyncResponse,
-            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags) {
+            @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") String tags,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps) {
 
         Observable<Metric<Long>> metricObservable = null;
         if (tags != null) {
@@ -155,8 +157,12 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {
