@@ -16,14 +16,15 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler.observer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.hawkular.jaxrs.filter.cors.Headers;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.Metric;
 import org.jboss.logging.Logger;
@@ -48,26 +49,46 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
         void call(Metric<T> dataPoint) throws IOException;
     }
 
+    private final AsyncContext asyncContext;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final JsonGenerator generator;
     private final ObjectMapper mapper;
     private AtomicInteger count;
-    private final ByteArrayOutputStream jsonOutputStream;
 
     private volatile Metric<T> current;
 
-    public MetricObserver(HttpServletRequest request, HttpServletResponse response, ObjectMapper mapper) {
-        this.request = request;
-        this.response = response;
+    public MetricObserver(AsyncContext asyncContext, ObjectMapper mapper, String extraAccesControlAllowHeaders) {
+        this.asyncContext = asyncContext;
+        request = (HttpServletRequest) asyncContext.getRequest();
+        response = (HttpServletResponse) asyncContext.getResponse();
         this.mapper = mapper;
         count = new AtomicInteger();
-        jsonOutputStream = new ByteArrayOutputStream();
+        setCorsHeaders(extraAccesControlAllowHeaders);
         try {
             generator = mapper.getFactory().createGenerator(response.getOutputStream(), JsonEncoding.UTF8);
             generator.writeStartArray();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void setCorsHeaders(String extraAccesControlAllowHeaders) {
+        String requestOrigin = request.getHeader(Headers.ORIGIN);
+        if (requestOrigin == null) {
+            return;
+        }
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_METHODS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        response.setIntHeader(Headers.ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
+
+        if (extraAccesControlAllowHeaders != null) {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS,
+                    Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + ","
+                            + extraAccesControlAllowHeaders.trim());
+        } else {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
         }
     }
 
@@ -120,7 +141,7 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
         } catch (IOException ie) {
             logger.warn("There was an error closing the JSON generator", ie);
         } finally {
-            request.getAsyncContext().complete();
+            asyncContext.complete();
         }
     }
 
@@ -136,7 +157,7 @@ public class MetricObserver<T> extends Subscriber<Metric<T>> {
         } catch (IOException e) {
             logger.warn("There was an error while finishing streaming data", e);
         } finally {
-            request.getAsyncContext().complete();
+            asyncContext.complete();
         }
     }
 }

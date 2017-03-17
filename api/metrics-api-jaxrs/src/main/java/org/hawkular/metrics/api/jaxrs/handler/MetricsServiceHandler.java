@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.api.jaxrs.handler;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.hawkular.metrics.api.jaxrs.filter.TenantFilter.TENANT_HEADER_NAME;
 
 import java.util.Collection;
@@ -23,11 +24,14 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.inject.Inject;
+import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricObserver;
 import org.hawkular.metrics.api.jaxrs.handler.observer.NamedDataPointObserver;
 import org.hawkular.metrics.core.service.MetricsService;
@@ -56,14 +60,19 @@ abstract class MetricsServiceHandler {
     @Context
     protected HttpHeaders httpHeaders;
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS)
+    String extraAccesControlAllowHeaders;
+
     protected String getTenant() {
         return httpHeaders.getRequestHeaders().getFirst(TENANT_HEADER_NAME);
     }
 
-    <T> NamedDataPointObserver<T> createNamedDataPointObserver(MetricType<T> type) {
+    <T> NamedDataPointObserver<T> createNamedDataPointObserver(AsyncContext asyncContext, MetricType<T> type) {
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-        return new NamedDataPointObserver<>(request, response, mapper, type);
+        return new NamedDataPointObserver<>(asyncContext, mapper, type, extraAccesControlAllowHeaders);
     }
 
     <T> Observable<MetricId<T>> findMetricsByNameOrTag(List<String> metricNames, String tags, MetricType<T> type) {
@@ -112,9 +121,7 @@ abstract class MetricsServiceHandler {
         return Observable.just(timeRange);
     }
 
-    <T> MetricObserver<T> createMetricObserver(MetricType<T> type) {
-        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
-        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-        return new MetricObserver<>(request, response, mapper);
+    <T> MetricObserver<T> createMetricObserver(AsyncContext asyncContext, MetricType<T> type) {
+        return new MetricObserver<>(asyncContext, mapper, extraAccesControlAllowHeaders);
     }
 }

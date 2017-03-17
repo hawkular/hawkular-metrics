@@ -146,10 +146,10 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
         }
 
-        metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(AVAILABILITY));
+//        metricObservable
+//                .compose(new MinMaxTimestampTransformer<>(metricsService))
+//                .observeOn(Schedulers.io())
+//                .subscribe(createMetricObserver(AVAILABILITY));
     }
 
     @GET
@@ -313,7 +313,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
                         .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
                                 p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
                                 .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(AVAILABILITY));
+                .subscribe(createNamedDataPointObserver(null, AVAILABILITY));
     }
 
     @Deprecated

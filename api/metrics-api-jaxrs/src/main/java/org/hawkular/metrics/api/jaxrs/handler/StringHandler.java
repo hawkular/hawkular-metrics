@@ -68,7 +68,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -134,10 +133,10 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             metricObservable = metricsService.findMetrics(getTenant(), STRING);
         }
 
-        metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(STRING));
+//        metricObservable
+//                .compose(new MinMaxTimestampTransformer<>(metricsService))
+//                .observeOn(Schedulers.io())
+//                .subscribe(createMetricObserver(STRING));
     }
 
     @GET
@@ -271,17 +270,18 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), STRING)
-                .toList()
-                .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(query.getStart(), query.getEnd())
-                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
-                        .sortOptions(query.getLimit(), query.getOrder())
-                        .forString()
-                        .toObservable()
-                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
-                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
-                                .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(STRING));
+//        findMetricsByNameOrTag(query.getIds(), query.getTags(), STRING)
+//                .toList()
+//                .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(query.getStart(), query.getEnd())
+//                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+//                        .sortOptions(query.getLimit(), query.getOrder())
+//                        .forString()
+//                        .toObservable()
+//                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+//                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+//                                .observeOn(Schedulers.io())))
+//                .subscribe(createNamedDataPointObserver(STRING));
+        throw new UnsupportedOperationException();
     }
 
     @GET

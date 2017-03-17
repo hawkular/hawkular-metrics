@@ -22,7 +22,6 @@ import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.noContent;
 import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.serverError;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.COUNTER_RATE;
 
 import java.net.URI;
 import java.util.Collections;
@@ -79,7 +78,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author Stefan Negrea
@@ -152,10 +150,10 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
         }
 
-        metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(COUNTER));
+//        metricObservable
+//                .compose(new MinMaxTimestampTransformer<>(metricsService))
+//                .observeOn(Schedulers.io())
+//                .subscribe(createMetricObserver(COUNTER));
     }
 
     @GET
@@ -275,16 +273,17 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
-                .toList()
-                .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
-                            .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
-                            .sortOptions(query.getLimit(), query.getOrder())
-                            .toObservable()
-                            .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
-                                    p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
-                                .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(COUNTER));
+//        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
+//                .toList()
+//                .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
+//                            .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+//                            .sortOptions(query.getLimit(), query.getOrder())
+//                            .toObservable()
+//                            .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+//                                    p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+//                                .observeOn(Schedulers.io())))
+//                .subscribe(createNamedDataPointObserver(COUNTER));
+        throw new UnsupportedOperationException();
     }
 
     @POST
@@ -303,16 +302,17 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
-                .toList()
-                .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
-                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
-                        .sortOptions(query.getLimit(), query.getOrder())
-                        .toObservable()
-                        .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
-                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
-                            .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(COUNTER_RATE));
+//        findMetricsByNameOrTag(query.getIds(), query.getTags(), COUNTER)
+//                .toList()
+//                .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(query.getStart(), query.getEnd())
+//                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+//                        .sortOptions(query.getLimit(), query.getOrder())
+//                        .toObservable()
+//                        .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
+//                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+//                            .observeOn(Schedulers.io())))
+//                .subscribe(createNamedDataPointObserver(COUNTER_RATE));
+        throw new UnsupportedOperationException();
     }
 
     @Deprecated

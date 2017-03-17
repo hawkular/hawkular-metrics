@@ -18,9 +18,11 @@ package org.hawkular.metrics.api.jaxrs.handler.observer;
 
 import java.io.IOException;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.hawkular.jaxrs.filter.cors.Headers;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.MetricType;
@@ -54,10 +56,10 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
     private volatile String currentMetric;
 
 
-    public NamedDataPointObserver(HttpServletRequest request, HttpServletResponse response, ObjectMapper mapper,
-            MetricType<T> type) {
-        this.request = request;
-        this.response = response;
+    public NamedDataPointObserver(AsyncContext asyncContext, ObjectMapper mapper, MetricType<T> type,
+            String extraAccesControlAllowHeaders) {
+        request = (HttpServletRequest) asyncContext.getRequest();
+        response = (HttpServletResponse) asyncContext.getResponse();
         this.mapper = mapper;
         try {
             this.generator = mapper.getFactory().createGenerator(response.getOutputStream(), JsonEncoding.UTF8);
@@ -78,6 +80,25 @@ public class NamedDataPointObserver<T> extends Subscriber<NamedDataPoint<T>> {
         } else {
             throw new IllegalArgumentException(type + " is not supported metric type. This class should be " +
                     "updated to add support for it!");
+        }
+    }
+
+    private void setCorsHeaders(String extraAccesControlAllowHeaders) {
+        String requestOrigin = request.getHeader(Headers.ORIGIN);
+        if (requestOrigin == null) {
+            return;
+        }
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_METHODS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        response.setIntHeader(Headers.ACCESS_CONTROL_MAX_AGE, 72 * 60 * 60);
+
+        if (extraAccesControlAllowHeaders != null) {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS,
+                    Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + ","
+                            + extraAccesControlAllowHeaders.trim());
+        } else {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
         }
     }
 

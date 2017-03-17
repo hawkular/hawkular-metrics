@@ -31,16 +31,22 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.GAUGE_RATE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.servlet.AsyncContext;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -78,7 +84,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.jboss.logging.Logger;
 
 import com.google.common.base.Strings;
 
@@ -88,7 +94,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 
 /**
@@ -103,11 +108,16 @@ import rx.schedulers.Schedulers;
 @ApplicationScoped
 @Logged
 public class MetricHandler extends MetricsServiceHandler {
+
+    static Logger logger = Logger.getLogger(MetricHandler.class);
+
     @Inject
     private MetricsService metricsService;
 
     @Context
     private HttpHeaders httpHeaders;
+
+    ExecutorService executor = Executors.newCachedThreadPool();
 
     @POST
     @Path("/")
@@ -191,6 +201,7 @@ public class MetricHandler extends MetricsServiceHandler {
     public <T> void findMetrics(
             @Suspended
             AsyncResponse asyncResponse,
+            @Context HttpServletRequest servletRequest,
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, " +
                     "counter, string")
             @QueryParam("type") MetricType<T> metricType,
@@ -225,13 +236,29 @@ public class MetricHandler extends MetricsServiceHandler {
             }
         }
 
-        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
-        HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+        AtomicReference<Observable<Metric<T>>> observableRef = new AtomicReference<>(metricObservable);
 
-        metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(metricType));
+        try {
+            final AsyncContext asyncContext = servletRequest.getAsyncContext();
+            final ServletOutputStream out = asyncContext.getResponse().getOutputStream();
+            out.setWriteListener(new WriteListener() {
+                @Override
+                public void onWritePossible() throws IOException {
+                    observableRef.get()
+                            // Had to move the MinMaxTimestampTransformer inside the WriteListener callback;
+                            // otherwise, it does not get invoked.
+                            .compose(new MinMaxTimestampTransformer<>(metricsService))
+                            .subscribe(createMetricObserver(asyncContext, metricType));
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    logger.warn("Writing response failed", t);
+                }
+            });
+        } catch (IOException e) {
+            asyncResponse.resume(serverError(e));
+        }
     }
 
     @Deprecated

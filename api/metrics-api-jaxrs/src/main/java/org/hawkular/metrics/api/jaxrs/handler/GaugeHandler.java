@@ -151,10 +151,10 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             metricObservable = metricsService.findMetrics(getTenant(), GAUGE);
         }
 
-        metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
-                .observeOn(Schedulers.io())
-                .subscribe(createMetricObserver(GAUGE));
+//        metricObservable
+//                .compose(new MinMaxTimestampTransformer<>(metricsService))
+//                .observeOn(Schedulers.io())
+//                .subscribe(createMetricObserver(GAUGE));
     }
 
     @GET
@@ -307,16 +307,17 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), GAUGE)
-                .toList()
-                .flatMap(metricIds -> TimeAndSortParams.<Double>deferredBuilder(query.getStart(), query.getEnd())
-                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
-                        .sortOptions(query.getLimit(), query.getOrder())
-                        .toObservable()
-                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
-                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
-                                .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver(GAUGE));
+//        findMetricsByNameOrTag(query.getIds(), query.getTags(), GAUGE)
+//                .toList()
+//                .flatMap(metricIds -> TimeAndSortParams.<Double>deferredBuilder(query.getStart(), query.getEnd())
+//                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+//                        .sortOptions(query.getLimit(), query.getOrder())
+//                        .toObservable()
+//                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+//                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+//                                .observeOn(Schedulers.io())))
+//                .subscribe(createNamedDataPointObserver(GAUGE));
+        throw new UnsupportedOperationException();
     }
 
     @POST
@@ -335,16 +336,17 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(required = true, value = "Query parameters that minimally must include a list of metric ids or " +
                     "tags. The standard start, end, order, and limit query parameters are supported as well.")
                     QueryRequest query) {
-        findMetricsByNameOrTag(query.getIds(), query.getTags(), GAUGE)
-                .toList()
-                .flatMap(metricIds -> TimeAndSortParams.<Double>deferredBuilder(query.getStart(), query.getEnd())
-                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
-                        .sortOptions(query.getLimit(), query.getOrder())
-                        .toObservable()
-                        .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
-                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
-                                .observeOn(Schedulers.io())))
-                .subscribe(createNamedDataPointObserver( GAUGE_RATE));
+//        findMetricsByNameOrTag(query.getIds(), query.getTags(), GAUGE)
+//                .toList()
+//                .flatMap(metricIds -> TimeAndSortParams.<Double>deferredBuilder(query.getStart(), query.getEnd())
+//                        .fromEarliest(query.getFromEarliest(), metricIds, this::findTimeRange)
+//                        .sortOptions(query.getLimit(), query.getOrder())
+//                        .toObservable()
+//                        .flatMap(p -> metricsService.findRateData(metricIds, p.getTimeRange().getStart(),
+//                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+//                                .observeOn(Schedulers.io())))
+//                .subscribe(createNamedDataPointObserver( GAUGE_RATE));
+        throw new UnsupportedOperationException();
     }
 
     @Deprecated
