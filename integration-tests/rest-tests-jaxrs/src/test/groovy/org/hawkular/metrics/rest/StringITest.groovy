@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,7 +106,9 @@ class StringITest extends RESTTest {
         ]
     )
     assertEquals(200, response.status)
+
     response = hawkularMetrics.get(path: "strings/$id/raw", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     def expectedData = [
         [
             timestamp: start.plusMinutes(4).millis,
@@ -171,6 +173,7 @@ class StringITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "strings/S1/raw", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     def expectedData = [
         [
             timestamp: start.plusMinutes(5).millis,
@@ -186,6 +189,7 @@ class StringITest extends RESTTest {
     assertEquals(expectedData, response.data)
 
     response = hawkularMetrics.get(path: "strings/S2/raw", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     expectedData = [
         [
             timestamp: start.plusMinutes(10).millis,
@@ -235,6 +239,7 @@ class StringITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId],
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusMinutes(2).millis, value: 'stopped'],
@@ -475,6 +480,7 @@ class StringITest extends RESTTest {
       )
 
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(2, response.data.size)
 
     assertEquals([timestamp: start.millis, value: 'running1'], response.data[0])
@@ -490,6 +496,7 @@ class StringITest extends RESTTest {
       )
 
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(2, response.data.size)
 
     assertEquals([timestamp: start.plusHours(4).millis, value: 'down'], response.data[0])

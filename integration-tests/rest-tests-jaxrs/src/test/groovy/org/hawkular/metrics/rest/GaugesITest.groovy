@@ -138,6 +138,7 @@ class GaugesITest extends RESTTest {
         query: [order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusHours(2).millis, value: 300.3],
@@ -154,6 +155,7 @@ class GaugesITest extends RESTTest {
         query: [fromEarliest: true, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100.1],
@@ -193,6 +195,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 2]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600.6],
@@ -206,6 +209,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 2, order: 'desc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600.6],
@@ -219,6 +223,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 3, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100.1],
@@ -233,6 +238,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 3, start: start.plusMinutes(1).millis]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(1).millis, value: 200.2],
@@ -247,6 +253,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 3, end: (start.plusMinutes(5).millis + 1)]
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600.6],
@@ -261,6 +268,7 @@ class GaugesITest extends RESTTest {
         query: [limit: 3, start: (start.plusMinutes(1).millis - 1), order: 'desc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600.6],
@@ -275,6 +283,7 @@ class GaugesITest extends RESTTest {
         query: [limit: -1, order: 'desc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.plusMinutes(5).millis, value: 600.6],
@@ -292,6 +301,7 @@ class GaugesITest extends RESTTest {
         query: [limit: -100, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     expectedData = [
         [timestamp: start.millis, value: 100.1],
@@ -316,6 +326,7 @@ class GaugesITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "gauges/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertFalse("Metric should not have the minTimestamp attribute: ${response.data}", response.data.containsKey('minTimestamp'))
     assertFalse("Metric should not have the maxTimestamp attribute: ${response.data}", response.data.containsKey('maxTimestamp'))
 
@@ -325,6 +336,7 @@ class GaugesITest extends RESTTest {
     assertEquals(200, response.status)
 
     response = hawkularMetrics.get(path: "gauges/${metricId}", headers: [(tenantHeaderName): tenantId])
+    assertContentEncoding(response)
     assertEquals(200, response.status)
     assertEquals(3, response.data.minTimestamp)
     assertEquals(3, response.data.maxTimestamp)
@@ -338,17 +350,20 @@ class GaugesITest extends RESTTest {
 
     response = hawkularMetrics.get(path: "gauges/${metricId}", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     assertEquals(1, response.data.minTimestamp)
     assertEquals(4, response.data.maxTimestamp)
 
     response = hawkularMetrics.get(path: "gauges", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     def metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
 
     response = hawkularMetrics.get(path: "metrics", headers: [(tenantHeaderName): tenantId])
     assertEquals(200, response.status)
+    assertContentEncoding(response)
     metric = (response.data as List).find { it.id.equals(metricId) }
     assertEquals(1, metric.minTimestamp)
     assertEquals(4, metric.maxTimestamp)
@@ -378,6 +393,7 @@ class GaugesITest extends RESTTest {
         query: [start: 0, order: 'asc']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = [
         [timestamp: (60_000 * 1.5).toLong(), value: 307.0],
@@ -423,6 +439,7 @@ Actual:   ${response.data}
         query: [start: 60_000, end: 60_000 * 8, bucketDuration: '1mn']
     )
     assertEquals(200, response.status)
+    assertContentEncoding(response)
 
     def expectedData = []
     (1..7).each { i ->

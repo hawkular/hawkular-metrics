@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ package org.hawkular.metrics.rest
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.json.JsonOutput
+import groovyx.net.http.ContentEncoding
 import groovyx.net.http.ContentType
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.HttpResponseException
@@ -58,8 +59,9 @@ class RESTTest {
 
   @BeforeClass
   static void initClient() {
-    objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
+    objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
     hawkularMetrics = new RESTClient("http://$baseURI/", ContentType.JSON)
+    hawkularMetrics.setContentEncoding(ContentEncoding.Type.GZIP)
     hawkularMetrics.parser['application/json'] = hawkularMetrics.parser['text/plain']
     hawkularMetrics.handler.success = { HttpResponseDecorator resp, Reader data ->
       if (data != null) {
@@ -305,5 +307,9 @@ Actual: ${actual}
     def json = JsonOutput.toJson(data)
     println "RESULTS:\n${JsonOutput.prettyPrint(json)}"
 
+  }
+
+  static void assertContentEncoding(response) {
+    assertEquals('gzip', response.headers['Content-Encoding'].getValue())
   }
 }
