@@ -64,8 +64,7 @@ public class ConditionExpressionTest {
         Query q1 = new Query("query-1", Collections.singleton("metric-1"), null,
                 Collections.singleton("0.90"), "10mn", "15mn");
 
-        ConditionExpression e = new ConditionExpression(Collections.singletonList(q1), "5mn",
-                EvalType.ALL, "q(query-1,avg) > 50");
+        ConditionExpression e = new ConditionExpression(q1, "5mn", EvalType.ALL, "q(query-1,avg) > 50");
 
         String mc1Json = e.toJson();
         ConditionExpression eObject = ConditionExpression.toObject(mc1Json);
@@ -80,8 +79,8 @@ public class ConditionExpressionTest {
         queries.add(new Query("query-1", metrics, null, percentiles, "10mn", "15mn"));
         queries.add(new Query("query-2", null, "name = 'value'", percentiles, "10mn", "15mn"));
 
-        ConditionExpression mc1 = new ConditionExpression(queries, "5mn",
-                EvalType.EACH, "q(query-1,avg) > q(query-2,avg)");
+        ConditionExpression mc1 = new ConditionExpression(queries, "5mn", EvalType.EACH,
+                "q(query-1,avg) > q(query-2,avg)", 5);
 
         String mc1Json = mc1.toJson();
         ConditionExpression mc1Object = ConditionExpression.toObject(mc1Json);

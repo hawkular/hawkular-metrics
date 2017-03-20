@@ -279,6 +279,9 @@ public class ConditionManager {
         private ExternalCondition externalCondition;
         private ConditionExpression expression;
 
+        // Map of quiet metric names to count of remaining quiet evals
+        private transient Map<String, Integer> quietMap;
+
         public ExpressionRunner(MetricsService metrics, AlertsService alerts, Trigger trigger,
                 ExternalCondition externalCondition,
                 ConditionExpression expression) {
@@ -288,6 +291,9 @@ public class ConditionManager {
             this.trigger = trigger;
             this.externalCondition = externalCondition;
             this.expression = expression;
+            if (expression.getQuietCount() > 0) {
+                quietMap = new HashMap<>();
+            }
         }
 
         @Override
@@ -363,8 +369,7 @@ public class ConditionManager {
 
                 log.debugf("Query Results: %s", queryResults);
 
-                ConditionEvaluator evaluator = expression.getEvaluator();
-                evaluate("", queryResults, evaluator);
+                evaluate("", queryResults, expression);
 
             } catch (Throwable t) {
                 if (log.isDebugEnabled()) {
@@ -472,7 +477,8 @@ public class ConditionManager {
                     log.debugf("Could not prepare evaluation, Skipping due to [%s]", e.getMessage());
                 }
 
-                if (evaluator.evaluate()) {
+                boolean evalResult = evaluator.evaluate();
+                if (!isQuiet(metric, expression.getQuietCount(), evalResult)) {
                     try {
                         Event externalEvent = new Event(externalCondition.getTenantId(), UUID.randomUUID().toString(),
                                 System.currentTimeMillis(), externalCondition.getDataId(),
@@ -489,7 +495,8 @@ public class ConditionManager {
             }
         }
 
-        private void evaluate(String target, Map<String, BucketPoint> queryResults, ConditionEvaluator evaluator) {
+        private void evaluate(String target, Map<String, BucketPoint> queryResults, ConditionExpression expression) {
+            ConditionEvaluator evaluator = expression.getEvaluator();
             Map<String, String> preparedCondition = null;
             try {
                 preparedCondition = evaluator.prepare(queryResults);
@@ -497,7 +504,8 @@ public class ConditionManager {
                 log.debugf("Could not prepare evaluation, Skipping due to [%s]", e.getMessage());
             }
 
-            if (evaluator.evaluate()) {
+            boolean evalResult = evaluator.evaluate();
+            if (!isQuiet("_ALL_", expression.getQuietCount(), evalResult)) {
                 try {
                     Event externalEvent = new Event(externalCondition.getTenantId(), UUID.randomUUID().toString(),
                             System.currentTimeMillis(), externalCondition.getDataId(),
@@ -510,6 +518,30 @@ public class ConditionManager {
                     log.error("Failed to send external [ALL] event to alerts system.", e);
                 }
             }
+        }
+
+        private boolean isQuiet(String metricName, int quietCount, boolean evalResult) {
+            boolean isQuiet = false;
+
+            if (quietCount > 0) {
+                Integer currentQuietCount = quietMap.get(metricName);
+                if (true == evalResult) {
+                    // either set or reset counter to the necessary quietCount
+                    quietMap.put(metricName, quietCount);
+                    isQuiet = (null != currentQuietCount);
+
+                } else {
+                    if (null != currentQuietCount) {
+                        isQuiet = true;
+                        if (1 == currentQuietCount) {
+                            quietMap.remove(metricName);
+                        } else {
+                            quietMap.put(metricName, --currentQuietCount);
+                        }
+                    }
+                }
+            }
+            return isQuiet;
         }
 
         private boolean isEmpty(Collection<?> c) {
