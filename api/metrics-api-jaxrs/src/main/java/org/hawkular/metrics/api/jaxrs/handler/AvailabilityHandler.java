@@ -186,7 +186,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
 
     @DELETE
     @Path("/{id}")
-    @ApiOperation(value = "Deletes the metric and associated data points, and updates internal indexes.")
+    @ApiOperation(value = "Deletes the metric and associated data points, and updates internal indexes."
+            + " Note: compressed data will not be deleted and still be accessible.")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Metric deletion was successful."),
             @ApiResponse(code = 500, message = "Unexpected error occurred trying to delete the metric.")

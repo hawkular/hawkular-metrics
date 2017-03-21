@@ -1059,7 +1059,10 @@ public class MetricsServiceImpl implements MetricsService {
                 .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
                 .flatMap(r -> null);
 
+        //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
+        //      for the compressed data table.
         result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
+
         result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
         return result;
     }
