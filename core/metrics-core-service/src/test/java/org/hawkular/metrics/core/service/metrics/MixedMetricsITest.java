@@ -367,6 +367,8 @@ public class MixedMetricsITest extends BaseMetricsITest {
                     assertEquals(countFromTagIndex, 1);
                 }
             }
+
+            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
         }
     }
 }
