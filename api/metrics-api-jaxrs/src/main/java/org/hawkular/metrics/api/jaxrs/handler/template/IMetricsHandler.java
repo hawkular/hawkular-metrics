@@ -41,6 +41,8 @@ public interface IMetricsHandler<T> {
 
     void getMetric(AsyncResponse asyncResponse, String id);
 
+    void deleteMetric(AsyncResponse asyncResponse, String id);
+
     //Tags
     void getTags(AsyncResponse asyncResponse, Tags tags);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -2482,4 +2482,102 @@ class MetricsITest extends RESTTest {
         assertEquals(expected.counter.RC[0].avg, response.data.counter.RC[0].avg, 0)
         assertEquals(1, response.data.counter.RC[0].samples)
     }
+
+  @Test
+  void createAndDeleteMetrics() {
+    def dataPointsMap = [:]
+
+    dataPointsMap['gauge'] = [1.2D, 2.3D, 3.4D, 4.5D]
+    dataPointsMap['counter'] = [12L, 23L, 34L, 45L]
+    dataPointsMap['availability'] = ['down', 'up', 'up', 'down']
+    dataPointsMap['string'] = ['1.2d', '2.3d', '3.4d', '4.5d' ]
+
+    metricTypes.each {
+      String tenantId = nextTenantId()
+
+      def metricType = it
+      final int iterations = 4
+
+      def mList = [];
+      for (int i = 0; i < iterations; i++) {
+          def id = metricType.type + '-test-' + i
+
+          def tags = [:];
+          for (int j = 0; j < iterations; j++) {
+              tags.put('test' + j, 'test' +  metricType.type + j);
+          }
+
+          def dataPoints = [];
+          for (int j = 0; j < dataPointsMap[metricType.type].size; j++) {
+              def timestamp = j + 1
+              dataPoints.add([timestamp: timestamp, value: dataPointsMap[metricType.type][j]])
+          }
+
+          def response = hawkularMetrics.post(
+            path: metricType.path, body: [
+            id: id,
+            tags: tags
+          ], headers: [(tenantHeaderName): tenantId])
+          assertEquals(201, response.status)
+
+          response = hawkularMetrics.post(
+            path: "${metricType.path}/${id}/raw",
+            headers: [(tenantHeaderName): tenantId],
+            body: dataPoints
+          )
+          assertEquals(200, response.status)
+
+          mList.add([id: id, tags: tags, dataPoints: dataPoints]);
+      }
+
+      def deletedMetrics = [];
+      mList.each {
+        def metric= it;
+
+        def response = hawkularMetrics.get(path: "${metricType.path}/${metric.id}", headers: [(tenantHeaderName): tenantId])
+        assertEquals(200, response.status)
+        assertContentEncoding(response)
+        assertEquals(metric.tags, response.data.tags)
+
+        response = hawkularMetrics.get(
+          path: "${metricType.path}/${metric.id}/raw",
+          headers: [(tenantHeaderName): tenantId],
+          query: [order: 'asc', start: 0, end: 100]
+        )
+        assertEquals(200, response.status)
+        assertContentEncoding(response)
+        assertEquals(metric.dataPoints.toString(), response.data.toString())
+
+        response = hawkularMetrics.delete(path: "${metricType.path}/${metric.id}", headers: [(tenantHeaderName): tenantId])
+        assertEquals(200, response.status)
+        deletedMetrics.add(metric.id);
+
+        mList.each {
+          def checkMetric= it;
+
+          response = hawkularMetrics.get(path: "${metricType.path}/${checkMetric.id}", headers: [(tenantHeaderName): tenantId])
+          if (deletedMetrics.contains(checkMetric.id)) {
+              assertEquals(204, response.status)
+          } else {
+            assertEquals(200, response.status)
+            assertContentEncoding(response)
+            assertEquals(checkMetric.tags, response.data.tags)
+          }
+
+          response = hawkularMetrics.get(
+            path: "${metricType.path}/${checkMetric.id}/raw",
+            headers: [(tenantHeaderName): tenantId],
+            query: [order: 'asc', start: 0, end: 100]
+          )
+          if (deletedMetrics.contains(checkMetric.id)) {
+            assertEquals(204, response.status)
+          } else {
+            assertEquals(200, response.status)
+            assertContentEncoding(response)
+            assertEquals(checkMetric.dataPoints.toString(), response.data.toString())
+          }
+        }
+      }
+    }
+  }
 }

@@ -36,11 +36,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -62,11 +62,11 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createTenants() throws Exception {
-        String t1Id = createRandomTenantId();
+        String t1Id = createRandomId();
         Tenant t1 = new Tenant(t1Id, ImmutableMap.of(GAUGE, 1, AVAILABILITY, 1));
-        Tenant t2 = new Tenant(createRandomTenantId(), ImmutableMap.of(GAUGE, 7));
-        Tenant t3 = new Tenant(createRandomTenantId(), ImmutableMap.of(AVAILABILITY, 2));
-        Tenant t4 = new Tenant(createRandomTenantId());
+        Tenant t2 = new Tenant(createRandomId(), ImmutableMap.of(GAUGE, 7));
+        Tenant t3 = new Tenant(createRandomId(), ImmutableMap.of(AVAILABILITY, 2));
+        Tenant t4 = new Tenant(createRandomId());
 
         Observable.concat(
                 metricsService.createTenant(t1, false),
@@ -116,7 +116,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createMetricsIdxTenants() throws Exception {
-        String tenantId = createRandomTenantId();
+        String tenantId = createRandomId();
         Metric<Double> em1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "em1"));
         metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
 
@@ -139,7 +139,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void createAndFindMetrics() throws Exception {
-        String tenantId = createRandomTenantId();
+        String tenantId = createRandomId();
         Metric<Double> em1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "em1"));
         metricsService.createMetric(em1, false).toBlocking().lastOrDefault(null);
         Metric<Double> actual = metricsService.<Double> findMetric(em1.getMetricId())
@@ -211,7 +211,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
     @Test
     public void shouldReceiveInsertedDataNotifications() throws Exception {
-        String tenantId = createRandomTenantId();
+        String tenantId = createRandomId();
         ImmutableList<MetricType<?>> metricTypes = ImmutableList.of(GAUGE, COUNTER, AVAILABILITY);
         AvailabilityType[] availabilityTypes = AvailabilityType.values();
 
@@ -272,7 +272,101 @@ public class MixedMetricsITest extends BaseMetricsITest {
         assertTrue(actual.containsAll(expected));
     }
 
-    private String createRandomTenantId() {
-        return UUID.randomUUID().toString();
+    @Test
+    public void createAndDeleteMetrics() {
+        createAndDeleteMetrics(MetricType.GAUGE, new Double[] { 1.2D, 2.3D, 3.4D, 4.5D });
+        createAndDeleteMetrics(MetricType.COUNTER, new Long[] { 12L, 23L, 34L, 45L });
+        createAndDeleteMetrics(MetricType.AVAILABILITY, new AvailabilityType[] { AvailabilityType.DOWN,
+                AvailabilityType.UP, AvailabilityType.UP, AvailabilityType.ADMIN });
+        createAndDeleteMetrics(MetricType.STRING, new String[] { "1.2d", "2.3d", "3.4d", "4.5d" });
+    }
+
+    private <T, V> void createAndDeleteMetrics(MetricType<T> mType, T[] dataPointValues) {
+        String tenantId = createRandomId();
+        final int iterations = 4;
+
+        List<Metric<T>> mList = new ArrayList<>();
+        for (int i = 0; i < iterations; i++) {
+            MetricId<T> mId = new MetricId<>(tenantId, mType, createRandomId());
+
+            Map<String, String> tags = new HashMap<>();
+            for (int j = 0; j < iterations; j++) {
+                tags.put("test" + j, createRandomId());
+            }
+
+            List<DataPoint<T>> dataPoints = new ArrayList<>();
+            for (int j = 0; j < dataPointValues.length; j++) {
+                dataPoints.add(new DataPoint<T>((long) (j + 1), dataPointValues[j]));
+            }
+
+            Metric<T> m = new Metric<>(mId, tags, 21, dataPoints);
+            mList.add(m);
+            metricsService.createMetric(m, true).toBlocking().lastOrDefault(null);
+            metricsService.addDataPoints(mType, Observable.just(m)).toBlocking().lastOrDefault(null);
+        }
+
+        List<Metric<T>> deletedMetrics = new ArrayList<>();
+        for (Metric<T> m : mList) {
+            MetricId<T> mId = m.getMetricId();
+
+            Metric<T> actualMetric = metricsService.findMetric(mId).toBlocking().firstOrDefault(null);
+            assertEquals(actualMetric.getMetricId(), mId);
+
+            List<DataPoint<T>> actualDataPoints = metricsService.findDataPoints(mId, 0, 100, 100, Order.ASC).toList()
+                    .toBlocking().firstOrDefault(null);
+            assertEquals(actualDataPoints, m.getDataPoints());
+
+            Map<String, String> actualTags = metricsService.getMetricTags(mId).toBlocking().lastOrDefault(null);
+            assertEquals(actualTags, m.getTags());
+
+            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
+            deletedMetrics.add(m);
+
+            for (Metric<T> checkMetric : mList) {
+                MetricId<T> checkId = checkMetric.getMetricId();
+
+                actualMetric = metricsService.findMetric(checkId).toBlocking().firstOrDefault(null);
+                if (deletedMetrics.contains(checkMetric)) {
+                    assertEquals(actualMetric, null);
+                } else {
+                    assertEquals(actualMetric.getMetricId(), checkId);
+                }
+
+                actualDataPoints = metricsService.findDataPoints(checkId, 0, 100, 100, Order.ASC).toList()
+                        .toBlocking().firstOrDefault(null);
+                if (deletedMetrics.contains(checkMetric)) {
+                    assertEquals(actualDataPoints.isEmpty(), true);
+                } else {
+                    assertEquals(actualDataPoints, checkMetric.getDataPoints());
+                }
+
+                actualTags = metricsService.getMetricTags(checkId).toBlocking().lastOrDefault(null);
+                if (deletedMetrics.contains(checkMetric)) {
+                    assertEquals(actualTags.isEmpty(), true);
+                } else {
+                    assertEquals(actualTags, checkMetric.getTags());
+                }
+
+                String testTagName = "test0";
+                Metric<T> taggedMetric = metricsService.findMetricsWithFilters(checkMetric.getTenantId(),
+                        checkMetric.getType(), testTagName + "= '" + checkMetric.getTags().get(testTagName) + "'")
+                        .toBlocking()
+                        .firstOrDefault(null);
+                if (deletedMetrics.contains(checkMetric)) {
+                    assertEquals(taggedMetric, null);
+                } else {
+                    assertEquals(taggedMetric.getMetricId(), checkMetric.getMetricId());
+                }
+
+                int countFromTagIndex = dataAccess.findMetricsByTagNameValue(checkMetric.getTenantId(), testTagName,
+                        checkMetric.getTags().get(testTagName))
+                        .count().toBlocking().firstOrDefault(null);
+                if (deletedMetrics.contains(checkMetric)) {
+                    assertEquals(countFromTagIndex, 0);
+                } else {
+                    assertEquals(countFromTagIndex, 1);
+                }
+            }
+        }
     }
 }

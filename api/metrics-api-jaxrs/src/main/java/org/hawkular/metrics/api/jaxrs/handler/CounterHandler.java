@@ -191,6 +191,18 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(serverError(t)));
     }
 
+    @DELETE
+    @Path("/{id}")
+    @ApiOperation(value = "Deletes the metric and associated data points, and updates internal indexes.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric deletion was successful."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred trying to delete the metric.")
+    })
+    public void deleteMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
+        MetricId<Long> metric = new MetricId<>(getTenant(), COUNTER, id);
+        metricsService.deleteMetric(metric).subscribe(new ResultSetObserver(asyncResponse));
+    }
+
     @GET
     @Path("/tags/{tags}")
     @ApiOperation(value = "Retrieve counter type's tag values", response = Map.class)

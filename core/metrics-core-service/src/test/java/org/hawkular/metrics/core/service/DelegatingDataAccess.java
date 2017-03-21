@@ -22,7 +22,6 @@ import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
-import org.hawkular.metrics.model.Interval;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -192,8 +191,18 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return delegate.deleteGaugeMetric(tenantId, metric, interval, dpart);
+    public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
+        return delegate.deleteMetricData(id);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id) {
+        return delegate.deleteMetricFromRetentionIndex(id);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id) {
+        return delegate.deleteMetricFromMetricsIndex(id);
     }
 
     @Override
@@ -234,8 +243,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        return delegate.deleteFromMetricsTagsIndex(metric, tags);
+    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(MetricId<T> id, Map<String, String> tags) {
+        return delegate.deleteFromMetricsTagsIndex(id, tags);
     }
 
     @Override

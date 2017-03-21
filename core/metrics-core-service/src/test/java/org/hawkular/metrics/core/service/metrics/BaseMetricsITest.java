@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import static org.testng.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -303,5 +304,9 @@ public abstract class BaseMetricsITest extends BaseITest {
 
             return percentileCalculator.getQuantile();
         }
+    }
+
+    protected String createRandomId() {
+        return UUID.randomUUID().toString();
     }
 }
