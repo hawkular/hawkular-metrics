@@ -22,7 +22,6 @@ import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
-import org.hawkular.metrics.model.Interval;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -104,7 +103,11 @@ public interface DataAccess {
 
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 
-    Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart);
+    <T> Observable<ResultSet> deleteMetricData(MetricId<T> id);
+
+    <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id);
+
+    <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id);
 
     Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail, Function<MetricId,
             Integer> ttlFetcher);
@@ -122,7 +125,7 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags);
 
-    <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags);
+    <T> Observable<ResultSet> deleteFromMetricsTagsIndex(MetricId<T> id, Map<String, String> tags);
 
     Observable<Row> findMetricsByTagName(String tenantId, String tag);
 

@@ -40,7 +40,6 @@ import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
-import org.hawkular.metrics.model.Interval;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -175,9 +174,13 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findAvailabilityByDateRangeInclusive;
 
-    private PreparedStatement deleteGaugeMetric;
+    private PreparedStatement deleteMetricData;
 
-    private PreparedStatement deleteDatapoints;
+    private PreparedStatement deleteMetricFromRetentionIndex;
+
+    private PreparedStatement deleteMetricFromMetricsIndex;
+
+    private PreparedStatement deleteMetricDataWithLimit;
 
     private PreparedStatement insertAvailability;
 
@@ -471,13 +474,21 @@ public class DataAccessImpl implements DataAccess {
             "SELECT time, availability, WRITETIME(availability) FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
 
-        deleteGaugeMetric = session.prepare(
+        deleteMetricData = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
 
-        deleteDatapoints = session.prepare(
-                "DELETE FROM data " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+        deleteMetricDataWithLimit = session.prepare(
+            "DELETE FROM data " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+
+        deleteMetricFromRetentionIndex = session.prepare(
+            "DELETE FROM retentions_idx " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ?");
+
+        deleteMetricFromMetricsIndex = session.prepare(
+            "DELETE FROM metrics_idx " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
         insertAvailability = session.prepare(
             "UPDATE data " +
@@ -1025,9 +1036,20 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<ResultSet> deleteGaugeMetric(String tenantId, String metric, Interval interval, long dpart) {
-        return rxSession.execute(deleteGaugeMetric.bind(tenantId, GAUGE.getCode(), metric,
-                interval.toString(), dpart));
+    public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
+        return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id) {
+        return rxSession
+                .execute(deleteMetricFromRetentionIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id) {
+        return rxSession
+                .execute(deleteMetricFromMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     private Observable.Transformer<DataPoint<AvailabilityType>, BoundStatement> mapAvailabilityDatapoint(
@@ -1107,10 +1129,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getMetricId();
-        return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
-                metricId.getType().getCode(), metricId.getName()));
+    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(MetricId<T> id, Map<String, String> tags) {
+        return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(id.getTenantId(), name, value,
+                id.getType().getCode(), id.getName()));
     }
 
     private Observable<ResultSet> tagsUpdates(Map<String, String> tags,
@@ -1172,7 +1193,7 @@ public class DataAccessImpl implements DataAccess {
             mapper.accept(b, 2);
         }
 
-        return Observable.just(deleteDatapoints.bind()
+        return Observable.just(deleteMetricDataWithLimit.bind()
                 .setString(0, id.getTenantId())
                 .setByte(1, id.getType().getCode())
                 .setString(2, id.getName())

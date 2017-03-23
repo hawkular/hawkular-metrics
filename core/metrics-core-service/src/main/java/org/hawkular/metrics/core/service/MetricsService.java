@@ -100,6 +100,8 @@ public interface MetricsService {
 
     <T> Observable<Metric<T>> findMetric(MetricId<T> id);
 
+    <T> Observable<Void> deleteMetric(MetricId<T> id);
+
     /**
      * Returns tenant's metric definitions. The results can be filtered using a type.
      *

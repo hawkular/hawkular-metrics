@@ -172,6 +172,21 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
 
+    @DELETE
+    @Path("/{id}")
+    @ApiOperation(value = "Deletes the metric and associated uncompressed data points, and updates internal indexes."
+            + " Note: compressed data will not be deleted immediately. It is deleted as part of the normal"
+            + " data expiration as defined by the data retention settings. Consequently, compressed data will"
+            + " be accessible until it automatically expires.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Metric deletion was successful."),
+            @ApiResponse(code = 500, message = "Unexpected error occurred trying to delete the metric.")
+    })
+    public void deleteMetric(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
+        MetricId<String> metric = new MetricId<>(getTenant(), STRING, id);
+        metricsService.deleteMetric(metric).subscribe(new ResultSetObserver(asyncResponse));
+    }
+
     @GET
     @Path("/tags/{tags}")
     @ApiOperation(value = "Retrieve string type's tag values", response = Map.class)

@@ -642,7 +642,8 @@ public class MetricsServiceImpl implements MetricsService {
                 })
                 .flatMap(tagsToDelete -> {
                     return dataAccess.deleteTags(metric, tagsToDelete.keySet()).mergeWith(
-                            dataAccess.deleteFromMetricsTagsIndex(metric, tagsToDelete)).toList().map(r -> null);
+                            dataAccess.deleteFromMetricsTagsIndex(metric.getMetricId(), tagsToDelete)).toList()
+                            .map(r -> null);
                 });
     }
 
@@ -1046,5 +1047,23 @@ public class MetricsServiceImpl implements MetricsService {
         } catch (Exception e) {
             throw new RuntimeException("There was an error during a timed event", e);
         }
+    }
+
+    @Override
+    public <T> Observable<Void> deleteMetric(MetricId<T> id) {
+        Observable<Void> result = dataAccess.getMetricTags(id)
+                .map(row -> row.getMap(0, String.class, String.class))
+                .defaultIfEmpty(new HashMap<>())
+                .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
+                .toList()
+                .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
+                .flatMap(r -> null);
+
+        //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
+        //      for the compressed data table.
+        result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
+
+        result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
+        return result;
     }
 }
