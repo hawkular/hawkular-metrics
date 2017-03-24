@@ -395,6 +395,46 @@ class MetricsITest extends RESTTest {
     }
   }
 
+  static def createGauges(String tenantId, List gauges) {
+    gauges.each { gauge ->
+      def response  = hawkularMetrics.post(
+          path: 'gauges',
+          body: [id: gauge.id, tags: gauge.tags],
+          headers: [(tenantHeaderName): tenantId]
+      )
+      assertEquals(201, response.status)
+    }
+  }
+
+  static def insertGaugeDataPoints(String tenantId, List gauges) {
+    def response = hawkularMetrics.post(
+        path: 'gauges/raw',
+        body: gauges,
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+  }
+
+  static def createCounters(String tenantId, List counters) {
+    counters.each { counter ->
+      def response  = hawkularMetrics.post(
+          path: 'counters',
+          body: [id: counter.id, tags: counter.tags],
+          headers: [(tenantHeaderName): tenantId]
+      )
+      assertEquals(201, response.status)
+    }
+  }
+
+  static def insertCounterDataPoints(String tenantId, List counters) {
+    def response = hawkularMetrics.post(
+        path: 'counters/raw',
+        body: counters,
+        headers: [(tenantHeaderName): tenantId]
+    )
+    assertEquals(200, response.status)
+  }
+
   static def withDataPoints(String tenantId, Closure callback) {
     def createGauge = { id, tags ->
       def response = hawkularMetrics.post(
@@ -2335,6 +2375,242 @@ class MetricsITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId]) { exception ->
       assertEquals(400, exception.response.status)
     }
+  }
+
+  @Test
+  void batchQueriesForGaugesAndCounterRates() {
+    String tenantId = nextTenantId()
+
+    createGauges(tenantId, [
+        [id: 'G1', tags: [x: 1, y: 1, z: 1]],
+        [id: 'G2', tags: [x: 1, y: 2, z: 2]],
+        [id: 'G3', tags: [x: 2, y: 3, z: 1]]
+    ])
+    createCounters(tenantId, [
+        [id: 'C1', tags: [x: 1, y: 1, z: 3]],
+        [id: 'C2', tags: [x: 1, y: 2, z: 1]],
+        [id: 'C3', tags: [x: 2, y: 3, z: 1]]
+    ])
+    insertGaugeDataPoints(tenantId, [
+        [
+            id: 'G1',
+            data: [
+                [timestamp: 100, value: 1.23],
+                [timestamp: 200, value: 3.45],
+                [timestamp: 300, value: 5.34],
+                [timestamp: 400, value: 2.22],
+                [timestamp: 500, value: 5.22]
+            ]
+        ],
+        [
+            id: 'G2',
+            data: [
+                [timestamp: 100, value: 1.45],
+                [timestamp: 200, value: 2.36],
+                [timestamp: 300, value: 3.62],
+                [timestamp: 400, value: 2.63],
+                [timestamp: 500, value: 3.99]
+            ]
+        ],
+        [
+            id: 'G3',
+            data: [
+                [timestamp: 100, value: 4.45],
+                [timestamp: 200, value: 5.55],
+                [timestamp: 300, value: 4.44],
+                [timestamp: 400, value: 3.33],
+                [timestamp: 500, value: 3.77]
+            ]
+        ]
+    ])
+    insertCounterDataPoints(tenantId, [
+        [
+            id: 'C1',
+            data: [
+                [timestamp: 100, value: 12],
+                [timestamp: 200, value: 17],
+                [timestamp: 300, value: 19],
+                [timestamp: 400, value: 26],
+                [timestamp: 500, value: 37]
+            ]
+        ],
+        [
+            id: 'C2',
+            data: [
+                [timestamp: 100, value: 41],
+                [timestamp: 200, value: 49],
+                [timestamp: 300, value: 64],
+                [timestamp: 400, value: 71],
+                [timestamp: 500, value: 95]
+            ]
+        ],
+        [
+            id: 'C3',
+            data: [
+                [timestamp: 100, value: 28],
+                [timestamp: 200, value: 35],
+                [timestamp: 300, value: 42],
+                [timestamp: 400, value: 49],
+                [timestamp: 500, value: 59]
+            ]
+        ]
+    ])
+
+    def response = hawkularMetrics.post(
+        path: 'metrics/stats/batch/query',
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            q1: [
+                metrics: [
+                    gauge: ['G1', 'G3'],
+                ],
+                buckets: 2,
+                start: 200,
+                end: 500
+            ],
+            q2: [
+                tags: 'z = 1',
+                types: ['counter_rate'],
+                buckets: 2,
+                start: 200,
+                end: 500
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    def expected = [
+        q1: [
+            gauge: [
+                G1: [
+                    [
+                        start: 200,
+                        end: 350,
+                        samples: 2,
+                        max: 5.34,
+                        min: 3.45,
+                        avg: avg([3.45, 5.34]),
+                        sum: 3.45 + 5.34,
+                        median: median([3.45, 5.34]),
+                        empty: false
+                    ],
+                    [
+                        start: 350,
+                        end: 500,
+                        max: 2.22,
+                        min: 2.22,
+                        avg: 2.22,
+                        median: 2.22,
+                        sum: 2.22,
+                        samples: 1,
+                        empty: false
+                    ]
+                ],
+                G3: [
+                    [
+                        start: 200,
+                        end: 350,
+                        max: 5.55,
+                        min: 4.44,
+                        avg: avg([5.55, 4.44]),
+                        median: median([5.55, 4.44]),
+                        sum: 5.55 + 4.44,
+                        samples: 2,
+                        empty: false
+                    ],
+                    [
+                        start: 350,
+                        end: 500,
+                        max: 3.33,
+                        min: 3.33,
+                        avg: 3.33,
+                        median: 3.33,
+                        sum: 3.33,
+                        samples: 1,
+                        empty: false
+                    ]
+                ]
+            ]
+        ],
+        q2: [
+            counter_rate: [
+                C2: [
+                    [
+                        start: 200,
+                        end: 350,
+                        max: 9000,
+                        avg: 9000,
+                        min: 9000,
+                        sum: 9000,
+                        median: 9000,
+                        samples: 1,
+                        empty: false
+                    ],
+                    [
+                        start: 350,
+                        end: 500,
+                        max: 4200,
+                        min: 4200,
+                        avg: 4200,
+                        sum: 4200,
+                        median: 4200,
+                        samples: 1,
+                        empty: false
+                    ]
+                ],
+                C3: [
+                    [
+                        start: 200,
+                        end: 350,
+                        max: 4200,
+                        min: 4200,
+                        avg: 4200,
+                        sum: 4200,
+                        median: 4200,
+                        samples: 1,
+                        empty: false
+                    ],
+                    [
+                        start: 350,
+                        end: 500,
+                        max: 4200,
+                        min: 4200,
+                        avg: 4200,
+                        sum: 4200,
+                        median: 4200,
+                        samples: 1,
+                        empty: false
+                    ]
+                ]
+            ]
+        ]
+    ]
+    assertEquals(expected.size(), response.data.size())
+    assertEquals(expected.q1.size(), response.data.q1.size())
+    assertEquals(expected.q1.gauge.G1.size(), response.data.q1.gauge.G1.size())
+    assertNumericBucketEquals('The data for G1[0] does not match', expected.q1.gauge.G1[0],
+        response.data.q1.gauge.G1[0])
+    assertNumericBucketEquals('The data for G1[1] does not match', expected.q1.gauge.G1[1],
+        response.data.q1.gauge.G1[1])
+    assertEquals(expected.q1.gauge.G3.size(), response.data.q1.gauge.G3.size())
+    assertNumericBucketEquals('The data for G3[0] does not match', expected.q1.gauge.G3[0],
+        response.data.q1.gauge.G3[0])
+    assertNumericBucketEquals('The data for G3[1] does not match', expected.q1.gauge.G3[1],
+        response.data.q1.gauge.G3[1])
+
+    printJson("Q2: " + response.data.q2)
+
+    assertEquals(expected.q2.counter_rate.size(), response.data.q2.counter_rate.size())
+    assertEquals(expected.q2.counter_rate.C2.size(), response.data.q2.counter_rate.C2.size())
+    assertNumericBucketEquals('The rate data for C2[0] does not match', expected.q2.counter_rate.C2[0],
+        response.data.q2.counter_rate.C2[0])
+    assertNumericBucketEquals('The rate data for C2[1] does not match', expected.q2.counter_rate.C2[1],
+        response.data.q2.counter_rate.C2[1])
+    assertEquals(expected.q2.counter_rate.C3.size(), response.data.q2.counter_rate.C3.size())
+    assertNumericBucketEquals('The rate data for C3[0] does not match', expected.q2.counter_rate.C3[0],
+        response.data.q2.counter_rate.C3[0])
+    assertNumericBucketEquals('The rate data for C3[1] does not match', expected.q2.counter_rate.C3[1],
+        response.data.q2.counter_rate.C3[1])
   }
 
     @Test
