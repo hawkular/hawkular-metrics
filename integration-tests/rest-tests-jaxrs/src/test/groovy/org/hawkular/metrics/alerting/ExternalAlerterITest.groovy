@@ -777,9 +777,9 @@ class ExternalAlerterITest extends AlertingITestBase {
         assertEquals(200, resp.status)
 
         // Note: alerterId must be "HawkularMetrics"
-        Query qNow = Query.builder("qNow").metrics(metricId1,metricId2).type(MetricType.GAUGE).duration("1mn").build();
+        Query qNow = Query.builder("qNow").metrics(metricId1,metricId2).type(MetricType.GAUGE).duration("5mn").build();
         ConditionExpression ce = new ConditionExpression(qNow, "1mn", EvalType.EACH,
-            "q(qNow,avg) + q(qNow,sum) == 80 || q(qNow,avg) == 100" )
+            "q(qNow,avg) + q(qNow,sum) == 80 || q(qNow,avg) == 100", 1 )
         ExternalCondition firingCond = new ExternalCondition("trigger-test-each", Mode.FIRING, "external-dataId-each",
            "HawkularMetrics", ce.toJson());
 
@@ -826,7 +826,7 @@ class ExternalAlerterITest extends AlertingITestBase {
         for ( int i=0; i < 10; ++i ) {
             Thread.sleep(500);
 
-            // FETCH recent alerts for trigger, there should be 1
+            // FETCH recent alerts for trigger, there should be 2
             resp = client.get(path: "", query: [startTime:start,triggerIds:"trigger-test-each"] )
             if ( resp.status == 200 && resp.data.size() == 2 ) {
                 break;
@@ -852,6 +852,22 @@ class ExternalAlerterITest extends AlertingITestBase {
         assertTrue(v1, v1.equals(metricId1)
             || v1.equals(metricId2))
         assertFalse(v0 + ":" + v1, v0.equals(v1))
+
+        // Wait another 75s (I know this is painful from the test perspective, but min eval period is 60s)
+        // and make sure no more alerts fire. This tests the quietCount = 1.
+        for ( int i=0; i < 75; ++i ) {
+            Thread.sleep(1000);
+            // println ("sleep=" + i)
+
+            // FETCH recent alerts for trigger, there should be 2
+            resp = client.get(path: "", query: [startTime:start,triggerIds:"trigger-test-each"] )
+            if ( resp.status == 200 && resp.data.size() > 2 ) {
+                break;
+            }
+            assertEquals(200, resp.status)
+        }
+        assertEquals(200, resp.status)
+        assertEquals(2, resp.data.size())
     }
 
     @Test

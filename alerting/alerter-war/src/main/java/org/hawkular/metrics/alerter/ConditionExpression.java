@@ -106,32 +106,44 @@ public class ConditionExpression {
     @JsonInclude
     private String eval;
 
+    @JsonInclude
+    private int quietCount;
+
     @JsonIgnore
     private ConditionEvaluator evaluator;
 
     public ConditionExpression() {
-        this((List<Query>) null, null, null, null);
+        this((List<Query>) null, null, null, null, 0);
     }
 
     public ConditionExpression(Query query, String frequency, String eval) {
-        this(Collections.singletonList(query), frequency, null, eval);
+        this(Collections.singletonList(query), frequency, null, eval, 0);
     }
 
     public ConditionExpression(Query query, String frequency, EvalType evalType, String eval) {
-        this(Collections.singletonList(query), frequency, evalType, eval);
+        this(Collections.singletonList(query), frequency, evalType, eval, 0);
     }
 
     public ConditionExpression(List<Query> queries, String frequency, String eval) {
-        this(queries, frequency, null, eval);
+        this(queries, frequency, null, eval, 0);
     }
 
     public ConditionExpression(List<Query> queries, String frequency, EvalType evalType, String eval) {
+        this(queries, frequency, evalType, eval, 0);
+    }
+
+    public ConditionExpression(Query query, String frequency, EvalType evalType, String eval, int quietCount) {
+        this(Collections.singletonList(query), frequency, evalType, eval, quietCount);
+    }
+
+    public ConditionExpression(List<Query> queries, String frequency, EvalType evalType, String eval, int quietCount) {
         super();
 
         setQueries(queries);
         setFrequency(frequency);
         setEvalType(evalType);
         setEval(eval);
+        setQuietCount(quietCount);
     }
 
     public List<Query> getQueries() {
@@ -226,6 +238,17 @@ public class ConditionExpression {
         this.evaluator = null == eval ? null : new ConditionEvaluator(eval);
     }
 
+    public int getQuietCount() {
+        return quietCount;
+    }
+
+    public void setQuietCount(int quietCount) {
+        if (quietCount < 0) {
+            quietCount = 0;
+        }
+        this.quietCount = quietCount;
+    }
+
     public ConditionEvaluator getEvaluator() {
         return evaluator;
     }
@@ -235,8 +258,10 @@ public class ConditionExpression {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((eval == null) ? 0 : eval.hashCode());
+        result = prime * result + ((evalType == null) ? 0 : evalType.hashCode());
         result = prime * result + ((frequency == null) ? 0 : frequency.hashCode());
         result = prime * result + ((queries == null) ? 0 : queries.hashCode());
+        result = prime * result + quietCount;
         return result;
     }
 
@@ -254,6 +279,8 @@ public class ConditionExpression {
                 return false;
         } else if (!eval.equals(other.eval))
             return false;
+        if (evalType != other.evalType)
+            return false;
         if (frequency == null) {
             if (other.frequency != null)
                 return false;
@@ -264,12 +291,15 @@ public class ConditionExpression {
                 return false;
         } else if (!queries.equals(other.queries))
             return false;
+        if (quietCount != other.quietCount)
+            return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "MetricsCondition [queries=" + queries + ", frequency=" + frequency + ", eval=" + eval + "]";
+        return "ConditionExpression [queries=" + queries + ", frequency=" + frequency + ", evalType=" + evalType
+                + ", eval=" + eval + ", quietCount=" + quietCount + "]";
     }
 
     public static ConditionExpression toObject(String json) {
