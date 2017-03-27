@@ -81,7 +81,19 @@ public class ConditionManager {
     private static final String TAG_EXTERNAL_CONDITION_NAME = "HawkularMetrics";
     private static final String TAG_EXTERNAL_CONDITION_VALUE = "MetricsCondition";
 
-    private static final Integer THREAD_POOL_SIZE = 20;
+    private static final Integer THREAD_POOL_SIZE;
+    private static final String THREAD_POOL_SIZE_DEFAULT = "20";
+    private static final String THREAD_POOL_SIZE_PROPERTY = "hawkular-metrics.alerter.condition-pool-size";
+
+    static {
+        int v;
+        try {
+            v = Integer.valueOf(System.getProperty(THREAD_POOL_SIZE_PROPERTY, THREAD_POOL_SIZE_DEFAULT));
+        } catch (Exception e) {
+            v = Integer.valueOf(THREAD_POOL_SIZE_DEFAULT);
+        }
+        THREAD_POOL_SIZE = v;
+    }
 
     ScheduledThreadPoolExecutor expressionExecutor;
     Map<ExternalCondition, ScheduledFuture<?>> expressionFutures = new HashMap<>();
