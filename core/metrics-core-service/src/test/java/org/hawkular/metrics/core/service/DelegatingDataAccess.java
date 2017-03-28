@@ -273,4 +273,14 @@ public class DelegatingDataAccess implements DataAccess {
     public Observable<Row> findAllMetricsFromTagsIndex() {
         return delegate.findAllMetricsFromTagsIndex();
     }
+
+    @Override
+    public <T> ResultSetFuture updateMetricExpirationIndex(MetricId<T> id, long expirationTime) {
+        return delegate.updateMetricExpirationIndex(id, expirationTime);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id) {
+        return delegate.deleteFromMetricExpirationIndex(id);
+    }
 }

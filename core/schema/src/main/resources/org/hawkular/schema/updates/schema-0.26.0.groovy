@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,14 +15,17 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
-
-setKeyspace keyspace
-
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
+schemaChange {
+  version '7.0'
+  author 'snegrea'
+  tags '0.26.x'
+  cql """
+  CREATE TABLE metrics_expiration_idx (
+    tenant_id text,
+    type tinyint,
+    metric text,
+    time timestamp,
+    PRIMARY KEY ((tenant_id, type), metric)
+  )
+"""
+}

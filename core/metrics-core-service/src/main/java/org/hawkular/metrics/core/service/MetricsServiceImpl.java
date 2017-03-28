@@ -102,7 +102,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
 import rx.subjects.PublishSubject;
@@ -165,8 +164,6 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Functions used to insert metric data points.
      */
-    private Map<MetricType<?>, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
-
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
     /**
@@ -224,59 +221,26 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Double>> gauge = (Observable<Metric<Double>>) metric;
+                    this.updateMetricExpiration(gauge);
                     return dataAccess.insertGaugeDatas(gauge, this::getTTL);
                 })
                 .put(COUNTER, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Long>> counter = (Observable<Metric<Long>>) metric;
+                    this.updateMetricExpiration(counter);
                     return dataAccess.insertCounterDatas(counter, this::getTTL);
                 })
                 .put(AVAILABILITY, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<AvailabilityType>> avail = (Observable<Metric<AvailabilityType>>) metric;
+                    this.updateMetricExpiration(avail);
                     return dataAccess.insertAvailabilityDatas(avail, this::getTTL);
                 })
                 .put(STRING, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<String>> string = (Observable<Metric<String>>) metric;
+                    this.updateMetricExpiration(string);
                     return dataAccess.insertStringDatas(string, this::getTTL, maxStringSize);
-                })
-                .build();
-
-        dataPointInserters = ImmutableMap
-                .<MetricType<?>, Func2<? extends Metric<?>, Integer,
-                Observable<Integer>>>builder()
-                .put(GAUGE, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<Double> gauge = (Metric<Double>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertGaugeData(gauge);
-                    }
-                    return dataAccess.insertGaugeData(gauge, ttl);
-                })
-                .put(AVAILABILITY, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertAvailabilityData(avail);
-                    }
-                    return dataAccess.insertAvailabilityData(avail, ttl);
-                })
-                .put(COUNTER, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<Long> counter = (Metric<Long>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertCounterData(counter);
-                    }
-                    return dataAccess.insertCounterData(counter, ttl);
-                })
-                .put(STRING, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<String> string = (Metric<String>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertStringData(string, maxStringSize);
-                    }
-                    return dataAccess.insertStringData(string, ttl, maxStringSize);
                 })
                 .build();
 
@@ -503,6 +467,9 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
+
+        this.updateMetricExpiration(Observable.just(metric));
+
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!overwrite && !resultSet.wasApplied()) {
@@ -629,6 +596,8 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
+        this.updateMetricExpiration(Observable.just(metric));
+
         return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
                 .toList().map(l -> null);
     }
@@ -667,16 +636,6 @@ public class MetricsServiceImpl implements MetricsService {
             throw new UnsupportedOperationException(metricType.getText());
         }
         return meter;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType<T> metricType) {
-        Func2<Metric<T>, Integer, Observable<Integer>> inserter
-                = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
-        if (inserter == null) {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
-        return inserter;
     }
 
     @Override
@@ -1065,5 +1024,12 @@ public class MetricsServiceImpl implements MetricsService {
 
         result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
         return result;
+    }
+
+    private <T> void updateMetricExpiration(Observable<Metric<T>> metric) {
+        metric.forEach(m -> ListenableFutureObservable
+                .from(dataAccess.updateMetricExpirationIndex(m.getMetricId(),
+                        System.currentTimeMillis() + this.getTTL(m.getMetricId())), metricsTasks)
+                .doOnError(t -> log.error("Failure to update expiration index", t)));
     }
 }
