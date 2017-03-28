@@ -168,7 +168,7 @@ public class ConditionManager {
             log.info("Registering Trigger UPDATE/REMOVE listener");
             definitionsListener = new DefinitionsListener() {
                 @Override
-                public void onChange(Set<DefinitionsEvent> event) {
+                public void onChange(List<DefinitionsEvent> events) {
                     if (coordinator) {
                         refresh();
                     }
