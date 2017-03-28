@@ -214,9 +214,9 @@ public class GroupTriggerManager {
             log.info("Registering Trigger UPDATE/REMOVE listener");
             definitionsListener = new DefinitionsListener() {
                 @Override
-                public void onChange(Set<DefinitionsEvent> event) {
+                public void onChange(List<DefinitionsEvent> events) {
                     if (coordinator) {
-                        log.debugf("Refreshing due to change event %s", event);
+                        log.debugf("Refreshing due to change events %s", events);
                         refresh();
                     }
                 }
