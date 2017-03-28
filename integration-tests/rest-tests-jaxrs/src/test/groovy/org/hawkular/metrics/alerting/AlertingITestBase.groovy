@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,6 +35,7 @@ class AlertingITestBase {
     static metricsBaseURI = System.getProperty('hawkular-metrics.base-uri') ?: 'http://127.0.0.1:8080/hawkular/metrics'
     static RESTClient client
     static RESTClient metricsClient
+    static String tenantId = "hawkular"
 
     @BeforeClass
     static void initClient() {
@@ -52,8 +53,8 @@ class AlertingITestBase {
             .encodeToString("$testUser:$testPasword".getBytes("utf-8"))
          */
         // client.defaultRequestHeaders.Authorization = "Basic amRvZTpwYXNzd29yZA=="
-        client.defaultRequestHeaders.'Hawkular-Tenant' = "hawkular"
+        client.defaultRequestHeaders.'Hawkular-Tenant' = tenantId
         // metricsClient.defaultRequestHeaders.Authorization = "Basic amRvZTpwYXNzd29yZA=="
-        metricsClient.defaultRequestHeaders.'Hawkular-Tenant' = "hawkular"
+        metricsClient.defaultRequestHeaders.'Hawkular-Tenant' = tenantId
     }
 }
