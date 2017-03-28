@@ -221,25 +221,21 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Double>> gauge = (Observable<Metric<Double>>) metric;
-                    this.updateMetricExpiration(gauge);
                     return dataAccess.insertGaugeDatas(gauge, this::getTTL);
                 })
                 .put(COUNTER, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Long>> counter = (Observable<Metric<Long>>) metric;
-                    this.updateMetricExpiration(counter);
                     return dataAccess.insertCounterDatas(counter, this::getTTL);
                 })
                 .put(AVAILABILITY, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<AvailabilityType>> avail = (Observable<Metric<AvailabilityType>>) metric;
-                    this.updateMetricExpiration(avail);
                     return dataAccess.insertAvailabilityDatas(avail, this::getTTL);
                 })
                 .put(STRING, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<String>> string = (Observable<Metric<String>>) metric;
-                    this.updateMetricExpiration(string);
                     return dataAccess.insertStringDatas(string, this::getTTL, maxStringSize);
                 })
                 .build();
@@ -715,19 +711,21 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
-            endTimeSlice, int pageSize) {
+    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
+            long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {
 
         return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
-                .concatMap(metricId ->
-                        findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
-                                .compose(applyRetryPolicy())
-                                .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
-                                        (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
-                                        .compose(applyRetryPolicy())
-                                )));
+                .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
+                        .compose(applyRetryPolicy())
+                        .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
+                        .map(cpc -> {
+                            subject.onNext(new Metric<>(metricId, getTTL(metricId)));
+                            return cpc;
+                        })
+                        .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
+                                (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
+                                .compose(applyRetryPolicy()))));
     }
 
     @Override
@@ -1026,10 +1024,21 @@ public class MetricsServiceImpl implements MetricsService {
         return result;
     }
 
-    private <T> void updateMetricExpiration(Observable<Metric<T>> metric) {
-        metric.forEach(m -> ListenableFutureObservable
-                .from(dataAccess.updateMetricExpirationIndex(m.getMetricId(),
-                        System.currentTimeMillis() + this.getTTL(m.getMetricId())), metricsTasks)
-                .doOnError(t -> log.error("Failure to update expiration index", t)));
+    @Override
+    public <T> void updateMetricExpiration(Observable<Metric<T>> metric) {
+        final long dayToMilliseconds = 24 * 3600 * 1000;
+        metric.filter(m -> !MetricType.STRING.equals(m.getType()))
+                .forEach(m -> {
+                    long expiration = 0;
+                    if(m.getDataRetention()!= null) {
+                        expiration = System.currentTimeMillis() + m.getDataRetention() * dayToMilliseconds;
+                    } else {
+                        expiration = System.currentTimeMillis() + this.getTTL(m.getMetricId()) * dayToMilliseconds;
+                    }
+
+                    ListenableFutureObservable
+                            .from(dataAccess.updateMetricExpirationIndex(m.getMetricId(), expiration), metricsTasks)
+                            .doOnError(t -> log.error("Failure to update expiration index", t));
+                });
     }
 }

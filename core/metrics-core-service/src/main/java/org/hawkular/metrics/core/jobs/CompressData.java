@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +41,7 @@ import com.google.common.base.Stopwatch;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
+import rx.subjects.PublishSubject;
 
 /**
  * @author Michael Burman
@@ -126,9 +127,14 @@ public class CompressData implements Func1<JobDetails, Completable> {
                 .map(Metric::getMetricId)
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
+        PublishSubject<Metric<?>> subject = PublishSubject.create();
+        subject.doOnNext(metric -> {
+            this.metricsService.updateMetricExpiration(Observable.just(metric));
+        });
+
         // Fetch all partition keys and compress the previous timeSlice
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
-        return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize)
+        return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize, subject)
                 .doOnError(t -> logger.warn("Failed to compress data", t))
                 .doOnCompleted(() -> {
                     stopwatch.stop();

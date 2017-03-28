@@ -69,6 +69,7 @@ import com.google.common.collect.ImmutableSet;
 import rx.Completable;
 import rx.Observable;
 import rx.observers.TestSubscriber;
+import rx.subjects.PublishSubject;
 
 public class CounterITest extends BaseMetricsITest {
 
@@ -261,7 +262,7 @@ public class CounterITest extends BaseMetricsITest {
 
         Completable compressCompletable =
                 metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
+                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
 
         TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
         compressCompletable.subscribe(testSubscriber);
