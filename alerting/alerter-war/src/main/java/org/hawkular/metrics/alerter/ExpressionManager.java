@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
@@ -44,6 +45,7 @@ import org.hawkular.alerts.api.services.DefinitionsEvent.Type;
 import org.hawkular.alerts.api.services.DefinitionsListener;
 import org.hawkular.alerts.api.services.DefinitionsService;
 import org.hawkular.metrics.alerter.Expression.Func;
+import org.hawkular.metrics.alerter.ExpressionManager.TopologyChangeListener;
 import org.hawkular.metrics.core.service.Aggregate;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -148,7 +150,7 @@ public class ExpressionManager {
             log.info("Registering Trigger UPDATE/REMOVE listener");
             definitionsListener = new DefinitionsListener() {
                 @Override
-                public void onChange(Set<DefinitionsEvent> event) {
+                public void onChange(List<DefinitionsEvent> events) {
                     if (coordinator) {
                         refresh();
                     }
