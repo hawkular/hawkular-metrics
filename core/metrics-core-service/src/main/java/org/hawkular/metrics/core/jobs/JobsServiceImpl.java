@@ -117,6 +117,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
         deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, this.metricExpirationDelay);
         scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
+        maybeScheduleMetricExpirationJob(backgroundJobs);
 
         return backgroundJobs;
     }
@@ -155,6 +156,49 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
             backgroundJobs.add(jobDetails);
             configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+
+            logger.info("Created and scheduled " + jobDetails);
+        }
+    }
+
+    private void maybeScheduleMetricExpirationJob(List<JobDetails> backgroundJobs) {
+        String jobIdConfigKey = "jobId";
+        String jobFrequencyKey = "jobFrequency";
+
+        String configId = "org.hawkular.metrics.jobs." + DeleteExpiredMetrics.JOB_NAME;
+        Configuration config = configurationService.load(configId).toBlocking()
+                .firstOrDefault(new Configuration(configId, new HashMap<>()));
+
+        if (config.get(jobIdConfigKey) != null) {
+            Integer configuredJobFrequency = null;
+            try {
+                configuredJobFrequency = Integer.parseInt(config.get("jobFrequency"));
+            } catch (Exception e) {
+                //do nothing, the parsing failed which makes the value unknown
+            }
+
+            if (configuredJobFrequency == null || configuredJobFrequency != this.metricExpirationJobFrequencyInDays) {
+                scheduler.unscheduleJob(config.get(jobIdConfigKey)).await();
+                configurationService.delete(configId, jobIdConfigKey).toBlocking();
+                config.delete(jobIdConfigKey);
+                configurationService.delete(configId, jobFrequencyKey).toBlocking();
+                config.delete(jobFrequencyKey);
+            }
+        }
+
+        if (config.get(jobIdConfigKey) == null) {
+            logger.info("Preparing to create and schedule " + DeleteExpiredMetrics.JOB_NAME + " job");
+
+            //Get start of next day
+            long nextStart = DateTimeService.current24HourTimeSlice().plusDays(1).getMillis();
+            JobDetails jobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
+                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
+                            .withInterval(this.metricExpirationJobFrequencyInDays, TimeUnit.DAYS).build())
+                    .toBlocking().value();
+            backgroundJobs.add(jobDetails);
+            configurationService.save(configId, jobIdConfigKey, jobDetails.getJobId().toString()).toBlocking();
+            configurationService.save(configId, jobFrequencyKey, this.metricExpirationJobFrequencyInDays + "")
+                    .toBlocking();
 
             logger.info("Created and scheduled " + jobDetails);
         }

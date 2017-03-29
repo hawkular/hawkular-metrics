@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,14 @@ public interface Scheduler {
      * @return A Single that emits the job details
      */
     Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger);
+
+    /**
+     * Deletes all the scheduled execution for a job id.
+     *
+     * @param jobId
+     * @return Completable instance
+     */
+    Completable unscheduleJob(String jobId);
 
     /**
      * Register a function that produces a job of the specified type. This method should be called prior to scheduling

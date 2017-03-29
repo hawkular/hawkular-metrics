@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,8 @@ public class ConfigurationService {
 
     private PreparedStatement updateConfigurationValue;
 
+    private PreparedStatement deleteConfigurationValue;
+
     // TODO make async
     // I could have just as easily passed the session as a constructor arg. I am doing it in the init method because
     // eventually I would like service initialization async.
@@ -55,6 +57,10 @@ public class ConfigurationService {
 
         updateConfigurationValue = session.getSession().prepare(
                 "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)")
+                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+        deleteConfigurationValue = session.getSession().prepare(
+                "DELETE FROM sys_config WHERE config_id =? and name = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
@@ -91,4 +97,7 @@ public class ConfigurationService {
         return session.execute(updateConfigurationValue.bind(configId, name, value), scheduler).map(resultSet -> null);
     }
 
+    public Observable<Void> delete(String configId, String name) {
+        return session.execute(deleteConfigurationValue.bind(configId, name)).map(resultSet -> null);
+    }
 }
