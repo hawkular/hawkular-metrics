@@ -112,6 +112,7 @@ import rx.subjects.PublishSubject;
 public class MetricsServiceImpl implements MetricsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
+    private static final long DAY_TO_MILLIS = 24 * 3600 * 1000;
     public static final String SYSTEM_TENANT_ID = makeSafe("sysconfig");
 
     private static class DataRetentionKey {
@@ -464,7 +465,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
 
-        this.updateMetricExpiration(Observable.just(metric));
+        this.updateMetricExpiration(metric);
 
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
@@ -592,7 +593,7 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
-        this.updateMetricExpiration(Observable.just(metric));
+        this.updateMetricExpiration(metric);
 
         return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
                 .toList().map(l -> null);
@@ -719,9 +720,8 @@ public class MetricsServiceImpl implements MetricsService {
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .map(cpc -> {
+                        .doOnNext(cpc -> {
                             subject.onNext(new Metric<>(metricId, getTTL(metricId)));
-                            return cpc;
                         })
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
@@ -1021,24 +1021,24 @@ public class MetricsServiceImpl implements MetricsService {
         result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
 
         result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
+        result.mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).flatMap(r -> null));
+
         return result;
     }
 
     @Override
-    public <T> void updateMetricExpiration(Observable<Metric<T>> metric) {
-        final long dayToMilliseconds = 24 * 3600 * 1000;
-        metric.filter(m -> !MetricType.STRING.equals(m.getType()))
-                .forEach(m -> {
-                    long expiration = 0;
-                    if(m.getDataRetention()!= null) {
-                        expiration = System.currentTimeMillis() + m.getDataRetention() * dayToMilliseconds;
-                    } else {
-                        expiration = System.currentTimeMillis() + this.getTTL(m.getMetricId()) * dayToMilliseconds;
-                    }
+    public <T> void updateMetricExpiration(Metric<T> metric) {
+        if (!MetricType.STRING.equals(metric.getType())) {
+            long expiration = 0;
+            if (metric.getDataRetention() != null) {
+                expiration = System.currentTimeMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
+            } else {
+                expiration = System.currentTimeMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
+            }
 
-                    ListenableFutureObservable
-                            .from(dataAccess.updateMetricExpirationIndex(m.getMetricId(), expiration), metricsTasks)
-                            .doOnError(t -> log.error("Failure to update expiration index", t));
-                });
+            ListenableFutureObservable
+                    .from(dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration), metricsTasks)
+                    .doOnError(t -> log.error("Failure to update expiration index", t));
+        }
     }
 }

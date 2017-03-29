@@ -140,4 +140,6 @@ public interface DataAccess {
     <T> ResultSetFuture updateMetricExpirationIndex(MetricId<T> id, long expirationTime);
 
     <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
+
+    <T> Observable<Row> findMetricExpiration(MetricId<T> id);
 }

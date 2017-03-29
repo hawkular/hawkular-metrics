@@ -176,7 +176,7 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement deleteMetricData;
 
-    private PreparedStatement deleteMetricFromRetentionIndex;
+    private PreparedStatement deleteFromMetricRetentionIndex;
 
     private PreparedStatement deleteMetricFromMetricsIndex;
 
@@ -221,6 +221,8 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement updateMetricExpirationIndex;
 
     private PreparedStatement deleteFromMetricExpirationIndex;
+
+    private PreparedStatement findMetricExpiration;
 
     private CodecRegistry codecRegistry;
     private Metadata metadata;
@@ -486,7 +488,7 @@ public class DataAccessImpl implements DataAccess {
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
-        deleteMetricFromRetentionIndex = session.prepare(
+        deleteFromMetricRetentionIndex = session.prepare(
             "DELETE FROM retentions_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
@@ -569,8 +571,13 @@ public class DataAccessImpl implements DataAccess {
                 "INSERT INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
 
         deleteFromMetricExpirationIndex = session.prepare(
-                "DELETE FROM retentions_idx " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ?");
+                "DELETE FROM metrics_expiration_idx " +
+                "WHERE tenant_id = ? AND type = ? AND metric = ?");
+
+        findMetricExpiration = session.prepare(
+                "SELECT time " +
+                "FROM metrics_expiration_idx " +
+                "WHERE tenant_id = ? AND type = ? and metric = ?");
     }
 
     @Override
@@ -1054,7 +1061,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id) {
         return rxSession
-                .execute(deleteMetricFromRetentionIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+                .execute(deleteFromMetricRetentionIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 
     @Override
@@ -1229,6 +1236,12 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id) {
         return rxSession
-                .execute(deleteMetricFromRetentionIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+                .execute(deleteFromMetricExpirationIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    }
+
+    @Override
+    public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
+        return rxSession
+                .executeAndFetch(findMetricExpiration.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 }

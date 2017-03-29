@@ -283,4 +283,9 @@ public class DelegatingDataAccess implements DataAccess {
     public <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id) {
         return delegate.deleteFromMetricExpirationIndex(id);
     }
+
+    @Override
+    public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
+        return delegate.findMetricExpiration(id);
+    }
 }

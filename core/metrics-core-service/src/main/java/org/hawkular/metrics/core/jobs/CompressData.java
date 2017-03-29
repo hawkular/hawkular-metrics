@@ -73,7 +73,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
             pageSize = Integer.parseInt(configuration.get("page-size"));
         }
 
-        if(configuration.get(BLOCK_SIZE) != null) {
+        if (configuration.get(BLOCK_SIZE) != null) {
             java.time.Duration parsedDuration = java.time.Duration.parse(configuration.get(BLOCK_SIZE));
             blockSize = Duration.millis(parsedDuration.toMillis());
         } else {
@@ -83,12 +83,10 @@ public class CompressData implements Func1<JobDetails, Completable> {
         String enabledConfig = configuration.get("enabled", "true");
         enabled = Boolean.parseBoolean(enabledConfig);
         logger.debugf("Job enabled? %b", enabled);
-
     }
 
     @Override
     public Completable call(JobDetails jobDetails) {
-
         Duration runtimeBlockSize = blockSize;
         DateTime timeSliceInclusive;
 
@@ -128,8 +126,13 @@ public class CompressData implements Func1<JobDetails, Completable> {
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
         PublishSubject<Metric<?>> subject = PublishSubject.create();
-        subject.doOnNext(metric -> {
-            this.metricsService.updateMetricExpiration(Observable.just(metric));
+        subject.subscribe(metric -> {
+            try {
+                this.metricsService.updateMetricExpiration(metric);
+            } catch (Exception e) {
+                logger.error("Could not update the metric expiration index for metric " + metric.getId()
+                        + " of tenant " + metric.getTenantId());
+            }
         });
 
         // Fetch all partition keys and compress the previous timeSlice
@@ -137,6 +140,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
         return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize, subject)
                 .doOnError(t -> logger.warn("Failed to compress data", t))
                 .doOnCompleted(() -> {
+                    subject.onCompleted();
                     stopwatch.stop();
                     logger.info("Finished compressing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                             " ms");
