@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,4 +37,9 @@ public interface JobsServiceImplMBean {
      *                  .com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence">Duration</a>
      */
     void submitCompressJob(long timestamp, String blockSize);
+
+    /**
+     * Execute the job that deletes expired metrics.
+     */
+    void submitDeleteExpiredMetrics();
 }

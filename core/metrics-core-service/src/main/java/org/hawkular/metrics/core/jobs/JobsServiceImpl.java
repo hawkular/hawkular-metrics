@@ -184,4 +184,11 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 CompressData.BLOCK_SIZE, blockSize)
         );
     }
+
+    @Override
+    public void submitDeleteExpiredMetrics() {
+        long time = System.currentTimeMillis();
+        logger.debugf("Scheduling manual deleteExpiredMetrics job with timestamp->%d", time);
+        submitDeleteExpiredMetricsJob(time, "delete_expired_" + time);
+    }
 }
