@@ -105,7 +105,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         jobScheduler.advanceTimeTo(nextStart);
         jobScheduler.truncateTables(getKeyspace());
 
-        jobsService = new JobsServiceImpl();
+        jobsService = new JobsServiceImpl(2, 7);
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
@@ -149,12 +149,17 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
         assertEquals(metrics.size(), 3);
 
-        expiration = System.currentTimeMillis() + 18 * 24 * 3600 * 1000L;
-        runDeleteExpiredMetricsJob(expiration);
-        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
-        assertEquals(metrics.size(), 2);
-        for (Metric<?> metric : metrics) {
-            assertNotEquals(metric.getId(), "G1");
+        //verify that the expiration delay works by attempting to call the job repeatedly until close
+        //to the boundary, the metric expires in 20 days, but there is 2 day delay,
+        //When running the purge at 22 days - 1 hour, G2 should still be present
+        for (int i = 18; i < 23; i++) {
+            expiration = System.currentTimeMillis() + (i * 24 - 1) * 3600 * 1000L;
+            runDeleteExpiredMetricsJob(expiration);
+            metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+            assertEquals(metrics.size(), 2);
+            for (Metric<?> metric : metrics) {
+                assertNotEquals(metric.getId(), "G1");
+            }
         }
 
         expiration = System.currentTimeMillis() + 28 * 24 * 3600 * 1000L;

@@ -39,7 +39,9 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
     private PreparedStatement findEligibleTenants;
     private PreparedStatement findEligibleMetrics;
 
-    public DeleteExpiredMetrics(MetricsService metricsService, RxSession session) {
+    private long metricExpirationDelay;
+
+    public DeleteExpiredMetrics(MetricsService metricsService, RxSession session, int metricExpirationDelayInDays) {
         this.metricsService = metricsService;
         this.session = session;
 
@@ -48,6 +50,8 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
         findEligibleMetrics = session.getSession()
                 .prepare(
                         "SELECT tenant_id, type, metric, time FROM metrics_expiration_idx WHERE tenant_id = ? AND type = ?");
+
+        this.metricExpirationDelay = metricExpirationDelayInDays * 24 * 3600 * 1000L;
     }
 
     @Override
@@ -63,7 +67,7 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
         }
 
         long expirationTime = (configuredExpirationTime != null ? configuredExpirationTime
-                : System.currentTimeMillis());
+                : System.currentTimeMillis()) - metricExpirationDelay;
 
         return session.execute(findEligibleTenants.bind())
                 .flatMap(Observable::from)

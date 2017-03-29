@@ -63,6 +63,11 @@ public enum ConfigurationKey {
     METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
     METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
 
+    //Metric expiration job configuration
+    METRICS_EXPIRATION_DELAY("hawkular.metrics.expiration.delay", "1", "METRICS_EXPIRATION_DELAY", true),
+    METRICS_EXPIRATION_JOB_FREQUENCY("hawkular.metrics.expiration.job.frequency", "7",
+            "METRICS_EXPIRATION_JOB_FREQUENCY", true),
+
     // Request logging properties
     // Useful for debugging
     REQUEST_LOGGING_LEVEL("hawkular.metrics.request.logging.level", null, "REQUEST_LOGGING_LEVEL", false),

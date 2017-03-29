@@ -57,9 +57,21 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     private MetricsService metricsService;
 
     private DeleteTenant deleteTenant;
+    private int metricExpirationJobFrequencyInDays;
+    private int metricExpirationDelay;
+
     private DeleteExpiredMetrics deleteExpiredMetrics;
 
     private ConfigurationService configurationService;
+
+    public JobsServiceImpl() {
+        this(1, 7);
+    }
+
+    public JobsServiceImpl(int metricExpirationDelay, int metricExpirationJobFrequencyInDays) {
+        this.metricExpirationJobFrequencyInDays = metricExpirationJobFrequencyInDays;
+        this.metricExpirationDelay = metricExpirationDelay;
+    }
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -103,7 +115,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         scheduler.register(CompressData.JOB_NAME, compressDataJob);
         maybeScheduleCompressData(backgroundJobs);
 
-        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session);
+        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, this.metricExpirationDelay);
         scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
 
         return backgroundJobs;
