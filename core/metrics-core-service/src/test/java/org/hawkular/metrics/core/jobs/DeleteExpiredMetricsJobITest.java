@@ -1,0 +1,187 @@
+/*
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.hawkular.metrics.core.jobs;
+
+import static java.util.Arrays.asList;
+
+import static org.hawkular.metrics.model.MetricType.GAUGE;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
+import static org.testng.Assert.assertTrue;
+
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.hawkular.metrics.core.service.BaseITest;
+import org.hawkular.metrics.core.service.DataAccess;
+import org.hawkular.metrics.core.service.DataAccessImpl;
+import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.datetime.DateTimeService;
+import org.hawkular.metrics.model.DataPoint;
+import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.impl.TestScheduler;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
+import org.jboss.logging.Logger;
+import org.joda.time.DateTime;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import com.codahale.metrics.MetricRegistry;
+import com.datastax.driver.core.PreparedStatement;
+import com.google.common.collect.ImmutableMap;
+
+import rx.Observable;
+
+/**
+ * Test the job that deletes expired metrics.
+ *
+ * @author Stefan Negrea
+ */
+public class DeleteExpiredMetricsJobITest extends BaseITest {
+
+    private static Logger logger = Logger.getLogger(DeleteExpiredMetricsJobITest.class);
+
+    private static AtomicInteger tenantCounter = new AtomicInteger();
+    private MetricsServiceImpl metricsService;
+    private DataAccess dataAccess;
+    private JobsServiceImpl jobsService;
+    private ConfigurationService configurationService;
+    private TestScheduler jobScheduler;
+    private PreparedStatement resetConfig;
+
+    private String jobName;
+
+    @BeforeClass
+    public void initClass() {
+        dataAccess = new DataAccessImpl(session);
+
+        resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
+                DeleteExpiredMetrics.JOB_NAME + "'");
+
+        configurationService = new ConfigurationService() ;
+        configurationService.init(rxSession);
+
+        metricsService = new MetricsServiceImpl();
+        metricsService.setDataAccess(dataAccess);
+        metricsService.setConfigurationService(configurationService);
+        metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
+    }
+
+    @BeforeMethod
+    public void initTest(Method method) {
+        logger.debug("Starting [" + method.getName() + "]");
+
+        session.execute(resetConfig.bind());
+
+        jobName = method.getName();
+
+        jobScheduler = new TestScheduler(rxSession);
+        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
+                .with(DateTimeService.startOfNextOddHour())
+                .toInstant(ZoneOffset.UTC).toEpochMilli() - 60000;
+        jobScheduler.advanceTimeTo(nextStart);
+        jobScheduler.truncateTables(getKeyspace());
+
+        jobsService = new JobsServiceImpl();
+        jobsService.setSession(rxSession);
+        jobsService.setScheduler(jobScheduler);
+        jobsService.setMetricsService(metricsService);
+        jobsService.setConfigurationService(configurationService);
+        jobsService.start();
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        jobsService.shutdown();
+    }
+
+    @Test
+    public void testCompressJob() throws Exception {
+        String tenantId = nextTenantId();
+        DateTime start = new DateTime(jobScheduler.now());
+
+        Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"),
+                ImmutableMap.of("x", "1", "y", "2"), 10, asList(
+                        new DataPoint<>(start.getMillis(), 1.1),
+                        new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2)));
+        Metric<Double> g2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G2"),
+                ImmutableMap.of("x", "2", "y", "3"), 20, asList(
+                        new DataPoint<>(start.getMillis(), 3.3),
+                        new DataPoint<>(start.plusMinutes(2).getMillis(), 4.4)));
+        Metric<Double> g3 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G3"),
+                ImmutableMap.of("x", "3", "y", "4"), 30, asList(
+                        new DataPoint<>(start.getMillis(), 5.5),
+                        new DataPoint<>(start.plusMinutes(2).getMillis(), 5.5)));
+
+        doAction(() -> metricsService.createMetric(g1, true));
+        doAction(() -> metricsService.createMetric(g2, true));
+        doAction(() -> metricsService.createMetric(g3, true));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g1, g2, g3)));
+
+        List<Metric<Double>> metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 3);
+
+        long expiration = 1;
+        runDeleteExpiredMetricsJob(expiration);
+        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 3);
+
+        expiration = System.currentTimeMillis() + 18 * 24 * 3600 * 1000L;
+        runDeleteExpiredMetricsJob(expiration);
+        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 2);
+        for (Metric<?> metric : metrics) {
+            assertNotEquals(metric.getId(), "G1");
+        }
+
+        expiration = System.currentTimeMillis() + 28 * 24 * 3600 * 1000L;
+        runDeleteExpiredMetricsJob(expiration);
+        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 1);
+        assertEquals(metrics.get(0).getId(), "G3");
+
+        expiration = System.currentTimeMillis() + 32 * 24 * 3600 * 1000L;
+        runDeleteExpiredMetricsJob(expiration);
+        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 0);
+    }
+
+    private void runDeleteExpiredMetricsJob(long time) throws InterruptedException {
+        JobDetails runJobDetails = jobsService.submitDeleteExpiredMetricsJob(time, jobName).toBlocking().value();
+        CountDownLatch latch = new CountDownLatch(1);
+        jobScheduler.onJobFinished(jobDetails -> {
+            logger.debug("Finished " + runJobDetails);
+            latch.countDown();
+        });
+        jobScheduler.advanceTimeTo(runJobDetails.getTrigger().getTriggerTime());
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+    }
+
+    private String nextTenantId() {
+        return "T" + tenantCounter.getAndIncrement();
+    }
+}

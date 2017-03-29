@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,4 +33,5 @@ public interface JobsService {
 
     Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 
+    Single<JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName);
 }

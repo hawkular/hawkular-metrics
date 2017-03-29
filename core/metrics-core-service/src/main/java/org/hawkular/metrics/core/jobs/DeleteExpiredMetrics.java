@@ -32,7 +32,6 @@ import rx.functions.Func1;
  * @author Stefan Negrea
  */
 public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
-
     public static final String JOB_NAME = "DELETE_EXPIRED_METRICS";
 
     private MetricsService metricsService;
@@ -71,7 +70,7 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
                 .flatMap(row -> session.execute(findEligibleMetrics.bind(row.getString(0), row.getByte(1))))
                 .flatMap(Observable::from)
                 .filter(row -> row.getTimestamp(3).getTime() < expirationTime)
-                .map(row -> new MetricId(row.getString(0), MetricType.fromCode(row.getByte(1)), row.getString(2)))
+                .map(row -> new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)), row.getString(2)))
                 .flatMap(metricId -> metricsService.deleteMetric(metricId)).toCompletable();
     }
 }
