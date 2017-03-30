@@ -151,9 +151,9 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
 
         //verify that the expiration delay works by attempting to call the job repeatedly until close
         //to the boundary, the metric expires in 20 days, but there is 2 day delay,
-        //When running the purge at 22 days - 1 hour, G2 should still be present
+        //When running the purge at 22 days - 2 hours, G2 should still be present
         for (int i = 18; i < 23; i++) {
-            expiration = System.currentTimeMillis() + (i * 24 - 1) * 3600 * 1000L;
+            expiration = System.currentTimeMillis() + (i * 24 - 2) * 3600 * 1000L;
             runDeleteExpiredMetricsJob(expiration);
             metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
             assertEquals(metrics.size(), 2);
