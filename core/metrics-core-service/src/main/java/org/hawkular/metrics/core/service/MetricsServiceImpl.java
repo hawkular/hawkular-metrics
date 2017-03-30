@@ -1027,7 +1027,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public <T> void updateMetricExpiration(Metric<T> metric) {
+    public <T> Observable<Void> updateMetricExpiration(Metric<T> metric) {
         if (!MetricType.STRING.equals(metric.getType())) {
             long expiration = 0;
             if (metric.getDataRetention() != null) {
@@ -1036,9 +1036,12 @@ public class MetricsServiceImpl implements MetricsService {
                 expiration = System.currentTimeMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
             }
 
-            ListenableFutureObservable
+            return ListenableFutureObservable
                     .from(dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration), metricsTasks)
-                    .doOnError(t -> log.error("Failure to update expiration index", t));
+                    .doOnError(t -> log.error("Failure to update expiration index", t))
+                    .flatMap(r -> null);
         }
+
+        return Observable.empty();
     }
 }

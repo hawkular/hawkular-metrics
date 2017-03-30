@@ -356,5 +356,5 @@ public interface MetricsService {
 
     <T> Func1<Metric<T>, Boolean> idFilter(String regexp);
 
-    <T> void updateMetricExpiration(Metric<T> metric);
+    <T> Observable<Void> updateMetricExpiration(Metric<T> metric);
 }

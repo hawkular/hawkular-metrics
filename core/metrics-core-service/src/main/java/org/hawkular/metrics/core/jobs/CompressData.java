@@ -138,7 +138,10 @@ public class CompressData implements Func1<JobDetails, Completable> {
         // Fetch all partition keys and compress the previous timeSlice
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
         return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize, subject)
-                .doOnError(t -> logger.warn("Failed to compress data", t))
+                .doOnError(t -> {
+                    subject.onCompleted();
+                    logger.warn("Failed to compress data", t);
+                })
                 .doOnCompleted(() -> {
                     subject.onCompleted();
                     stopwatch.stop();
