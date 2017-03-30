@@ -81,6 +81,7 @@ import org.hawkular.metrics.model.param.TimeRange;
 import org.jboss.resteasy.annotations.GZIP;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -301,15 +302,36 @@ public class MetricHandler {
     @Path("/stats/query")
     @SuppressWarnings("unchecked")
     public void findStats(@Suspended AsyncResponse asyncResponse, StatsQueryRequest query) {
-        if (isMetricIdsEmpty(query) && query.getTags() == null) {
-            asyncResponse.resume(badRequest(new ApiError("Either the metrics or the tags property must be set")));
+        try {
+            checkRequiredParams(query);
+            doStatsQuery(query)
+                    .map(ApiUtils::mapToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+        } catch (IllegalArgumentException e) {
+            asyncResponse.resume(badRequest(new ApiError(e.getMessage())));
         }
+    }
 
-        if (query.getBuckets() == null && query.getBucketDuration() == null) {
-            asyncResponse.resume(badRequest(new ApiError("Either the buckets or bucketDuration property must be set")));
-            return;
+    @POST
+    @Path("/stats/batch/query")
+    @SuppressWarnings("unchecked")
+    public void findStatsBatched(@Suspended AsyncResponse asyncResponse, Map<String, StatsQueryRequest> queries) {
+        try {
+            queries.values().forEach(this::checkRequiredParams);
+            Map<String, Observable<Map<String, Map<String, List<? extends BucketPoint>>>>> results = new HashMap<>();
+            queries.entrySet().forEach(entry -> results.put(entry.getKey(), doStatsQuery(entry.getValue())));
+            Observable.from(results.entrySet())
+                    .flatMap(entry -> entry.getValue()
+                            .map(map -> ImmutableMap.of(entry.getKey(), map)))
+                    .collect(HashMap::new, HashMap::putAll)
+                    .map(ApiUtils::mapToResponse)
+                    .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+        } catch (IllegalArgumentException e) {
+            asyncResponse.resume(badRequest(new ApiError(e.getMessage())));
         }
+    }
 
+    private Observable<Map<String, Map<String, List<? extends BucketPoint>>>> doStatsQuery(StatsQueryRequest query) {
         Duration duration;
         if (query.getBucketDuration() == null) {
             duration = null;
@@ -436,7 +458,7 @@ public class MetricHandler {
             }
         }
 
-        Observable.zip(gaugeStats, counterStats, availabilityStats, gaugeRateStats, counterRateStats,
+        return Observable.zip(gaugeStats, counterStats, availabilityStats, gaugeRateStats, counterRateStats,
                 (gaugeMap, counterMap, availabiltyMap, gaugeRateMap, counterRateMap) -> {
                     Map<String, Map<String, List<? extends BucketPoint>>> stats = new HashMap<>();
                     if (!gaugeMap.isEmpty()) {
@@ -456,9 +478,16 @@ public class MetricHandler {
                     }
                     return stats;
                 })
-                .first()
-                .map(ApiUtils::mapToResponse)
-                .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
+                .first();
+    }
+
+    private void checkRequiredParams(StatsQueryRequest query) {
+        if (isMetricIdsEmpty(query) && query.getTags() == null) {
+            throw new IllegalArgumentException("Either the metrics or the tags property must be set");
+        }
+        if (query.getBuckets() == null && query.getBucketDuration() == null) {
+            throw new IllegalArgumentException("Either the buckets or bucketDuration property must be set");
+        }
     }
 
     @SuppressWarnings("unchecked")
