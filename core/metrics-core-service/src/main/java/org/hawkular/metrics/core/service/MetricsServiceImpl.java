@@ -1031,9 +1031,9 @@ public class MetricsServiceImpl implements MetricsService {
         if (!MetricType.STRING.equals(metric.getType())) {
             long expiration = 0;
             if (metric.getDataRetention() != null) {
-                expiration = System.currentTimeMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
+                expiration = DateTimeService.now.get().getMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
             } else {
-                expiration = System.currentTimeMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
+                expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
             }
 
             return ListenableFutureObservable

@@ -35,6 +35,7 @@ import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
@@ -154,7 +155,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         //to the boundary, the metric expires in 20 days, but there is 2 day delay,
         //When running the purge at 22 days - 2 hours, G2 should still be present
         for (int i = 18; i < 23; i++) {
-            expiration = System.currentTimeMillis() + (i * 24 - 2) * 3600 * 1000L;
+            expiration = DateTimeService.now.get().getMillis() + (i * 24 - 2) * 3600 * 1000L;
             runOnDemandDeleteExpiredMetricsJob(expiration);
             metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
             assertEquals(metrics.size(), 2);
@@ -163,13 +164,13 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
             }
         }
 
-        expiration = System.currentTimeMillis() + 28 * 24 * 3600 * 1000L;
+        expiration = DateTimeService.now.get().getMillis() + 28 * 24 * 3600 * 1000L;
         runOnDemandDeleteExpiredMetricsJob(expiration);
         metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
         assertEquals(metrics.size(), 1);
         assertEquals(metrics.get(0).getId(), "G3");
 
-        expiration = System.currentTimeMillis() + 32 * 24 * 3600 * 1000L;
+        expiration = DateTimeService.now.get().getMillis() + 32 * 24 * 3600 * 1000L;
         runOnDemandDeleteExpiredMetricsJob(expiration);
         metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
         assertEquals(metrics.size(), 0);
@@ -199,7 +200,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         doAction(() -> metricsService.createMetric(c1, true));
         ListenableFutureObservable
         .from(dataAccess.updateMetricExpirationIndex(c1.getMetricId(),
-                        System.currentTimeMillis() - 3 * 24 * 3600 * 1000L), Schedulers.immediate());
+                        DateTimeService.now.get().getMillis() - 3 * 24 * 3600 * 1000L), Schedulers.immediate());
         doAction(() -> metricsService.createMetric(c2, true));
 
         List<Metric<Long>> metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, COUNTER));

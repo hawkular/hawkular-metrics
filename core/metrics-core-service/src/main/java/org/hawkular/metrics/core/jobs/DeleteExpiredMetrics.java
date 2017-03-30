@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.jobs;
 
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.scheduler.api.JobDetails;
@@ -67,7 +68,7 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
         }
 
         long expirationTime = (configuredExpirationTime != null ? configuredExpirationTime
-                : System.currentTimeMillis()) - metricExpirationDelay;
+                : DateTimeService.now.get().getMillis()) - metricExpirationDelay;
 
         return session.execute(findEligibleTenants.bind())
                 .flatMap(Observable::from)
