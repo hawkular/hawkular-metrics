@@ -121,7 +121,9 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
     }
 
     @Test
-    public void testOnDemandDeleteExpiredMetricsJob() throws Exception {
+    public void testOnDemandDeleteExpiredMetricsJobCompressionEnabled() throws Exception {
+        configurationService.save(CompressData.CONFIG_ID, "enabled", Boolean.TRUE.toString()).toBlocking();
+
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
 
@@ -176,6 +178,34 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         assertEquals(metrics.size(), 0);
     }
 
+    @Test
+    public void testOnDemandDeleteExpiredMetricsJobCompressionDisabled() throws Exception {
+        configurationService.save(CompressData.CONFIG_ID, "enabled", Boolean.FALSE.toString()).toBlocking();
+
+        String tenantId = nextTenantId();
+        DateTime start = new DateTime(jobScheduler.now());
+
+        Metric<Double> g1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G1"),
+                ImmutableMap.of("x", "1", "y", "2"), 1);
+        Metric<Double> g2 = new Metric<>(new MetricId<>(tenantId, GAUGE, "G2"),
+                ImmutableMap.of("x", "2", "y", "3"), 2, asList(
+                        new DataPoint<>(start.getMillis(), 3.3),
+                        new DataPoint<>(start.plusMinutes(2).getMillis(), 4.4)));
+
+        doAction(() -> metricsService.createMetric(g1, true));
+        doAction(() -> metricsService.createMetric(g2, true));
+        doAction(() -> metricsService.addDataPoints(GAUGE, Observable.just(g2)));
+
+        List<Metric<Double>> metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 2);
+
+        long expiration = DateTimeService.now.get().getMillis() + 10 * 24 * 3600 * 1000L;
+        runOnDemandDeleteExpiredMetricsJob(expiration);
+        metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, GAUGE));
+        assertEquals(metrics.size(), 1);
+        assertEquals(metrics.get(0).getId(), "G2");
+    }
+
     private void runOnDemandDeleteExpiredMetricsJob(long time) throws InterruptedException {
         JobDetails runJobDetails = jobsService.submitDeleteExpiredMetricsJob(time, jobName).toBlocking().value();
         CountDownLatch latch = new CountDownLatch(1);
@@ -190,6 +220,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
 
     @Test
     public void testScheduleDeleteExpiredMetricsJob() throws Exception {
+        configurationService.save(CompressData.CONFIG_ID, "enabled", Boolean.TRUE.toString()).toBlocking();
         String tenantId = nextTenantId();
 
         Metric<Long> c1 = new Metric<>(new MetricId<>(tenantId, COUNTER, "C1"),

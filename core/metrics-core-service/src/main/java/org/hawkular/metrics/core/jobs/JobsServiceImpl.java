@@ -115,7 +115,8 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         scheduler.register(CompressData.JOB_NAME, compressDataJob);
         maybeScheduleCompressData(backgroundJobs);
 
-        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, this.metricExpirationDelay);
+        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
+                this.metricExpirationDelay);
         scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
         maybeScheduleMetricExpirationJob(backgroundJobs);
 

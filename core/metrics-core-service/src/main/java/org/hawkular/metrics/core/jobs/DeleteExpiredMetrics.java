@@ -21,6 +21,7 @@ import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 
 import com.datastax.driver.core.PreparedStatement;
@@ -37,20 +38,27 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
 
     private MetricsService metricsService;
     private RxSession session;
+    private ConfigurationService configurationService;
     private PreparedStatement findEligibleTenants;
     private PreparedStatement findEligibleMetrics;
+    private PreparedStatement findUnexpiredDataPoints;
 
     private long metricExpirationDelay;
 
-    public DeleteExpiredMetrics(MetricsService metricsService, RxSession session, int metricExpirationDelayInDays) {
+    public DeleteExpiredMetrics(MetricsService metricsService, RxSession session,
+            ConfigurationService configurationService, int metricExpirationDelayInDays) {
         this.metricsService = metricsService;
         this.session = session;
+        this.configurationService = configurationService;
 
         findEligibleTenants = session.getSession()
                 .prepare("SELECT DISTINCT tenant_id, type FROM metrics_expiration_idx");
         findEligibleMetrics = session.getSession()
                 .prepare(
                         "SELECT tenant_id, type, metric, time FROM metrics_expiration_idx WHERE tenant_id = ? AND type = ?");
+        findUnexpiredDataPoints = session.getSession()
+                .prepare(
+                        "SELECT * FROM data WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = 0 LIMIT 1;");
 
         this.metricExpirationDelay = metricExpirationDelayInDays * 24 * 3600 * 1000L;
     }
@@ -70,12 +78,37 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
         long expirationTime = (configuredExpirationTime != null ? configuredExpirationTime
                 : DateTimeService.now.get().getMillis()) - metricExpirationDelay;
 
-        return session.execute(findEligibleTenants.bind())
+        Observable<MetricId<?>> expirationIndexResults = session.execute(findEligibleTenants.bind())
                 .flatMap(Observable::from)
                 .flatMap(row -> session.execute(findEligibleMetrics.bind(row.getString(0), row.getByte(1))))
                 .flatMap(Observable::from)
                 .filter(row -> row.getTimestamp(3).getTime() < expirationTime)
-                .map(row -> new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)), row.getString(2)))
-                .flatMap(metricId -> metricsService.deleteMetric(metricId)).toCompletable();
+                .map(row -> new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)), row.getString(2)));
+
+        //If the compression job is disabled then check the data point table for data
+        String compressJobEnabledConfig = configurationService.load(CompressData.CONFIG_ID, "enabled").toBlocking()
+                .firstOrDefault(null);
+
+        boolean compressJobEnabled = false;
+        if (compressJobEnabledConfig != null && !compressJobEnabledConfig.isEmpty()) {
+            try {
+                compressJobEnabled = Boolean.parseBoolean(compressJobEnabledConfig);
+            } catch (Exception e) {
+                //do nothing, assume the compression job is disabled
+            }
+        }
+        if (!compressJobEnabled) {
+            expirationIndexResults = expirationIndexResults
+                    .flatMap(r -> session
+                            .execute(findUnexpiredDataPoints.bind(r.getTenantId(), r.getType().getCode(), r.getName()))
+                            .flatMap(Observable::from)
+                            .isEmpty()
+                            .filter(empty -> empty)
+                            .map(empty -> r));
+        }
+
+        return expirationIndexResults
+                .flatMap(metricId -> metricsService.deleteMetric(metricId))
+                .toCompletable();
     }
 }
