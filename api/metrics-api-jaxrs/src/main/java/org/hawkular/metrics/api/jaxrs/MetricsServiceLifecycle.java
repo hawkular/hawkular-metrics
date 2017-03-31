@@ -23,6 +23,8 @@ import static java.util.stream.Collectors.toList;
 
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TENANT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ADMIN_TOKEN;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CONNECTION_TIMEOUT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_CQL_PORT;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_KEYSPACE;
@@ -83,6 +85,7 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
+import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
@@ -167,6 +170,16 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(CASSANDRA_KEYSPACE)
     private String keyspace;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS)
+    private String clusterConnectionAttempts;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY)
+    private String clusterConnectionDelay;
 
     @Inject
     @Configurable
@@ -372,7 +385,7 @@ public class MetricsServiceLifecycle {
         connectionAttempts++;
         try {
             session = createSession();
-        } catch (Exception t) {
+      } catch (Exception t) {
             Throwable rootCause = Throwables.getRootCause(t);
 
             // to get around HWKMETRICS-415
@@ -389,6 +402,8 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
+            waitForAllNodesToBeUp();
+
             initSchema();
             dataAcces = new DataAccessImpl(session);
 
@@ -437,6 +452,10 @@ public class MetricsServiceLifecycle {
 
             state = State.STARTED;
             log.infoServiceStarted();
+
+        } catch (CassandraClusterNotUpException e) {
+            log.fatal("It appears that some nodes in the Cassandra cluster are not up. Start up cannot proceed");
+            state = State.FAILED;
 
         } catch (Exception e) {
             log.fatalCannotConnectToCassandra(e);
@@ -562,6 +581,46 @@ public class MetricsServiceLifecycle {
             if (createdSession == null) {
                 cluster.close();
             }
+        }
+    }
+
+    private void waitForAllNodesToBeUp() throws CassandraClusterNotUpException {
+        boolean isReady = false;
+        int attempts = Integer.parseInt(CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.defaultValue());
+        long delay = 2000;
+        long maxDelay = Long.parseLong(CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.defaultValue());
+        try {
+            attempts = Integer.parseInt(clusterConnectionAttempts);
+        } catch (NumberFormatException e) {
+            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.name(),
+                    attempts);
+        }
+        try {
+            maxDelay = Long.parseLong(clusterConnectionDelay);
+        } catch (NumberFormatException e) {
+            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.name(),
+                    delay);
+        }
+
+        while (!isReady && !Thread.currentThread().isInterrupted() && attempts-- >= 0) {
+            isReady = true;
+            for (Host host : session.getCluster().getMetadata().getAllHosts()) {
+                if (!host.isUp()) {
+                    isReady = false;
+                    log.warnf("Cassandra node %s may not be up yet. Waiting %s ms for node to come up", host, delay);
+                    try {
+                        Thread.sleep(delay);
+                        delay = Math.min(delay * 2, maxDelay);
+                    } catch(InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    break;
+                }
+            }
+        }
+        if (!isReady) {
+            throw new CassandraClusterNotUpException("It appears that not all nodes in the Cassandra cluster are up " +
+                    "after " + attempts + " checks. Schema updates cannot proceed without all nodes being up.");
         }
     }
 
