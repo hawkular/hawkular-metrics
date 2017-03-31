@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.concurrent.TimeUnit;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.MetricId;
@@ -26,6 +28,7 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
+import com.google.common.base.Stopwatch;
 
 import rx.Completable;
 import rx.Observable;
@@ -68,6 +71,9 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
 
     @Override
     public Completable call(JobDetails jobDetails) {
+        logger.info("Starting delete expired metrics job");
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         String unparsedConfigExpirationTime = jobDetails.getParameters().get("expirationTimestamp");
         Long configuredExpirationTime = null;
         if (unparsedConfigExpirationTime != null && !unparsedConfigExpirationTime.isEmpty()) {
@@ -115,6 +121,16 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
                 .onErrorResumeNext(e -> {
                     logger.error("Failed to delete metric data", e);
                     return Observable.empty();
+                })
+                .doOnError(t -> {
+                    stopwatch.stop();
+                    logger.error("The job for deleting expired metrics failed. Total run time "
+                            + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms", t);
+                })
+                .doOnCompleted(() -> {
+                    stopwatch.stop();
+                    logger.info("The job for deleting expired metrics finished. Total run time "
+                            + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
                 })
                 .toCompletable();
     }
