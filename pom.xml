@@ -98,7 +98,7 @@
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
     <version.org.cassalog>0.4.2</version.org.cassalog>
-    <version.org.hawkular.alerts>1.6.0.Final-SRC-revision-33904b61e094f0d04513d9021c01746305a7e17b</version.org.hawkular.alerts>
+    <version.org.hawkular.alerts>1.6.0.Final</version.org.hawkular.alerts>
     <version.org.hawkular.commons>0.9.1.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.9.5</version.joda-time>

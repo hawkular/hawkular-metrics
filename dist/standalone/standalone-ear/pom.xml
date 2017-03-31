@@ -55,6 +55,12 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-alerts-actions-elasticsearch-metrics</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.alerts</groupId>
       <artifactId>hawkular-alerts-actions-email-metrics</artifactId>
       <version>${version.org.hawkular.alerts}</version>
       <type>war</type>
@@ -62,6 +68,12 @@
     <dependency>
       <groupId>org.hawkular.alerts</groupId>
       <artifactId>hawkular-alerts-actions-webhook-metrics</artifactId>
+      <version>${version.org.hawkular.alerts}</version>
+      <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>org.hawkular.alerts</groupId>
+      <artifactId>hawkular-elasticsearch-alerter-metrics</artifactId>
       <version>${version.org.hawkular.alerts}</version>
       <type>war</type>
     </dependency>
@@ -130,6 +142,12 @@
             </webModule>
             <webModule>
               <groupId>org.hawkular.alerts</groupId>
+              <artifactId>hawkular-alerts-actions-elasticsearch-metrics</artifactId>
+              <bundleFileName>hawkular-alerts-action-elasticsearch.war</bundleFileName>
+              <contextRoot>/hawkular/actions/elasticsearch</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>org.hawkular.alerts</groupId>
               <artifactId>hawkular-alerts-actions-email-metrics</artifactId>
               <bundleFileName>hawkular-alerts-action-email.war</bundleFileName>
               <contextRoot>/hawkular/actions/email</contextRoot>
@@ -139,6 +157,12 @@
               <artifactId>hawkular-alerts-actions-webhook-metrics</artifactId>
               <bundleFileName>hawkular-alerts-action-webhook.war</bundleFileName>
               <contextRoot>/hawkular/actions/webhook</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>org.hawkular.alerts</groupId>
+              <artifactId>hawkular-elasticsearch-alerter-metrics</artifactId>
+              <bundleFileName>hawkular-elasticsearch-alerter.war</bundleFileName>
+              <contextRoot>/hawkular/__alerter-elasticsearch</contextRoot>
             </webModule>
             <webModule>
               <groupId>org.hawkular.metrics</groupId>
