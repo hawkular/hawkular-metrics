@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -192,19 +192,15 @@ public class CompressDataJobITest extends BaseITest {
     @SuppressWarnings("unchecked")
     private <T> void testCompressResults(MetricType<T> type, Metric<T> metric, DateTime start) throws
             Exception {
-        doAction(() -> metricsService.addDataPoints(type, Observable.just(metric)));
+        if (metric.getDataPoints() != null && !metric.getDataPoints().isEmpty()) {
+            doAction(() -> metricsService.addDataPoints(type, Observable.just(metric)));
+        }
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
             latch.countDown();
         });
 
-//        for (JobDetails jobDetails : jobsService.getJobDetails().toBlocking().toIterable()) {
-//            if(JOB_NAME.equals(jobDetails.getJobName())) {
-//                jobScheduler.advanceTimeTo(jobDetails.getTrigger().getTriggerTime());
-//                break;
-//            }
-//        }
         jobScheduler.advanceTimeTo(compressionJob.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
@@ -314,6 +310,38 @@ public class CompressDataJobITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 4.4)));
 
         testCompressResults(GAUGE, m1, start);
+    }
+
+    @Test
+    public void testCompressRetentionIndex() throws Exception {
+        long now = jobScheduler.now();
+
+        DateTime start = DateTimeService.getTimeSlice(new DateTime(now, DateTimeZone.UTC).minusHours(2),
+                Duration.standardHours(2)).plusMinutes(30);
+
+        DateTime end = start.plusMinutes(20);
+        String tenantId = nextTenantId() + now;
+
+        doAction(() -> metricsService.createTenant(new Tenant(tenantId), false));
+
+        //create a metric definition but delete the expiration index entry
+        //to ensure that an expiration entry is not created without data points
+        MetricId<Double> mId2 = new MetricId<>(tenantId, GAUGE, "m2");
+        Metric<Double> m2 = new Metric<>(mId2);
+        doAction(() -> metricsService.createMetric(m2, true));
+        doAction(() -> dataAccess.deleteFromMetricExpirationIndex(m2.getMetricId()));
+
+        MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
+        Metric<Double> m1 = new Metric<>(mId, asList(
+                new DataPoint<>(start.getMillis(), 1.1),
+                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
+                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
+                new DataPoint<>(end.getMillis(), 4.4)));
+        testCompressResults(GAUGE, m1, start);
+
+
+        assertNotNull(dataAccess.findMetricExpiration(m1.getMetricId()).toBlocking().firstOrDefault(null));
+        assertNull(dataAccess.findMetricExpiration(m2.getMetricId()).toBlocking().firstOrDefault(null));
     }
 
     private String nextTenantId() {

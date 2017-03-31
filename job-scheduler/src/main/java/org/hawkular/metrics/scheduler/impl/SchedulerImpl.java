@@ -241,6 +241,11 @@ public class SchedulerImpl implements Scheduler {
     }
 
     @Override
+    public Completable unscheduleJob(String jobId) {
+        return jobsService.deleteJob(UUID.fromString(jobId), queryScheduler);
+    }
+
+    @Override
     public void start() {
         running = true;
         NavigableSet<Date> activeTimeSlices = new ConcurrentSkipListSet<>();

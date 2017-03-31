@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -108,9 +108,9 @@ public abstract class BaseITest {
      *
      * @param fn A function that produces an Observable with side effects
      */
-    protected void doAction(Supplier<Observable<Void>> fn) {
-        TestSubscriber<Void> subscriber = new TestSubscriber<>();
-        Observable<Void> observable = fn.get();
+    protected <T> void doAction(Supplier<Observable<T>> fn) {
+        TestSubscriber<T> subscriber = new TestSubscriber<>();
+        Observable<T> observable = fn.get();
         observable.subscribe(subscriber);
         subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
         subscriber.assertNoErrors();

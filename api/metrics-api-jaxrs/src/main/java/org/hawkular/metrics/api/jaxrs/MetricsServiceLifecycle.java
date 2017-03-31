@@ -41,6 +41,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
@@ -77,6 +79,7 @@ import javax.management.ObjectName;
 import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
@@ -269,6 +272,16 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(METRICS_REPORTING_ENABLED)
     private String metricsReportingEnabled;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_EXPIRATION_DELAY)
+    private String metricExpirationDelay;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_EXPIRATION_JOB_FREQUENCY)
+    private String metricsExpirationJobFrequency;
 
     @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
@@ -600,9 +613,20 @@ public class MetricsServiceLifecycle {
         }
     }
 
+    private int parseIntConfig(String value, ConfigurationKey configKey) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return Integer.parseInt(configKey.defaultValue());
+        }
+    }
+
     private void initJobsService() {
+
         RxSession rxSession = new RxSessionImpl(session);
-        jobsService = new JobsServiceImpl();
+        jobsService = new JobsServiceImpl(
+                parseIntConfig(metricExpirationDelay, ConfigurationKey.METRICS_EXPIRATION_DELAY),
+                parseIntConfig(metricsExpirationJobFrequency, ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY));
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
         jobsService.setSession(rxSession);

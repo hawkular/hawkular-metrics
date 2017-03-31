@@ -102,7 +102,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
 import rx.subjects.PublishSubject;
@@ -113,6 +112,7 @@ import rx.subjects.PublishSubject;
 public class MetricsServiceImpl implements MetricsService {
     private static final CoreLogger log = CoreLogging.getCoreLogger(MetricsServiceImpl.class);
 
+    private static final long DAY_TO_MILLIS = 24 * 3600 * 1000;
     public static final String SYSTEM_TENANT_ID = makeSafe("sysconfig");
 
     private static class DataRetentionKey {
@@ -165,8 +165,6 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Functions used to insert metric data points.
      */
-    private Map<MetricType<?>, Func2<? extends Metric<?>, Integer, Observable<Integer>>> dataPointInserters;
-
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
     /**
@@ -240,43 +238,6 @@ public class MetricsServiceImpl implements MetricsService {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<String>> string = (Observable<Metric<String>>) metric;
                     return dataAccess.insertStringDatas(string, this::getTTL, maxStringSize);
-                })
-                .build();
-
-        dataPointInserters = ImmutableMap
-                .<MetricType<?>, Func2<? extends Metric<?>, Integer,
-                Observable<Integer>>>builder()
-                .put(GAUGE, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<Double> gauge = (Metric<Double>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertGaugeData(gauge);
-                    }
-                    return dataAccess.insertGaugeData(gauge, ttl);
-                })
-                .put(AVAILABILITY, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<AvailabilityType> avail = (Metric<AvailabilityType>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertAvailabilityData(avail);
-                    }
-                    return dataAccess.insertAvailabilityData(avail, ttl);
-                })
-                .put(COUNTER, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<Long> counter = (Metric<Long>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertCounterData(counter);
-                    }
-                    return dataAccess.insertCounterData(counter, ttl);
-                })
-                .put(STRING, (metric, ttl) -> {
-                    @SuppressWarnings("unchecked")
-                    Metric<String> string = (Metric<String>) metric;
-                    if (ttl == defaultTTL) {
-                        return dataAccess.insertStringData(string, maxStringSize);
-                    }
-                    return dataAccess.insertStringData(string, ttl, maxStringSize);
                 })
                 .build();
 
@@ -503,6 +464,9 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
+
+        this.updateMetricExpiration(metric);
+
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!overwrite && !resultSet.wasApplied()) {
@@ -629,6 +593,8 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
+        this.updateMetricExpiration(metric);
+
         return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
                 .toList().map(l -> null);
     }
@@ -667,16 +633,6 @@ public class MetricsServiceImpl implements MetricsService {
             throw new UnsupportedOperationException(metricType.getText());
         }
         return meter;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> Func2<Metric<T>, Integer, Observable<Integer>> getInserter(MetricType<T> metricType) {
-        Func2<Metric<T>, Integer, Observable<Integer>> inserter
-                = (Func2<Metric<T>, Integer, Observable<Integer>>) dataPointInserters.get(metricType);
-        if (inserter == null) {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
-        return inserter;
     }
 
     @Override
@@ -756,19 +712,20 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long
-            endTimeSlice, int pageSize) {
+    public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
+            long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {
 
         return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
-                .concatMap(metricId ->
-                        findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
-                                .compose(applyRetryPolicy())
-                                .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                                .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
-                                        (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
-                                        .compose(applyRetryPolicy())
-                                )));
+                .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
+                        .compose(applyRetryPolicy())
+                        .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
+                        .doOnNext(cpc -> {
+                            subject.onNext(new Metric<>(metricId, getTTL(metricId)));
+                        })
+                        .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
+                                (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
+                                .compose(applyRetryPolicy()))));
     }
 
     @Override
@@ -1064,6 +1021,26 @@ public class MetricsServiceImpl implements MetricsService {
         result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
 
         result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
+        result.mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).flatMap(r -> null));
+
         return result;
+    }
+
+    @Override
+    public <T> Observable<Void> updateMetricExpiration(Metric<T> metric) {
+        if (!MetricType.STRING.equals(metric.getType())) {
+            long expiration = 0;
+            if (metric.getDataRetention() != null) {
+                expiration = DateTimeService.now.get().getMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
+            } else {
+                expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
+            }
+
+            return dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration)
+                    .doOnError(t -> log.error("Failure to update expiration index", t))
+                    .flatMap(r -> null);
+        }
+
+        return Observable.empty();
     }
 }

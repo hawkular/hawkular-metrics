@@ -37,6 +37,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 
+import rx.Completable;
 import rx.Observable;
 
 /**
@@ -60,6 +61,8 @@ public class JobsService {
 
     private PreparedStatement updateStatus;
 
+    private PreparedStatement deleteScheduled;
+
     public JobsService(RxSession session) {
         this.session = session;
         findTimeSlices = session.getSession().prepare("SELECT DISTINCT time_slice FROM scheduled_jobs_idx");
@@ -75,6 +78,9 @@ public class JobsService {
                 "status) VALUES (?, ?, ?, ?, ?, ?, ?)");
         updateStatus = session.getSession().prepare(
                 "UPDATE scheduled_jobs_idx SET status = ? WHERE time_slice = ? AND job_id = ?");
+
+        deleteScheduled = session.getSession().prepare(
+                "DELETE FROM scheduled_jobs_idx WHERE time_slice = ? AND job_id = ?");
     }
 
     public Observable<Date> findActiveTimeSlices(Date currentTime, rx.Scheduler scheduler) {
@@ -102,6 +108,13 @@ public class JobsService {
                     return map;
                 })
                 .flatMap(map -> Observable.from(map.values()));
+    }
+
+    public Completable deleteJob(UUID jobId, rx.Scheduler scheduler) {
+        return session.executeAndFetch(findTimeSlices.bind(), scheduler)
+                .map(row -> row.getTimestamp(0))
+                .flatMap(timeSlice -> session.execute(deleteScheduled.bind(timeSlice, jobId)))
+                .toCompletable();
     }
 
     /**

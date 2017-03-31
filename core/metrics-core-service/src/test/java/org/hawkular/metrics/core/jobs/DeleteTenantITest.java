@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,6 +107,8 @@ public class DeleteTenantITest extends BaseITest {
     public void initTest(Method method) {
         logger.debug("Starting [" + method.getName() + "]");
 
+        jobName = method.getName();
+
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
@@ -115,8 +117,6 @@ public class DeleteTenantITest extends BaseITest {
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-
-        jobName = method.getName();
         jobsService.start();
     }
 
