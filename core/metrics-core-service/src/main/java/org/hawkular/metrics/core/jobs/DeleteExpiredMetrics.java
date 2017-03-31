@@ -112,8 +112,9 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
 
         return expirationIndexResults
                 .concatMap(metricId -> metricsService.deleteMetric(metricId))
-                .doOnError(e -> {
+                .onErrorResumeNext(e -> {
                     logger.error("Failed to delete metric data", e);
+                    return Observable.empty();
                 })
                 .toCompletable();
     }
