@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,12 @@
     </dependencies>
   </sub-deployment>
 
+  <sub-deployment name="hawkular-alerts-action-elasticsearch.war">
+    <dependencies>
+      <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
+    </dependencies>
+  </sub-deployment>
+
   <sub-deployment name="hawkular-alerts-action-email.war">
     <dependencies>
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
@@ -38,6 +44,12 @@
   </sub-deployment>
 
   <sub-deployment name="hawkular-alerts-action-webhook.war">
+    <dependencies>
+      <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
+    </dependencies>
+  </sub-deployment>
+
+  <sub-deployment name="hawkular-elasticsearch-alerter.war">
     <dependencies>
       <module name="deployment.hawkular-metrics.ear.hawkular-alerts.war" />
     </dependencies>
