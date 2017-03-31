@@ -1228,8 +1228,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> ResultSetFuture updateMetricExpirationIndex(MetricId<T> id, long expirationTime) {
-        return session.executeAsync(updateMetricExpirationIndex.bind(id.getTenantId(),
+    public <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime) {
+        return rxSession.execute(updateMetricExpirationIndex.bind(id.getTenantId(),
                 id.getType().getCode(), id.getName(), new Date(expirationTime)));
     }
 

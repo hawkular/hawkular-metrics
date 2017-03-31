@@ -23,6 +23,7 @@ import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
 
@@ -34,6 +35,9 @@ import rx.functions.Func1;
  * @author Stefan Negrea
  */
 public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
+
+    private static Logger logger = Logger.getLogger(DeleteExpiredMetrics.class);
+
     public static final String JOB_NAME = "DELETE_EXPIRED_METRICS";
 
     private MetricsService metricsService;
@@ -42,7 +46,6 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
     private PreparedStatement findEligibleTenants;
     private PreparedStatement findEligibleMetrics;
     private PreparedStatement findUnexpiredDataPoints;
-
     private long metricExpirationDelay;
 
     public DeleteExpiredMetrics(MetricsService metricsService, RxSession session,
@@ -108,7 +111,10 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
         }
 
         return expirationIndexResults
-                .flatMap(metricId -> metricsService.deleteMetric(metricId))
+                .concatMap(metricId -> metricsService.deleteMetric(metricId))
+                .doOnError(e -> {
+                    logger.error("Failed to delete metric data", e);
+                })
                 .toCompletable();
     }
 }

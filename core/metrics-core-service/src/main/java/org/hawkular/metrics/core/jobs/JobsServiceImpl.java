@@ -95,8 +95,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
     @Override
     public List<JobDetails> start() {
-        scheduler.start();
-
         List<JobDetails> backgroundJobs = new ArrayList<>();
 
         deleteTenant = new DeleteTenant(session, metricsService);
@@ -119,6 +117,8 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 this.metricExpirationDelay);
         scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
         maybeScheduleMetricExpirationJob(backgroundJobs);
+
+        scheduler.start();
 
         return backgroundJobs;
     }

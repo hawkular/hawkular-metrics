@@ -54,8 +54,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableMap;
 
 import rx.Observable;
-import rx.observable.ListenableFutureObservable;
-import rx.schedulers.Schedulers;
 
 /**
  * Test the job that deletes expired metrics.
@@ -229,9 +227,8 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
                 ImmutableMap.of("x", "2", "y", "3"), 12);
 
         doAction(() -> metricsService.createMetric(c1, true));
-        ListenableFutureObservable
-        .from(dataAccess.updateMetricExpirationIndex(c1.getMetricId(),
-                        DateTimeService.now.get().getMillis() - 3 * 24 * 3600 * 1000L), Schedulers.immediate());
+        dataAccess.updateMetricExpirationIndex(c1.getMetricId(),
+                DateTimeService.now.get().getMillis() - 3 * 24 * 3600 * 1000L).toBlocking();
         doAction(() -> metricsService.createMetric(c2, true));
 
         List<Metric<Long>> metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, COUNTER));

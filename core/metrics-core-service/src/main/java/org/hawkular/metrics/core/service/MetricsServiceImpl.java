@@ -1036,8 +1036,7 @@ public class MetricsServiceImpl implements MetricsService {
                 expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
             }
 
-            return ListenableFutureObservable
-                    .from(dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration), metricsTasks)
+            return dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration)
                     .doOnError(t -> log.error("Failure to update expiration index", t))
                     .flatMap(r -> null);
         }

@@ -137,7 +137,7 @@ public interface DataAccess {
                                                              CompressedPointContainer cpc,
                                                              long sliceStart, long sliceEnd, int ttl);
 
-    <T> ResultSetFuture updateMetricExpirationIndex(MetricId<T> id, long expirationTime);
+    <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime);
 
     <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
 
