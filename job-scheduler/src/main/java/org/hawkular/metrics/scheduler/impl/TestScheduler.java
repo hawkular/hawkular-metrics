@@ -72,8 +72,10 @@ public class TestScheduler implements Scheduler {
 
     private List<Subscription> jobFinishedSubscriptions;
 
+    @SuppressWarnings("unused")
     private PreparedStatement insertJob;
 
+    @SuppressWarnings("unused")
     private PreparedStatement updateJobQueue;
 
     TestScheduler() {

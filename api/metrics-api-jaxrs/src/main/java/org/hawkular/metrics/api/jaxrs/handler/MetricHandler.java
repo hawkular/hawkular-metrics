@@ -300,7 +300,6 @@ public class MetricHandler {
 
     @POST
     @Path("/stats/query")
-    @SuppressWarnings("unchecked")
     public void findStats(@Suspended AsyncResponse asyncResponse, StatsQueryRequest query) {
         try {
             checkRequiredParams(query);
@@ -402,7 +401,7 @@ public class MetricHandler {
                 availabilityStats = Observable.from(query.getMetrics().get("availability"))
                         .flatMap(id -> metricsService.findAvailabilityStats(new MetricId<>(getTenant(), AVAILABILITY,
                                 id), timeRange.getStart(), timeRange.getEnd(), bucketsConfig.getBuckets())
-                                .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                                .map(bucketPoints -> new NamedBucketPoints<>(id, bucketPoints)))
                         .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
                                 namedBucketPoints.bucketPoints));
             }
@@ -419,7 +418,7 @@ public class MetricHandler {
                     gauges = metricsService.findMetricsWithFilters(getTenant(), GAUGE, query.getTags()).cache();
                     gaugeStats = gauges.flatMap(gauge ->
                             metricsService.findGaugeStats(gauge.getMetricId(), bucketsConfig, percentiles)
-                                    .map(bucketPoints -> new NamedBucketPoints(gauge.getMetricId().getName(),
+                            .map(bucketPoints -> new NamedBucketPoints<>(gauge.getMetricId().getName(),
                                             bucketPoints)))
                             .collect(HashMap::new, (statsMap, namedBucketPoints) ->
                                     statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
@@ -490,7 +489,6 @@ public class MetricHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getCounterStatsFromTags(BucketConfig bucketsConfig,
             List<Percentile> percentiles, String tags) {
         Observable<Metric<Long>> counters = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags);
@@ -502,19 +500,17 @@ public class MetricHandler {
                         statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
     }
 
-    @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getGaugeStatsFromTags(BucketConfig bucketsConfig,
             List<Percentile> percentiles, String tags) {
         Observable<Metric<Double>> gauges = metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags);
         return gauges.flatMap(gauge ->
                 metricsService.findGaugeStats(gauge.getMetricId(), bucketsConfig, percentiles)
-                        .map(bucketPoints -> new NamedBucketPoints(gauge.getMetricId().getName(),
+                .map(bucketPoints -> new NamedBucketPoints<>(gauge.getMetricId().getName(),
                                 bucketPoints)))
                 .collect(HashMap::new, (statsMap, namedBucketPoints) ->
                         statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
     }
 
-    @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getAvailabilityStatsFromTags(
             BucketConfig bucketsConfig, String tags) {
         Observable<Metric<AvailabilityType>> availabilities = metricsService.findMetricsWithFilters(getTenant(),
@@ -530,14 +526,13 @@ public class MetricHandler {
         return availabilityStats;
     }
 
-    @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getGaugeStats(StatsQueryRequest query,
             BucketConfig bucketsConfig, List<Percentile> percentiles) {
         Observable<Map<String, List<? extends BucketPoint>>> gaugeStats;
         gaugeStats = Observable.from(query.getMetrics().get("gauge"))
                 .flatMap(id -> metricsService.findGaugeStats(new MetricId<>(getTenant(), GAUGE, id),
                         bucketsConfig, percentiles)
-                        .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                        .map(bucketPoints -> new NamedBucketPoints<>(id, bucketPoints)))
                 .collect(HashMap::new, (statsMap, namedBucketPoints) ->
                         statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
         return gaugeStats;
@@ -559,14 +554,13 @@ public class MetricHandler {
                         statsMap.put(namedBucketPoints.id, namedBucketPoints.bucketPoints));
     }
 
-    @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getCounterStats(StatsQueryRequest query,
             BucketConfig bucketsConfig, List<Percentile> percentiles) {
         Observable<Map<String, List<? extends BucketPoint>>> counterStats;
         counterStats = Observable.from(query.getMetrics().get("counter"))
                 .flatMap(id -> metricsService.findCounterStats(new MetricId<>(getTenant(), COUNTER, id),
                         bucketsConfig, percentiles)
-                        .map(bucketPoints -> new NamedBucketPoints(id, bucketPoints)))
+                        .map(bucketPoints -> new NamedBucketPoints<>(id, bucketPoints)))
                 .collect(HashMap::new, (statsMap, namedBucketPoints) -> statsMap.put(namedBucketPoints.id,
                         namedBucketPoints.bucketPoints));
         return counterStats;

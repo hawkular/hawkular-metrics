@@ -335,10 +335,12 @@ public class ConditionManager {
                     long end = now - q.getMetricsOffset().toMillis();
                     long start = end - q.getMetricsDuration().toMillis();
                     List<Percentile> percentiles = q.getMetricsPercentiles();
-                    List<BucketPoint> result;
+
+                    List<? extends BucketPoint> result;
 
                     if (isAvail) {
-                        result = findMetricsByNameOrTags(trigger.getTenantId(), metrics, tags, AVAILABILITY)
+                        result = findMetricsByNameOrTags(trigger.getTenantId(), metrics,
+                                tags, AVAILABILITY)
                                 .toList()
                                 .flatMap(metricIds -> {
                                     if (metricIds.size() != 1) {
@@ -362,6 +364,7 @@ public class ConditionManager {
                                         .toBlocking()
                                         .firstOrDefault(Collections.EMPTY_LIST);
                     }
+
                     if (result.size() != 1) {
                         throw new IllegalStateException(
                                 "Failed to retrieve proper data " + result + " for query [%s]" + q.getName());

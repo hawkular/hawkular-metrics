@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@ import static org.joda.time.Duration.standardMinutes;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
-import org.joda.time.Minutes;
 
 /**
  * @author jsanda
@@ -60,7 +58,6 @@ public class SingleExecutionTrigger implements Trigger {
             if (triggerTime != null) {
                 this.triggerTime = getTimeSlice(triggerTime, standardMinutes(1));
             } else {
-                long actualDelay = delay == null ? Minutes.ONE.toStandardDuration().getMillis() : delay;
                 this.triggerTime = getTimeSlice(now.get().getMillis() + delay, standardMinutes(1));
             }
         }

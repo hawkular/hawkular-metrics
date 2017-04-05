@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,8 +38,11 @@ public class CompressorHeader {
         GORILLA((byte) 0x10, GorillaSettings.class);
 
         private byte value;
+
+        @SuppressWarnings("rawtypes")
         private Class enumClass;
 
+        @SuppressWarnings("rawtypes")
         Compressor(byte value, Class enumClass) {
             this.value = value;
             this.enumClass = enumClass;
@@ -49,6 +52,7 @@ public class CompressorHeader {
             return this.value;
         }
 
+        @SuppressWarnings("rawtypes")
         public <E extends Enum<E> & CompressorSetting> Class getSettingsClass() {
             return enumClass;
         }

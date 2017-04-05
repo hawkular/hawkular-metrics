@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -199,6 +199,7 @@ public class DataAccessITest extends BaseITest {
                 .flatMap(m -> dataAccess.insertGaugeData(m, DEFAULT_TTL))
                 .toBlocking().lastOrDefault(null);
 
+        @SuppressWarnings("unchecked")
         List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
                 .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
                         ()))

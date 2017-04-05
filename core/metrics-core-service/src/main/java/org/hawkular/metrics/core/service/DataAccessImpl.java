@@ -732,9 +732,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer>
-            ttlFetcher) {
-
+    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
+            Function<MetricId<Double>, Integer> ttlFetcher) {
         return gauges
                 .flatMap(gauge -> {
                             int ttl = ttlFetcher.apply(gauge.getMetricId());
@@ -811,8 +810,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertStringDatas(Observable<Metric<String>> strings, Function<MetricId, Integer>
-            ttlFetcher, int maxSize) {
+    public Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
+            Function<MetricId<String>, Integer> ttlFetcher, int maxSize) {
 
         return strings
                 .flatMap(string -> {
@@ -862,8 +861,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters, Function<MetricId, Integer>
-            ttlFetcher) {
+    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
+            Function<MetricId<Long>, Integer> ttlFetcher) {
 
         return counters
                 .flatMap(counter -> {
@@ -1097,7 +1096,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-                                                       Function<MetricId, Integer> ttlFetcher) {
+            Function<MetricId<AvailabilityType>, Integer> ttlFetcher) {
         return avail
                 .flatMap(a -> {
                             int ttl = ttlFetcher.apply(a.getMetricId());

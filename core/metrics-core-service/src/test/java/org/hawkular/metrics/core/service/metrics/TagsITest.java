@@ -70,7 +70,7 @@ import rx.observers.TestSubscriber;
 
 public class TagsITest extends BaseMetricsITest {
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({ "rawtypes" })
     @Test
     public void createAndFindMetricsWithTags() throws Exception {
 
@@ -269,6 +269,7 @@ public class TagsITest extends BaseMetricsITest {
         assertMetricIndexMatches(metric.getMetricId().getTenantId(), GAUGE, singletonList(updatedMetric));
     }
 
+    @SuppressWarnings("unchecked")
     protected List<Metric<?>> createTagMetrics(String tenantId) throws Exception {
         ImmutableList<MetricId<?>> ids = ImmutableList.of(
                 new MetricId<>(tenantId, GAUGE, "m1"),
@@ -286,7 +287,6 @@ public class TagsITest extends BaseMetricsITest {
                 new MetricId<>(tenantId, GAUGE, "mG"),
                 new MetricId<>(tenantId, AVAILABILITY, "a1"));
 
-        @SuppressWarnings("unchecked")
         ImmutableList<ImmutableMap<String, String>> maps = ImmutableList.of(
                 ImmutableMap.of("a1", "1"),
                 ImmutableMap.of("a1", "2", "a3", "3"),

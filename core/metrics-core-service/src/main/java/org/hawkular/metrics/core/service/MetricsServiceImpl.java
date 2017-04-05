@@ -539,6 +539,7 @@ public class MetricsServiceImpl implements MetricsService {
         return setFromMetricsIndex.concatWith(setFromData).distinct(m -> m.getMetricId());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, String tags) {
         try {

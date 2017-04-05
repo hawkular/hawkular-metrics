@@ -346,7 +346,6 @@ public class DeleteTenantITest extends BaseITest {
     @Test
     public void deleteNonexistentTenant() throws Exception {
         String tenantId = nextTenantId();
-        DateTime start = new DateTime(jobScheduler.now());
 
         JobDetails details = jobsService.submitDeleteTenantJob(tenantId, jobName).toBlocking().value();
 

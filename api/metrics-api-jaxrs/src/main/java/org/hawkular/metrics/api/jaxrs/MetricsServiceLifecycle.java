@@ -438,6 +438,7 @@ public class MetricsServiceLifecycle {
             new MetricsInitializer(metricRegistry, metricsService, metricNameService).run();
 
             if (Boolean.valueOf(metricsReportingEnabled)) {
+                @SuppressWarnings("resource")
                 DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
                 reporter.start(30, SECONDS);
             }

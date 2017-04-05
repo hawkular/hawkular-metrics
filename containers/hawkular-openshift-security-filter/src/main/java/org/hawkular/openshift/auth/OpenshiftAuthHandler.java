@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.openshift.auth;
 
 
@@ -56,6 +55,7 @@ public class OpenshiftAuthHandler implements HttpHandler {
     private final BasicAuthenticator basicAuthenticator;
 
     private final Pattern insecureEndpoints;
+    @SuppressWarnings("unused")
     private final Pattern postQuery;
 
     public OpenshiftAuthHandler(HttpHandler containerHandler, String componentName, String resourceName, Pattern insecureEndpoints, Pattern postQuery) {

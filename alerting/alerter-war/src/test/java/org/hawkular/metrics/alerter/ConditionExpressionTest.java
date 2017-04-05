@@ -185,6 +185,7 @@ public class ConditionExpressionTest {
         }
 
         q2 = new Query("qYesterday", "1d", q1);
+        @SuppressWarnings("unused")
         ConditionExpression mc1 = new ConditionExpression(Arrays.asList(q1, q2), "5mn", EvalType.ALL,
                 "q(qNow,avg) > q(qYesterday,avg)");
         assertFalse(q1.getName().equals(q2.getName()));
