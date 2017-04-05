@@ -43,18 +43,81 @@ The http://www.hawkular.org/docs/rest/rest-metrics.html[REST API] should be easy
 data with the simplest tools: shell scripts and `curl`.
 
 == Getting started with a release build
+There are a couple of options for running Hawkular Metrics:
 
-http://wildfly.org/downloads/[Download a Wildfly 10] archive and expand it somewhere on your disk.
+* WildFly distribution
+* EAR distribution
 
-Check out the https://github.com/hawkular/hawkular-metrics/releases[Metrics releases] page and download the latest
-version of the web application archive: `hawkular-metrics-api-jaxrs-X.Y.Z.war`
+IMPORTANT: Earlier versions of Hawkular Metrics could be run by deploying `hawkular-metrics-api-jaxrs-X.Y.Z.war`. This
+is longer supported.
 
-Copy this file to the `standalone/deployments` directory of the Wildfly server.
+The WildFly distribution is a pre-configured WildFly 10 server that includes Hawkular Alerts in addition to Hawkular
+Metrics. Check out the https://github.com/hawkular/hawkular-metrics/releases[Metrics releases] page and download the latest
+version of `hawkular-metrics-wildfly-standalone-X.Y.Z.Final.tar.gz`.
 
-Start the server with `bin/standalone.sh`.
+The EAR distribution includes both Hawkular Metrics and Hawkular Alerts. Check out the
+https://github.com/hawkular/hawkular-metrics/releases[Metrics releases] page and download the latest version of
+`hawkular-metrics-standalone-dist-X.Y.Z.Final.ear`. Copy the EAR file to the `standalone/deployments` directory. You
+will have to manually configure WildFly.
+
+The following cache container declarations are needed in the infinispan
+subsection:
+
+[source,xml]
+----
+<cache-container name="hawkular-alerts" default-cache="triggers" statistics-enabled="true">
+      <local-cache name="partition"/>
+      <local-cache name="triggers"/>
+      <local-cache name="data"/>
+      <local-cache name="publish"/>
+      <local-cache name="schema"/>
+      <local-cache name="dataIds"/>
+      <local-cache name="globalActions"/>
+</cache-container>
+<cache-container name="hawkular-metrics" default-cache="triggers" statistics-enabled="true">
+        <local-cache name="locks"/>
+</cache-container>
+----
+
+If you are running a cluster of WildFly servers in HA mode, then you will instead want to edit standalone-ha.xml,
+adding the following cache containers:
+
+[source,xml]
+----
+<cache-container name="hawkular-alerts" default-cache="triggers" statistics-enabled="true">
+        <transport lock-timeout="60000"/>
+        <replicated-cache name="partition" mode="SYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+        <replicated-cache name="triggers" mode="ASYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+        <replicated-cache name="data" mode="ASYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+        <replicated-cache name="publish" mode="ASYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+        <replicated-cache name="schema" mode="SYNC">
+               <transaction mode="NON_XA"/>
+        </replicated-cache>
+        <replicated-cache name="dataIds" mode="ASYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+        <replicated-cache name="globalActions" mode="ASYNC">
+               <transaction mode="BATCH"/>
+        </replicated-cache>
+</cache-container>
+<cache-container name="hawkular-metrics" default-cache="triggers" statistics-enabled="true">
+        <transport lock-timeout="60000"/>
+        <replicated-cache name="locks" mode="SYNC">
+               <transaction mode="NON_XA" locking="PESSIMISTIC"/>
+        </replicated-cache>
+</cache-container>
+----
 
 By default, Metrics will try to connect to a Cassandra on localhost. If you want to start a Cassandra server
-embedded into Wildfly for testing, add the `hawkular-metrics-embedded-cassandra-ear-X.Y.Z.ear` archive to the
+embedded in WildFly for testing, add the `hawkular-metrics-embedded-cassandra-ear-X.Y.Z.ear` archive to the
 `standalone/deployments` directory.
 
 == Build Instructions
