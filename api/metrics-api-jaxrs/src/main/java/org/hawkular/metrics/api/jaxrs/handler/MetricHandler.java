@@ -96,7 +96,7 @@ import rx.Observable;
  *
  * @author Heiko W. Rupp
  */
-@Path("/metrics")
+@Path("/{dual_path:metrics|m}")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @GZIP
