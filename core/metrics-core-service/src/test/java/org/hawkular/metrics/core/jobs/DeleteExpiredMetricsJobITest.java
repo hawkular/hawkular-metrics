@@ -24,7 +24,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.AssertJUnit.assertNotNull;
-import static org.testng.AssertJUnit.assertNull;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -102,27 +101,16 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
-        if (method.getName().equals("testScheduleDeleteExpiredMetricsJobDisabled")) {
-            jobsService = new JobsServiceImpl(2, -1);
-        } else {
-            jobsService = new JobsServiceImpl(2, 7);
-        }
+        jobsService = new JobsServiceImpl(2, 7, true);
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
 
-        if (method.getName().equals("testScheduleDeleteExpiredMetricsJobDisabled")) {
-            assertEquals(jobsService.start().stream()
-                    .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
-                    .count(), 0);
-            deleteExpiredMetricsJob = null;
-        } else {
-            deleteExpiredMetricsJob = jobsService.start().stream()
-                    .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
-                    .findFirst().get();
-            assertNotNull(deleteExpiredMetricsJob);
-        }
+        deleteExpiredMetricsJob = jobsService.start().stream()
+                .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
+                .findFirst().get();
+        assertNotNull(deleteExpiredMetricsJob);
     }
 
     @AfterMethod(alwaysRun = true)
@@ -254,7 +242,20 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
 
     @Test
     public void testScheduleDeleteExpiredMetricsJobDisabled() throws Exception {
-        assertNull(this.deleteExpiredMetricsJob);
+        int[] jobFrequency = { -1, 0, 1, -100 };
+        boolean[] jobEnabled = { true, true, false, false };
+
+        for (int i = 0; i < jobFrequency.length; i++) {
+            jobsService = new JobsServiceImpl(2, jobFrequency[i], jobEnabled[i]);
+            jobsService.setSession(rxSession);
+            jobsService.setScheduler(jobScheduler);
+            jobsService.setMetricsService(metricsService);
+            jobsService.setConfigurationService(configurationService);
+
+            assertEquals(jobsService.start().stream()
+                    .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
+                    .count(), 0);
+        }
     }
 
     private void waitForScheduledDeleteExpiredMetricsJob() throws InterruptedException {
