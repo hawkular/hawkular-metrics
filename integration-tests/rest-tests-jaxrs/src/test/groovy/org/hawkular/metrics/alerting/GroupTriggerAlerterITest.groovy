@@ -232,7 +232,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
 
         // It should not take long to generate the members but give it a few seconds
         for ( int i=0; i < 10; ++i ) {
-            Thread.sleep(500);
+            Thread.sleep(2500);
 
             resp = client.get(path: "triggers/groups/mgt2/members" )
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
