@@ -66,6 +66,8 @@ public class SchemaService {
 
         session.execute("INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES " +
                 "('org.hawkular.metrics', 'version', '" + getNewHawkularMetricsVersion() + "')");
+
+        updateMetricsIdxCompactionStrategy(session, keyspace);
     }
 
     private URI getScript() {
@@ -74,6 +76,13 @@ public class SchemaService {
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to load schema change script", e);
         }
+    }
+
+    private void updateMetricsIdxCompactionStrategy(Session session, String keyspace) {
+        // This change is being done outside of Cassalog because it has to be applied to multiple branches and Cassalog
+        // does not yet support this upgrade scenario. See https://github.com/hawkular/cassalog/issues/6 for more info.
+        session.execute("ALTER TABLE " + keyspace +
+                ".metrics_idx WITH compaction = {'class': 'SizeTieredCompactionStrategy'}");
     }
 
     @SuppressWarnings("unused")
