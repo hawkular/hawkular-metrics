@@ -57,20 +57,23 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     private MetricsService metricsService;
 
     private DeleteTenant deleteTenant;
-    private int metricExpirationJobFrequencyInDays;
-    private int metricExpirationDelay;
 
     private DeleteExpiredMetrics deleteExpiredMetrics;
+    private int metricExpirationJobFrequencyInDays;
+    private int metricExpirationDelay;
+    private boolean metricExpirationJobEnabled;
 
     private ConfigurationService configurationService;
 
     public JobsServiceImpl() {
-        this(1, 7);
+        this(1, 7, true);
     }
 
-    public JobsServiceImpl(int metricExpirationDelay, int metricExpirationJobFrequencyInDays) {
+    public JobsServiceImpl(int metricExpirationDelay, int metricExpirationJobFrequencyInDays,
+            boolean metricExpirationJobEnabled) {
         this.metricExpirationJobFrequencyInDays = metricExpirationJobFrequencyInDays;
         this.metricExpirationDelay = metricExpirationDelay;
+        this.metricExpirationJobEnabled = metricExpirationJobEnabled;
     }
 
     public void setMetricsService(MetricsService metricsService) {
@@ -173,12 +176,14 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         if (config.get(jobIdConfigKey) != null) {
             Integer configuredJobFrequency = null;
             try {
-                configuredJobFrequency = Integer.parseInt(config.get("jobFrequency"));
+                configuredJobFrequency = Integer.parseInt(config.get(jobFrequencyKey));
             } catch (Exception e) {
                 //do nothing, the parsing failed which makes the value unknown
             }
 
-            if (configuredJobFrequency == null || configuredJobFrequency != this.metricExpirationJobFrequencyInDays) {
+            if (configuredJobFrequency == null || configuredJobFrequency != this.metricExpirationJobFrequencyInDays
+                    || this.metricExpirationJobFrequencyInDays <= 0 || configuredJobFrequency <= 0 ||
+                    !this.metricExpirationJobEnabled) {
                 scheduler.unscheduleJob(config.get(jobIdConfigKey)).await();
                 configurationService.delete(configId, jobIdConfigKey).toBlocking();
                 config.delete(jobIdConfigKey);
@@ -187,7 +192,8 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
             }
         }
 
-        if (config.get(jobIdConfigKey) == null) {
+        if (config.get(jobIdConfigKey) == null && this.metricExpirationJobFrequencyInDays > 0
+                && this.metricExpirationJobEnabled) {
             logger.info("Preparing to create and schedule " + DeleteExpiredMetrics.JOB_NAME + " job");
 
             //Get start of next day

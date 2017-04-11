@@ -101,7 +101,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
-        jobsService = new JobsServiceImpl(2, 7);
+        jobsService = new JobsServiceImpl(2, 7, true);
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
@@ -238,6 +238,24 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         metrics = getOnNextEvents(() -> metricsService.findMetrics(tenantId, COUNTER));
         assertEquals(metrics.size(), 1);
         assertEquals(metrics.get(0).getId(), "C2");
+    }
+
+    @Test
+    public void testScheduleDeleteExpiredMetricsJobDisabled() throws Exception {
+        int[] jobFrequency = { -1, 0, 1, -100 };
+        boolean[] jobEnabled = { true, true, false, false };
+
+        for (int i = 0; i < jobFrequency.length; i++) {
+            jobsService = new JobsServiceImpl(2, jobFrequency[i], jobEnabled[i]);
+            jobsService.setSession(rxSession);
+            jobsService.setScheduler(jobScheduler);
+            jobsService.setMetricsService(metricsService);
+            jobsService.setConfigurationService(configurationService);
+
+            assertEquals(jobsService.start().stream()
+                    .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
+                    .count(), 0);
+        }
     }
 
     private void waitForScheduledDeleteExpiredMetricsJob() throws InterruptedException {
