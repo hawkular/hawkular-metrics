@@ -231,8 +231,8 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertTrue(mgt.isAutoDisable());
 
         // It should not take long to generate the members but give it a few seconds
-        for ( int i=0; i < 10; ++i ) {
-            Thread.sleep(2500);
+        for ( int i=0; i < 20; ++i ) {
+            Thread.sleep(3000);
 
             resp = client.get(path: "triggers/groups/mgt2/members" )
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
