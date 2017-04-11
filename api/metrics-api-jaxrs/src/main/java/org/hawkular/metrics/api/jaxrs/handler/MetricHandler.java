@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,7 +94,7 @@ import rx.Observable;
  *
  * @author Heiko W. Rupp
  */
-@Path("/metrics")
+@Path("/{dual_path:metrics|m}")
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
 @Api(tags = "Metric")
