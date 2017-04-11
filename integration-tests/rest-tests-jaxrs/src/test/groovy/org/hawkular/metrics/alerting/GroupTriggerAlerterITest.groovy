@@ -115,8 +115,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
 
         // It should not take long to generate the member but give it a few seconds
         for ( int i=0; i < 10; ++i ) {
-            Thread.sleep(500);
-
+            Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt/members" )
             if ( resp.status == 200 && resp.data.size() >= 1 ) {
                 break;
@@ -134,7 +133,15 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertEquals("[machine0]", member.getContext().get("source").toString())
         def memberId = member.getId();
 
-        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        for ( int i=0; i < 10; ++i ) {
+            Thread.sleep(1000);
+            resp = client.get(path: "triggers/" + memberId + "/conditions")
+            if ( resp.status == 200 && resp.data.size() >= 1 ) {
+                break;
+            }
+            assertEquals(200, resp.status)
+        }
+
         assertEquals(200, resp.status);
         assertEquals(1, resp.data.size());
         ThresholdCondition mtc = (ThresholdCondition)resp.data[0];
@@ -150,8 +157,9 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         addGaugeTagsViaRest(metric1, tags)
 
         // It should not take more than about 5s to reprocess, let's wait 10
-        Thread.sleep(10000);
+        Thread.sleep(10000)
         resp = client.get(path: "triggers/groups/mgt/members" )
+
         assertEquals(200, resp.status)
         assertEquals(1, resp.data.size())
 
@@ -163,7 +171,15 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertEquals("[machine1]", member.getContext().get("source").toString())
         memberId = member.getId();
 
-        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        for ( int i=0; i < 10; ++i ) {
+            Thread.sleep(1000);
+            resp = client.get(path: "triggers/" + memberId + "/conditions")
+            if ( resp.status == 200 && resp.data.size() >= 1 ) {
+                break;
+            }
+            assertEquals(200, resp.status)
+        }
+
         assertEquals(200, resp.status);
         assertEquals(1, resp.data.size());
         mtc = (ThresholdCondition)resp.data[0];
@@ -232,8 +248,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
 
         // It should not take long to generate the members but give it a few seconds
         for ( int i=0; i < 10; ++i ) {
-            Thread.sleep(500);
-
+            Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt2/members" )
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
                 break;
@@ -254,7 +269,14 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         def dataId = avail0.equals(member.getDataIdMap().get("Avail")) ? avail0 : avail1;
         def memberId = member.getId();
 
-        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        for ( int i=0; i < 10; ++i ) {
+            Thread.sleep(1000);
+            resp = client.get(path: "triggers/" + memberId + "/conditions")
+            if ( resp.status == 200 && resp.data.size() >= 2 ) {
+                break;
+            }
+            assertEquals(200, resp.status)
+        }
         assertEquals(200, resp.status);
         assertEquals(2, resp.data.size());
         AvailabilityCondition mac = (AvailabilityCondition)resp.data[0];
@@ -273,7 +295,14 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         dataId = avail0.equals(dataId) ? avail1 : avail0;
         memberId = member.getId();
 
-        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        for ( int i=0; i < 10; ++i ) {
+            Thread.sleep(1000);
+            resp = client.get(path: "triggers/" + memberId + "/conditions")
+            if ( resp.status == 200 && resp.data.size() >= 2 ) {
+                break;
+            }
+            assertEquals(200, resp.status)
+        }
         assertEquals(200, resp.status);
         assertEquals(2, resp.data.size());
         mac = (AvailabilityCondition)resp.data[0];
