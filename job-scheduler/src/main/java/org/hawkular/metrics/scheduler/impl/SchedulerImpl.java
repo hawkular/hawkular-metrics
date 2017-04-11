@@ -56,8 +56,6 @@ import org.joda.time.DateTime;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Statement;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -615,20 +613,6 @@ public class SchedulerImpl implements Scheduler {
                 .flatMap(Observable::from)
                 .map(row -> row.getUUID(0))
                 .collect(HashSet<UUID>::new, HashSet::add);
-    }
-
-    private static class QueryExecution {
-        private Statement query;
-        private ResultSet resultSet;
-        private Throwable error;
-
-        public QueryExecution(Statement query, ResultSet resultSet) {
-            this.resultSet = resultSet;
-        }
-
-        public QueryExecution(Statement query, Throwable t) {
-            error = t;
-        }
     }
 
     private void doOnTick(Action0 action) {

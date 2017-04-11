@@ -144,6 +144,7 @@ public class InsertBenchmark {
                 .toBlocking().lastOrDefault(null));
     }
 
+    @SuppressWarnings("unused")
     private static final class GenericSubscriber<T> extends Subscriber<T> {
         final Blackhole bh;
         public GenericSubscriber(long r, Blackhole bh) {

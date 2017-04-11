@@ -189,7 +189,6 @@ public class CompressDataJobITest extends BaseITest {
         assertNull(tags);
     }
 
-    @SuppressWarnings("unchecked")
     private <T> void testCompressResults(MetricType<T> type, Metric<T> metric, DateTime start) throws
             Exception {
         if (metric.getDataPoints() != null && !metric.getDataPoints().isEmpty()) {
@@ -207,7 +206,7 @@ public class CompressDataJobITest extends BaseITest {
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));
         long endSlice = DateTimeService.getTimeSlice(jobScheduler.now(), Duration.standardHours(2));
 
-        DataPointDecompressTransformer decompressor = new DataPointDecompressTransformer(type, Order.ASC, 0, start
+        DataPointDecompressTransformer<T> decompressor = new DataPointDecompressTransformer<>(type, Order.ASC, 0, start
                 .getMillis(), start.plusMinutes(30).getMillis());
 
         Observable<DataPoint<T>> dataPoints = dataAccess.findCompressedData(metric.getMetricId(), startSlice, endSlice,

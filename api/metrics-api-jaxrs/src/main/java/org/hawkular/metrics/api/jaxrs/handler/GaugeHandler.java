@@ -75,7 +75,6 @@ import org.hawkular.metrics.model.param.Percentiles;
 import org.hawkular.metrics.model.param.TagNames;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
-import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.GZIP;
 
 import io.swagger.annotations.Api;
@@ -98,8 +97,6 @@ import rx.schedulers.Schedulers;
 @ApplicationScoped
 @Logged
 public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandler<Double> {
-
-    private Logger logger = Logger.getLogger(GaugeHandler.class);
 
     @POST
     @Path("/")

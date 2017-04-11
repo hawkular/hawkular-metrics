@@ -66,21 +66,22 @@ public interface DataAccess {
 
     Observable<Row> findAllMetricsInData();
 
-    Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId, Integer> ttlFunc);
+    Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
+            Function<MetricId<Double>, Integer> ttlFunc);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 
-    Observable<Integer> insertStringDatas(Observable<Metric<String>> strings, Function<MetricId, Integer>
-            ttlFetcher, int maxSize);
+    Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
+            Function<MetricId<String>, Integer> ttlFetcher, int maxSize);
 
     Observable<Integer> insertStringData(Metric<String> metric, int maxSize);
 
     Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
 
-    Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters, Function<MetricId, Integer>
-            ttlFetcher);
+    Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
+            Function<MetricId<Long>, Integer> ttlFetcher);
 
     Observable<Integer> insertCounterData(Metric<Long> counter);
 
@@ -109,8 +110,8 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id);
 
-    Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail, Function<MetricId,
-            Integer> ttlFetcher);
+    Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
+            Function<MetricId<AvailabilityType>, Integer> ttlFetcher);
 
     Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
 

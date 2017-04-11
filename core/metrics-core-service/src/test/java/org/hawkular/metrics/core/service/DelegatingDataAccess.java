@@ -114,8 +114,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges, Function<MetricId,
-            Integer> ttlFunction) {
+    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
+            Function<MetricId<Double>, Integer> ttlFunction) {
         return delegate.insertGaugeDatas(gauges, ttlFunction);
     }
 
@@ -131,7 +131,7 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
-                                                           Function<MetricId, Integer> ttlFetcher, int maxSize) {
+            Function<MetricId<String>, Integer> ttlFetcher, int maxSize) {
         return delegate.insertStringDatas(strings, ttlFetcher, maxSize);
     }
 
@@ -174,7 +174,7 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-                                                            Function<MetricId, Integer> ttlFetcher) {
+            Function<MetricId<Long>, Integer> ttlFetcher) {
         return delegate.insertCounterDatas(counters, ttlFetcher);
     }
 
@@ -207,7 +207,7 @@ public class DelegatingDataAccess implements DataAccess {
 
     @Override
     public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-                                                                 Function<MetricId, Integer> ttlFetcher) {
+            Function<MetricId<AvailabilityType>, Integer> ttlFetcher) {
         return delegate.insertAvailabilityDatas(avail, ttlFetcher);
     }
 

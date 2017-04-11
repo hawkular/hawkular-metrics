@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,6 @@ import org.hawkular.rx.cassandra.driver.RxSession;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 
 import rx.Subscription;
@@ -100,10 +99,6 @@ public class GCGraceSecondsManagerITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
-        String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
-        Cluster cluster = new Cluster.Builder()
-                .addContactPoints(nodeAddresses.split(","))
-                .build();
         configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
