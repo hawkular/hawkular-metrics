@@ -44,6 +44,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_MET
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
@@ -295,6 +296,11 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(METRICS_EXPIRATION_JOB_FREQUENCY)
     private String metricsExpirationJobFrequency;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_EXPIRATION_JOB_ENABLED)
+    private String metricsExpirationJobEnabled;
 
     @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
@@ -681,12 +687,21 @@ public class MetricsServiceLifecycle {
         }
     }
 
+    private boolean parseBooleanConfig(String value, ConfigurationKey configKey) {
+        try {
+            return Boolean.parseBoolean(value);
+        } catch (NumberFormatException e) {
+            return Boolean.parseBoolean(configKey.defaultValue());
+        }
+    }
+
     private void initJobsService() {
 
         RxSession rxSession = new RxSessionImpl(session);
         jobsService = new JobsServiceImpl(
-                parseIntConfig(metricExpirationDelay, ConfigurationKey.METRICS_EXPIRATION_DELAY),
-                parseIntConfig(metricsExpirationJobFrequency, ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY));
+                parseIntConfig(metricExpirationDelay, METRICS_EXPIRATION_DELAY),
+                parseIntConfig(metricsExpirationJobFrequency, METRICS_EXPIRATION_JOB_FREQUENCY),
+                parseBooleanConfig(metricsExpirationJobEnabled, METRICS_EXPIRATION_JOB_ENABLED));
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
         jobsService.setSession(rxSession);

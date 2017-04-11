@@ -69,8 +69,10 @@ public enum ConfigurationKey {
 
     //Metric expiration job configuration
     METRICS_EXPIRATION_DELAY("hawkular.metrics.expiration.delay", "1", "METRICS_EXPIRATION_DELAY", false),
-    METRICS_EXPIRATION_JOB_FREQUENCY("hawkular.metrics.expiration.job.frequency", "7",
+    METRICS_EXPIRATION_JOB_FREQUENCY("hawkular.metrics.jobs.expiration.frequency", "7",
             "METRICS_EXPIRATION_JOB_FREQUENCY", false),
+    METRICS_EXPIRATION_JOB_ENABLED("hawkular.metrics.jobs.expiration.enabled", "true",
+            "METRICS_EXPIRATION_JOB_ENABLED", false),
 
     // Request logging properties
     // Useful for debugging
