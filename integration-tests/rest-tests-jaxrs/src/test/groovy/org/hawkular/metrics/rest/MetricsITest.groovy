@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,46 @@ import static org.junit.Assert.assertEquals
  * @author jsanda
  */
 class MetricsITest extends RESTTest {
+
+ @Test
+  void dualPathTest() {
+    String tenantId = nextTenantId()
+    DateTime start = DateTime.now().minusMinutes(10)
+
+    def response = hawkularMetrics.post(
+        path: "metrics/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            gauges: [
+                [
+                    id: 'CG1',
+                    data:  [
+                        [timestamp: start.millis, value: 10.032],
+                        [timestamp: start.plusMinutes(1).millis, value: 9.589]
+                    ],
+                ]
+            ],
+            availabilities: [
+                [
+                    id: 'CA1',
+                    data: [
+                        [timestamp: start.millis, value: "down"],
+                        [timestamp: start.plusMinutes(1).millis, value: "up"]
+                    ]
+                ]
+            ]
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(path: 'metrics', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+
+    response = hawkularMetrics.get(path: 'm', headers: [(tenantHeaderName): tenantId])
+    assertEquals(200, response.status)
+    assertEquals(2, response.data.size)
+  }
 
   @Test
   void addMixedData() {
