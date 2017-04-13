@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,9 @@ import com.google.common.base.MoreObjects;
 class ScheduledExecution {
 
     private final Date timeSlice;
-    private final JobDetails jobDetails;
+    private final JobDetailsImpl jobDetails;
 
-    public ScheduledExecution(Date timeSlice, JobDetails jobDetails) {
+    public ScheduledExecution(Date timeSlice, JobDetailsImpl jobDetails) {
         this.timeSlice = timeSlice;
         this.jobDetails = jobDetails;
     }

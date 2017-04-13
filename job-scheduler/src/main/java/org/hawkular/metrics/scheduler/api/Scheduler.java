@@ -39,7 +39,7 @@ public interface Scheduler {
      * @param trigger
      * @return A Single that emits the job details
      */
-    Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger);
+    Single<? extends JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger);
 
     /**
      * Deletes all the scheduled execution for a job id.

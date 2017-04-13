@@ -96,11 +96,30 @@ public class TestScheduler implements Scheduler {
                 "INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
 
         initTickScheduler();
-        initJobScheduler();
+        initJobScheduler(null);
+    }
+
+    public TestScheduler(RxSession session, JobsService jobsService) {
+        this.session = session;
+
+        finishedTimeSlices = PublishSubject.create();
+        jobFinished = PublishSubject.create();
+
+        finishedTimeSlicesSubscriptions = new ArrayList<>();
+        jobFinishedSubscriptions = new ArrayList<>();
+
+        insertJob = session.getSession().prepare(
+                "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
+        updateJobQueue = session.getSession().prepare(
+                "INSERT INTO scheduled_jobs_idx (time_slice, job_id) VALUES (?, ?)");
+
+        initTickScheduler();
+        initJobScheduler(jobsService);
     }
 
     @Override
-    public Single<JobDetails> scheduleJob(String type, String name, Map<String, String> parameters, Trigger trigger) {
+    public Single<? extends JobDetails> scheduleJob(String type, String name, Map<String, String> parameters,
+            Trigger trigger) {
         return scheduler.scheduleJob(type, name, parameters, trigger);
     }
 
@@ -136,9 +155,13 @@ public class TestScheduler implements Scheduler {
                 .await(10, TimeUnit.SECONDS);
     }
 
-    private void initJobScheduler() {
+    private void initJobScheduler(JobsService jobService) {
         try {
-            scheduler = new SchedulerImpl(session, InetAddress.getLocalHost().getHostName());
+            if (jobService == null) {
+                scheduler = new SchedulerImpl(session, InetAddress.getLocalHost().getHostName());
+            } else {
+                scheduler = new SchedulerImpl(session, InetAddress.getLocalHost().getHostName(), jobService);
+            }
             scheduler.setTickScheduler(tickScheduler);
             scheduler.setTimeSlicesSubject(finishedTimeSlices);
             scheduler.setJobFinishedSubject(jobFinished);
