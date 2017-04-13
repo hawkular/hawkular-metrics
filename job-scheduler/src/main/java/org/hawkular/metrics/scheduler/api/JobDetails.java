@@ -18,9 +18,6 @@ package org.hawkular.metrics.scheduler.api;
 
 import java.util.UUID;
 
-import rx.functions.Func1;
-import rx.functions.Func2;
-
 /**
  * Provides information about scheduled jobs.
  *
@@ -35,8 +32,8 @@ public interface JobDetails {
 
     /**
      * Every job has a type. The scheduler uses the type to determine who is responsible for the job execution.
-     * @see  Scheduler#register(String, Func1)
-     * @see  Scheduler#register(String, Func1, Func2)
+     * @see  Scheduler#register(String, rx.functions.Func1)
+     * @see  Scheduler#register(String, rx.functions.Func1, rx.functions.Func2)
      */
     String getJobType();
 
