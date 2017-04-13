@@ -131,13 +131,13 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     }
 
     @Override
-    public Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
+    public Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
     @Override
-    public Single<JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName) {
+    public Single<? extends JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName) {
         return scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, jobName,
                 ImmutableMap.of("expirationTimestamp", expiration + ""),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
