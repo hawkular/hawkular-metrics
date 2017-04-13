@@ -154,13 +154,13 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
             long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                     .with(DateTimeService.startOfNextOddHour())
                     .toInstant(ZoneOffset.UTC).toEpochMilli();
-            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+            JobDetails JobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-            backgroundJobs.add(jobDetails);
-            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+            backgroundJobs.add(JobDetails);
+            configurationService.save(configId, "jobId", JobDetails.getJobId().toString()).toBlocking();
 
-            logger.info("Created and scheduled " + jobDetails);
+            logger.info("Created and scheduled " + JobDetails);
         }
     }
 
@@ -197,16 +197,16 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
             //Get start of next day
             long nextStart = DateTimeService.current24HourTimeSlice().plusDays(1).getMillis();
-            JobDetails jobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
+            JobDetails JobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(this.metricExpirationJobFrequencyInDays, TimeUnit.DAYS).build())
                     .toBlocking().value();
-            backgroundJobs.add(jobDetails);
-            configurationService.save(configId, jobIdConfigKey, jobDetails.getJobId().toString()).toBlocking();
+            backgroundJobs.add(JobDetails);
+            configurationService.save(configId, jobIdConfigKey, JobDetails.getJobId().toString()).toBlocking();
             configurationService.save(configId, jobFrequencyKey, this.metricExpirationJobFrequencyInDays + "")
                     .toBlocking();
 
-            logger.info("Created and scheduled " + jobDetails);
+            logger.info("Created and scheduled " + JobDetails);
         }
     }
 

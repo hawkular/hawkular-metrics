@@ -42,8 +42,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
+import org.hawkular.metrics.scheduler.api.JobParameters;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
@@ -59,11 +63,14 @@ import org.testng.annotations.Test;
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import rx.Completable;
+import rx.Observable;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -76,6 +83,9 @@ public class JobExecutionTest extends JobSchedulerTest {
 
     private TestScheduler jobScheduler;
 
+    private static final Function<Map<String, String>, Completable> DEFAULT_SAVE_PARAMS =
+            params -> Completable.error(new RuntimeException("Saving parameters is not supported here!"));
+
     @BeforeClass
     public void initClass() {
         insertJob = session.prepare(
@@ -86,7 +96,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     @BeforeMethod(alwaysRun = true)
     public void initTest(Method method) throws Exception {
         logger.debug("Starting [" + method.getName() + "]");
-        jobScheduler = new TestScheduler(rxSession);
+        jobScheduler = new TestScheduler(rxSession, jobsService);
         String keyspace = System.getProperty("keyspace", "hawkulartest");
         jobScheduler.truncateTables(keyspace);
         jobScheduler.start();
@@ -125,7 +135,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
 
         Trigger trigger = new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build();
-        JobDetails jobDetails = new JobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Test Type", "Test Job 1", emptyMap(), trigger);
         AtomicInteger executionCountRef = new AtomicInteger();
 
         jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
@@ -162,7 +172,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         logger.debug("Scheduling jobs for time slice [" + timeSlice.toLocalDateTime() + "]");
 
         for (int i = 0; i < 3; ++i) {
-            JobDetails details = new JobDetails(randomUUID(), jobType, "Test Job " + i, emptyMap(), trigger);
+            JobDetails details = createJobDetails(randomUUID(), jobType, "Test Job " + i, emptyMap(), trigger);
             executionCounts.put(details.getJobName(), 0);
             scheduleJob(details);
         }
@@ -190,7 +200,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         final DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
         logger.debug("TIME is" + timeSlice.toDate());
 
-        JobDetails job1 = new JobDetails(randomUUID(), "Long Test Job", "Long Test Job", emptyMap(),
+        JobDetails job1 = createJobDetails(randomUUID(), "Long Test Job", "Long Test Job", emptyMap(),
                 new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.getMillis()).build());
         CountDownLatch job1Finished = new CountDownLatch(1);
         CountDownLatch job1Running = new CountDownLatch(1);
@@ -212,7 +222,7 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
         }));
 
-        JobDetails job2 = new JobDetails(randomUUID(), "Test Type", "Test Job", emptyMap(),
+        JobDetails job2 = createJobDetails(randomUUID(), "Test Type", "Test Job", emptyMap(),
                 new SingleExecutionTrigger.Builder().withTriggerTime(timeSlice.plusMinutes(1).getMillis()).build());
 
         jobScheduler.register(job2.getJobType(), details -> Completable.fromAction(() ->
@@ -255,7 +265,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     @Test
     public void executeLongRunningRepeatingJob() throws Exception {
         final DateTime timeSlice = new DateTime(jobScheduler.now()).plusMinutes(1);
-        JobDetails job = new JobDetails(randomUUID(), "Long Repeating Job", "Long Repeating Job", emptyMap(),
+        JobDetails job = createJobDetails(randomUUID(), "Long Repeating Job", "Long Repeating Job", emptyMap(),
                 new RepeatingTrigger.Builder().withInterval(1, TimeUnit.MINUTES).build());
 
         CountDownLatch jobStarted = new CountDownLatch(1);
@@ -335,7 +345,7 @@ public class JobExecutionTest extends JobSchedulerTest {
                 .withInterval(1, TimeUnit.MINUTES)
                 .build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails jobDetails = new JobDetails(randomUUID(), "Repeat Test", "Repeat Test", emptyMap(), trigger);
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Repeat Test", "Repeat Test", emptyMap(), trigger);
         TestJob job = new TestJob();
 
         jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
@@ -355,17 +365,89 @@ public class JobExecutionTest extends JobSchedulerTest {
     }
 
     @Test
+    public void executeJobThatModifiesParameters() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = createJobDetails(randomUUID(), "ModifyParameters", "ModifyParameters",
+                ImmutableMap.of("x", "1", "y", "2"), trigger);
+
+        jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
+            JobParameters parameters = details.getParameters();
+            parameters.put("x", "10");
+            parameters.remove("y");
+        }));
+
+        scheduleJob(jobDetails);
+
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+
+        Set<JobDetailsImpl> scheduledJobs = getScheduledJobs(timeSlice.plusMinutes(1));
+        JobDetails next = Iterables.getOnlyElement(scheduledJobs);
+        assertEquals(next.getParameters().getMap(), ImmutableMap.of("x", "10"));
+    }
+
+    @Test
+    public void executeJobThatSavesParametersDuringExectution() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = createJobDetails(randomUUID(), "SaveParameters", "SaveParameters",
+                ImmutableMap.of("x", "1", "y", "2"), trigger);
+        AtomicReference<Boolean> paramsUpdated = new AtomicReference<>(false);
+        AtomicReference<Map<String, String>> paramsRef = new AtomicReference<>();
+
+        jobScheduler.register(jobDetails.getJobType(), details -> {
+            JobParameters parameters = details.getParameters();
+            parameters.put("z", "abc");
+            parameters.put("y", "55");
+
+            return parameters.save().andThen(asCompletable(() ->
+                jobsService.findScheduledJobsForTime(timeSlice.toDate(), Schedulers.computation())
+                        .first()
+                        .doOnNext(updatedDetails -> {
+                            paramsRef.set(updatedDetails.getParameters().getMap());
+                            paramsUpdated.set(updatedDetails.getParameters().getMap().equals(ImmutableMap.of(
+                                            "x", "1",
+                                            "y", "55",
+                                            "z", "abc")));
+                        })
+            ));
+        });
+
+        scheduleJob(jobDetails);
+
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        assertTrue(paramsUpdated.get(), "Parameters were not saved during job execution. Found " + paramsRef.get());
+    }
+
+    /**
+     * This is a helper function that takes a function which returns an Observable and then creates a Completable from
+     * that Observable. This is basically a mechanism to take a hot Observable and make it cold. Since this is a general
+     * purpose utility function it probably needs to be moved elsewhere at some point.
+     */
+    private Completable asCompletable(Supplier<Observable<?>> callback) {
+        return Completable.create(subscriber -> {
+            callback.get().subscribe(n -> {}, subscriber::onError, subscriber::onCompleted);
+        });
+    }
+
+    @Test
     public void executeSingleExecutionJobThatFailsAndHasNoRetryPolicy() throws Exception {
         Trigger repeatingTrigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
                 .withInterval(1, TimeUnit.MINUTES)
                 .build();
         DateTime timeSlice = new DateTime(repeatingTrigger.getTriggerTime());
-        JobDetails repeating = new JobDetails(randomUUID(), "Repeating Job", "Repeating Job", emptyMap(),
+        JobDetails repeating = createJobDetails(randomUUID(), "Repeating Job", "Repeating Job", emptyMap(),
                 repeatingTrigger);
 
         Trigger singleFireTrigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
-        JobDetails failed = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), singleFireTrigger);
+        JobDetails failed = createJobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), singleFireTrigger);
 
         jobScheduler.register(repeating.getJobType(), details -> Completable.complete());
         jobScheduler.register(failed.getJobType(), details -> Completable.error(new Exception()));
@@ -406,7 +488,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     public void executeJobThatFailsAndRetriesImmediately() throws Exception {
         Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
 
         AtomicInteger attempts = new AtomicInteger();
         Func1<JobDetails, Completable> job = details -> {
@@ -430,7 +512,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     public void executeJobThatFailsAndRetriesAfterDelay() throws Exception {
         Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
 
         AtomicInteger attempts = new AtomicInteger();
         Func1<JobDetails, Completable> job = details -> {
@@ -459,8 +541,8 @@ public class JobExecutionTest extends JobSchedulerTest {
                 .withInterval(1, TimeUnit.MINUTES)
                 .build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails jobDetails = new JobDetails(randomUUID(), "Failed Repeating Job", "Failed Repeating Job", emptyMap(),
-                trigger);
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Failed Repeating Job", "Failed Repeating Job",
+                emptyMap(), trigger);
 
         AtomicInteger attempts = new AtomicInteger();
 
@@ -494,7 +576,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         Map<String, List<DateTime>> executions = new HashMap<>();
 
         for (int i = 0; i < 3; ++i) {
-            JobDetails details = new JobDetails(randomUUID(), jobType, jobNamePrefix + i, emptyMap(), trigger);
+            JobDetails details = createJobDetails(randomUUID(), jobType, jobNamePrefix + i, emptyMap(), trigger);
             executions.put(details.getJobName(), new ArrayList<>());
             scheduleJob(details);
         }
@@ -534,8 +616,8 @@ public class JobExecutionTest extends JobSchedulerTest {
                 .withInterval(1, TimeUnit.MINUTES)
                 .build();
         DateTime timeSlice = new DateTime(longTrigger.getTriggerTime());
-        JobDetails longJob = new JobDetails(longJobId, "Long Job", "Test Job", emptyMap(), longTrigger);
-        JobDetails shortJob = new JobDetails(shortJobId, "Short Job", "Test Job", emptyMap(), shortTrigger);
+        JobDetails longJob = createJobDetails(longJobId, "Long Job", "Test Job", emptyMap(), longTrigger);
+        JobDetails shortJob = createJobDetails(shortJobId, "Short Job", "Test Job", emptyMap(), shortTrigger);
 
         scheduleJob(longJob);
         scheduleJob(shortJob);
@@ -625,9 +707,9 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(getScheduledJobs(finishedTimeSlice), emptySet());
         assertEquals(getFinishedJobs(finishedTimeSlice), emptySet());
         assertEquals(getScheduledJobs(nextTimeSlice), ImmutableSet.of(
-                new JobDetails(longJobId, longJob.getJobType(), longJob.getJobName(), emptyMap(),
+                createJobDetails(longJobId, longJob.getJobType(), longJob.getJobName(), emptyMap(),
                         longTrigger.nextTrigger()),
-                new JobDetails(shortJobId, shortJob.getJobType(), shortJob.getJobName(), emptyMap(), nextShortTrigger)
+                createJobDetails(shortJobId, shortJob.getJobType(), shortJob.getJobName(), emptyMap(), nextShortTrigger)
         ));
     }
 
@@ -640,7 +722,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     public void executeJobWhenQueueLockIsSetToScheduling() throws Exception {
         Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails job = new JobDetails(randomUUID(), "TEST", "TEST", emptyMap(), trigger);
+        JobDetails job = createJobDetails(randomUUID(), "TEST", "TEST", emptyMap(), trigger);
         AtomicBoolean executed = new AtomicBoolean();
 
         scheduleJob(job);
@@ -662,7 +744,7 @@ public class JobExecutionTest extends JobSchedulerTest {
                 .withInterval(1, TimeUnit.MINUTES)
                 .build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails details = new JobDetails(randomUUID(), "ResumeAfterReschedule", "JOB-1", emptyMap(), trigger);
+        JobDetails details = createJobDetails(randomUUID(), "ResumeAfterReschedule", "JOB-1", emptyMap(), trigger);
 
         scheduleJob(details);
         jobScheduler.register(details.getJobType(), jobDetails -> Completable.fromAction(() -> {
@@ -676,7 +758,7 @@ public class JobExecutionTest extends JobSchedulerTest {
     public void doNotExecuteJobAgainWhenStatusFlagIsSet() throws Exception {
         Trigger trigger = new RepeatingTrigger.Builder().build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails job = new JobDetails(randomUUID(), "AlreadyExecuted", "TEST", emptyMap(), trigger);
+        JobDetails job = createJobDetails(randomUUID(), "AlreadyExecuted", "TEST", emptyMap(), trigger);
 
         scheduleJob(job);
         jobsService.updateStatusToFinished(timeSlice.toDate(), job.getJobId()).toSingle().toBlocking().value();
@@ -704,7 +786,7 @@ public class JobExecutionTest extends JobSchedulerTest {
         logger.debug("Creating and scheduling " + numJobs + " jobs");
 
         for (int i = 0; i < numJobs; ++i) {
-            JobDetails details = new JobDetails(randomUUID(), jobType, "job-" + i, emptyMap(), trigger);
+            JobDetails details = createJobDetails(randomUUID(), jobType, "job-" + i, emptyMap(), trigger);
             scheduleJob(details);
         }
 
@@ -790,6 +872,14 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(secondIterationExecutions.get(), numJobs);
     }
 
+    private JobDetails createJobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
+            Trigger trigger) {
+        return jobsService.createJobDetails(jobId, jobType, jobName, parameters, trigger,
+                new Date(trigger.getTriggerTime()));
+//        return new JobDetails(jobId, jobType, jobName, new JobParametersImpl(parameters, DEFAULT_SAVE_PARAMS),
+//                trigger);
+    }
+
     private class TestLatch extends CountDownLatch {
 
         private Date timeSlice;
@@ -808,7 +898,8 @@ public class JobExecutionTest extends JobSchedulerTest {
         Date timeSlice = new Date(job.getTrigger().getTriggerTime());
         logger.debug("Scheduling " + job + " for execution at " + timeSlice);
         session.execute(insertJob.bind(new Date(job.getTrigger().getTriggerTime()), job.getJobId(), job.getJobType(),
-                job.getJobName(), job.getParameters(), JobsService.getTriggerValue(rxSession, job.getTrigger())));
+                job.getJobName(), job.getParameters().getMap(), JobsService.getTriggerValue(rxSession,
+                        job.getTrigger())));
     }
 
     private void waitForSchedulerToFinishTimeSlice(DateTime timeSlice) throws Exception {
