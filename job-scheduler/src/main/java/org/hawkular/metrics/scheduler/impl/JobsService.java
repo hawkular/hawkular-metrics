@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.JobStatus;
@@ -63,6 +64,11 @@ public class JobsService {
 
     private PreparedStatement deleteScheduled;
 
+    private PreparedStatement updateJobParameters;
+
+    private static final Function<Map<String, String>, Completable> SAVE_PARAMS_NO_OP =
+            params -> Completable.complete();
+
     public JobsService(RxSession session) {
         this.session = session;
         findTimeSlices = session.getSession().prepare("SELECT DISTINCT time_slice FROM scheduled_jobs_idx");
@@ -70,7 +76,7 @@ public class JobsService {
                 "SELECT job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx " +
                 "WHERE time_slice = ?");
         findAllScheduled = session.getSession().prepare(
-                "SELECT job_id, job_type, job_name, job_params, trigger, status, time_slice FROM scheduled_jobs_idx");
+                "SELECT time_slice, job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx");
         update = session.getSession().prepare(
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         insertScheduled =  session.getSession().prepare(
@@ -78,9 +84,10 @@ public class JobsService {
                 "status) VALUES (?, ?, ?, ?, ?, ?, ?)");
         updateStatus = session.getSession().prepare(
                 "UPDATE scheduled_jobs_idx SET status = ? WHERE time_slice = ? AND job_id = ?");
-
         deleteScheduled = session.getSession().prepare(
                 "DELETE FROM scheduled_jobs_idx WHERE time_slice = ? AND job_id = ?");
+        updateJobParameters = session.getSession().prepare(
+                "UPDATE scheduled_jobs_idx SET job_params = ? WHERE time_slice = ? AND job_id = ?");
     }
 
     public Observable<Date> findActiveTimeSlices(Date currentTime, rx.Scheduler scheduler) {
@@ -93,11 +100,11 @@ public class JobsService {
                 .concatWith(Observable.just(currentTime));
     }
 
-    public Observable<JobDetails> findJobs(Date timeSlice, rx.Scheduler scheduler) {
+    public Observable<JobDetailsImpl> findJobs(Date timeSlice, rx.Scheduler scheduler) {
         return findActiveTimeSlices(timeSlice, scheduler)
                 .flatMap(time -> findScheduledJobsForTime(time, scheduler))
-                .reduce(new HashMap<>(), (HashMap<UUID, JobDetails> map, JobDetails details) -> {
-                    JobDetails other = map.get(details.getJobId());
+                .reduce(new HashMap<>(), (HashMap<UUID, JobDetailsImpl> map, JobDetailsImpl details) -> {
+                    JobDetailsImpl other = map.get(details.getJobId());
                     if (other == null) {
                         map.put(details.getJobId(), details);
                     } else {
@@ -123,13 +130,14 @@ public class JobsService {
     public Observable<JobDetails> findScheduledJobs(Date timeSlice, rx.Scheduler scheduler) {
         return session.executeAndFetch(findAllScheduled.bind(), scheduler)
                 .filter(row -> row.getTimestamp(6).compareTo(timeSlice) <= 0)
-                .map(row -> new JobDetails(
+                .map(row -> createJobDetails(
                         row.getUUID(0),
                         row.getString(1),
                         row.getString(2),
                         row.getMap(3, String.class, String.class),
                         getTrigger(row.getUDTValue(4)),
-                        JobStatus.fromCode(row.getByte(5))))
+                        JobStatus.fromCode(row.getByte(5)),
+                        timeSlice))
                 .collect(HashMap::new, (Map<UUID, SortedSet<JobDetails>> map, JobDetails details) -> {
                     SortedSet<JobDetails> set = map.get(details.getJobId());
                     if (set == null) {
@@ -143,36 +151,66 @@ public class JobsService {
                 .map(entry -> entry.getValue().first());
     }
 
-    public Observable<JobDetails> findScheduledJobsForTime(Date timeSlice, rx.Scheduler scheduler) {
+    public Observable<JobDetailsImpl> findScheduledJobsForTime(Date timeSlice, rx.Scheduler scheduler) {
         return session.executeAndFetch(findScheduledForTime.bind(timeSlice), scheduler)
-                .map(row -> new JobDetails(
+                .map(row -> createJobDetails(
                         row.getUUID(0),
                         row.getString(1),
                         row.getString(2),
                         row.getMap(3, String.class, String.class),
                         getTrigger(row.getUDTValue(4)),
-                        JobStatus.fromCode(row.getByte(5))))
+                        JobStatus.fromCode(row.getByte(5)),
+                        timeSlice))
                 .doOnSubscribe(() -> logger.debugf("Fetching scheduled jobs tor time slice [%s]", timeSlice))
                 .doOnNext(details -> logger.debugf("Found job details %s", details));
     }
 
     public Observable<ScheduledExecution> findScheduledExecutions(UUID jobId, rx.Scheduler scheduler) {
         return session.executeAndFetch(findAllScheduled.bind(), scheduler)
-                .filter(row -> row.getUUID(0).equals(jobId))
-                .map(row -> new ScheduledExecution(row.getTimestamp(6), new JobDetails(jobId, row.getString(1),
-                        row.getString(2), row.getMap(3, String.class, String.class), getTrigger(row.getUDTValue(4)),
-                        JobStatus.fromCode(row.getByte(5)))));
+                .filter(row -> row.getUUID(1).equals(jobId))
+                .map(row -> new ScheduledExecution(row.getTimestamp(0), createJobDetails(
+                        row.getUUID(1),
+                        row.getString(2),
+                        row.getString(3),
+                        row.getMap(4, String.class, String.class),
+                        getTrigger(row.getUDTValue(5)),
+                        JobStatus.fromCode(row.getByte(6)),
+                        row.getTimestamp(0))));
     }
 
     public Observable<ResultSet> insert(Date timeSlice, JobDetails job) {
         return session.execute(insertScheduled.bind(timeSlice, job.getJobId(), job.getJobType(), job.getJobName(),
-                job.getParameters(), getTriggerValue(session, job.getTrigger())));
+                job.getParameters().getMap(), getTriggerValue(session, job.getTrigger())));
     }
 
     public Observable<ResultSet> updateStatusToFinished(Date timeSlice, UUID jobId) {
         return session.execute(updateStatus.bind((byte) 1, timeSlice, jobId))
                 .doOnError(t -> logger.warnf("There was an error updating the status to finished for %s in time " +
                         "slice [%s]", jobId, timeSlice.getTime()));
+    }
+
+    public JobDetailsImpl createJobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
+            Trigger trigger, Date timeSlice) {
+        return createJobDetails(jobId, jobType, jobName, parameters, trigger, JobStatus.NONE, timeSlice);
+    }
+
+    public JobDetailsImpl createJobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
+            Trigger trigger, JobStatus status, Date timeSlice) {
+        Function<Map<String, String>, Completable> saveParameters = params ->
+                session.execute(updateJobParameters.bind(params, timeSlice, jobId)).toCompletable();
+        return new JobDetailsImpl(jobId,  jobType, jobName, new JobParametersImpl(parameters, SAVE_PARAMS_NO_OP),
+                trigger, status);
+    }
+
+    public void prepareJobDetailsForExecution(JobDetailsImpl jobDetails, Date timeSlice) {
+        Function<Map<String, String>, Completable> saveParameters = params ->
+                session.execute(updateJobParameters.bind(jobDetails.getParameters().getMap(), timeSlice,
+                        jobDetails.getJobId())).toCompletable();
+        jobDetails.setSaveParameters(saveParameters);
+    }
+
+    public void resetJobDetails(JobDetailsImpl jobDetails) {
+        jobDetails.setSaveParameters(SAVE_PARAMS_NO_OP);
     }
 
     static Trigger getTrigger(UDTValue value) {

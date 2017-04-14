@@ -105,8 +105,8 @@ public class JobSchedulingTest extends JobSchedulerTest {
         AtomicReference<JobDetails> details1 = new AtomicReference<>();
         AtomicReference<JobDetails> details2 = new AtomicReference<>();
 
-        Single<JobDetails> s1 = jobScheduler.scheduleJob("Test", "Test 1", emptyMap(), trigger);
-        Single<JobDetails> s2 = jobScheduler.scheduleJob("Test", "Test 2", emptyMap(), trigger);
+        Single<? extends JobDetails> s1 = jobScheduler.scheduleJob("Test", "Test 1", emptyMap(), trigger);
+        Single<? extends JobDetails> s2 = jobScheduler.scheduleJob("Test", "Test 2", emptyMap(), trigger);
 
         s1.subscribe(
                 details -> {

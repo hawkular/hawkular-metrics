@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,99 +16,44 @@
  */
 package org.hawkular.metrics.scheduler.api;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
-import com.google.common.base.MoreObjects;
-
 /**
+ * Provides information about scheduled jobs.
+ *
  * @author jsanda
  */
-public class JobDetails {
+public interface JobDetails {
 
-    private UUID jobId;
+    /**
+     * A unique identifier that the scheduler uses to query Cassandra for the job details
+     */
+    UUID getJobId();
 
-    private String jobType;
+    /**
+     * Every job has a type. The scheduler uses the type to determine who is responsible for the job execution.
+     * @see  Scheduler#register(String, rx.functions.Func1)
+     * @see  Scheduler#register(String, rx.functions.Func1, rx.functions.Func2)
+     */
+    String getJobType();
 
-    private String jobName;
+    /**
+     * Note that thee job name does not have to be unique.
+     */
+    String getJobName();
 
-    private Map<String, String> parameters;
+    /**
+     * The job {@link JobParameters parameters} which are mutable
+     */
+    JobParameters getParameters();
 
-    private Trigger trigger;
+    /**
+     * The {@link Trigger trigger} specifies when the job will execute.
+     */
+    Trigger getTrigger();
 
-    private JobStatus status;
-
-    public JobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters, Trigger trigger) {
-        this.jobId = jobId;
-        this.jobType = jobType;
-        this.jobName = jobName;
-        this.parameters = Collections.unmodifiableMap(parameters);
-        this.trigger = trigger;
-        status = JobStatus.NONE;
-    }
-
-    public JobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters, Trigger trigger,
-            JobStatus status) {
-        this.jobId = jobId;
-        this.jobType = jobType;
-        this.jobName = jobName;
-        this.parameters = Collections.unmodifiableMap(parameters);
-        this.trigger = trigger;
-        this.status = status;
-    }
-
-    public UUID getJobId() {
-        return jobId;
-    }
-
-    public String getJobType() {
-        return jobType;
-    }
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public Map<String, String> getParameters() {
-        return parameters;
-    }
-
-    public Trigger getTrigger() {
-        return trigger;
-    }
-
-    public JobStatus getStatus() {
-        return status;
-    }
-
-    @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        JobDetails details = (JobDetails) o;
-        return Objects.equals(jobId, details.jobId) &&
-                Objects.equals(jobType, details.jobType) &&
-                Objects.equals(jobName, details.jobName) &&
-                Objects.equals(parameters, details.parameters) &&
-                Objects.equals(trigger, details.trigger) &&
-                Objects.equals(status, details.status);
-    }
-
-    @Override public int hashCode() {
-        return Objects.hash(jobId, jobType, jobName, parameters, trigger, status);
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("jobId", jobId)
-                .add("jobType", jobType)
-                .add("jobName", jobName)
-                .add("parameters", parameters)
-                .add("trigger", trigger)
-                .add("status", status)
-                .omitNullValues()
-                .toString();
-    }
+    /**
+     * This is primarily for internal use by the scheduler.
+     */
+    JobStatus getStatus();
 }
