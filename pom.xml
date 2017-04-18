@@ -123,7 +123,7 @@
     <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
     <version.commons-codec>1.10</version.commons-codec>
     <version.io.fabric8>2.2.16</version.io.fabric8>
-    <version.io.netty>4.0.33.Final</version.io.netty>
+    <version.io.netty>4.0.45.Final</version.io.netty>
     <version.io.vertx.vertx-core>3.3.1</version.io.vertx.vertx-core>
     <version.maven-surefire-report-plugin>2.6</version.maven-surefire-report-plugin>
     <version.org.acplt.oncrpc>1.0.7</version.org.acplt.oncrpc>
@@ -192,6 +192,31 @@
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
         <version>${version.joda-time}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-buffer</artifactId>
+        <version>${version.io.netty}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec</artifactId>
+        <version>${version.io.netty}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-common</artifactId>
+        <version>${version.io.netty}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-handler</artifactId>
+        <version>${version.io.netty}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport</artifactId>
+        <version>${version.io.netty}</version>
       </dependency>
       <dependency>
         <groupId>io.reactivex</groupId>
