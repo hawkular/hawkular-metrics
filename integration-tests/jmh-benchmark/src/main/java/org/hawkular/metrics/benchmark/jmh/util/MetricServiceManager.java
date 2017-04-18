@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,11 +36,12 @@ public class MetricServiceManager {
     private MetricsServiceImpl metricsService;
     private ClusterManager manager;
     private String keyspace;
+    private Session session;
 
     public MetricServiceManager(ClusterManager manager) {
         this.manager = manager;
         manager.startCluster();
-        Session session = manager.createSession();
+        session = manager.createSession();
         keyspace = System.getProperty("hawkular.metrics.cassandra.keyspace", "benchmark");
         metricsService = createMetricsService(session);
     }
@@ -72,6 +73,10 @@ public class MetricServiceManager {
 
     public MetricsServiceImpl getMetricsService() {
         return metricsService;
+    }
+
+    public Session getSession() {
+        return session;
     }
 
     public void shutdown() {
