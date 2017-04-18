@@ -684,12 +684,16 @@ public class MetricsServiceImpl implements MetricsService {
 
             Observable<DataPoint<T>> dataPoints;
             if(metricType == GAUGE) {
+                log.info("Trying to fetch from the temp gauges list?");
                 Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempGaugeData((MetricId<Double>) metricId, start, end, limit,
                         safeOrder, pageSize)
-                        .map(mapper);
+                        .map(mapper)
+                        .doOnNext(d -> log.infof("Found datapoint from temp table with timestamp->%d and " +
+                                "value->%f\n", d.getTimestamp(), ((Double) d.getValue()).doubleValue()));
                 dataPoints = SortedMerge
                         .create(Arrays.asList(tempStoragePoints, uncompressedPoints, compressedPoints), comparator,
-                                false, true);
+                                false, true)
+                        .doOnNext(d -> log.infof("Something emitted, %d\n", d.getTimestamp()));
             } else {
                 dataPoints = SortedMerge
                         .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
