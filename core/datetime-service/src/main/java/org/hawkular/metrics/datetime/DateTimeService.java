@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,6 +105,16 @@ public class DateTimeService {
         return temporal -> {
             int currentHour = temporal.get(ChronoField.HOUR_OF_DAY);
             return temporal.plus((currentHour % 2 == 0) ? 1 : 2, ChronoUnit.HOURS)
+                    .with(ChronoField.MINUTE_OF_HOUR, 0)
+                    .with(ChronoField.SECOND_OF_MINUTE, 0)
+                    .with(ChronoField.NANO_OF_SECOND, 0);
+        };
+    }
+
+    public static TemporalAdjuster startOfPreviousEvenHour() {
+        return temporal -> {
+            int currentHour = temporal.get(ChronoField.HOUR_OF_DAY);
+            return temporal.minus((currentHour % 2 == 0) ? 0 : 1, ChronoUnit.HOURS)
                     .with(ChronoField.MINUTE_OF_HOUR, 0)
                     .with(ChronoField.SECOND_OF_MINUTE, 0)
                     .with(ChronoField.NANO_OF_SECOND, 0);

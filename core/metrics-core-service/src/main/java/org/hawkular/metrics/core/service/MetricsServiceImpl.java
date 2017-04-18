@@ -648,6 +648,16 @@ public class MetricsServiceImpl implements MetricsService {
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
+            /*
+            TODO List
+                        - Inserts should go to the correct bucket (merge with the compress sync - two hour odd)
+                        - Create 12 temp tables for the ring buffer
+                        - Modify compress job to read temp table and truncate it afterwards
+                        - findDataPoints should merge reads from temp table + data_compressed
+                        - Should we keep data for the out-of-order writes and merge that too if necessary?
+                        - Autosnapshot behavior
+             */
+
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
 

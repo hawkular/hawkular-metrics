@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.toMap;
 
 import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
@@ -25,6 +26,8 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,7 @@ import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -78,6 +82,8 @@ public class DataAccessImpl implements DataAccess {
     private RxSession rxSession;
 
     private LoadBalancingPolicy loadBalancingPolicy;
+
+    private PreparedStatement[] gaugeTempInserters;
 
     private PreparedStatement insertTenant;
 
@@ -231,9 +237,21 @@ public class DataAccessImpl implements DataAccess {
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
         initPreparedStatements();
+        createGaugeTempInserters();
 
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
+    }
+
+    private void createGaugeTempInserters() {
+        String baseString = "UPDATE data_temp_%d " +
+                "SET n_value = ? " +
+                "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+
+        gaugeTempInserters = new PreparedStatement[12];
+        for(int i = 0; i < 12; i++) {
+            gaugeTempInserters[i] = session.prepare(String.format(baseString, i));
+        }
     }
 
     protected void initPreparedStatements() {
@@ -759,13 +777,33 @@ public class DataAccessImpl implements DataAccess {
     public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
             Function<MetricId<Double>, Integer> ttlFetcher) {
         return gauges
-                .flatMap(gauge -> {
-                            int ttl = ttlFetcher.apply(gauge.getMetricId());
-                            return Observable.from(gauge.getDataPoints())
-                                    .compose(mapGaugeDatapoint(gauge, ttl));
-                        }
-                )
+                .flatMap(gauge -> Observable.from(gauge.getDataPoints())
+                        .compose(mapTempGaugeDatapoint(gauge)))
                 .compose(applyMicroBatching());
+//                .flatMap(gauge -> {
+//                            int ttl = ttlFetcher.apply(gauge.getMetricId());
+//                            return Observable.from(gauge.getDataPoints())
+//                                    .compose(mapGaugeDatapoint(gauge, ttl));
+//                        }
+//                )
+    }
+
+    private PreparedStatement gaugeTempInserter(long timestamp) {
+        int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour())
+                .getHour();
+
+        return gaugeTempInserters[Math.floorDiv(hour, 2)];
+    }
+
+    private Observable.Transformer<DataPoint<Double>, BoundStatement> mapTempGaugeDatapoint(Metric<Double> gauge) {
+        return tO -> tO
+                .map(dataPoint -> {
+                    PreparedStatement inserter = gaugeTempInserter(dataPoint.getTimestamp());
+                    return bindDataPoint(inserter, gauge, dataPoint.getValue(),
+                            dataPoint.getTimestamp());
+
+                });
     }
 
     private Observable.Transformer<DataPoint<Double>, BoundStatement> mapGaugeDatapoint(Metric<Double> gauge, int ttl) {
