@@ -70,11 +70,11 @@ public class DeleteExpiredMetrics implements Func1<JobDetails, Completable> {
     }
 
     @Override
-    public Completable call(JobDetails JobDetails) {
+    public Completable call(JobDetails jobDetails) {
         logger.info("Starting delete expired metrics job");
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        String unparsedConfigExpirationTime = JobDetails.getParameters().get("expirationTimestamp");
+        String unparsedConfigExpirationTime = jobDetails.getParameters().get("expirationTimestamp");
         Long configuredExpirationTime = null;
         if (unparsedConfigExpirationTime != null && !unparsedConfigExpirationTime.isEmpty()) {
             try {
