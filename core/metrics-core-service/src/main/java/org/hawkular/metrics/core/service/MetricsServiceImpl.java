@@ -657,6 +657,10 @@ public class MetricsServiceImpl implements MetricsService {
                         - Should we keep data for the out-of-order writes and merge that too if necessary?
                         - Autosnapshot behavior
              */
+            // TODO Need to construct the proper range for tempTable query
+            // Temp tables should hold at most current time - 4 hours of data..
+            // Need to take account if compressJob is lagging behind.. where will we find the correct data (I need to
+            // know the last successful compressjob time here)
 
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
@@ -678,8 +682,18 @@ public class MetricsServiceImpl implements MetricsService {
                     throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
             }
 
-            Observable<DataPoint<T>> dataPoints = SortedMerge
-                    .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
+            Observable<DataPoint<T>> dataPoints;
+            if(metricType == GAUGE) {
+                Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempGaugeData((MetricId<Double>) metricId, start, end, limit,
+                        safeOrder, pageSize)
+                        .map(mapper);
+                dataPoints = SortedMerge
+                        .create(Arrays.asList(tempStoragePoints, uncompressedPoints, compressedPoints), comparator,
+                                false, true);
+            } else {
+                dataPoints = SortedMerge
+                        .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
+            }
 
             if(limit > 0) {
                 dataPoints = dataPoints.take(limit);

@@ -28,10 +28,14 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
@@ -84,6 +88,10 @@ public class DataAccessImpl implements DataAccess {
     private LoadBalancingPolicy loadBalancingPolicy;
 
     private PreparedStatement[] gaugeTempInserters;
+    private PreparedStatement[] dateRangeExclusive;
+    private PreparedStatement[] dateRangeExclusiveWithLimit;
+    private PreparedStatement[] dataByDateRangeExclusiveASC;
+    private PreparedStatement[] dataByDateRangeExclusiveWithLimitASC;
 
     private PreparedStatement insertTenant;
 
@@ -244,13 +252,45 @@ public class DataAccessImpl implements DataAccess {
     }
 
     private void createGaugeTempInserters() {
+        String ByDateRangeExclusiveBase =
+                "SELECT time, n_value, tags FROM data_temp_%d " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
+
+        String DateRangeExclusiveWithLimitBase =
+                "SELECT time, n_value, tags FROM data_temp_%d " +
+                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                        " LIMIT ?";
+
+        String DataByDateRangeExclusiveASCBase =
+                "SELECT time, n_value, tags FROM data " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                        " AND time < ? ORDER BY time ASC";
+
+        String DataByDateRangeExclusiveWithLimitASCBase =
+                "SELECT time, n_value, tags FROM data" +
+                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                        " AND time < ? ORDER BY time ASC" +
+                        " LIMIT ?";
+
         String baseString = "UPDATE data_temp_%d " +
                 "SET n_value = ? " +
                 "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
 
+        // Generify
+
         gaugeTempInserters = new PreparedStatement[12];
+        dateRangeExclusive = new PreparedStatement[12];
+        dateRangeExclusiveWithLimit = new PreparedStatement[12];
+        dataByDateRangeExclusiveASC = new PreparedStatement[12];
+        dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[12];
+
         for(int i = 0; i < 12; i++) {
             gaugeTempInserters[i] = session.prepare(String.format(baseString, i));
+            dateRangeExclusive[i] = session.prepare(String.format(ByDateRangeExclusiveBase, i));
+            dateRangeExclusiveWithLimit[i] = session.prepare(String.format(DateRangeExclusiveWithLimitBase, i));
+            dataByDateRangeExclusiveASC[i] = session.prepare(String.format(DataByDateRangeExclusiveASCBase, i));
+            dataByDateRangeExclusiveWithLimitASC[i] = session.prepare(String.format
+                    (DataByDateRangeExclusiveWithLimitASCBase, i));
         }
     }
 
@@ -788,18 +828,18 @@ public class DataAccessImpl implements DataAccess {
 //                )
     }
 
-    private PreparedStatement gaugeTempInserter(long timestamp) {
+    private int getBucketIndex(long timestamp) {
         int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour())
                 .getHour();
 
-        return gaugeTempInserters[Math.floorDiv(hour, 2)];
+        return Math.floorDiv(hour, 2);
     }
 
     private Observable.Transformer<DataPoint<Double>, BoundStatement> mapTempGaugeDatapoint(Metric<Double> gauge) {
         return tO -> tO
                 .map(dataPoint -> {
-                    PreparedStatement inserter = gaugeTempInserter(dataPoint.getTimestamp());
+                    PreparedStatement inserter = gaugeTempInserters[getBucketIndex(dataPoint.getTimestamp())];
                     return bindDataPoint(inserter, gauge, dataPoint.getValue(),
                             dataPoint.getTimestamp());
 
@@ -1026,6 +1066,67 @@ public class DataAccessImpl implements DataAccess {
                 return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
                         id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
                         limit));
+            }
+        }
+    }
+
+    private Integer[] tempBuckets(long startTime, long endTime, Order order) {
+        ZonedDateTime endZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTime), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour());
+
+        ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour());
+
+        // Max time back is <24 hours.
+        if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
+            startZone = endZone.minus(23, ChronoUnit.HOURS);
+        }
+
+        ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
+
+        while(startZone.isBefore(endZone)) {
+            buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
+            startZone = startZone.plus(1, ChronoUnit.HOURS);
+        }
+
+        if(order == Order.DESC) {
+            return buckets.descendingSet().stream().toArray(Integer[]::new);
+        } else {
+            return buckets.stream().toArray(Integer[]::new);
+        }
+    }
+
+    @Override
+    public Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+                                             int pageSize) {
+
+        // Find out which tables we'll need to scan
+//        Integer[] buckets = Arrays.stream(tempBuckets(startTime, endTime)).boxed().toArray(Integer[]::new);
+        Integer[] buckets = tempBuckets(startTime, endTime, order);
+
+        if (order == Order.ASC) {
+            if (limit <= 0) {
+                return Observable.from(buckets)
+                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[i]
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
+                                        new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
+            } else {
+                return Observable.from(buckets)
+                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[i].bind(
+                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                        new Date(endTime), limit).setFetchSize(pageSize)));
+            }
+        } else {
+            if (limit <= 0) {
+                return Observable.from(buckets)
+                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[i].bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
+                                .setFetchSize(pageSize)));
+            } else {
+                return Observable.from(buckets)
+                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[i].bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
+                        limit).setFetchSize(pageSize)));
             }
         }
     }

@@ -156,6 +156,12 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+                                             int pageSize) {
+        return delegate.findTempGaugeData(id, startTime, endTime, limit, order, pageSize);
+    }
+
+    @Override
     public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
             int pageSize) {
         return delegate.findGaugeData(id, startTime, endTime, limit, order, pageSize);

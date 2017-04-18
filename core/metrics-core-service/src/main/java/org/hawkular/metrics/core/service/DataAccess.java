@@ -94,8 +94,11 @@ public interface DataAccess {
     Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order);
 
+    Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
+                                      int pageSize);
+
     Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
+                                  int pageSize);
 
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
             int pageSize);
