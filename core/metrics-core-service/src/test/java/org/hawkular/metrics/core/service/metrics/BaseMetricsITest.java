@@ -93,7 +93,7 @@ public abstract class BaseMetricsITest extends BaseITest {
     @BeforeMethod(alwaysRun = true)
     public void initMethod() {
         session.execute("TRUNCATE tenants");
-//        session.execute("TRUNCATE data");
+        session.execute("TRUNCATE data");
         session.execute("TRUNCATE data_compressed");
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");

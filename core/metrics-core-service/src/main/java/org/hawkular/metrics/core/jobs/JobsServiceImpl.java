@@ -197,16 +197,16 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
             //Get start of next day
             long nextStart = DateTimeService.current24HourTimeSlice().plusDays(1).getMillis();
-            JobDetails JobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
+            JobDetails jobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(this.metricExpirationJobFrequencyInDays, TimeUnit.DAYS).build())
                     .toBlocking().value();
-            backgroundJobs.add(JobDetails);
-            configurationService.save(configId, jobIdConfigKey, JobDetails.getJobId().toString()).toBlocking();
+            backgroundJobs.add(jobDetails);
+            configurationService.save(configId, jobIdConfigKey, jobDetails.getJobId().toString()).toBlocking();
             configurationService.save(configId, jobFrequencyKey, this.metricExpirationJobFrequencyInDays + "")
                     .toBlocking();
 
-            logger.info("Created and scheduled " + JobDetails);
+            logger.info("Created and scheduled " + jobDetails);
         }
     }
 

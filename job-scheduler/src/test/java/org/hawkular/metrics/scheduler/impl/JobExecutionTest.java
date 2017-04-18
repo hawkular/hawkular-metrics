@@ -876,8 +876,6 @@ public class JobExecutionTest extends JobSchedulerTest {
             Trigger trigger) {
         return jobsService.createJobDetails(jobId, jobType, jobName, parameters, trigger,
                 new Date(trigger.getTriggerTime()));
-//        return new JobDetails(jobId, jobType, jobName, new JobParametersImpl(parameters, DEFAULT_SAVE_PARAMS),
-//                trigger);
     }
 
     private class TestLatch extends CountDownLatch {
