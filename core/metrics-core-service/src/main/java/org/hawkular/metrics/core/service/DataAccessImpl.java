@@ -92,6 +92,8 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement[] dateRangeExclusiveWithLimit;
     private PreparedStatement[] dataByDateRangeExclusiveASC;
     private PreparedStatement[] dataByDateRangeExclusiveWithLimitASC;
+    private PreparedStatement[] metricsInDatas;
+    private PreparedStatement[] allMetricsInDatas;
 
     private PreparedStatement insertTenant;
 
@@ -276,6 +278,13 @@ public class DataAccessImpl implements DataAccess {
                 "SET n_value = ? " +
                 "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
 
+        String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+                        "FROM data_temp_%d " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ";
+
+        String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+                        "FROM data_temp_%d";
+
         // Generify
 
         gaugeTempInserters = new PreparedStatement[12];
@@ -283,6 +292,8 @@ public class DataAccessImpl implements DataAccess {
         dateRangeExclusiveWithLimit = new PreparedStatement[12];
         dataByDateRangeExclusiveASC = new PreparedStatement[12];
         dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[12];
+        metricsInDatas = new PreparedStatement[12];
+        allMetricsInDatas = new PreparedStatement[12];
 
         for(int i = 0; i < 12; i++) {
             gaugeTempInserters[i] = session.prepare(String.format(baseString, i));
@@ -291,6 +302,8 @@ public class DataAccessImpl implements DataAccess {
             dataByDateRangeExclusiveASC[i] = session.prepare(String.format(DataByDateRangeExclusiveASCBase, i));
             dataByDateRangeExclusiveWithLimitASC[i] = session.prepare(String.format
                     (DataByDateRangeExclusiveWithLimitASCBase, i));
+            metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, i));
+            allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, i));
         }
     }
 
@@ -676,11 +689,14 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
-        return rxSession.executeAndFetch(findMetricInData
-                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
-                .concatWith(
-                        rxSession.executeAndFetch(findMetricInDataCompressed
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART)))
+        return Observable.from(metricsInDatas)
+                .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
+                .flatMap(b -> rxSession.executeAndFetch(b))
+                .concatWith(rxSession.executeAndFetch(findMetricInData
+                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
+                        .concatWith(
+                                rxSession.executeAndFetch(findMetricInDataCompressed
+                                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))))
                 .take(1);
     }
 
@@ -761,8 +777,12 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public Observable<Row> findAllMetricsInData() {
-        return rxSession.executeAndFetch(findAllMetricsInData.bind())
-                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
+        return Observable.from(allMetricsInDatas)
+                .map(PreparedStatement::bind)
+                .flatMap(b -> rxSession.executeAndFetch(b))
+                .concatWith(
+                        rxSession.executeAndFetch(findAllMetricsInData.bind())
+                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())));
     }
 
     /*
