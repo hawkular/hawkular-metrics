@@ -76,6 +76,13 @@ public class Functions {
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
+    public static DataPoint<Double> getTempGaugeDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(GAUGE_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
+                row.getDouble(GAUGE_COLS.VALUE.ordinal()),
+                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
     public static DataPoint<Long> getCounterDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),

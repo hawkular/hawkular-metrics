@@ -254,22 +254,22 @@ public class DataAccessImpl implements DataAccess {
     }
 
     private void createGaugeTempInserters() {
-        String ByDateRangeExclusiveBase =
+        String byDateRangeExclusiveBase =
                 "SELECT time, n_value, tags FROM data_temp_%d " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
 
-        String DateRangeExclusiveWithLimitBase =
+        String dateRangeExclusiveWithLimitBase =
                 "SELECT time, n_value, tags FROM data_temp_%d " +
                         " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
                         " LIMIT ?";
 
-        String DataByDateRangeExclusiveASCBase =
-                "SELECT time, n_value, tags FROM data " +
+        String dataByDateRangeExclusiveASCBase =
+                "SELECT time, n_value, tags FROM data_temp_%d " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
                         " AND time < ? ORDER BY time ASC";
 
-        String DataByDateRangeExclusiveWithLimitASCBase =
-                "SELECT time, n_value, tags FROM data" +
+        String dataByDateRangeExclusiveWithLimitASCBase =
+                "SELECT time, n_value, tags FROM data_temp_%d" +
                         " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
                         " AND time < ? ORDER BY time ASC" +
                         " LIMIT ?";
@@ -297,11 +297,11 @@ public class DataAccessImpl implements DataAccess {
 
         for(int i = 0; i < 12; i++) {
             gaugeTempInserters[i] = session.prepare(String.format(baseString, i));
-            dateRangeExclusive[i] = session.prepare(String.format(ByDateRangeExclusiveBase, i));
-            dateRangeExclusiveWithLimit[i] = session.prepare(String.format(DateRangeExclusiveWithLimitBase, i));
-            dataByDateRangeExclusiveASC[i] = session.prepare(String.format(DataByDateRangeExclusiveASCBase, i));
+            dateRangeExclusive[i] = session.prepare(String.format(byDateRangeExclusiveBase, i));
+            dateRangeExclusiveWithLimit[i] = session.prepare(String.format(dateRangeExclusiveWithLimitBase, i));
+            dataByDateRangeExclusiveASC[i] = session.prepare(String.format(dataByDateRangeExclusiveASCBase, i));
             dataByDateRangeExclusiveWithLimitASC[i] = session.prepare(String.format
-                    (DataByDateRangeExclusiveWithLimitASCBase, i));
+                    (dataByDateRangeExclusiveWithLimitASCBase, i));
             metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, i));
             allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, i));
         }
@@ -848,7 +848,7 @@ public class DataAccessImpl implements DataAccess {
 //                )
     }
 
-    private int getBucketIndex(long timestamp) {
+    int getBucketIndex(long timestamp) {
         int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour())
                 .getHour();
@@ -860,10 +860,16 @@ public class DataAccessImpl implements DataAccess {
         return tO -> tO
                 .map(dataPoint -> {
                     log.infof("Inserting to bucket->%d\n", getBucketIndex(dataPoint.getTimestamp()));
+                    MetricId<Double> metricId = gauge.getMetricId();
                     PreparedStatement inserter = gaugeTempInserters[getBucketIndex(dataPoint.getTimestamp())];
-                    return bindDataPoint(inserter, gauge, dataPoint.getValue(),
-                            dataPoint.getTimestamp());
-
+                    return inserter
+                            .bind()
+                            .setDouble(0, dataPoint.getValue())
+                            .setString(1, metricId.getTenantId())
+                            .setByte(2, metricId.getType().getCode())
+                            .setString(3, metricId.getName())
+                            .setLong(4, DPART)
+                            .setTimestamp(5, new Date(dataPoint.getTimestamp()));
                 });
     }
 
@@ -1101,16 +1107,19 @@ public class DataAccessImpl implements DataAccess {
         ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour());
 
+        log.infof("StartZone->%s, endZone->%s, startIndex->%d, endIndex->%d\n", startZone.toString(), endZone.toString
+                (), startIndex, endIndex);
+
         // Max time back is <24 hours.
         if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
-            log.infof("Adjusting the startZone\n");
+            log.infof("Adjusting the startZone by 23 hours\n");
             startZone = endZone.minus(23, ChronoUnit.HOURS);
         }
 
         ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
 
         while(startZone.isBefore(endZone)) {
-            log.infof("Iterating over startZone\n");
+            log.infof("Iterating over startZone by one hour, time is %s\n", startZone.toString());
             buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
             startZone = startZone.plus(1, ChronoUnit.HOURS);
         }
@@ -1137,7 +1146,8 @@ public class DataAccessImpl implements DataAccess {
 //        Integer[] buckets = Arrays.stream(tempBuckets(startTime, endTime)).boxed().toArray(Integer[]::new);
         Integer[] buckets = tempBuckets(startTime, endTime, order);
 
-        log.infof("Fetching from %d buckets\n", buckets.length);
+        log.infof("Fetching from %d buckets between times startTime->%d and endTime->%d\n", buckets.length,
+                startTime, endTime);
 
         if (order == Order.ASC) {
             if (limit <= 0) {
@@ -1145,26 +1155,26 @@ public class DataAccessImpl implements DataAccess {
                         .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[i]
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
-                                        getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize)));
+                                        new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
                         .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[i].bind(
-                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                                getTimeUUID(endTime), limit).setFetchSize(pageSize)));
+                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                                new Date(endTime), limit).setFetchSize(pageSize)));
             }
         } else {
             if (limit <= 0) {
                 return Observable.from(buckets)
                         .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[i].bind(id.getTenantId(),
-                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
                         .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[i].bind(id.getTenantId(),
-                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
+                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
                         limit).setFetchSize(pageSize)));
             }
         }

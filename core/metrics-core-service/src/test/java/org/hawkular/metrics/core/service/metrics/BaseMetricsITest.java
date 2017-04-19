@@ -98,6 +98,18 @@ public abstract class BaseMetricsITest extends BaseITest {
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
         session.execute("TRUNCATE leases");
+        session.execute("TRUNCATE data_temp_0");
+        session.execute("TRUNCATE data_temp_1");
+        session.execute("TRUNCATE data_temp_2");
+        session.execute("TRUNCATE data_temp_3");
+        session.execute("TRUNCATE data_temp_4");
+        session.execute("TRUNCATE data_temp_5");
+        session.execute("TRUNCATE data_temp_6");
+        session.execute("TRUNCATE data_temp_7");
+        session.execute("TRUNCATE data_temp_8");
+        session.execute("TRUNCATE data_temp_9");
+        session.execute("TRUNCATE data_temp_10");
+        session.execute("TRUNCATE data_temp_11");
 
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;

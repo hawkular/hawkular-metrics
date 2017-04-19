@@ -56,7 +56,6 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Completable;
 import rx.Observable;
-import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 import rx.subjects.PublishSubject;
 
@@ -173,10 +172,14 @@ public class GaugeITest extends BaseMetricsITest {
                 new DataPoint<>(start.plusMinutes(10).getMillis(), 31.0));
         Metric<Double> m1 = new Metric<>(new MetricId<>(tenantId, GAUGE, "m1"), dataPoints);
 
-        metricsService.addDataPoints(GAUGE, Observable.just(m1)).toBlocking().lastOrDefault(null);
+        metricsService.addDataPoints(GAUGE, Observable.just(m1))
+                .doOnError(Throwable::printStackTrace)
+                .toBlocking().lastOrDefault(null);
 
         List<long[]> actual = metricsService.getPeriods(m1.getMetricId(),
-                value -> value > threshold, start.getMillis(), now().getMillis()).toBlocking().lastOrDefault(null);
+                value -> value > threshold, start.getMillis(), now().getMillis())
+                .doOnError(Throwable::printStackTrace)
+                .toBlocking().lastOrDefault(null);
         List<long[]> expected = asList(
                 new long[] { start.plusMinutes(2).getMillis(), start.plusMinutes(3).getMillis() },
                 new long[] { start.plusMinutes(6).getMillis(), start.plusMinutes(6).getMillis() },
@@ -421,12 +424,8 @@ public class GaugeITest extends BaseMetricsITest {
                             new DataPoint<>(startTime.plusMinutes(5).getMillis(), 600.6),
                             new DataPoint<>(now().plusSeconds(30).getMillis(), 750.7))));
             return toList(metricsService.addDataPoints(GAUGE, just)
-                    .flatMap(new Func1<Void, Observable<DataPoint<Double>>>() {
-                        @Override public Observable<DataPoint<Double>> call(Void aVoid) {
-                            return metricsService.findDataPoints(new MetricId<>(tenantId,
-                                    GAUGE, "m1"), startTime.plusMinutes(1).getMillis(), end, 3, Order.ASC);
-                        }
-                    }));
+                    .flatMap(aVoid -> metricsService.findDataPoints(new MetricId<>(tenantId,
+                            GAUGE, "m1"), startTime.plusMinutes(1).getMillis(), end, 3, Order.ASC)));
         };
 
         Function<DateTime, List<DataPoint<Double>>> expectCreator = (startTime) -> asList(

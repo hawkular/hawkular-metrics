@@ -26,6 +26,8 @@ import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
@@ -206,5 +208,16 @@ public class DataAccessITest extends BaseITest {
                 .map(m -> (Metric<Double>) m));
 
         assertEquals(metrics.size(), 4);
+    }
+
+    @Test
+    public void testBucketIndexes() throws Exception {
+        ZonedDateTime of = ZonedDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        ZonedDateTime limit = ZonedDateTime.of(2017, 1, 1, 23, 59, 0, 0, ZoneOffset.UTC);
+        int bucketIndex = dataAccess.getBucketIndex(of.toInstant().toEpochMilli());
+        assertEquals(0, bucketIndex);
+
+        bucketIndex = dataAccess.getBucketIndex(limit.toInstant().toEpochMilli());
+        assertEquals(11, bucketIndex);
     }
 }

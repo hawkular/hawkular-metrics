@@ -194,6 +194,8 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
 
+    private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> tempDataPointMappers;
+
     /**
      * Tools that do tag query parsing and execution
      */
@@ -277,6 +279,10 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(AVAILABILITY, Functions::getAvailabilityDataPoint)
                 .put(COUNTER, Functions::getCounterDataPoint)
                 .put(STRING, Functions::getStringDataPoint)
+                .build();
+
+        tempDataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> builder()
+                .put(GAUGE, Functions::getTempGaugeDataPoint)
                 .build();
 
         initConfiguration(session);
@@ -543,7 +549,7 @@ public class MetricsServiceImpl implements MetricsService {
         try {
             results = expresssionTagQueryParser
                     .parse(tenantId, metricType, tags)
-                    .map(tMetric -> (Metric<T>) tMetric);
+                    .map(tMetric -> tMetric);
         } catch (Exception e1) {
             try {
                 Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
@@ -682,22 +688,24 @@ public class MetricsServiceImpl implements MetricsService {
                     throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
             }
 
+            List<Observable<? extends DataPoint<T>>> sortedObservables = new ArrayList<>(3);
+            sortedObservables.add(uncompressedPoints.doOnCompleted(() -> log.infof("uncomp Completed")));
+            sortedObservables.add(compressedPoints.doOnCompleted(() -> log.infof("comp Completed")));
             Observable<DataPoint<T>> dataPoints;
             if(metricType == GAUGE) {
-                log.info("Trying to fetch from the temp gauges list?");
+                Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
+
+                log.infof("Trying to fetch from the temp gauges list? start->%d, end->%d\n", start, end);
                 Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempGaugeData((MetricId<Double>) metricId, start, end, limit,
                         safeOrder, pageSize)
-                        .map(mapper)
+                        .map(tempMapper)
                         .doOnNext(d -> log.infof("Found datapoint from temp table with timestamp->%d and " +
                                 "value->%f\n", d.getTimestamp(), ((Double) d.getValue()).doubleValue()));
-                dataPoints = SortedMerge
-                        .create(Arrays.asList(tempStoragePoints, uncompressedPoints, compressedPoints), comparator,
-                                false, true)
-                        .doOnNext(d -> log.infof("Something emitted, %d\n", d.getTimestamp()));
-            } else {
-                dataPoints = SortedMerge
-                        .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
+
+                sortedObservables.add(tempStoragePoints.doOnCompleted(() -> log.infof("temp Completed")));
             }
+            dataPoints = SortedMerge
+                    .create(sortedObservables, comparator, false, true);
 
             if(limit > 0) {
                 dataPoints = dataPoints.take(limit);
