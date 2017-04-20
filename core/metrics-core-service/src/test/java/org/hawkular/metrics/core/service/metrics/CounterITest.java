@@ -61,6 +61,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.TimeRange;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -238,7 +239,8 @@ public class CounterITest extends BaseMetricsITest {
     @Test
     public void addAndCompressData() throws Exception {
         String tenantId = "t1-counter";
-        DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
+        // Causes writes to go to compressed and one uncompressed row
+        DateTime dt = new DateTime(2016, 9, 2, 14, 15, DateTimeZone.UTC);
         DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
 
         DateTime start = dt.minusMinutes(30);
