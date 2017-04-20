@@ -114,7 +114,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertTrue(mgt.isAutoDisable());
 
         // It should not take long to generate the member but give it a few seconds
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt/members" )
             if ( resp.status == 200 && resp.data.size() >= 1 ) {
@@ -133,7 +133,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertEquals("[machine0]", member.getContext().get("source").toString())
         def memberId = member.getId();
 
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/" + memberId + "/conditions")
             if ( resp.status == 200 && resp.data.size() >= 1 ) {
@@ -171,7 +171,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertEquals("[machine1]", member.getContext().get("source").toString())
         memberId = member.getId();
 
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/" + memberId + "/conditions")
             if ( resp.status == 200 && resp.data.size() >= 1 ) {
@@ -247,7 +247,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertTrue(mgt.isAutoDisable());
 
         // It should not take long to generate the members but give it a few seconds
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt2/members" )
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
@@ -269,7 +269,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         def dataId = avail0.equals(member.getDataIdMap().get("Avail")) ? avail0 : avail1;
         def memberId = member.getId();
 
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/" + memberId + "/conditions")
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
@@ -295,7 +295,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         dataId = avail0.equals(dataId) ? avail1 : avail0;
         memberId = member.getId();
 
-        for ( int i=0; i < 10; ++i ) {
+        for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/" + memberId + "/conditions")
             if ( resp.status == 200 && resp.data.size() >= 2 ) {
