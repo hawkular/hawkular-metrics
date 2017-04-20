@@ -154,13 +154,13 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
             long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                     .with(DateTimeService.startOfNextOddHour())
                     .toInstant(ZoneOffset.UTC).toEpochMilli();
-            JobDetails JobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-            backgroundJobs.add(JobDetails);
-            configurationService.save(configId, "jobId", JobDetails.getJobId().toString()).toBlocking();
+            backgroundJobs.add(jobDetails);
+            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
 
-            logger.info("Created and scheduled " + JobDetails);
+            logger.info("Created and scheduled " + jobDetails);
         }
     }
 
