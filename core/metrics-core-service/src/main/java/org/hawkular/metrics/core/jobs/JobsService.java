@@ -31,7 +31,7 @@ public interface JobsService {
 
     void shutdown();
 
-    Single<JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
+    Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
 
-    Single<JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName);
+    Single<? extends JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName);
 }

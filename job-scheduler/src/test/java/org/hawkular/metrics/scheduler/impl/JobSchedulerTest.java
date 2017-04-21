@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,8 +112,8 @@ public class JobSchedulerTest {
         }
     }
 
-    protected static Set<JobDetails> getScheduledJobs(DateTime timeSlice) {
-        List<JobDetails> jobs = jobsService.findScheduledJobsForTime(timeSlice.toDate(), Schedulers.computation())
+    protected static Set<JobDetailsImpl> getScheduledJobs(DateTime timeSlice) {
+        List<JobDetailsImpl> jobs = jobsService.findScheduledJobsForTime(timeSlice.toDate(), Schedulers.computation())
                 .toList()
                 .toBlocking()
                 .firstOrDefault(null);
