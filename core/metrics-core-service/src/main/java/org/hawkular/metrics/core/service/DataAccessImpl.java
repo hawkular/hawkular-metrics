@@ -859,7 +859,6 @@ public class DataAccessImpl implements DataAccess {
     private Observable.Transformer<DataPoint<Double>, BoundStatement> mapTempGaugeDatapoint(Metric<Double> gauge) {
         return tO -> tO
                 .map(dataPoint -> {
-                    log.infof("Inserting to bucket->%d\n", getBucketIndex(dataPoint.getTimestamp()));
                     MetricId<Double> metricId = gauge.getMetricId();
                     PreparedStatement inserter = gaugeTempInserters[getBucketIndex(dataPoint.getTimestamp())];
                     return inserter
@@ -1098,38 +1097,25 @@ public class DataAccessImpl implements DataAccess {
     }
 
     private Integer[] tempBuckets(long startTime, long endTime, Order order) {
-        int startIndex = getBucketIndex(startTime);
-        int endIndex = getBucketIndex(endTime);
-
         ZonedDateTime endZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTime), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour());
 
         ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour());
 
-        log.infof("StartZone->%s, endZone->%s, startIndex->%d, endIndex->%d\n", startZone.toString(), endZone.toString
-                (), startIndex, endIndex);
-
         // Max time back is <24 hours.
         if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
-            log.infof("Adjusting the startZone by 23 hours\n");
             startZone = endZone.minus(23, ChronoUnit.HOURS);
         }
 
         ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
 
         while(startZone.isBefore(endZone)) {
-            log.infof("Iterating over startZone by one hour, time is %s\n", startZone.toString());
             buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
             startZone = startZone.plus(1, ChronoUnit.HOURS);
         }
 
         buckets.add(getBucketIndex(endZone.toInstant().toEpochMilli()));
-
-        if(startIndex != endIndex && buckets.size() < 2) {
-            log.errorf("The bucket fetching code is incorrect, should be at least buckets start->%d and end->%d\n",
-                    startIndex, endIndex);
-        }
 
         if(order == Order.DESC) {
             return buckets.descendingSet().stream().toArray(Integer[]::new);
@@ -1146,19 +1132,14 @@ public class DataAccessImpl implements DataAccess {
 //        Integer[] buckets = Arrays.stream(tempBuckets(startTime, endTime)).boxed().toArray(Integer[]::new);
         Integer[] buckets = tempBuckets(startTime, endTime, order);
 
-        log.infof("Fetching from %d buckets between times startTime->%d and endTime->%d\n", buckets.length,
-                startTime, endTime);
-
         if (order == Order.ASC) {
             if (limit <= 0) {
                 return Observable.from(buckets)
-                        .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[i]
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
                                         new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
-                        .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[i].bind(
                         id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
                                 new Date(endTime), limit).setFetchSize(pageSize)));
@@ -1166,13 +1147,11 @@ public class DataAccessImpl implements DataAccess {
         } else {
             if (limit <= 0) {
                 return Observable.from(buckets)
-                        .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[i].bind(id.getTenantId(),
                         id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
-                        .doOnNext(i -> log.infof("Fetching from bucket->%d\n", i))
                         .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[i].bind(id.getTenantId(),
                         id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
                         limit).setFetchSize(pageSize)));

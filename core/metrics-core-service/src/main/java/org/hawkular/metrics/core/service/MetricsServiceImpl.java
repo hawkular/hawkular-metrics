@@ -28,7 +28,6 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -667,6 +666,7 @@ public class MetricsServiceImpl implements MetricsService {
             // Temp tables should hold at most current time - 4 hours of data..
             // Need to take account if compressJob is lagging behind.. where will we find the correct data (I need to
             // know the last successful compressjob time here)
+            // TODO Out-of-order writes and a time window to insert to temp tables
 
             Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
                     .map(mapper);
@@ -675,37 +675,37 @@ public class MetricsServiceImpl implements MetricsService {
                     dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
-            Comparator<DataPoint<T>> comparator;
+            Comparator<DataPoint<T>> comparator = getDataPointComparator(safeOrder);
 
-            switch(safeOrder) {
-                case ASC:
-                    comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
-                    break;
-                case DESC:
-                    comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
-                    break;
-                default:
-                    throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
-            }
+//            List<Observable<? extends DataPoint<T>>> sortedObservables = new ArrayList<>(3);
+//            sortedObservables.add(uncompressedPoints.doOnCompleted(() -> log.infof("uncomp Completed")));
+//            sortedObservables.add(compressedPoints.doOnCompleted(() -> log.infof("comp Completed")));
 
-            List<Observable<? extends DataPoint<T>>> sortedObservables = new ArrayList<>(3);
-            sortedObservables.add(uncompressedPoints.doOnCompleted(() -> log.infof("uncomp Completed")));
-            sortedObservables.add(compressedPoints.doOnCompleted(() -> log.infof("comp Completed")));
             Observable<DataPoint<T>> dataPoints;
+
+            List<Observable<? extends DataPoint<T>>> sources = new ArrayList<>(3);
+            sources.add(uncompressedPoints);
+            sources.add(compressedPoints);
+
+//            Collection<Observable<? extends U>> sources = Arrays.asList(uncompressedPoints, compressedPoints);
+
             if(metricType == GAUGE) {
                 Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
 
-                log.infof("Trying to fetch from the temp gauges list? start->%d, end->%d\n", start, end);
+                // TODO This should be pluggable storage .. where we could do the queries as well. Just make it use
+                // dataAccess in this Cassandra temporary table solution
+                // Write an interface that allows all the necessary queries (mm.. kinda like MetricsService then I
+                // guess.. iiks)
+
                 Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempGaugeData((MetricId<Double>) metricId, start, end, limit,
                         safeOrder, pageSize)
-                        .map(tempMapper)
-                        .doOnNext(d -> log.infof("Found datapoint from temp table with timestamp->%d and " +
-                                "value->%f\n", d.getTimestamp(), ((Double) d.getValue()).doubleValue()));
+                        .map(tempMapper);
 
-                sortedObservables.add(tempStoragePoints.doOnCompleted(() -> log.infof("temp Completed")));
+                sources.add(tempStoragePoints);
             }
-            dataPoints = SortedMerge
-                    .create(sortedObservables, comparator, false, true);
+            dataPoints = SortedMerge.create(sources, comparator, false)
+                    .distinctUntilChanged(
+                            (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 
             if(limit > 0) {
                 dataPoints = dataPoints.take(limit);
@@ -717,6 +717,23 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         return results.doOnCompleted(context::stop);
+    }
+
+    private <T> Comparator<DataPoint<T>> getDataPointComparator(Order safeOrder) {
+        Comparator<DataPoint<T>> comparator;
+
+        switch(safeOrder) {
+            case ASC:
+                comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
+                break;
+            case DESC:
+                comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
+                break;
+            default:
+                throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
+        }
+
+        return comparator;
     }
 
     private <T> Observable.Transformer<T, T> applyRetryPolicy() {
@@ -749,9 +766,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .doOnNext(cpc -> {
-                            subject.onNext(new Metric<>(metricId, getTTL(metricId)));
-                        })
+                        .doOnNext(cpc -> subject.onNext(new Metric<>(metricId, getTTL(metricId))))
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                 .compose(applyRetryPolicy()))));
