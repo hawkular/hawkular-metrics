@@ -62,7 +62,7 @@ public class SchemaService {
         // For now, I am just hard coding the version tag, but a more robust solution would be
         // to calculate the tags using the current version stored in the sys_config table
         // and the new version which we can extract from any of our JAR manifest files.
-        List<String> tags = asList("0.15.x", "0.18.x", "0.19.x", "0.20.x", "0.21.x", "0.23.x", "0.26.x");
+        List<String> tags = asList("0.15.x", "0.18.x", "0.19.x", "0.20.x", "0.21.x", "0.23.x", "0.26.x", "0.27.x");
         URI script = getScript();
         cassalog.execute(script, tags, vars);
 
