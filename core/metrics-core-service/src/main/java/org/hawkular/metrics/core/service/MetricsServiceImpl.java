@@ -676,18 +676,9 @@ public class MetricsServiceImpl implements MetricsService {
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
             Comparator<DataPoint<T>> comparator = getDataPointComparator(safeOrder);
-
-//            List<Observable<? extends DataPoint<T>>> sortedObservables = new ArrayList<>(3);
-//            sortedObservables.add(uncompressedPoints.doOnCompleted(() -> log.infof("uncomp Completed")));
-//            sortedObservables.add(compressedPoints.doOnCompleted(() -> log.infof("comp Completed")));
-
-            Observable<DataPoint<T>> dataPoints;
-
             List<Observable<? extends DataPoint<T>>> sources = new ArrayList<>(3);
             sources.add(uncompressedPoints);
             sources.add(compressedPoints);
-
-//            Collection<Observable<? extends U>> sources = Arrays.asList(uncompressedPoints, compressedPoints);
 
             if(metricType == GAUGE) {
                 Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
@@ -703,7 +694,7 @@ public class MetricsServiceImpl implements MetricsService {
 
                 sources.add(tempStoragePoints);
             }
-            dataPoints = SortedMerge.create(sources, comparator, false)
+            Observable<DataPoint<T>> dataPoints = SortedMerge.create(sources, comparator, false)
                     .distinctUntilChanged(
                             (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 
