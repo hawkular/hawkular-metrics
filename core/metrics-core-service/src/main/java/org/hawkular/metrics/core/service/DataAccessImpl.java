@@ -22,7 +22,6 @@ import static java.util.stream.Collectors.toMap;
 import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
@@ -80,6 +79,8 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
+    public static final int NUMBER_OF_TEMP_TABLES = 12;
+    public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
     public static final long DPART = 0;
     private Session session;
 
@@ -87,13 +88,17 @@ public class DataAccessImpl implements DataAccess {
 
     private LoadBalancingPolicy loadBalancingPolicy;
 
-    private PreparedStatement[] gaugeTempInserters;
-    private PreparedStatement[] dateRangeExclusive;
-    private PreparedStatement[] dateRangeExclusiveWithLimit;
-    private PreparedStatement[] dataByDateRangeExclusiveASC;
-    private PreparedStatement[] dataByDateRangeExclusiveWithLimitASC;
+    // Turn to MetricType agnostic
+    private PreparedStatement[][] dateRangeExclusive;
+    private PreparedStatement[][] dateRangeExclusiveWithLimit;
+    private PreparedStatement[][] dataByDateRangeExclusiveASC;
+    private PreparedStatement[][] dataByDateRangeExclusiveWithLimitASC;
+
     private PreparedStatement[] metricsInDatas;
     private PreparedStatement[] allMetricsInDatas;
+
+    private PreparedStatement[][] dataTable;
+    private PreparedStatement[][] dataWithTagsTable;
 
     private PreparedStatement insertTenant;
 
@@ -127,25 +132,9 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement getTagNamesWithType;
 
-    private PreparedStatement insertGaugeData;
-
     private PreparedStatement insertCompressedData;
 
     private PreparedStatement insertCompressedDataWithTags;
-
-    private PreparedStatement insertGaugeDataUsingTTL;
-
-    private PreparedStatement insertGaugeDataWithTags;
-
-    private PreparedStatement insertGaugeDataWithTagsUsingTTL;
-
-    private PreparedStatement insertCounterData;
-
-    private PreparedStatement insertCounterDataUsingTTL;
-
-    private PreparedStatement insertCounterDataWithTags;
-
-    private PreparedStatement insertCounterDataWithTagsUsingTTL;
 
     private PreparedStatement insertStringData;
 
@@ -162,22 +151,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findCompressedDataByDateRangeExclusiveASC;
 
     private PreparedStatement findCompressedDataByDateRangeExclusiveWithLimitASC;
-
-    private PreparedStatement findCounterDataExclusive;
-
-    private PreparedStatement findCounterDataExclusiveWithLimit;
-
-    private PreparedStatement findCounterDataExclusiveASC;
-
-    private PreparedStatement findCounterDataExclusiveWithLimitASC;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusive;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimit;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimitASC;
 
     private PreparedStatement findStringDataByDateRangeExclusive;
 
@@ -247,63 +220,137 @@ public class DataAccessImpl implements DataAccess {
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
         initPreparedStatements();
-        createGaugeTempInserters();
+        preparedTemporaryTableStatements();
 
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
     }
 
-    private void createGaugeTempInserters() {
+    private void preparedTemporaryTableStatements() {
+        // Read statements
+        // TODO Could I even fetch compressed data with these same queries?
+        dateRangeExclusive = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
+        dateRangeExclusiveWithLimit = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
+        dataByDateRangeExclusiveASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
+        dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
+
         String byDateRangeExclusiveBase =
-                "SELECT time, n_value, tags FROM data_temp_%d " +
+                "SELECT time, %s, tags FROM %s " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
 
         String dateRangeExclusiveWithLimitBase =
-                "SELECT time, n_value, tags FROM data_temp_%d " +
+                "SELECT time, %s, tags FROM %s " +
                         " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
                         " LIMIT ?";
 
         String dataByDateRangeExclusiveASCBase =
-                "SELECT time, n_value, tags FROM data_temp_%d " +
+                "SELECT time, %s, tags FROM %s " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
                         " AND time < ? ORDER BY time ASC";
 
         String dataByDateRangeExclusiveWithLimitASCBase =
-                "SELECT time, n_value, tags FROM data_temp_%d" +
+                "SELECT time, %s, tags FROM %s" +
                         " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
                         " AND time < ? ORDER BY time ASC" +
                         " LIMIT ?";
 
-        String baseString = "UPDATE data_temp_%d " +
-                "SET n_value = ? " +
-                "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+        // Insert statements
+        dataTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
+        dataWithTagsTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
+
+        String data = "UPDATE %s " +
+                        "SET %s = ? " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+
+        String dataWithTags = "UPDATE %s " +
+                        "SET %s = ?, tags = ? " +
+                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+
+        // MetricDefinition statements
+        metricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
+        allMetricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
 
         String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric, dpart " +
-                        "FROM data_temp_%d " +
+                        "FROM %s " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ";
 
         String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
-                        "FROM data_temp_%d";
+                        "FROM %s";
 
-        // Generify
+        String tempTableNameFormat = "data_temp_%d";
 
-        gaugeTempInserters = new PreparedStatement[12];
-        dateRangeExclusive = new PreparedStatement[12];
-        dateRangeExclusiveWithLimit = new PreparedStatement[12];
-        dataByDateRangeExclusiveASC = new PreparedStatement[12];
-        dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[12];
-        metricsInDatas = new PreparedStatement[12];
-        allMetricsInDatas = new PreparedStatement[12];
+        // Initialize all the temporary tables for inserts
+        for (MetricType<?> metricType : MetricType.all()) {
+            for(int k = 0; k < NUMBER_OF_TEMP_TABLES; k++) {
+                // String metrics are not yet supported with temp tables
+                if(metricType.getCode() == 4) {
+                    continue;
+                }
 
-        for(int i = 0; i < 12; i++) {
-            gaugeTempInserters[i] = session.prepare(String.format(baseString, i));
-            dateRangeExclusive[i] = session.prepare(String.format(byDateRangeExclusiveBase, i));
-            dateRangeExclusiveWithLimit[i] = session.prepare(String.format(dateRangeExclusiveWithLimitBase, i));
-            dataByDateRangeExclusiveASC[i] = session.prepare(String.format(dataByDateRangeExclusiveASCBase, i));
-            dataByDateRangeExclusiveWithLimitASC[i] = session.prepare(String.format
-                    (dataByDateRangeExclusiveWithLimitASCBase, i));
-            metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, i));
-            allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, i));
+                String tempTableName = String.format(tempTableNameFormat, k);
+
+                // Insert statements
+                dataTable[metricType.getCode()][k] = session.prepare(
+                        String.format(data, tempTableName, metricTypeToColumnName(metricType))
+                );
+                dataWithTagsTable[metricType.getCode()][k] = session.prepare(
+                        String.format(dataWithTags, tempTableName, metricTypeToColumnName(metricType))
+                );
+                // Read statements
+                dateRangeExclusive[metricType.getCode()][k] = session.prepare(
+                        String.format(byDateRangeExclusiveBase, metricTypeToColumnName(metricType), tempTableName)
+                );
+                dateRangeExclusiveWithLimit[metricType.getCode()][k] = session.prepare(
+                        String.format(dateRangeExclusiveWithLimitBase, metricTypeToColumnName(metricType), tempTableName)
+                );
+                dataByDateRangeExclusiveASC[metricType.getCode()][k] = session.prepare(
+                        String.format(dataByDateRangeExclusiveASCBase, metricTypeToColumnName(metricType), tempTableName)
+                );
+                dataByDateRangeExclusiveWithLimitASC[metricType.getCode()][k] = session.prepare(
+                        String.format(dataByDateRangeExclusiveWithLimitASCBase, metricTypeToColumnName(metricType), tempTableName)
+                );
+            }
+            // Then initialize the old fashion ones..
+            dateRangeExclusive[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
+                    String.format(byDateRangeExclusiveBase, metricTypeToColumnName(metricType), "data")
+            );
+            dateRangeExclusiveWithLimit[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
+                    String.format(dateRangeExclusiveWithLimitBase, metricTypeToColumnName(metricType), "data")
+            );
+            dataByDateRangeExclusiveASC[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
+                    String.format(dataByDateRangeExclusiveASCBase, metricTypeToColumnName(metricType), "data")
+            );
+            dataByDateRangeExclusiveWithLimitASC[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
+                    String.format(dataByDateRangeExclusiveWithLimitASCBase, metricTypeToColumnName(metricType), "data")
+            );
+        }
+
+        // MetricDefinition statements
+        for(int i = 0; i < NUMBER_OF_TEMP_TABLES; i++) {
+            String tempTableName = String.format(tempTableNameFormat, i);
+            metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, tempTableName));
+            allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, tempTableName));
+        }
+        metricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findMetricInDataBase, "data"));
+        allMetricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findAllMetricsInDataBases, "data"));
+    }
+
+    private String metricTypeToColumnName(MetricType<?> type) {
+        switch(type.getCode()) {
+            case 0:
+                return "n_value";
+            case 1:
+                return "availability";
+            case 2:
+                return "l_value";
+            case 3:
+                return "l_value";
+            case 4:
+                return "s_value";
+            case 5:
+                return "n_value";
+            default:
+                throw new RuntimeException("Unsupported metricType");
         }
     }
 
@@ -400,28 +447,6 @@ public class DataAccessImpl implements DataAccess {
                         "SET c_value = ?, tags = ? " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
-        insertGaugeData = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
         insertStringData = session.prepare(
             "UPDATE data " +
             "SET s_value = ? " +
@@ -443,48 +468,6 @@ public class DataAccessImpl implements DataAccess {
               "USING TTL ? " +
               "SET s_value = ?, tags = ? " +
               "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterData = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
-
-        findGaugeDataByDateRangeExclusiveWithLimit = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-            " LIMIT ?");
-
-        findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC");
-
-        findGaugeDataByDateRangeExclusiveWithLimitASC = session.prepare(
-            "SELECT time, n_value, tags FROM data" +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC" +
-            " LIMIT ?");
 
         findCompressedDataByDateRangeExclusive = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed " +
@@ -525,26 +508,6 @@ public class DataAccessImpl implements DataAccess {
              " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
              " AND time < ? ORDER BY time ASC" +
              " LIMIT ?");
-
-        findCounterDataExclusive = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
-
-        findCounterDataExclusiveWithLimit = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " LIMIT ?");
-
-        findCounterDataExclusiveASC = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            "ORDER BY time ASC");
-
-        findCounterDataExclusiveWithLimitASC = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC" +
-            " LIMIT ?");
 
         findAvailabilityByDateRangeInclusive = session.prepare(
             "SELECT time, availability, WRITETIME(availability) FROM data " +
@@ -833,21 +796,6 @@ public class DataAccessImpl implements DataAccess {
                 });
     }
 
-    @Override
-    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
-            Function<MetricId<Double>, Integer> ttlFetcher) {
-        return gauges
-                .flatMap(gauge -> Observable.from(gauge.getDataPoints())
-                        .compose(mapTempGaugeDatapoint(gauge)))
-                .compose(applyMicroBatching());
-//                .flatMap(gauge -> {
-//                            int ttl = ttlFetcher.apply(gauge.getMetricId());
-//                            return Observable.from(gauge.getDataPoints())
-//                                    .compose(mapGaugeDatapoint(gauge, ttl));
-//                        }
-//                )
-    }
-
     int getBucketIndex(long timestamp) {
         int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour())
@@ -856,56 +804,61 @@ public class DataAccessImpl implements DataAccess {
         return Math.floorDiv(hour, 2);
     }
 
-    private Observable.Transformer<DataPoint<Double>, BoundStatement> mapTempGaugeDatapoint(Metric<Double> gauge) {
+    @Override
+    public <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
+        return metrics
+                .flatMap(m -> Observable.from(m.getDataPoints())
+                .compose(mapTempInsertStatement(m)))
+                .compose(applyMicroBatching());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Observable.Transformer<DataPoint<T>, BoundStatement> mapTempInsertStatement(Metric<T> metric) {
+        MetricType<T> type = metric.getMetricId().getType();
+        MetricId<T> metricId = metric.getMetricId();
         return tO -> tO
                 .map(dataPoint -> {
-                    MetricId<Double> metricId = gauge.getMetricId();
-                    PreparedStatement inserter = gaugeTempInserters[getBucketIndex(dataPoint.getTimestamp())];
-                    return inserter
-                            .bind()
-                            .setDouble(0, dataPoint.getValue())
-                            .setString(1, metricId.getTenantId())
-                            .setByte(2, metricId.getType().getCode())
-                            .setString(3, metricId.getName())
-                            .setLong(4, DPART)
-                            .setTimestamp(5, new Date(dataPoint.getTimestamp()));
-                });
-    }
-
-    private Observable.Transformer<DataPoint<Double>, BoundStatement> mapGaugeDatapoint(Metric<Double> gauge, int ttl) {
-        return tObservable -> tObservable
-                .map(dataPoint -> {
+                    BoundStatement bs;
+                    int i = 1;
                     if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
-                                    dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
-                                    dataPoint.getTimestamp());
-                        }
+                        bs = dataTable[type.getCode()][getBucketIndex(dataPoint.getTimestamp())].bind();
                     } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
+                        bs = dataWithTagsTable[type.getCode()][getBucketIndex(dataPoint.getTimestamp())].bind();
+                        bs.setMap(1, dataPoint.getTags());
+                        i++;
                     }
+                    bindValue(bs, type, dataPoint);
+                    return bs
+                            .setString(i, metricId.getTenantId())
+                            .setByte(++i, metricId.getType().getCode())
+                            .setString(++i, metricId.getName())
+                            .setLong(++i, DPART)
+                            .setTimestamp(++i, new Date(dataPoint.getTimestamp()));
                 });
     }
 
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
-        return insertGaugeData(gauge, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-        return Observable.from(gauge.getDataPoints())
-                .compose(mapGaugeDatapoint(gauge, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    private <T> void bindValue(BoundStatement bs, MetricType<T> type, DataPoint<T> dataPoint) {
+        switch(type.getCode()) {
+            case 0:
+                bs.setDouble(0, (Double) dataPoint.getValue());
+                break;
+            case 1:
+                bs.setBytes(0, getBytes((DataPoint<AvailabilityType>) dataPoint));
+                break;
+            case 2:
+                bs.setLong(0, (Long) dataPoint.getValue());
+                break;
+            case 3:
+                bs.setLong(0, (Long) dataPoint.getValue());
+                break;
+            case 4:
+                throw new IllegalArgumentException("Not implemented yet");
+            case 5:
+                bs.setDouble(0, (Double) dataPoint.getValue());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported metricType");
+        }
     }
 
     private Observable.Transformer<DataPoint<String>, BoundStatement> mapStringDatapoint(Metric<String> metric, int
@@ -964,57 +917,6 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    private Observable.Transformer<DataPoint<Long>, BoundStatement> mapCounterDatapoint(Metric<Long> counter, int ttl) {
-        return o -> o
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
-                                    dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
-                                    dataPoint.getTimestamp());
-
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                });
-    }
-
-    @Override
-    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-            Function<MetricId<Long>, Integer> ttlFetcher) {
-
-        return counters
-                .flatMap(counter -> {
-                            int ttl = ttlFetcher.apply(counter.getMetricId());
-                            return Observable.from(counter.getDataPoints())
-                                    .compose(mapCounterDatapoint(counter, ttl));
-                        }
-                )
-                .compose(applyMicroBatching());
-    }
-
-    @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter) {
-        return insertCounterData(counter, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        return Observable.from(counter.getDataPoints())
-                .compose(mapCounterDatapoint(counter, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
-    }
-
     private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value, long timestamp) {
         MetricId<?> metricId = metric.getMetricId();
         return statement.bind(value, metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(),
@@ -1040,36 +942,6 @@ public class DataAccessImpl implements DataAccess {
         MetricId<?> metricId = metric.getMetricId();
         return statement.bind(ttl, value, tags, metricId.getTenantId(), metricId.getType().getCode(),
                 metricId.getName(), DPART, getTimeUUID(timestamp));
-    }
-
-    @Override
-    public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order,
-            int pageSize) {
-        if (order == Order.ASC) {
-            if (limit <= 0) {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveASC.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                                .setFetchSize(pageSize));
-            } else {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveWithLimitASC.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit)
-                                .setFetchSize(pageSize));
-            }
-        } else {
-            if (limit <= 0) {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                                .setFetchSize(pageSize));
-            } else {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit)
-                                .setFetchSize(pageSize));
-            }
-        }
     }
 
     @Override
@@ -1125,63 +997,67 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-                                             int pageSize) {
-
+    public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                            int pageSize) {
         // Find out which tables we'll need to scan
-//        Integer[] buckets = Arrays.stream(tempBuckets(startTime, endTime)).boxed().toArray(Integer[]::new);
         Integer[] buckets = tempBuckets(startTime, endTime, order);
+        MetricType<T> type = id.getType();
 
         if (order == Order.ASC) {
             if (limit <= 0) {
                 return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[i]
+                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][i]
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
                                         new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[i].bind(
-                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][i].bind(
+                                id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
                                 new Date(endTime), limit).setFetchSize(pageSize)));
             }
         } else {
             if (limit <= 0) {
                 return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[i].bind(id.getTenantId(),
-                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
+                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][i].bind(id.getTenantId(),
+                                id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[i].bind(id.getTenantId(),
-                        id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
-                        limit).setFetchSize(pageSize)));
+                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][i].bind(id.getTenantId(),
+                                id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
+                                limit).setFetchSize(pageSize)));
             }
         }
     }
 
     @Override
-    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-            int pageSize) {
+    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                           int pageSize) {
+        MetricType<T> type = id.getType();
+
         if (order == Order.ASC) {
             if (limit <= 0) {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveASC.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
+                return rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][POS_OF_OLD_DATA]
+                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
+                                getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize))
+                        .doOnError(Throwable::printStackTrace);
             } else {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimitASC.bind(
-                        id.getTenantId(), GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                        getTimeUUID(endTime), limit)
-                        .setFetchSize(pageSize));
+                return rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][POS_OF_OLD_DATA].bind(
+                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
+                        .doOnError(Throwable::printStackTrace);
             }
         } else {
             if (limit <= 0) {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
+                return rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][POS_OF_OLD_DATA].bind(id.getTenantId(),
+                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
+                        .setFetchSize(pageSize))
+                        .doOnError(Throwable::printStackTrace);
             } else {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
+                return rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][POS_OF_OLD_DATA].bind(
+                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
+                        .doOnError(Throwable::printStackTrace);
             }
         }
     }

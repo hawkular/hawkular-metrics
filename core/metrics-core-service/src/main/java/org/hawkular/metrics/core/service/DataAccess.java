@@ -67,12 +67,7 @@ public interface DataAccess {
 
     Observable<Row> findAllMetricsInData();
 
-    Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
-            Function<MetricId<Double>, Integer> ttlFunc);
-
-    Observable<Integer> insertGaugeData(Metric<Double> metric);
-
-    Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
+    <T> Observable<Integer> insertData(Observable<Metric<T>> metrics);
 
     Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
             Function<MetricId<String>, Integer> ttlFetcher, int maxSize);
@@ -81,31 +76,23 @@ public interface DataAccess {
 
     Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
 
-    Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-            Function<MetricId<Long>, Integer> ttlFetcher);
-
-    Observable<Integer> insertCounterData(Metric<Long> counter);
-
-    Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
-
-    Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
-
     Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order);
 
-    Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-                                      int pageSize);
+    <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                     int pageSize);
 
-    Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-                                  int pageSize);
+    <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                    int pageSize);
 
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
+                                   int pageSize);
 
+    @Deprecated
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
             Order order, int pageSize);
 
+    @Deprecated
     Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
 
     <T> Observable<ResultSet> deleteMetricData(MetricId<T> id);

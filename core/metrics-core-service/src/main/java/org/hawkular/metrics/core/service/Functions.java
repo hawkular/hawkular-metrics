@@ -90,6 +90,13 @@ public class Functions {
                 row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
+    public static DataPoint<Long> getTempCounterDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(COUNTER_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
+                row.getLong(COUNTER_COLS.VALUE.ordinal()),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
     public static DataPoint<String> getStringDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(STRING_COLS.TIME.ordinal())),
@@ -100,6 +107,13 @@ public class Functions {
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
+                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
+    public static DataPoint<AvailabilityType> getTempAvailabilityDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(AVAILABILITY_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
                 AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
                 row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }

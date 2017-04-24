@@ -28,6 +28,7 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -166,7 +167,6 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
-
     /**
      * Measurements of the throughput of inserting data points.
      */
@@ -229,12 +229,12 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Double>> gauge = (Observable<Metric<Double>>) metric;
-                    return dataAccess.insertGaugeDatas(gauge, this::getTTL);
+                    return dataAccess.insertData(gauge);
                 })
                 .put(COUNTER, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Long>> counter = (Observable<Metric<Long>>) metric;
-                    return dataAccess.insertCounterDatas(counter, this::getTTL);
+                    return dataAccess.insertData(counter);
                 })
                 .put(AVAILABILITY, metric -> {
                     @SuppressWarnings("unchecked")
@@ -251,20 +251,10 @@ public class MetricsServiceImpl implements MetricsService {
         dataPointFinders = ImmutableMap
                 .<MetricType<?>, Func6<? extends MetricId<?>, Long, Long, Integer, Order, Integer,
                         Observable<Row>>>builder()
-                .put(GAUGE, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order, pageSize);
-                })
                 .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
                     return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
-                })
-                .put(COUNTER, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Long> counterId = (MetricId<Long>) metricId;
-                    return dataAccess.findCounterData(counterId, start, end, limit, order, pageSize);
                 })
                 .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
@@ -282,6 +272,8 @@ public class MetricsServiceImpl implements MetricsService {
 
         tempDataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> builder()
                 .put(GAUGE, Functions::getTempGaugeDataPoint)
+                .put(COUNTER, Functions::getTempCounterDataPoint)
+                .put(AVAILABILITY, Functions::getTempAvailabilityDataPoint)
                 .build();
 
         initConfiguration(session);
@@ -616,7 +608,6 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(r -> null);
     }
 
-
     @Override
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
@@ -668,33 +659,32 @@ public class MetricsServiceImpl implements MetricsService {
             // know the last successful compressjob time here)
             // TODO Out-of-order writes and a time window to insert to temp tables
 
-            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
-                    .map(mapper);
+            Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
+
+            // Calls mostly deprecated methods..
+            Observable<DataPoint<T>> uncompressedPoints = dataAccess.findOldData(metricId, start, end, limit, safeOrder,
+                    pageSize).map(mapper).doOnError(Throwable::printStackTrace);
 
             Observable<DataPoint<T>> compressedPoints =
                     dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
+
+            Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempData(metricId, start, end, limit,
+                    safeOrder, pageSize)
+                    .map(tempMapper);
 
             Comparator<DataPoint<T>> comparator = getDataPointComparator(safeOrder);
             List<Observable<? extends DataPoint<T>>> sources = new ArrayList<>(3);
             sources.add(uncompressedPoints);
             sources.add(compressedPoints);
 
-            if(metricType == GAUGE) {
-                Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
+            // TODO This should be pluggable storage .. where we could do the queries as well. Just make it use
+            // dataAccess in this Cassandra temporary table solution
+            // Write an interface that allows all the necessary queries (mm.. kinda like MetricsService then I
+            // guess.. iiks)
 
-                // TODO This should be pluggable storage .. where we could do the queries as well. Just make it use
-                // dataAccess in this Cassandra temporary table solution
-                // Write an interface that allows all the necessary queries (mm.. kinda like MetricsService then I
-                // guess.. iiks)
-
-                Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempGaugeData((MetricId<Double>) metricId, start, end, limit,
-                        safeOrder, pageSize)
-                        .map(tempMapper);
-
-                sources.add(tempStoragePoints);
-            }
-            Observable<DataPoint<T>> dataPoints = SortedMerge.create(sources, comparator, false)
+            Observable<DataPoint<T>> dataPoints = SortedMerge.create(Arrays.asList(uncompressedPoints,
+                    compressedPoints, tempStoragePoints), comparator, false)
                     .distinctUntilChanged(
                             (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 
@@ -702,11 +692,12 @@ public class MetricsServiceImpl implements MetricsService {
                 dataPoints = dataPoints.take(limit);
             }
 
-            results = dataPoints;
-        } else {
-            results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
+            return dataPoints;
         }
+        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
+                getDataPointFinder(metricType);
 
+        results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
         return results.doOnCompleted(context::stop);
     }
 

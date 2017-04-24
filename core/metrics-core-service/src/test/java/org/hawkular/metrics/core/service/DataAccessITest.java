@@ -119,9 +119,9 @@ public class DataAccessITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertData(Observable.just(metric)).toBlocking().last();
 
-        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
@@ -150,9 +150,9 @@ public class DataAccessITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertData(Observable.just(metric)).toBlocking().last();
 
-        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
                 .map(Functions::getGaugeDataPoint)
@@ -198,7 +198,7 @@ public class DataAccessITest extends BaseITest {
                 new Metric<>(new MetricId<>("t1", GAUGE, "m2"), singletonList(new DataPoint<>(start+1, 0.1))),
                 new Metric<>(new MetricId<>("t1", GAUGE, "m3"), singletonList(new DataPoint<>(start+2, 0.1))),
                 new Metric<>(new MetricId<>("t1", GAUGE, "m4"), singletonList(new DataPoint<>(start+3, 0.1)))))
-                .flatMap(m -> dataAccess.insertGaugeData(m, DEFAULT_TTL))
+                .flatMap(m -> dataAccess.insertData(Observable.just(m)))
                 .toBlocking().lastOrDefault(null);
 
         @SuppressWarnings("unchecked")

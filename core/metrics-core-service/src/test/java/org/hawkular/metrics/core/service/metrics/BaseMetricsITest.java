@@ -279,12 +279,6 @@ public abstract class BaseMetricsITest extends BaseITest {
         }
 
         @Override
-        public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-            assertEquals(ttl, gaugeTTL, "The gauge TTL does not match the expected value when inserting data");
-            return super.insertGaugeData(gauge, ttl);
-        }
-
-        @Override
         public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
             assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
                 "inserting data");

@@ -118,19 +118,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
-            Function<MetricId<Double>, Integer> ttlFunction) {
-        return delegate.insertGaugeDatas(gauges, ttlFunction);
-    }
-
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> metric) {
-        return delegate.insertGaugeData(metric);
-    }
-
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-        return delegate.insertGaugeData(gauge, ttl);
+    public <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
+        return delegate.insertData(metrics);
     }
 
     @Override
@@ -140,52 +129,29 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        return delegate.insertCounterData(counter, ttl);
-    }
-
-    @Override
-    public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit,
-            Order order, int pageSize) {
-        return delegate.findCounterData(id, startTime, endTime, limit, order, pageSize);
-    }
-
-    @Override
     public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order order) {
         return delegate.findCompressedData(id, startTime, endTime, limit, order);
     }
 
     @Override
-    public Observable<Row> findTempGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-                                             int pageSize) {
-        return delegate.findTempGaugeData(id, startTime, endTime, limit, order, pageSize);
+    public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                            int pageSize) {
+        return delegate.findTempData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override
-    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-            int pageSize) {
-        return delegate.findGaugeData(id, startTime, endTime, limit, order, pageSize);
+    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                           int pageSize) {
+        return delegate.findOldData(id, startTime, endTime, limit, order, pageSize);
     }
 
     @Override
     public Observable<Integer> insertStringData(Metric<String> metric, int maxSize) {
         return delegate.insertStringData(metric, maxSize);
     }
-
-    @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter) {
-        return null;
-    }
-
     @Override
     public Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize) {
         return delegate.insertStringData(metric, ttl, maxSize);
-    }
-
-    @Override
-    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-            Function<MetricId<Long>, Integer> ttlFetcher) {
-        return delegate.insertCounterDatas(counters, ttlFetcher);
     }
 
     @Override

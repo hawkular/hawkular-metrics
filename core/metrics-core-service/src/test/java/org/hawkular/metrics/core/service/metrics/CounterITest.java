@@ -187,7 +187,7 @@ public class CounterITest extends BaseMetricsITest {
         doAction(() -> metricsService.addDataPoints(COUNTER, Observable.just(counter)));
 
         Observable<DataPoint<Long>> data = metricsService.findDataPoints(new MetricId<>(tenantId, COUNTER, "c1"),
-                start.getMillis(), end.getMillis(), 0, Order.DESC);
+                start.getMillis(), end.getMillis(), 0, Order.DESC).doOnError(Throwable::printStackTrace);
         List<DataPoint<Long>> actual = toList(data);
         List<DataPoint<Long>> expected = asList(
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 25L),
