@@ -20,8 +20,6 @@ import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.toMap;
 
 import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
-import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
@@ -66,7 +64,6 @@ import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
 import rx.exceptions.Exceptions;
@@ -160,8 +157,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findStringDataByDateRangeExclusiveWithLimitASC;
 
-    private PreparedStatement findAvailabilityByDateRangeInclusive;
-
     private PreparedStatement deleteMetricData;
 
     private PreparedStatement deleteFromMetricRetentionIndex;
@@ -169,22 +164,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteMetricFromMetricsIndex;
 
     private PreparedStatement deleteMetricDataWithLimit;
-
-    private PreparedStatement insertAvailability;
-
-    private PreparedStatement insertAvailabilityUsingTTL;
-
-    private PreparedStatement insertAvailabilityWithTags;
-
-    private PreparedStatement insertAvailabilityWithTagsUsingTTL;
-
-    private PreparedStatement findAvailabilities;
-
-    private PreparedStatement findAvailabilitiesWithLimit;
-
-    private PreparedStatement findAvailabilitiesASC;
-
-    private PreparedStatement findAvailabilitiesWithLimitASC;
 
     private PreparedStatement updateMetricsIndex;
 
@@ -509,10 +488,6 @@ public class DataAccessImpl implements DataAccess {
              " AND time < ? ORDER BY time ASC" +
              " LIMIT ?");
 
-        findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT time, availability, WRITETIME(availability) FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
-
         deleteMetricData = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
@@ -528,52 +503,6 @@ public class DataAccessImpl implements DataAccess {
         deleteMetricFromMetricsIndex = session.prepare(
             "DELETE FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
-
-        insertAvailability = session.prepare(
-            "UPDATE data " +
-            "SET availability = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET availability = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityWithTags = session.prepare(
-            "UPDATE data " +
-            "SET availability = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET availability = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        findAvailabilities = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
-
-        findAvailabilitiesWithLimit = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " LIMIT ?");
-
-        findAvailabilitiesASC = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC");
-
-        findAvailabilitiesWithLimitASC = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC" +
-            " LIMIT ?");
 
         updateRetentionsIndex = session.prepare(
             "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
@@ -745,7 +674,8 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(
                         rxSession.executeAndFetch(findAllMetricsInData.bind())
-                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())));
+                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())))
+                .distinct();
     }
 
     /*
@@ -1089,37 +1019,6 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order, int pageSize) {
-        if (order == Order.ASC) {
-            if (limit <= 0) {
-                return rxSession.executeAndFetch(findAvailabilitiesASC.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
-            } else {
-                return rxSession.executeAndFetch(findAvailabilitiesWithLimitASC.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
-            }
-        } else {
-            if (limit <= 0) {
-                return rxSession.executeAndFetch(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                        id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize));
-            } else {
-                return rxSession.executeAndFetch(findAvailabilitiesWithLimit.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
-            }
-        }
-    }
-
-    @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
-        return rxSession.executeAndFetch(findAvailabilityByDateRangeInclusive.bind(id.getTenantId(),
-                AVAILABILITY.getCode(), id.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
-    }
-
-    @Override
     public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
         return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
     }
@@ -1134,57 +1033,6 @@ public class DataAccessImpl implements DataAccess {
     public <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id) {
         return rxSession
                 .execute(deleteMetricFromMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
-    }
-
-    private Observable.Transformer<DataPoint<AvailabilityType>, BoundStatement> mapAvailabilityDatapoint(
-            Metric<AvailabilityType> metric, int ttl) {
-        return a -> a
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp(),
-                                    ttl);
-                        } else{
-                            return bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp());
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                });
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-            Function<MetricId<AvailabilityType>, Integer> ttlFetcher) {
-        return avail
-                .flatMap(a -> {
-                            int ttl = ttlFetcher.apply(a.getMetricId());
-                            return Observable.from(a.getDataPoints())
-                                    .compose(mapAvailabilityDatapoint(a, ttl));
-                        }
-                )
-                .compose(applyMicroBatching());
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
-        return insertAvailabilityData(metric, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return Observable.from(metric.getDataPoints())
-                .compose(mapAvailabilityDatapoint(metric, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {

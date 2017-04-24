@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
-import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -161,12 +160,6 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order, int pageSize) {
-        return delegate.findAvailabilityData(id, startTime, endTime, limit, order, pageSize);
-    }
-
-    @Override
     public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
         return delegate.deleteMetricData(id);
     }
@@ -179,22 +172,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id) {
         return delegate.deleteMetricFromMetricsIndex(id);
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-            Function<MetricId<AvailabilityType>, Integer> ttlFetcher) {
-        return delegate.insertAvailabilityDatas(avail, ttlFetcher);
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
-        return delegate.insertAvailabilityData(metric);
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return delegate.insertAvailabilityData(metric, ttl);
     }
 
     @Override
@@ -221,11 +198,6 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
         return delegate.findMetricsByTagNameValue(tenantId, tag, tvalue);
-    }
-
-    @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
-        return delegate.findAvailabilityData(id, timestamp);
     }
 
     @Override

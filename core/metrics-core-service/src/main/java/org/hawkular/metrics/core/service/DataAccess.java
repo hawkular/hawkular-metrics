@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
-import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -88,25 +87,11 @@ public interface DataAccess {
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
                                    int pageSize);
 
-    @Deprecated
-    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
-            Order order, int pageSize);
-
-    @Deprecated
-    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
-
     <T> Observable<ResultSet> deleteMetricData(MetricId<T> id);
 
     <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id);
 
     <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id);
-
-    Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-            Function<MetricId<AvailabilityType>, Integer> ttlFetcher);
-
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
-
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     <T> ResultSetFuture findDataRetentions(String tenantId, MetricType<T> type);
 

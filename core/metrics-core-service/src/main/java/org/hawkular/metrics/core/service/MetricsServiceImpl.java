@@ -239,7 +239,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(AVAILABILITY, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<AvailabilityType>> avail = (Observable<Metric<AvailabilityType>>) metric;
-                    return dataAccess.insertAvailabilityDatas(avail, this::getTTL);
+                    return dataAccess.insertData(avail);
                 })
                 .put(STRING, metric -> {
                     @SuppressWarnings("unchecked")
@@ -251,11 +251,6 @@ public class MetricsServiceImpl implements MetricsService {
         dataPointFinders = ImmutableMap
                 .<MetricType<?>, Func6<? extends MetricId<?>, Long, Long, Integer, Order, Integer,
                         Observable<Row>>>builder()
-                .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
-                })
                 .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<String> stringId = (MetricId<String>) metricId;

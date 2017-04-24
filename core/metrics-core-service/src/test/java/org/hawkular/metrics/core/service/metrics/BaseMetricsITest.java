@@ -37,7 +37,6 @@ import org.hawkular.metrics.core.service.DelegatingDataAccess;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.PercentileWrapper;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
-import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
@@ -55,8 +54,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
-import rx.Observable;
 
 /**
  * @author John Sanda
@@ -278,12 +275,13 @@ public abstract class BaseMetricsITest extends BaseITest {
             this.availabilityTTL = availabilityTTL;
         }
 
-        @Override
-        public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-            assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
-                "inserting data");
-            return super.insertAvailabilityData(metric, ttl);
-        }
+        // TODO We should only test the data_compressed TTL setting
+//        @Override
+//        public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
+//            assertEquals(ttl, availabilityTTL, "The availability data TTL does not match the expected value when " +
+//                "inserting data");
+//            return super.insertAvailabilityData(metric, ttl);
+//        }
     }
 
     protected static class InMemoryPercentileWrapper implements PercentileWrapper {

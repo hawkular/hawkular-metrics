@@ -55,8 +55,6 @@ import rx.Observable;
  */
 public class DataAccessITest extends BaseITest {
 
-    private static int DEFAULT_TTL = 600;
-
     private static int DEFAULT_PAGE_SIZE = 5000;
 
     private DataAccessImpl dataAccess;
@@ -80,6 +78,9 @@ public class DataAccessITest extends BaseITest {
         session.execute(truncateTenants.bind());
         session.execute(truncateGaugeData.bind());
         session.execute(truncateCompressedData.bind());
+        for(int i = 0; i < DataAccessImpl.NUMBER_OF_TEMP_TABLES; i++) {
+            session.execute(String.format("TRUNCATE data_temp_%d", i));
+        }
     }
 
     @Test
@@ -124,7 +125,7 @@ public class DataAccessITest extends BaseITest {
         Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .map(Functions::getGaugeDataPoint)
+                .map(Functions::getTempGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
@@ -155,7 +156,7 @@ public class DataAccessITest extends BaseITest {
         Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .map(Functions::getGaugeDataPoint)
+                .map(Functions::getTempGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
@@ -176,12 +177,12 @@ public class DataAccessITest extends BaseITest {
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
+        dataAccess.insertData(Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
-                .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
+                .findTempData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
                         0, Order.DESC, DEFAULT_PAGE_SIZE)
-                .map(Functions::getAvailabilityDataPoint)
+                .map(Functions::getTempAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),
                 UP));
