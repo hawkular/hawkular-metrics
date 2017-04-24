@@ -236,10 +236,11 @@
                 <include>**/*ITest*</include>
               </includes>
               <excludes>
-                <exclude>**/RatesITest.java</exclude>
-                <exclude>**/GenerateRateITest.java</exclude>
-                <exclude>**/CreateTenantsITest.java</exclude>
-                <exclude>**/CreateTenantsSchedulerITest.java</exclude>
+                <!--
+                  DeleteExpiredMetricsJobITest has intermittent failures which happen frequently both on travis and
+                  locally. I have created HWKMETRICS-662 as a reminder to fix and re-enable them.
+                -->
+                <exclude>**/DeleteExpiredMetricsJobITest.java</exclude>
               </excludes>
               <systemPropertyVariables>
                 <resetdb>${resetdb}</resetdb>
