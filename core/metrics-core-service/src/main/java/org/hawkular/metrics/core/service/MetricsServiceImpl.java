@@ -482,7 +482,7 @@ public class MetricsServiceImpl implements MetricsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
+                updates.add(dataAccess.addTags(metric, metric.getTags()));
 
                 if (metric.getDataRetention() != null) {
                     updates.add(updateRetentionsIndex(metric));
@@ -596,23 +596,22 @@ public class MetricsServiceImpl implements MetricsService {
 
         this.updateMetricExpiration(metric);
 
-        return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
-                .toList().map(l -> null);
+        return dataAccess.addTags(metric, tags).map(l -> null);
     }
 
     @Override
     public Observable<Void> deleteTags(Metric<?> metric, Set<String> tags) {
         return getMetricTags(metric.getMetricId())
                 .map(loadedTags -> {
-                    loadedTags.keySet().retainAll(tags);
+                    if (tags != null) {
+                        loadedTags.keySet().retainAll(tags);
+                    }
                     return loadedTags;
                 })
-                .flatMap(tagsToDelete -> {
-                    return dataAccess.deleteTags(metric, tagsToDelete.keySet()).mergeWith(
-                            dataAccess.deleteFromMetricsTagsIndex(metric.getMetricId(), tagsToDelete)).toList()
-                            .map(r -> null);
-                });
+                .flatMap(tagsToDelete -> dataAccess.deleteTags(metric, tagsToDelete))
+                .map(r -> null);
     }
+
 
     @Override
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
@@ -1008,23 +1007,17 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> Observable<Void> deleteMetric(MetricId<T> id) {
-        Observable<Void> result = dataAccess.getMetricTags(id)
-                .map(row -> row.getMap(0, String.class, String.class))
-                .defaultIfEmpty(new HashMap<>())
-                .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
-                .toList()
-                .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
-                .flatMap(r -> null);
-
         //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
         //      for the compressed data table.
-        result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
 
-        result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
-        result.mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).flatMap(r -> null));
-
-        return result;
+        return getMetricTags(id)
+                .flatMap(tags -> dataAccess.deleteFromMetricsIndexAndTags(id, tags)
+                        .concatMap(r -> dataAccess.deleteMetricData(id))
+                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))
+                        .concatMap(r -> dataAccess.deleteFromMetricExpirationIndex(id)))
+                .map(r -> null);
     }
 
     @Override

@@ -27,10 +27,8 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
@@ -47,6 +45,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.Metadata;
@@ -651,17 +650,41 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
         MetricId<T> metricId = metric.getMetricId();
-        BoundStatement stmt = addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName());
-        return rxSession.execute(stmt);
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName()));
+        tags.forEach((key, value) -> batch.add(insertMetricsTagsIndex.bind(metricId.getTenantId(), key, value,
+                metricId.getType().getCode(), metricId.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to insert metric tags for metric id " + metricId));
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags) {
+    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Map<String, String> tags) {
         MetricId<T> metricId = metric.getMetricId();
-        BoundStatement stmt = deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(),
-                metricId.getType().getCode(), metricId.getName());
-        return rxSession.execute(stmt);
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(deleteTagsFromMetricsIndex.bind(tags.keySet(), metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName()));
+        tags.forEach((key, value) -> batch.add(deleteMetricsTagsIndex.bind(metricId.getTenantId(), key, value,
+                metricId.getType().getCode(), metricId.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to delete metric tags for metric id " + metricId));
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteFromMetricsIndexAndTags(MetricId<T> id, Map<String, String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(deleteMetricFromMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+        tags.forEach((key, value) -> batch.add(deleteMetricsTagsIndex.bind(id.getTenantId(), key, value,
+                id.getType().getCode(), id.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to delete metric and tags for metric id " + id));
     }
 
     @Override
@@ -704,7 +727,7 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(g -> g.compose(new BoundBatchStatementTransformer()))
                 .flatMap(batch -> rxSession
                         .execute(batch)
-                        .compose(applyInsertRetryPolicy())
+                        .compose(applyWriteRetryPolicy("Failed to insert batch of data points"))
                         .map(resultSet -> batch.size())
                 );
     }
@@ -712,7 +735,7 @@ public class DataAccessImpl implements DataAccess {
     /*
      * Apply our current retry policy to the insert behavior
      */
-    private <T> Observable.Transformer<T, T> applyInsertRetryPolicy() {
+    private <T> Observable.Transformer<T, T> applyWriteRetryPolicy(String msg) {
         return tObservable -> tObservable
                 .retryWhen(errors -> {
                     Observable<Integer> range = Observable.range(1, 2);
@@ -725,7 +748,8 @@ public class DataAccessImpl implements DataAccess {
                             })
                             .flatMap(retryCount -> {
                                 long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, 3000);
-                                log.debug("Retrying batch insert in " + delay + " ms");
+                                log.debug(msg);
+                                log.debugf("Retrying batch insert in %d ms", delay);
                                 return Observable.timer(delay, TimeUnit.MILLISECONDS);
                             });
                 });
@@ -1135,26 +1159,6 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(retentions.entrySet())
                 .map(entry -> updateRetentionsIndex.bind(tenantId, type.getCode(), entry.getKey(), entry.getValue()))
                 .compose(new BatchStatementTransformer())
-                .flatMap(rxSession::execute);
-    }
-
-    @Override
-    public <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getMetricId();
-        return tagsUpdates(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
-                metricId.getType().getCode(), metricId.getName()));
-    }
-
-    @Override
-    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(MetricId<T> id, Map<String, String> tags) {
-        return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(id.getTenantId(), name, value,
-                id.getType().getCode(), id.getName()));
-    }
-
-    private Observable<ResultSet> tagsUpdates(Map<String, String> tags,
-                                              BiFunction<String, String, BoundStatement> bindVars) {
-        return Observable.from(tags.entrySet())
-                .map(entry -> bindVars.apply(entry.getKey(), entry.getValue()))
                 .flatMap(rxSession::execute);
     }
 
