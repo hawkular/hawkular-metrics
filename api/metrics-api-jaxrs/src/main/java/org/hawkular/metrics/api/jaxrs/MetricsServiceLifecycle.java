@@ -52,6 +52,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -112,8 +114,14 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.MetricRegistryListener;
+import com.codahale.metrics.Timer;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
@@ -431,6 +439,8 @@ public class MetricsServiceLifecycle {
                 jmxReporter.start();
             }
 
+            registerDriverMetrics();
+
             MetricNameService metricNameService;
             if (metricsReportingHostname == null) {
                 metricNameService = new MetricNameService(adminTenant);
@@ -475,6 +485,68 @@ public class MetricsServiceLifecycle {
                     log.errorCouldNotCloseServiceInstance(e);
                 }
             }
+        }
+    }
+
+    private void registerDriverMetrics() {
+        try {
+            MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+            String hostname = InetAddress.getLocalHost().getHostName();
+            String prefix = hostname + ":com.datastax.driver.";
+
+            session.getCluster().getMetrics().getRegistry().addListener(new MetricRegistryListener() {
+                @Override
+                public void onGaugeAdded(String name, Gauge<?> gauge) {
+                    metricRegistry.register(prefix + name, gauge);
+                }
+
+                @Override
+                public void onGaugeRemoved(String name) {
+                    metricRegistry.remove(name);
+                }
+
+                @Override
+                public void onCounterAdded(String name, Counter counter) {
+                    metricRegistry.register(prefix + name, counter);
+                }
+
+                @Override
+                public void onCounterRemoved(String name) {
+                    metricRegistry.remove(name);
+                }
+
+                @Override
+                public void onHistogramAdded(String name, Histogram histogram) {
+                    metricRegistry.register(prefix + name, histogram);
+                }
+
+                @Override
+                public void onHistogramRemoved(String name) {
+                    metricRegistry.remove(name);
+                }
+
+                @Override
+                public void onMeterAdded(String name, Meter meter) {
+                    metricRegistry.register(prefix + name, meter);
+                }
+
+                @Override
+                public void onMeterRemoved(String name) {
+                    metricRegistry.remove(name);
+                }
+
+                @Override
+                public void onTimerAdded(String name, Timer timer) {
+                    metricRegistry.register(prefix + name, timer);
+                }
+
+                @Override
+                public void onTimerRemoved(String name) {
+                    metricRegistry.remove(name);
+                }
+            });
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Failed to get hostname", e);
         }
     }
 
