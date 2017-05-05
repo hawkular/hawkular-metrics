@@ -37,7 +37,7 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
 
@@ -56,13 +56,16 @@ public class DropWizardReporter extends ScheduledReporter {
 
     public static final String REPORTER_NAME = "hawkular-metrics-reporter";
 
+    private HawkularMetricRegistry metricRegistry;
+
     private MetricNameService metricNameService;
 
     private MetricsService metricsService;
 
-    public DropWizardReporter(MetricRegistry registry, MetricNameService metricNameService,
+    public DropWizardReporter(HawkularMetricRegistry registry, MetricNameService metricNameService,
             MetricsService metricsService) {
-        super(registry, REPORTER_NAME, metricNameService, TimeUnit.SECONDS, TimeUnit.SECONDS);
+        super(registry, REPORTER_NAME, MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.SECONDS);
+        this.metricRegistry = registry;
         this.metricsService = metricsService;
         this.metricNameService = metricNameService;
     }
@@ -173,6 +176,8 @@ public class DropWizardReporter extends ScheduledReporter {
                     singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get999thPercentile()))));
         });
 
+        // TODO add failover support
+
         Observable<Void> insertedGauges = metricsService.addDataPoints(GAUGE, Observable.from(gaugesList));
         Observable<Void> insertedCounters = metricsService.addDataPoints(COUNTER, Observable.from(countersList));
 
@@ -185,7 +190,9 @@ public class DropWizardReporter extends ScheduledReporter {
 
     private <T> MetricId<T> getMetricId(String metric, MetricType<T> type) {
         String tenantId = metricNameService.getTenantId();
-        return new MetricId<>(tenantId, type, metric);
+        MetaData metaData = metricRegistry.getMetaData(metric);
+        String fullyQualifiedName = metricNameService.createMetricName(metaData);
+        return new MetricId<>(tenantId, type, fullyQualifiedName);
     }
 
 }

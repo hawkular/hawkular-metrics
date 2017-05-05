@@ -49,7 +49,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.PreparedStatement;
 import com.google.common.collect.ImmutableMap;
 
@@ -87,7 +86,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
-        metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
+        metricsService.startUp(session, getKeyspace(), true, metricRegistry);
     }
 
     @BeforeMethod
