@@ -575,6 +575,20 @@ class StringITest extends RESTTest {
                 ]
         ]))
 
+        // Make sure the same request on GET endpoint gives the same result
+        def responseGET = hawkularMetrics.get(
+            path: "strings/tags/letter:A/raw",
+            query: [
+                start: start.plusHours(1).millis,
+                end: start.plusHours(4).millis,
+                limit: 2,
+                order: 'desc'
+            ],
+            headers: [(tenantHeaderName): tenantId],
+        )
+        assertEquals(200, responseGET.status)
+        assertEquals(response.data.sort(), responseGET.data.sort())
+
         response = hawkularMetrics.post(
                 path: "strings/raw/query",
                 headers: [(tenantHeaderName): tenantId],
@@ -597,6 +611,20 @@ class StringITest extends RESTTest {
                         [timestamp: start.plusHours(2).millis, value: 'green']
                 ]
         ]))
+
+        // Make sure the same request on GET endpoint gives the same result
+        responseGET = hawkularMetrics.get(
+            path: "strings/tags/letter:A,number:1/raw",
+            query: [
+                start: start.plusHours(1).millis,
+                end: start.plusHours(4).millis,
+                limit: 2,
+                order: 'desc'
+            ],
+            headers: [(tenantHeaderName): tenantId],
+        )
+        assertEquals(200, responseGET.status)
+        assertEquals(response.data.sort(), responseGET.data.sort())
     }
 
 }

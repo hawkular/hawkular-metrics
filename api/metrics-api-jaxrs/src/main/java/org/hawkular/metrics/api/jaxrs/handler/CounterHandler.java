@@ -876,4 +876,38 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
                 .map(ApiUtils::mapToResponse)
                 .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.serverError(t)));
     }
+
+    @GET
+    @Path("/tags/{tags}/raw")
+    @ApiOperation(value = "Retrieve counter data points on multiple metrics by tags.", response = DataPoint.class,
+            responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully fetched metric data points."),
+            @ApiResponse(code = 204, message = "Query was successful, but no data was found."),
+            @ApiResponse(code = 400, message = "No metric ids are specified", response = ApiError.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred while fetching metric data.",
+                    response = ApiError.class)
+    })
+    public void getRawDataByTag(
+            @Suspended AsyncResponse asyncResponse,
+            @PathParam("tags") String tags,
+            @ApiParam(value = "Defaults to now - 8 hours") @QueryParam("start") String start,
+            @ApiParam(value = "Defaults to now") @QueryParam("end") String end,
+            @ApiParam(value = "Use data from earliest received, subject to retention period")
+            @QueryParam("fromEarliest") Boolean fromEarliest,
+            @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
+            @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
+    ) {
+        metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags)
+                .map(Metric::getMetricId)
+                .toList()
+                .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(start, end)
+                        .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
+                        .sortOptions(limit, order)
+                        .toObservable()
+                        .flatMap(p -> metricsService.findDataPoints(metricIds, p.getTimeRange().getStart(),
+                                p.getTimeRange().getEnd(), p.getLimit(), p.getOrder())
+                                .observeOn(Schedulers.io())))
+                .subscribe(createNamedDataPointObserver(asyncResponse, COUNTER));
+    }
 }

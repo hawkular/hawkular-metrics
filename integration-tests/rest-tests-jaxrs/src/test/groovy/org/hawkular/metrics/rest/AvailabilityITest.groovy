@@ -508,6 +508,20 @@ class AvailabilityITest extends RESTTest {
             ]
     ]))
 
+    // Make sure the same request on GET endpoint gives the same result
+    def responseGET = hawkularMetrics.get(
+        path: "availability/tags/letter:A/raw",
+        query: [
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ],
+        headers: [(tenantHeaderName): tenantId],
+    )
+    assertEquals(200, responseGET.status)
+    assertEquals(response.data.sort(), responseGET.data.sort())
+
     response = hawkularMetrics.post(
             path: "availability/raw/query",
             headers: [(tenantHeaderName): tenantId],
@@ -530,6 +544,20 @@ class AvailabilityITest extends RESTTest {
                     [timestamp: start.plusHours(2).millis, value: 'down']
             ]
     ]))
+
+    // Make sure the same request on GET endpoint gives the same result
+    responseGET = hawkularMetrics.get(
+        path: "availability/tags/letter:A,number:1/raw",
+        query: [
+            start: start.plusHours(1).millis,
+            end: start.plusHours(4).millis,
+            limit: 2,
+            order: 'desc'
+        ],
+        headers: [(tenantHeaderName): tenantId],
+    )
+    assertEquals(200, responseGET.status)
+    assertEquals(response.data.sort(), responseGET.data.sort())
   }
 
 }
