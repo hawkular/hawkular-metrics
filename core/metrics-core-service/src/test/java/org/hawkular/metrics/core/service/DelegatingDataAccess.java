@@ -112,6 +112,15 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
+    public Observable<Row> findMetricsInTempTable(long timestamp) {
+        return delegate.findMetricsInTempTable(timestamp);
+    }
+
+    @Override public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
+        return delegate.findAllDataFromBucket(timestamp, pageSize);
+    }
+
+    @Override
     public Observable<Row> findAllMetricsInData() {
         return delegate.findAllMetricsInData();
     }
@@ -210,6 +219,12 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public Observable<Row> findAllMetricsFromTagsIndex() {
         return delegate.findAllMetricsFromTagsIndex();
+    }
+
+    @Override
+    public <T> Observable<ResultSet> insertCompressedData(MetricId<T> id, long timeslice, CompressedPointContainer cpc,
+                                                          int ttl) {
+        return delegate.insertCompressedData(id, timeslice, cpc, ttl);
     }
 
     @Override

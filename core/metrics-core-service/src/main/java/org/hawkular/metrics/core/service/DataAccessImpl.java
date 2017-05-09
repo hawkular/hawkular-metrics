@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -65,6 +66,7 @@ import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 
+import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 
@@ -76,6 +78,7 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
+    public static final String TEMP_TABLE_NAME_FORMAT = "data_temp_%d";
     public static final int NUMBER_OF_TEMP_TABLES = 12;
     public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
     public static final long DPART = 0;
@@ -90,6 +93,7 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement[][] dateRangeExclusiveWithLimit;
     private PreparedStatement[][] dataByDateRangeExclusiveASC;
     private PreparedStatement[][] dataByDateRangeExclusiveWithLimitASC;
+    private PreparedStatement[] scanTempTableWithTokens;
 
     private PreparedStatement[] metricsInDatas;
     private PreparedStatement[] allMetricsInDatas;
@@ -199,19 +203,20 @@ public class DataAccessImpl implements DataAccess {
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
         initPreparedStatements();
-        preparedTemporaryTableStatements();
+        prepareTemporaryTableStatements();
 
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
     }
 
-    private void preparedTemporaryTableStatements() {
+    private void prepareTemporaryTableStatements() {
         // Read statements
         // TODO Could I even fetch compressed data with these same queries?
         dateRangeExclusive = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dateRangeExclusiveWithLimit = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dataByDateRangeExclusiveASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
+        scanTempTableWithTokens = new PreparedStatement[NUMBER_OF_TEMP_TABLES];
 
         String byDateRangeExclusiveBase =
                 "SELECT time, %s, tags FROM %s " +
@@ -232,6 +237,11 @@ public class DataAccessImpl implements DataAccess {
                         " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
                         " AND time < ? ORDER BY time ASC" +
                         " LIMIT ?";
+
+        String scanTableBase =
+                "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags FROM %s " +
+                        "WHERE token(tenant_id, type, metric, dpart) > ? AND token(tenant_id, type, metric, dpart) <=" +
+                        " ?";
 
         // Insert statements
         dataTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
@@ -256,8 +266,6 @@ public class DataAccessImpl implements DataAccess {
         String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
                         "FROM %s";
 
-        String tempTableNameFormat = "data_temp_%d";
-
         // Initialize all the temporary tables for inserts
         for (MetricType<?> metricType : MetricType.all()) {
             for(int k = 0; k < NUMBER_OF_TEMP_TABLES; k++) {
@@ -266,7 +274,7 @@ public class DataAccessImpl implements DataAccess {
                     continue;
                 }
 
-                String tempTableName = String.format(tempTableNameFormat, k);
+                String tempTableName = String.format(TEMP_TABLE_NAME_FORMAT, k);
 
                 // Insert statements
                 dataTable[metricType.getCode()][k] = session.prepare(
@@ -306,9 +314,10 @@ public class DataAccessImpl implements DataAccess {
 
         // MetricDefinition statements
         for(int i = 0; i < NUMBER_OF_TEMP_TABLES; i++) {
-            String tempTableName = String.format(tempTableNameFormat, i);
+            String tempTableName = String.format(TEMP_TABLE_NAME_FORMAT, i);
             metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, tempTableName));
             allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, tempTableName));
+            scanTempTableWithTokens[i] = session.prepare(String.format(scanTableBase, tempTableName));
         }
         metricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findMetricInDataBase, "data"));
         allMetricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findAllMetricsInDataBases, "data"));
@@ -666,6 +675,57 @@ public class DataAccessImpl implements DataAccess {
         return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
+    @Override
+    public Observable<Row> findMetricsInTempTable(long timestamp) {
+        int bucket = getBucketIndex(timestamp);
+        return rxSession.executeAndFetch(allMetricsInDatas[bucket].bind());
+    }
+
+    /**
+     * Fetch all the data from a temporary table for the compression job. Using TokenRanges avoids fetching first
+     * all the metrics' partition keys and then requesting them.
+     *
+     * Performance can be improved by using data locality and fetching with multiple threads.
+     *
+     * @param timestamp A timestamp inside the wanted bucket (such as the previous starting row timestamp)
+     * @return Observable of Observables per partition key
+     */
+    @Override
+    public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
+        int bucket = getBucketIndex(timestamp);
+
+        return Observable.from(getTokenRanges())
+                .map(tr -> rxSession.executeAndFetch(
+                        scanTempTableWithTokens[bucket].bind()
+                                .setToken(0, tr.getStart())
+                                .setToken(1, tr.getEnd()).setFetchSize(pageSize)));
+    }
+
+    private Set<TokenRange> getTokenRanges() {
+        Set<TokenRange> tokenRanges = new HashSet<>();
+        for (TokenRange tokenRange : metadata.getTokenRanges()) {
+            tokenRanges.addAll(tokenRange.unwrap());
+        }
+        return tokenRanges;
+    }
+
+    /*
+    https://issues.apache.org/jira/browse/CASSANDRA-11143
+    https://issues.apache.org/jira/browse/CASSANDRA-10699
+    https://issues.apache.org/jira/browse/CASSANDRA-9424
+     */
+    private Completable resetTempTable(int bucketIndex) {
+        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, bucketIndex);
+
+        String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
+                .getTable(fullTableName)
+                .asCQLQuery();
+
+        String dropCQL = String.format("DROP TABLE %s", fullTableName);
+
+        return Completable.fromObservable(rxSession.execute(dropCQL))
+                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
+    }
 
     @Override
     public Observable<Row> findAllMetricsInData() {
@@ -726,7 +786,7 @@ public class DataAccessImpl implements DataAccess {
                 });
     }
 
-    int getBucketIndex(long timestamp) {
+    public int getBucketIndex(long timestamp) {
         int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour())
                 .getHour();
@@ -1070,10 +1130,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
-                                                                    CompressedPointContainer cpc,
-                                                                    long sliceStart, long sliceEnd, int ttl) {
-
+    public <T> Observable<ResultSet> insertCompressedData(MetricId<T> id, long timeslice,
+                                                          CompressedPointContainer cpc, int ttl) {
         // ByteBuffer position must be 0!
         Observable.just(cpc.getValueBuffer(), cpc.getTimestampBuffer(), cpc.getTagsBuffer())
                 .doOnNext(bb -> {
@@ -1105,6 +1163,13 @@ public class DataAccessImpl implements DataAccess {
             mapper.accept(b, 2);
         }
 
+        return rxSession.execute(b);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
+                                                                    CompressedPointContainer cpc,
+                                                                    long sliceStart, long sliceEnd, int ttl) {
         return Observable.just(deleteMetricDataWithLimit.bind()
                 .setString(0, id.getTenantId())
                 .setByte(1, id.getType().getCode())
@@ -1112,8 +1177,8 @@ public class DataAccessImpl implements DataAccess {
                 .setLong(3, DPART)
                 .setUUID(4, getTimeUUID(sliceStart))
                 .setUUID(5, getTimeUUID(sliceEnd)))
-                .concatWith(Observable.just(b))
-                .concatMap(st -> rxSession.execute(st));
+                .concatMap(st -> rxSession.execute(st))
+                .concatWith(insertCompressedData(id, timeslice, cpc, ttl));
     }
 
     @Override

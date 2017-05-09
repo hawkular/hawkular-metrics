@@ -64,6 +64,10 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
+    Observable<Row> findMetricsInTempTable(long timestamp);
+
+    Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize);
+
     Observable<Row> findAllMetricsInData();
 
     <T> Observable<Integer> insertData(Observable<Metric<T>> metrics);
@@ -105,6 +109,9 @@ public interface DataAccess {
     Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
 
     Observable<Row> findAllMetricsFromTagsIndex();
+
+    <T> Observable<ResultSet> insertCompressedData(MetricId<T> id, long timeslice,
+                                                   CompressedPointContainer cpc, int ttl);
 
     <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
                                                              CompressedPointContainer cpc,

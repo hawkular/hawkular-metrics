@@ -111,8 +111,11 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
-        CompressData compressDataJob = new CompressData(metricsService, configurationService);
-        scheduler.register(CompressData.JOB_NAME, compressDataJob);
+        TempDataCompressor tempJob = new TempDataCompressor(metricsService, configurationService);
+        scheduler.register(TempDataCompressor.JOB_NAME, tempJob);
+
+//        CompressData compressDataJob = new CompressData(metricsService, configurationService);
+//        scheduler.register(CompressData.JOB_NAME, compressDataJob);
         maybeScheduleCompressData(backgroundJobs);
 
         deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
@@ -144,17 +147,26 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     }
 
     private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
-        String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
+        String configId = "org.hawkular.metrics.jobs." + TempDataCompressor.JOB_NAME;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
         if (config.get("jobId") == null) {
-            logger.info("Preparing to create and schedule " + CompressData.JOB_NAME + " job");
+            logger.info("Preparing to create and schedule " + TempDataCompressor.JOB_NAME + " job");
 
             // Get next start of odd hour
             long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                     .with(DateTimeService.startOfNextOddHour())
                     .toInstant(ZoneOffset.UTC).toEpochMilli();
-            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+
+            // CompressData
+//            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+//                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
+//                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
+//            backgroundJobs.add(jobDetails);
+//            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+
+            // Temp table processing
+            JobDetails jobDetails = scheduler.scheduleJob(TempDataCompressor.JOB_NAME, TempDataCompressor.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
             backgroundJobs.add(jobDetails);

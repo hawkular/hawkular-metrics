@@ -58,6 +58,7 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.SortedMerge;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
+import org.hawkular.metrics.core.service.transformers.TempTableCompressTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -734,6 +735,30 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public Completable compressBlock(long startTimeSlice) {
+        // TODO Create test that shows this matches the CORRECT bucket always
+        // TODO Test that this actually fetches everything.. always
+        return Completable.fromObservable(dataAccess.findAllDataFromBucket(startTimeSlice, defaultPageSize)
+                .compose(applyRetryPolicy())
+                .concatMap(rO -> rO
+                        .groupBy(r ->
+                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)), r.getString(2)))
+                        .concatMap(g ->
+                                g.compose(new TempTableCompressTransformer(g.getKey(), startTimeSlice))
+                                        .concatMap(cpc -> dataAccess.insertCompressedData(g.getKey(), startTimeSlice,
+                                                (CompressedPointContainer) cpc, getTTL(g.getKey())))
+                        )));
+
+        // "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags FROM %s " +
+
+        // map from inner row -> Metric
+        // collect to be compressed
+        // call drop
+    }
+
+    @Override
+    @Deprecated
     @SuppressWarnings("unchecked")
     public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
             long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {

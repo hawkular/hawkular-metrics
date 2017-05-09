@@ -35,7 +35,8 @@ public class CompressorHeader {
     }
 
     public enum Compressor {
-        GORILLA((byte) 0x10, GorillaSettings.class);
+        GORILLA((byte) 0x10, GorillaSettings.class),
+        GORILLA_V2((byte) 0x20, GorillaSettings.class);
 
         private byte value;
 
