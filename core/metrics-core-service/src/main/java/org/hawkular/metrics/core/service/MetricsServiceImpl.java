@@ -632,11 +632,6 @@ public class MetricsServiceImpl implements MetricsService {
         MetricType<T> metricType = metricId.getType();
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
 
-        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
-                getDataPointFinder(metricType);
-
-        Observable<DataPoint<T>> results;
-
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
@@ -693,7 +688,7 @@ public class MetricsServiceImpl implements MetricsService {
         Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
                 getDataPointFinder(metricType);
 
-        results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
+        Observable<DataPoint<T>> results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
         return results.doOnCompleted(context::stop);
     }
 
