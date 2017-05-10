@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -61,6 +63,8 @@ public abstract class BaseITest {
 
     private PreparedStatement truncateCounters;
 
+    protected static HawkularMetricRegistry metricRegistry;
+
     @BeforeSuite
     public static void initSuite() {
         String nodeAddresses = System.getProperty("nodes", "127.0.0.1");
@@ -75,6 +79,9 @@ public abstract class BaseITest {
         schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
+
+        metricRegistry = new HawkularMetricRegistry();
+        metricRegistry.setMetricNameService(new MetricNameService());
     }
 
     protected void resetDB() {

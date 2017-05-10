@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
@@ -83,7 +84,6 @@ import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -160,22 +160,28 @@ public class MetricsServiceImpl implements MetricsService {
 
     private MetricNameService metricNameService = new MetricNameService();
 
-    private MetricRegistry metricRegistry;
+    private HawkularMetricRegistry metricRegistry;
 
     /**
      * Functions used to insert metric data points.
      */
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
+
     /**
      * Measurements of the throughput of inserting data points.
      */
-    private Map<MetricType<?>, Meter> dataPointInsertMeters;
+    private Meter dataPointsInserted;
 
     /**
-     * Measures the latency of queries for data points.
+     * Raw data read metrics
      */
-    private Map<MetricType<?>, Timer> dataPointReadTimers;
+    private Timer rawDataReadLatency;
+
+    /**
+     * Metric tag query metrics
+     */
+    private Timer metricTagsTimer;
 
     /**
      * Functions used to find metric data points rows.
@@ -204,12 +210,12 @@ public class MetricsServiceImpl implements MetricsService {
 
     private int defaultPageSize;
 
-    public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
+    public void startUp(Session session, String keyspace, boolean resetDb, HawkularMetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
     }
 
     public void startUp(Session session, String keyspace, boolean resetDb, boolean createSchema,
-            MetricRegistry metricRegistry) {
+            HawkularMetricRegistry metricRegistry) {
         session.execute("USE " + keyspace);
         log.infoKeyspaceUsed(keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -310,19 +316,9 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private void initMetrics() {
-        dataPointInsertMeters = ImmutableMap.<MetricType<?>, Meter> builder()
-                .put(GAUGE, metricRegistry.meter(metricNameService.createMetricName("gauge-inserts")))
-                .put(AVAILABILITY, metricRegistry.meter(metricNameService.createMetricName("availability-inserts")))
-                .put(COUNTER, metricRegistry.meter(metricNameService.createMetricName("counter-inserts")))
-                .put(STRING, metricRegistry.meter(metricNameService.createMetricName("string-inserts")))
-                .build();
-        dataPointReadTimers = ImmutableMap.<MetricType<?>, Timer> builder()
-                .put(GAUGE, metricRegistry.timer(metricNameService.createMetricName("gauge-read-latency")))
-                .put(AVAILABILITY, metricRegistry.timer(metricNameService.createMetricName(
-                        "availability-read-latency")))
-                .put(COUNTER, metricRegistry.timer(metricNameService.createMetricName("counter-read-latency")))
-                .put(STRING, metricRegistry.timer(metricNameService.createMetricName("string-read-latency")))
-                .build();
+        dataPointsInserted = metricRegistry.meter("DataPointsInserted", "Core", "Write");
+        rawDataReadLatency = metricRegistry.timer("RawDataReadLatency", "Core", "Read");
+        metricTagsTimer = metricRegistry.timer("MetricTagsQueryLatency", "Core", "Read");
     }
 
     private void initConfiguration(Session session) {
@@ -542,19 +538,22 @@ public class MetricsServiceImpl implements MetricsService {
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, String tags) {
+        Timer.Context context = metricTagsTimer.time();
+        Observable<Metric<T>> results;
         try {
-            return expresssionTagQueryParser
+            results = expresssionTagQueryParser
                     .parse(tenantId, metricType, tags)
                     .map(tMetric -> (Metric<T>) tMetric);
         } catch (Exception e1) {
             try {
                 Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
-                return tagQueryParser.findMetricsWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
+                results = tagQueryParser.findMetricsWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
                         .map(tMetric -> (Metric<T>) tMetric);
             } catch (Exception e2) {
-                return Observable.error(new RuntimeApiError("Unparseable tag query expression."));
+                results = Observable.error(new RuntimeApiError("Unparseable tag query expression."));
             }
         }
+        return results.doOnCompleted(context::stop);
     }
 
     public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
@@ -617,22 +616,13 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
         checkArgument(metricType != null, "metricType is null");
 
-        Meter meter = getInsertMeter(metricType);
         return pointsInserter
                 .get(metricType)
                 .call(metrics
                         .filter(metric -> !metric.getDataPoints().isEmpty())
                         .doOnNext(insertedDataPointEvents::onNext))
-                .doOnNext(meter::mark)
+                .doOnNext(dataPointsInserted::mark)
                 .map(i -> null);
-    }
-
-    private <T> Meter getInsertMeter(MetricType<T> metricType) {
-        Meter meter = dataPointInsertMeters.get(metricType);
-        if (meter == null) {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
-        return meter;
     }
 
     @Override
@@ -644,14 +634,16 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
             Order order, int pageSize) {
+        Timer.Context context = rawDataReadLatency.time();
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
-        Timer timer = getDataPointFindTimer(metricType);
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
 
         Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
                 getDataPointFinder(metricType);
+
+        Observable<DataPoint<T>> results;
 
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
@@ -683,11 +675,12 @@ public class MetricsServiceImpl implements MetricsService {
                 dataPoints = dataPoints.take(limit);
             }
 
-            return dataPoints;
+            results = dataPoints;
+        } else {
+            results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
         }
 
-        return time(timer, () -> finder.call(metricId, start, end, limit, safeOrder, pageSize)
-                .map(mapper));
+        return results.doOnCompleted(context::stop);
     }
 
     private <T> Observable.Transformer<T, T> applyRetryPolicy() {
@@ -743,14 +736,6 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(Metric::getMetricId)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)
                         .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
-    }
-
-    private <T> Timer getDataPointFindTimer(MetricType<T> metricType) {
-        Timer timer = dataPointReadTimers.get(metricType);
-        if (timer == null) {
-            throw new UnsupportedOperationException(metricType.getText());
-        }
-        return timer;
     }
 
     @SuppressWarnings("unchecked")

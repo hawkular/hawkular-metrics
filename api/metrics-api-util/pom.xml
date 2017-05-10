@@ -36,6 +36,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-core-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <!-- Just to pull dropwizard metrics-core in the right version -->
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>

@@ -49,7 +49,6 @@ import org.joda.time.DateTime;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.google.common.base.MoreObjects;
@@ -87,7 +86,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
-        metricsService.startUp(session, getKeyspace(), true, new MetricRegistry());
+        metricsService.startUp(session, getKeyspace(), true, metricRegistry);
     }
 
     @BeforeMethod(alwaysRun = true)

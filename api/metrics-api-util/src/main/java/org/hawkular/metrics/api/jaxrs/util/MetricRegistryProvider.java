@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,8 @@
 
 package org.hawkular.metrics.api.jaxrs.util;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+
 import com.codahale.metrics.MetricRegistry;
 
 /**
@@ -27,13 +29,13 @@ import com.codahale.metrics.MetricRegistry;
 public enum MetricRegistryProvider {
     INSTANCE;
 
-    private final MetricRegistry metricRegistry;
+    private final HawkularMetricRegistry metricRegistry;
 
     MetricRegistryProvider() {
-        metricRegistry = new MetricRegistry();
+        metricRegistry = new HawkularMetricRegistry();
     }
 
-    public MetricRegistry getMetricRegistry() {
+    public HawkularMetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 }

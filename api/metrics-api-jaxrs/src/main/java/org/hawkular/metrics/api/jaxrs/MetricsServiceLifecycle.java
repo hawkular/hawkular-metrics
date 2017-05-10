@@ -46,7 +46,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_DISABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
@@ -90,9 +90,11 @@ import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
 import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
-import org.hawkular.metrics.core.dropwizard.MetricsInitializer;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
@@ -113,7 +115,6 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 
 import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
@@ -284,8 +285,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(METRICS_REPORTING_ENABLED)
-    private String metricsReportingEnabled;
+    @ConfigurationProperty(METRICS_REPORTING_DISABLED)
+    private String metricsReportingDisabled;
 
     @Inject
     @Configurable
@@ -301,9 +302,6 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(METRICS_EXPIRATION_JOB_ENABLED)
     private String metricsExpirationJobEnabled;
-
-    @Inject
-    DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
     @ServiceReady
@@ -425,35 +423,35 @@ public class MetricsServiceLifecycle {
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
-            MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            if (!Boolean.parseBoolean(disableMetricsJmxReporting)) {
-                jmxReporter = JmxReporter.forRegistry(metricRegistry).inDomain("hawkular.metrics").build();
-                jmxReporter.start();
-            }
-
             MetricNameService metricNameService;
             if (metricsReportingHostname == null) {
                 metricNameService = new MetricNameService(adminTenant);
             } else {
                 metricNameService = new MetricNameService(metricsReportingHostname, adminTenant);
             }
-            metricsService.setMetricNameService(metricNameService);
 
+            HawkularMetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+            metricRegistry.setMetricNameService(metricNameService);
+
+            metricsService.setMetricNameService(metricNameService);
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
-            new MetricsInitializer(metricRegistry, metricsService, metricNameService).run();
+            HawkularMetricsRegistryListener metricsRegistryListener = new HawkularMetricsRegistryListener();
+            metricsRegistryListener.setMetricNameService(metricNameService);
+            metricsRegistryListener.setMetricRegistry(metricRegistry);
+            metricsRegistryListener.setMetricsService(metricsService);
+            metricRegistry.addListener(metricsRegistryListener);
 
-            if (Boolean.valueOf(metricsReportingEnabled)) {
-                @SuppressWarnings("resource")
+            new CassandraDriverMetrics(session, metricRegistry).registerAll();
+
+            if (!Boolean.valueOf(metricsReportingDisabled)) {
                 DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
-                reporter.start(30, SECONDS);
+                reporter.start(1, MINUTES);
             }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initJobsService();
-
-            session.getCluster().register(new ClusterStateListener());
 
             initGCGraceSecondsManager();
 
@@ -837,44 +835,6 @@ public class MetricsServiceLifecycle {
             }
         } finally {
             state = State.STOPPED;
-        }
-    }
-
-    private class ClusterStateListener implements Host.StateListener {
-        @Override
-        public void onAdd(Host host) {
-            update();
-        }
-
-        private void update() {
-            lifecycleExecutor.submit(() -> {
-                driverUsageMetricsManager.updateDriverUsageMetrics(session);
-            });
-        }
-
-        @Override
-        public void onUp(Host host) {
-            update();
-        }
-
-        @Override
-        public void onDown(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRemove(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRegister(Cluster cluster) {
-            update();
-        }
-
-        @Override
-        public void onUnregister(Cluster cluster) {
-            lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
         }
     }
 }
