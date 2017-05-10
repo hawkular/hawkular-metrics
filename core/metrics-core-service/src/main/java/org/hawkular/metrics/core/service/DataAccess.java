@@ -29,6 +29,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
+import rx.Completable;
 import rx.Observable;
 
 /**
@@ -67,6 +68,13 @@ public interface DataAccess {
     Observable<Row> findMetricsInTempTable(long timestamp);
 
     Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize);
+
+    /*
+    https://issues.apache.org/jira/browse/CASSANDRA-11143
+    https://issues.apache.org/jira/browse/CASSANDRA-10699
+    https://issues.apache.org/jira/browse/CASSANDRA-9424
+     */
+    Completable resetTempTable(long timestamp);
 
     Observable<Row> findAllMetricsInData();
 

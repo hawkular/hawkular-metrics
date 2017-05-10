@@ -60,7 +60,7 @@ public class CompressorHeader {
     }
 
     public enum GorillaSettings implements CompressorSetting {
-        SECOND_PRECISION((byte) 0x01);
+        SECOND_PRECISION((byte) 0x01), LONG_VALUES((byte) 0x02);
 
         private byte value;
 

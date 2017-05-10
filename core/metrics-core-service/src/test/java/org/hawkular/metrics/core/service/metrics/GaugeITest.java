@@ -49,6 +49,7 @@ import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -351,7 +352,9 @@ public class GaugeITest extends BaseMetricsITest {
 
     @Test
     public void addAndCompressData() throws Exception {
-        DateTime dt = new DateTime(2016, 9, 2, 14, 15); // Causes writes to go to compressed and one uncompressed row
+        // TODO This unit test works even if compression is broken.. as long as the data is not deleted
+        DateTime dt = new DateTime(2016, 9, 2, 14, 15, DateTimeZone.UTC); // Causes writes to go to compressed and one
+        // uncompressed table
         DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
 
         DateTime start = dt.minusMinutes(30);
@@ -371,11 +374,15 @@ public class GaugeITest extends BaseMetricsITest {
         insertObservable.toBlocking().lastOrDefault(null);
 
         DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
-        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+//        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
+
+        System.out.printf("===================> Processing %d compressing %d\n", start.getMillis(), startSlice.getMillis());
 
         Completable compressCompletable =
-                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
+                metricsService.compressBlock(startSlice.getMillis(), COMPRESSION_PAGE_SIZE)
+                .doOnError(Throwable::printStackTrace);
+//                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
+//                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
 
         TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
         compressCompletable.subscribe(testSubscriber);

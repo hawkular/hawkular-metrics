@@ -175,7 +175,7 @@ public interface MetricsService {
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order,
             int pageSize);
 
-    @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice);
+    @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice, int pageSize);
 
     /**
      * Compresses the given range between timestamps to a single block.

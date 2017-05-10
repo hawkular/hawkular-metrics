@@ -22,8 +22,6 @@ import java.util.EnumSet;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.compress.CompressorHeader;
 import org.hawkular.metrics.core.service.compress.TagsSerializer;
-import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
 
@@ -36,52 +34,80 @@ import rx.Observable;
  *
  * @author Michael Burman
  */
-public class TempTableCompressTransformer<T> implements Observable.Transformer<Row, CompressedPointContainer> {
+public class TempTableCompressTransformer implements Observable.Transformer<Row, CompressedPointContainer> {
 
-    private ByteBufferBitOutput out;
-    private long sliceTimestamp;
-    private MetricType<T> metricType;
-    private Compressor compressor;
-    private TagsSerializer tagsSerializer;
+    private long timeslice;
 
-    public TempTableCompressTransformer(MetricId<T> key, long timeslice) {
-        out = new ByteBufferBitOutput();
-        this.metricType = key.getType();
-
-        // Write the appropriate header, at first we're stuck to Gorilla only
-        byte gorillaHeader = CompressorHeader.getHeader(CompressorHeader.Compressor.GORILLA, EnumSet.noneOf
-                (CompressorHeader.GorillaSettings.class));
-        out.getByteBuffer().put(gorillaHeader);
-
-        this.sliceTimestamp = timeslice;
-        this.compressor = new Compressor(timeslice, out);
-        this.tagsSerializer = new TagsSerializer(timeslice);
+    public TempTableCompressTransformer(long timeslice) {
+        this.timeslice = timeslice;
     }
 
     @Override
     public Observable<CompressedPointContainer> call(Observable<Row> dataRow) {
+
+        // TODO Calculate some relevant statistics of the compressed block?
+        // Does not really suit the reactive model.. might need two iterations of the data
+
+        /*
+        For values:
+
+        Calculate the following statistics:
+        1. Is the data integers (Gauges can be integers) ?
+          1.1 If, is the max value <= Long.MAX_VALUE
+        2. How many values
+        4. If floating points
+          4.1 Amount of unique values
+          4.2 Distribution of the values
+           => Select correct predictor (last-value / DFCM)
+          4.3 Value splitting capability (ISOBAR stuff) ?
+           => Proper column split for better compress ratio
+           => Gorilla encoding or some other?
+          4.4 Can we use lossy compression?
+           => zfp etc
+        5. If integers
+          5.1 Are the values in sorted order?
+           => Delta compression
+          5.2 Repetition of values
+           => RLE or let LZ4 do the compression?
+          5.3 Exception rate .. PFOR or Simple-8 for example
+
+        For timestamps we might need another approach..
+
+        1. Delta and delta-of-delta distribution
+          => Which one to use (probably DoD in monitoring case)
+        2.
+
+         */
+        ByteBufferBitOutput out = new ByteBufferBitOutput();
+
+        byte gorillaHeader = CompressorHeader.getHeader(CompressorHeader.Compressor.GORILLA, EnumSet.noneOf
+                (CompressorHeader.GorillaSettings.class));
+        out.getByteBuffer().put(gorillaHeader);
+
+        Compressor compressor = new Compressor(timeslice, out);
+        TagsSerializer tagsSerializer = new TagsSerializer(timeslice);
+
         return dataRow.collect(CompressedPointContainer::new,
                 (container, r) -> {
                     // "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags FROM %s " +
                     long timestamp = r.getTimestamp(3).getTime(); // Check validity
-                    switch(metricType.getCode()) {
+                    switch(r.getByte(1)) {
                         case 0: // GAUGE
                             compressor.addValue(timestamp, r.getDouble(4));
                             break;
                         case 1: // AVAILABILITY
-                            // TODO Update to newer Gorilla-TSC to fix these - no point storing as FP
+                            // TODO Update to GORILLA_V2 to fix these - no point storing as FP
                             compressor.addValue(timestamp, ((Byte) r.getByte(4)).doubleValue());
                             break;
                         case 2: // COUNTER
-                            // TODO Update to newer Gorilla-TSC to fix these - no point storing as FP
+                            // TODO Update to GORILLA_V2 to fix these - no point storing as FP
                             compressor.addValue(timestamp, ((Long) r.getLong(4)).doubleValue());
                             break;
                         default:
                             // Not supported yet
-                            throw new RuntimeException("Metric of type " + metricType.getText() + " is not supported " +
-                                    "in compression");
+                            throw new RuntimeException("Metric of type " + r.getByte(1) + " is not supported" +
+                                    " in compression");
                     }
-
                     // TODO Fix Tags storage!
 //                    if(d.getTags() != null && !d.getTags().isEmpty()) {
 //                        tagsSerializer.addDataPointTags(d.getTimestamp(), d.getTags());

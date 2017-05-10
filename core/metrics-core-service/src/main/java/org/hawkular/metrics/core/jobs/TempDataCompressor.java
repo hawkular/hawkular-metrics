@@ -42,8 +42,6 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
     private static Logger logger = Logger.getLogger(TempDataCompressor.class);
 
     public static final String JOB_NAME = "TEMP_DATA_COMPRESSOR";
-    public static final String BLOCK_SIZE = "compression.block.size";
-    public static final String TARGET_TIME = "compression.time.target";
     public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
 
     private static final int DEFAULT_PAGE_SIZE = 1000;
@@ -99,7 +97,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.infof("Starting to process temp tables for starting time of %d", startOfSlice);
 
-        return metricsService.compressBlock(startOfSlice)
+        return metricsService.compressBlock(startOfSlice, pageSize)
                 .doOnCompleted(() ->
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                             " ms")

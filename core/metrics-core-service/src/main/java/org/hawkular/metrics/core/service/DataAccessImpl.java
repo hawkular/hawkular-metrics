@@ -239,7 +239,8 @@ public class DataAccessImpl implements DataAccess {
                         " LIMIT ?";
 
         String scanTableBase =
-                "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags FROM %s " +
+                "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags, token(tenant_id, type, " +
+                        "metric, dpart) FROM %s " +
                         "WHERE token(tenant_id, type, metric, dpart) > ? AND token(tenant_id, type, metric, dpart) <=" +
                         " ?";
 
@@ -714,17 +715,31 @@ public class DataAccessImpl implements DataAccess {
     https://issues.apache.org/jira/browse/CASSANDRA-10699
     https://issues.apache.org/jira/browse/CASSANDRA-9424
      */
-    private Completable resetTempTable(int bucketIndex) {
-        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, bucketIndex);
+    @Override
+    public Completable resetTempTable(long timestamp) {
+        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, getBucketIndex(timestamp));
 
-        String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
-                .getTable(fullTableName)
-                .asCQLQuery();
+        return Completable.fromAction(() -> {
+            String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
+                    .getTable(fullTableName)
+                    .asCQLQuery();
 
-        String dropCQL = String.format("DROP TABLE %s", fullTableName);
+            String dropCQL = String.format("DROP TABLE %s", fullTableName);
 
-        return Completable.fromObservable(rxSession.execute(dropCQL))
-                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
+            session.execute(dropCQL);
+            while(!session.getCluster().getMetadata().checkSchemaAgreement()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            session.execute(reCreateCQL);
+        });
+        // TODO Needs to reprepare all the preparedstatements after dropping..
+
+//        return Completable.fromObservable(rxSession.execute(dropCQL))
+//                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
     }
 
     @Override
@@ -808,6 +823,7 @@ public class DataAccessImpl implements DataAccess {
         MetricId<T> metricId = metric.getMetricId();
         return tO -> tO
                 .map(dataPoint -> {
+                    log.infof("------------> BucketIndex %d", getBucketIndex(dataPoint.getTimestamp()));
                     BoundStatement bs;
                     int i = 1;
                     if (dataPoint.getTags().isEmpty()) {
