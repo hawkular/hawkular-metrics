@@ -97,11 +97,11 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
                             break;
                         case 1: // AVAILABILITY
                             // TODO Update to GORILLA_V2 to fix these - no point storing as FP
-                            compressor.addValue(timestamp, ((Byte) r.getByte(4)).doubleValue());
+                            compressor.addValue(timestamp, ((Byte) r.getByte(5)).doubleValue());
                             break;
                         case 2: // COUNTER
                             // TODO Update to GORILLA_V2 to fix these - no point storing as FP
-                            compressor.addValue(timestamp, ((Long) r.getLong(4)).doubleValue());
+                            compressor.addValue(timestamp, ((Long) r.getLong(6)).doubleValue());
                             break;
                         default:
                             // Not supported yet

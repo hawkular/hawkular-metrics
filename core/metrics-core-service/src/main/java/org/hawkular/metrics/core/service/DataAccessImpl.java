@@ -822,7 +822,6 @@ public class DataAccessImpl implements DataAccess {
         MetricId<T> metricId = metric.getMetricId();
         return tO -> tO
                 .map(dataPoint -> {
-                    log.infof("------------> BucketIndex %d", getBucketIndex(dataPoint.getTimestamp()));
                     BoundStatement bs;
                     int i = 1;
                     if (dataPoint.getTags().isEmpty()) {
