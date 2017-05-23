@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.compress.CompressorHeader;
 import org.hawkular.metrics.core.service.compress.TagsSerializer;
+import org.hawkular.metrics.model.AvailabilityType;
 
 import com.datastax.driver.core.Row;
 
@@ -97,7 +98,8 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
                             break;
                         case 1: // AVAILABILITY
                             // TODO Update to GORILLA_V2 to fix these - no point storing as FP
-                            compressor.addValue(timestamp, ((Byte) r.getByte(5)).doubleValue());
+                            compressor.addValue(timestamp, ((Byte) (AvailabilityType.fromBytes(r.getBytes(5))
+                                    .getCode())).doubleValue());
                             break;
                         case 2: // COUNTER
                             // TODO Update to GORILLA_V2 to fix these - no point storing as FP
