@@ -101,7 +101,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
                 .doOnCompleted(() -> {
                     stopwatch.stop();
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
-                            " ms")
+                            " ms");
                 });
     }
 }
