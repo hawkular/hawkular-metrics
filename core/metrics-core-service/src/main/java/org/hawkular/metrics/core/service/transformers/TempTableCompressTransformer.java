@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.service.transformers;
 
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
+import java.util.Map;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.compress.CompressorHeader;
@@ -45,40 +46,6 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
 
     @Override
     public Observable<CompressedPointContainer> call(Observable<Row> dataRow) {
-
-        // TODO Calculate some relevant statistics of the compressed block?
-        // Does not really suit the reactive model.. might need two iterations of the data
-
-        /*
-        For values:
-
-        Calculate the following statistics:
-        1. Is the data integers (Gauges can be integers) ?
-          1.1 If, is the max value <= Long.MAX_VALUE
-        2. How many values
-        4. If floating points
-          4.1 Amount of unique values
-          4.2 Distribution of the values
-           => Select correct predictor (last-value / DFCM)
-          4.3 Value splitting capability (ISOBAR stuff) ?
-           => Proper column split for better compress ratio
-           => Gorilla encoding or some other?
-          4.4 Can we use lossy compression?
-           => zfp etc
-        5. If integers
-          5.1 Are the values in sorted order?
-           => Delta compression
-          5.2 Repetition of values
-           => RLE or let LZ4 do the compression?
-          5.3 Exception rate .. PFOR or Simple-8 for example
-
-        For timestamps we might need another approach..
-
-        1. Delta and delta-of-delta distribution
-          => Which one to use (probably DoD in monitoring case)
-        2.
-
-         */
         ByteBufferBitOutput out = new ByteBufferBitOutput();
 
         byte gorillaHeader = CompressorHeader.getHeader(CompressorHeader.Compressor.GORILLA, EnumSet.noneOf
@@ -110,10 +77,10 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
                             throw new RuntimeException("Metric of type " + r.getByte(1) + " is not supported" +
                                     " in compression");
                     }
-                    // TODO Fix Tags storage!
-//                    if(d.getTags() != null && !d.getTags().isEmpty()) {
-//                        tagsSerializer.addDataPointTags(d.getTimestamp(), d.getTags());
-//                    }
+                    Map<String, String> tags = r.getMap(7, String.class, String.class);
+                    if(tags != null && !tags.isEmpty()) {
+                        tagsSerializer.addDataPointTags(timestamp, tags);
+                    }
                 })
                 .doOnNext(cpc -> {
                     compressor.close();

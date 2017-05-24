@@ -454,7 +454,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
 
-        this.updateMetricExpiration(metric);
+        this.updateMetricExpiration(metric.getMetricId());
 
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
@@ -586,7 +586,7 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
-        this.updateMetricExpiration(metric);
+        this.updateMetricExpiration(metric.getMetricId());
 
         return dataAccess.addTags(metric, tags).map(l -> null);
     }
@@ -746,7 +746,8 @@ public class MetricsServiceImpl implements MetricsService {
                             return compressed.zipWith(keyTake, (cpc, r) -> {
                                 MetricId<?> metricId =
                                         new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)), r.getString(2));
-                                return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId));
+                                return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
+                                        .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
                             });
                         })
         ).doOnCompleted(() -> log.infof("Compress part completed"))
@@ -1083,16 +1084,11 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public <T> Observable<Void> updateMetricExpiration(Metric<T> metric) {
+    public <T> Observable<Void> updateMetricExpiration(MetricId<T> metric) {
         if (!MetricType.STRING.equals(metric.getType())) {
-            long expiration = 0;
-            if (metric.getDataRetention() != null) {
-                expiration = DateTimeService.now.get().getMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
-            } else {
-                expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
-            }
+                long expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric) * DAY_TO_MILLIS;
 
-            return dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration)
+            return dataAccess.updateMetricExpirationIndex(metric, expiration)
                     .doOnError(t -> log.error("Failure to update expiration index", t))
                     .flatMap(r -> null);
         }
