@@ -58,26 +58,6 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         // and the other not.  Then update the tagging to swap the relevant metric and validate that the
         // job updates the member trigger set appropriately.
 
-        // send some gauge data to automatically create metrics |<ts>|machine0|HeapUsed and |<ts>|machine1|HeapUsed
-        // The <ts> in the name just prevents conflicts from older test runs
-        long now = System.currentTimeMillis();
-        String metric0 = "|" + now + "|machine0|HeapUsed"
-        String metric1 = "|" + now + "|machine1|HeapUsed"
-        DataPoint dp1 = new DataPoint( metric0, 50.0, now - 30000 );  // 30 seconds ago
-        DataPoint dp2 = new DataPoint( metric1, 50.0, now - 30000 );  // 30 seconds ago
-        sendGaugeDataViaRest( tenantId, dp1, dp2);
-
-        // update metric0 to have the necessary tags
-        Map<String, String> tags = new HashMap<>();
-        tags.put("name", "HeapUsed");
-        tags.put("machine", "machine0");
-        addGaugeTagsViaRest(metric0, tags);
-
-        // update metric1 to have the name tag but not the machine tag
-        tags = new HashMap<>();
-        tags.put("name", "HeapUsed");
-        addGaugeTagsViaRest(metric1, tags)
-
         // remove test MGT if it exists
         def resp = client.delete(path: "triggers/groups/mgt")
         assert(200 == resp.status || 404 == resp.status)
@@ -113,7 +93,31 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertTrue(mgt.isEnabled());
         assertTrue(mgt.isAutoDisable());
 
-        // It should not take long to generate the member but give it a few seconds
+        // send some gauge data to automatically create metrics |<ts>|machine0|HeapUsed and |<ts>|machine1|HeapUsed
+        // The <ts> in the name just prevents conflicts from older test runs
+        long now = System.currentTimeMillis();
+        String metric0 = "|" + now + "|machine0|HeapUsed"
+        String metric1 = "|" + now + "|machine1|HeapUsed"
+        DataPoint dp1 = new DataPoint( metric0, 50.0, now - 30000 );  // 30 seconds ago
+        DataPoint dp2 = new DataPoint( metric1, 50.0, now - 30000 );  // 30 seconds ago
+        sendGaugeDataViaRest( tenantId, dp1, dp2);
+
+        // Note that it is important the group trigger has it's conditions defined prior to either tagging the
+        // trigger as MGT or tagging the metrics as required by the MGT. This is because the dataIdMap supplied
+        // for the member trigger needs to match the dataIdMap expected by the group trigger.
+
+        // update metric0 to have the necessary tags
+        Map<String, String> tags = new HashMap<>();
+        tags.put("name", "HeapUsed");
+        tags.put("machine", "machine0");
+        addGaugeTagsViaRest(metric0, tags);
+
+        // update metric1 to have the name tag but not the machine tag
+        tags = new HashMap<>();
+        tags.put("name", "HeapUsed");
+        addGaugeTagsViaRest(metric1, tags)
+
+        // The job runs every 5 seconds, so give it some time to generate the members
         for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt/members" )
@@ -188,29 +192,10 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
 
     @Test
     void t02_mgtAutoResolveTest() {
-        // Create an MGT for Avail NOT UP with AutoResolve of AVAIL UP.  Use universal '*' SourceBy.  This tests using
+        // Create an MGT2 for Avail NOT UP with AutoResolve of AVAIL UP.  Use universal '*' SourceBy.  This tests using
         // the same DataId in multiple places, as well as both condition firing types.
 
-        // send avail data to automatically create metrics |<ts>|machine0|Avail and |<ts>|machine1|Avail
-        // The <ts> in the name just prevents conflicts from older test runs
-        long now = System.currentTimeMillis();
-        String avail0 = "|" + now + "|machine0|Avail"
-        String avail1 = "|" + now + "|machine1|Avail"
-        AvailPoint ap1 = new AvailPoint( avail0, "UP", now - 30000 );  // 30 seconds ago
-        AvailPoint ap2 = new AvailPoint( avail1, "UP", now - 30000 );  // 30 seconds ago
-        sendAvailDataViaRest( tenantId, ap1, ap2);
-
-        // update avail0 to have the necessary tags
-        Map<String, String> tags = new HashMap<>();
-        tags.put("name", "Avail");
-        addAvailTagsViaRest(avail0, tags);
-
-        // update avail1 to have the name tag but not the machine tag
-        tags = new HashMap<>();
-        tags.put("name", "Avail");
-        addAvailTagsViaRest(avail1, tags)
-
-        // remove test MGT if it exists
+        // remove test MGT2 if it exists
         def resp = client.delete(path: "triggers/groups/mgt2")
         assert(200 == resp.status || 404 == resp.status)
 
@@ -246,7 +231,31 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertTrue(mgt.isEnabled());
         assertTrue(mgt.isAutoDisable());
 
-        // It should not take long to generate the members but give it a few seconds
+        // send avail data to automatically create metrics |<ts>|machine0|Avail and |<ts>|machine1|Avail
+        // The <ts> in the name just prevents conflicts from older test runs
+        long now = System.currentTimeMillis();
+        String avail0 = "|" + now + "|machine0|Avail"
+        String avail1 = "|" + now + "|machine1|Avail"
+        AvailPoint ap1 = new AvailPoint( avail0, "UP", now - 30000 );  // 30 seconds ago
+        AvailPoint ap2 = new AvailPoint( avail1, "UP", now - 30000 );  // 30 seconds ago
+        sendAvailDataViaRest( tenantId, ap1, ap2);
+
+        // Note that it is important the group trigger has it's conditions defined prior to either tagging the
+        // trigger as MGT or tagging the metrics as required by the MGT. This is because the dataIdMap supplied
+        // for the member trigger needs to match the dataIdMap expected by the group trigger.
+
+        // add "name" tag to the avail0 metric so it will be picked up as needing an MGT member
+        Map<String, String> tags = new HashMap<>();
+        tags.put("name", "Avail");
+        addAvailTagsViaRest(avail0, tags);
+
+        // add "name" tag to the avail1 metric so it will be picked up as needing an MGT member
+        tags = new HashMap<>();
+        tags.put("name", "Avail");
+        addAvailTagsViaRest(avail1, tags)
+
+
+        // The job runs every 5 seconds, so give it some time to generate the members
         for ( int i=0; i < 20; ++i ) {
             Thread.sleep(1000);
             resp = client.get(path: "triggers/groups/mgt2/members" )
@@ -260,7 +269,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         def members = resp.data
 
         Trigger member = (Trigger)members[0];
-        println(member)
+        println("Member0: " + member)
         assertEquals("mgt2", member.getName())
         assertFalse(member.isGroup());
         assertTrue(member.isEnabled());
@@ -269,14 +278,16 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         def dataId = avail0.equals(member.getDataIdMap().get("Avail")) ? avail0 : avail1;
         def memberId = member.getId();
 
-        for ( int i=0; i < 20; ++i ) {
-            Thread.sleep(1000);
-            resp = client.get(path: "triggers/" + memberId + "/conditions")
-            if ( resp.status == 200 && resp.data.size() >= 2 ) {
-                break;
-            }
-            assertEquals(200, resp.status)
-        }
+        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        // the conditions should already be there
+        //for ( int i=0; i < 20; ++i ) {
+        //    Thread.sleep(1000);
+        //    resp = client.get(path: "triggers/" + memberId + "/conditions")
+        //    if ( resp.status == 200 && resp.data.size() >= 2 ) {
+        //        break;
+        //    }
+        //    assertEquals(200, resp.status)
+        //}
         assertEquals(200, resp.status);
         assertEquals(2, resp.data.size());
         AvailabilityCondition mac = (AvailabilityCondition)resp.data[0];
@@ -285,7 +296,7 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         assertEquals(dataId, mac.getDataId());
 
         member = (Trigger)members[1];
-        println(member)
+        println("Member1: " + member)
         assertEquals("mgt2", member.getName())
         assertFalse(member.isGroup());
         assertTrue(member.isEnabled());
@@ -295,19 +306,23 @@ class GroupTriggerAlerterITest extends AlertingITestBase {
         dataId = avail0.equals(dataId) ? avail1 : avail0;
         memberId = member.getId();
 
-        for ( int i=0; i < 20; ++i ) {
-            Thread.sleep(1000);
-            resp = client.get(path: "triggers/" + memberId + "/conditions")
-            if ( resp.status == 200 && resp.data.size() >= 2 ) {
-                break;
-            }
-            assertEquals(200, resp.status)
-        }
+        resp = client.get(path: "triggers/" + memberId + "/conditions")
+        //for ( int i=0; i < 20; ++i ) {
+        //    Thread.sleep(1000);
+        //    resp = client.get(path: "triggers/" + memberId + "/conditions")
+        //    //println("Counter=" + i + ", NumConditions=" + resp.data.size())
+        //    if ( resp.status == 200 && resp.data.size() >= 2 ) {
+        //        break;
+        //    }
+        //    assertEquals(200, resp.status)
+        //}
         assertEquals(200, resp.status);
         assertEquals(2, resp.data.size());
         mac = (AvailabilityCondition)resp.data[0];
+        println("Condition0: " + mac);
         assertEquals(dataId, mac.getDataId());
         mac = (AvailabilityCondition)resp.data[1];
+        println("Condition1: " + mac);
         assertEquals(dataId, mac.getDataId());
     }
 

@@ -174,7 +174,8 @@ public class ConditionManager {
                     }
                 }
             };
-            definitions.registerListener(definitionsListener, DefinitionsEvent.Type.TRIGGER_UPDATE,
+            // stay informed of condition add/remove, enablement, and removals
+            definitions.registerListener(definitionsListener, Type.TRIGGER_CONDITION_CHANGE, Type.TRIGGER_UPDATE,
                     Type.TRIGGER_REMOVE);
         }
     }
@@ -203,7 +204,7 @@ public class ConditionManager {
         }
     }
 
-    private void refresh() {
+    private synchronized void refresh() {
         log.debug("Refreshing External Metrics Triggers!");
         try {
             Set<ExternalCondition> activeConditions = new HashSet<>();
@@ -490,6 +491,7 @@ public class ConditionManager {
                     preparedCondition = evaluator.prepare(metricQueryResults);
                 } catch (Exception e) {
                     log.debugf("Could not prepare evaluation, Skipping due to [%s]", e.getMessage());
+                    return;
                 }
 
                 boolean evalResult = evaluator.evaluate();
@@ -517,6 +519,7 @@ public class ConditionManager {
                 preparedCondition = evaluator.prepare(queryResults);
             } catch (Exception e) {
                 log.debugf("Could not prepare evaluation, Skipping due to [%s]", e.getMessage());
+                return;
             }
 
             boolean evalResult = evaluator.evaluate();
@@ -536,26 +539,30 @@ public class ConditionManager {
         }
 
         private boolean isQuiet(String metricName, int quietCount, boolean evalResult) {
+            // if the metricName has no quietCount tracking then just return based on the evalResult
+            if (quietCount <= 0) {
+                return !evalResult;
+            }
+
             boolean isQuiet = false;
 
-            if (quietCount > 0) {
-                Integer currentQuietCount = quietMap.get(metricName);
-                if (true == evalResult) {
-                    // either set or reset counter to the necessary quietCount
-                    quietMap.put(metricName, quietCount);
-                    isQuiet = (null != currentQuietCount);
+            Integer currentQuietCount = quietMap.get(metricName);
+            if (true == evalResult) {
+                // either set or reset counter to the necessary quietCount
+                quietMap.put(metricName, quietCount);
+                isQuiet = (null != currentQuietCount);
 
-                } else {
-                    if (null != currentQuietCount) {
-                        isQuiet = true;
-                        if (1 == currentQuietCount) {
-                            quietMap.remove(metricName);
-                        } else {
-                            quietMap.put(metricName, --currentQuietCount);
-                        }
+            } else {
+                if (null != currentQuietCount) {
+                    isQuiet = true;
+                    if (1 == currentQuietCount) {
+                        quietMap.remove(metricName);
+                    } else {
+                        quietMap.put(metricName, --currentQuietCount);
                     }
                 }
             }
+
             return isQuiet;
         }
 
