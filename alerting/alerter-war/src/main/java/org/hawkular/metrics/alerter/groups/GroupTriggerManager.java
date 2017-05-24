@@ -263,7 +263,7 @@ public class GroupTriggerManager {
         }
     }
 
-    private void refresh() {
+    private synchronized void refresh() {
         try {
             // get all of the metrics group triggers (tagged for hawkular metrics)
             Collection<Trigger> taggedMgts = definitions.getAllTriggersByTag(
