@@ -140,22 +140,33 @@ public class ExpressionTagQueryParser {
                         .compose(new TagsIndexRowTransformerFilter<>(metricType))
                         .distinct();
             } else if (ctx.boolean_operator() != null) {
-                String tagValue = null;
-
                 if (ctx.value().COMPLEXTEXT() != null) {
-                    tagValue = ctx.value().COMPLEXTEXT().getText();
+                    String tagValue = ctx.value().COMPLEXTEXT().getText();
                     tagValue = tagValue.substring(1, tagValue.length() - 1);
+                    Pattern p = PatternUtil.filterPattern(tagValue);
+                    boolean positive = ctx.boolean_operator().EQUAL() != null;
+
+                    result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
+                            .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
+                            .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                            .distinct();
                 } else if (ctx.value().SIMPLETEXT() != null) {
-                    tagValue = ctx.value().SIMPLETEXT().getText();
+                    final String tagValue = ctx.value().SIMPLETEXT().getText();
+
+                    boolean positive = ctx.boolean_operator().EQUAL() != null;
+
+                    if (positive) {
+                        result = dataAccess.findMetricsByTagNameValue(this.tenantId, tagName, tagValue)
+                                .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                                .distinct();
+                    } else {
+                        result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
+                                .filter(r -> !tagValue.equals(r.getString(dataIndex)))
+                                .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                                .distinct();
+                    }
                 }
 
-                Pattern p = PatternUtil.filterPattern(tagValue);
-                boolean positive = ctx.boolean_operator().EQUAL() != null;
-
-                result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
-                        .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
-                        .compose(new TagsIndexRowTransformerFilter<>(metricType))
-                        .distinct();
             } else if (ctx.existence_operator() != null) {
                 if (ctx.existence_operator().NOT() != null) {
                     if (metricType != null) {
