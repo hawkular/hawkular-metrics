@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,9 @@ public class TenantFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
+        if (path.startsWith("/prometheus") || path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path
+                .equals(BaseHandler
+                .PATH)) {
             // Some handlers do not check the tenant header
             return;
         }

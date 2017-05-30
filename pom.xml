@@ -135,6 +135,7 @@
     <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
     <version.fi.iki.yak.compression-gorilla>1.1.0</version.fi.iki.yak.compression-gorilla>
+    <version.io.prometheus>0.0.23</version.io.prometheus>
   </properties>
 
   <dependencyManagement>
