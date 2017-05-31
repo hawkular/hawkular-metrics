@@ -61,7 +61,7 @@ public class AvailabilityITest extends BaseMetricsITest {
     public void initClass() {
         super.initClass();
         insertAvailabilityDateWithTimestamp = session.prepare(
-                "INSERT INTO data (tenant_id, type, metric, dpart, time, availability) " +
+                "WRITE INTO data (tenant_id, type, metric, dpart, time, availability) " +
                         "VALUES (?, ?, ?, ?, ?, ?) " +
                         "USING TTL ? AND TIMESTAMP ?");
     }

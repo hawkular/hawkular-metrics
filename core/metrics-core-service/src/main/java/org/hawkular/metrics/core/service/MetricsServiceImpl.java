@@ -729,6 +729,11 @@ public class MetricsServiceImpl implements MetricsService {
                 .onErrorResumeNext(Observable.empty());
     }
 
+    private <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
+        // Need to filter here the datapoints that are not suitable..
+        return dataAccess.insertData(metrics);
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Completable compressBlock(long startTimeSlice, int pageSize) {

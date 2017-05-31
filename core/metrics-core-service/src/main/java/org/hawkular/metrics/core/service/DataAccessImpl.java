@@ -24,12 +24,20 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -50,18 +58,26 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.datastax.driver.core.AggregateMetadata;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.CodecRegistry;
+import com.datastax.driver.core.FunctionMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SchemaChangeListener;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
+import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 
@@ -77,7 +93,9 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
-    public static final String TEMP_TABLE_NAME_FORMAT = "data_temp_%d";
+    public static final String TEMP_TABLE_PROTOTYPE = "data_temp_";
+    public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_PROTOTYPE + "%d";
+    public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_PROTOTYPE + "%s";
     public static final int NUMBER_OF_TEMP_TABLES = 12;
     public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
     public static final long DPART = 0;
@@ -88,6 +106,121 @@ public class DataAccessImpl implements DataAccess {
     private LoadBalancingPolicy loadBalancingPolicy;
 
     // Turn to MetricType agnostic
+    // See getMapKey(byte, int)
+    private NavigableMap<Long, Map<Integer, PreparedStatement>> prepMap;
+
+    private enum StatementType {
+        READ, WRITE, SCAN, CREATE
+    }
+
+    private enum TempStatement {
+        // Should I map these to something else..? More like a key to the actual statement
+        dateRangeExclusive(byDateRangeExclusiveBase, StatementType.READ),
+        dateRangeExclusiveWithLimit(dateRangeExclusiveWithLimitBase, StatementType.READ),
+        dataByDateRangeExclusiveASC(dataByDateRangeExclusiveASCBase, StatementType.READ),
+        dataByDateRangeExclusiveWithLimitASC(dataByDateRangeExclusiveWithLimitASCBase, StatementType.READ),
+        SCAN_WITH_TOKEN_RANGES(scanTableBase, StatementType.SCAN),
+        CHECK_EXISTENCE_OF_METRIC_IN_TABLE(findMetricInDataBase, StatementType.SCAN),
+        LIST_ALL_METRICS_FROM_TABLE(findAllMetricsInDataBases, StatementType.SCAN),
+        INSERT_DATA(data, StatementType.WRITE),
+        INSERT_DATA_WITH_TAGS(dataWithTags, StatementType.WRITE),
+        CREATE_TABLE(TEMP_TABLE_BASE_CREATE, StatementType.CREATE);
+//        CREATE_WAL(TEMP_TABLE_WAL_CREATE, StatementType.CREATE);
+
+        private final String statement;
+        private StatementType type;
+
+        TempStatement(String st, StatementType t) {
+            statement = st;
+            type = t;
+        }
+
+        public String getStatement() {
+            return statement;
+        }
+
+        public StatementType getType() {
+            return type;
+        }
+    }
+
+    // Read statement prototypes
+
+    private static String byDateRangeExclusiveBase =
+            "SELECT time, %s, tags FROM %s " +
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
+
+    private static String dateRangeExclusiveWithLimitBase =
+            "SELECT time, %s, tags FROM %s " +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                    " LIMIT ?";
+
+    private static String dataByDateRangeExclusiveASCBase =
+            "SELECT time, %s, tags FROM %s " +
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                    " AND time < ? ORDER BY time ASC";
+
+    private static String dataByDateRangeExclusiveWithLimitASCBase =
+            "SELECT time, %s, tags FROM %s" +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                    " AND time < ? ORDER BY time ASC" +
+                    " LIMIT ?";
+
+    private static String scanTableBase =
+            "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags, token(tenant_id, type, " +
+                    "metric, dpart) FROM %s " +
+                    "WHERE token(tenant_id, type, metric, dpart) > ? AND token(tenant_id, type, metric, dpart) <=" +
+                    " ?";
+
+    // Create statement prototype
+
+    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE %s ( " +
+            "tenant_id text, " +
+            "type tinyint, " +
+            "metric text, " +
+            "dpart bigint, " +
+            "time timestamp, " +
+            "n_value double, " +
+            "availability blob, " +
+            "l_value bigint, " +
+            "tags map<text,text>, " +
+            "PRIMARY KEY ((tenant_id, type, metric, dpart), time)" +
+            ") WITH CLUSTERING ORDER BY (time DESC)";
+
+    // For in-memory buffering
+    /*
+    private static String TEMP_TABLE_WAL_CREATE = "CREATE TABLE %s (" +
+            "tenant_id text, " +
+            "type tinyint, " +
+            "metric text, " +
+            "dpart bigint, " +
+            "time timestamp, " +
+            "count int, " +
+            "value blob, " +
+            "tags blob, " +
+            "PRIMARY KEY ((tenant_id, type, metric, dpart), time) " +
+            ") WITH CLUSTERING ORDER BY (time DESC)";
+    */
+
+    // Insert statement prototypes
+
+    private static String data = "UPDATE %s " +
+            "SET %s = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+
+    private static String dataWithTags = "UPDATE %s " +
+            "SET %s = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+
+    // Metric definition prototypes
+
+    private static String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+            "FROM %s " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ";
+
+    private static String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+            "FROM %s";
+
     private PreparedStatement[][] dateRangeExclusive;
     private PreparedStatement[][] dateRangeExclusiveWithLimit;
     private PreparedStatement[][] dataByDateRangeExclusiveASC;
@@ -194,6 +327,12 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricExpiration;
 
+    private static DateTimeFormatter TEMP_TABLE_DATEFORMATTER = (new DateTimeFormatterBuilder())
+            .appendValue(ChronoField.YEAR, 4)
+                .appendValue(ChronoField.MONTH_OF_YEAR, 2)
+                .appendValue(ChronoField.DAY_OF_MONTH, 2)
+                .appendValue(ChronoField.HOUR_OF_DAY, 2).toFormatter();
+
     private CodecRegistry codecRegistry;
     private Metadata metadata;
 
@@ -202,69 +341,95 @@ public class DataAccessImpl implements DataAccess {
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
         initPreparedStatements();
-        prepareTemporaryTableStatements();
+        initializeTemporaryTableStatements();
 
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
     }
 
-    private void prepareTemporaryTableStatements() {
+    /**
+     * Creates a key with ordinal and MetricType code for the NavigableMap.
+     *
+     * First 8 bits are reserved for the metricType code and the rest 24 bits are reserved for the ordinal
+     *
+     * @param code MetricType code
+     * @param ordinal TempStatement ordinal()
+     *
+     * @return Integer with those two combined
+     */
+    private Integer getMapKey(byte code, int ordinal) {
+        int key = ordinal;
+        key |= code << 24;
+        return key;
+    }
+
+    private void prepareTempStatements(Map<Integer, PreparedStatement> statementMap, String tableName) {
+        for (MetricType<?> metricType : MetricType.all()) {
+            for (TempStatement st : TempStatement.values()) {
+                Integer key = getMapKey(metricType.getCode(), st.ordinal());
+
+                String formatSt;
+                switch(st.getType()) {
+                    case READ:
+                        formatSt = String.format(st.getStatement(), metricTypeToColumnName(metricType),
+                                tableName);
+                        break;
+                    case WRITE:
+                        formatSt = String.format(st.getStatement(), tableName,
+                                metricTypeToColumnName(metricType));
+                        break;
+                    case SCAN:
+                        formatSt = String.format(st.getStatement(), tableName);
+                        break;
+                    case CREATE:
+                        formatSt = String.format(st.getStatement(), tableName);
+                        break;
+                    default:
+                        // Not supported
+                        continue;
+                }
+
+                PreparedStatement prepared = session.prepare(formatSt);
+                statementMap.put(key, prepared);
+            }
+        }
+    }
+
+    private void initializeTemporaryTableStatements() {
+        prepMap = new ConcurrentSkipListMap<>();
+        session.getCluster().register(new TemporaryTableStatementCreator());
+
+        // At startup we should initialize preparedStatements for all the temporary tables that are existing
+        for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
+            if(table.getName().startsWith(TEMP_TABLE_PROTOTYPE)) {
+                // Proceed to create the preparedStatements against this table
+                Long mapKey = tableToMapKey(table.getName());
+
+                // Create an entry to the correct Long
+                Map<Integer, PreparedStatement> statementMap = new HashMap<>();
+                prepMap.put(mapKey, statementMap);
+
+                // Now prepare all the necessary statements to statementMap
+                prepareTempStatements(statementMap, table.getName());
+            }
+        }
+
+        // These are for the ring buffer strategy (slightly faster but Cassandra 3.x has issues with consistent schema)
+
         // Read statements
-        // TODO Could I even fetch compressed data with these same queries?
         dateRangeExclusive = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dateRangeExclusiveWithLimit = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dataByDateRangeExclusiveASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
         scanTempTableWithTokens = new PreparedStatement[NUMBER_OF_TEMP_TABLES];
 
-        String byDateRangeExclusiveBase =
-                "SELECT time, %s, tags FROM %s " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
-
-        String dateRangeExclusiveWithLimitBase =
-                "SELECT time, %s, tags FROM %s " +
-                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-                        " LIMIT ?";
-
-        String dataByDateRangeExclusiveASCBase =
-                "SELECT time, %s, tags FROM %s " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-                        " AND time < ? ORDER BY time ASC";
-
-        String dataByDateRangeExclusiveWithLimitASCBase =
-                "SELECT time, %s, tags FROM %s" +
-                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-                        " AND time < ? ORDER BY time ASC" +
-                        " LIMIT ?";
-
-        String scanTableBase =
-                "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags, token(tenant_id, type, " +
-                        "metric, dpart) FROM %s " +
-                        "WHERE token(tenant_id, type, metric, dpart) > ? AND token(tenant_id, type, metric, dpart) <=" +
-                        " ?";
-
         // Insert statements
         dataTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
         dataWithTagsTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
 
-        String data = "UPDATE %s " +
-                        "SET %s = ? " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
-
-        String dataWithTags = "UPDATE %s " +
-                        "SET %s = ?, tags = ? " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
-
         // MetricDefinition statements
         metricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
         allMetricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
-
-        String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric, dpart " +
-                        "FROM %s " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ";
-
-        String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
-                        "FROM %s";
 
         // Initialize all the temporary tables for inserts
         for (MetricType<?> metricType : MetricType.all()) {
@@ -344,10 +509,10 @@ public class DataAccessImpl implements DataAccess {
 
     protected void initPreparedStatements() {
         insertTenant = session.prepare(
-            "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
+            "WRITE INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         insertTenantOverwrite = session.prepare(
-                "INSERT INTO tenants (id, retentions) VALUES (?, ?)");
+                "WRITE INTO tenants (id, retentions) VALUES (?, ?)");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
@@ -384,16 +549,16 @@ public class DataAccessImpl implements DataAccess {
                         "FROM metrics_tags_idx");
 
         insertIntoMetricsIndex = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
+            "WRITE INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
 
         insertIntoMetricsIndexOverwrite = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
+            "WRITE INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) ");
 
         updateMetricsIndex = session.prepare(
-            "INSERT INTO metrics_idx (tenant_id, type, metric) VALUES (?, ?, ?)");
+            "WRITE INTO metrics_idx (tenant_id, type, metric) VALUES (?, ?, ?)");
 
         addTagsToMetricsIndex = session.prepare(
             "UPDATE metrics_idx " +
@@ -514,7 +679,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
         updateRetentionsIndex = session.prepare(
-            "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
+            "WRITE INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
 
         findDataRetentions = session.prepare(
             "SELECT tenant_id, type, metric, retention " +
@@ -522,7 +687,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ?");
 
         insertMetricsTagsIndex = session.prepare(
-            "INSERT INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric) VALUES (?, ?, ?, ?, ?)");
+            "WRITE INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric) VALUES (?, ?, ?, ?, ?)");
 
         deleteMetricsTagsIndex = session.prepare(
             "DELETE FROM metrics_tags_idx " +
@@ -539,7 +704,7 @@ public class DataAccessImpl implements DataAccess {
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         updateMetricExpirationIndex = session.prepare(
-                "INSERT INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
+                "WRITE INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
 
         deleteFromMetricExpirationIndex = session.prepare(
                 "DELETE FROM metrics_expiration_idx " +
@@ -800,6 +965,20 @@ public class DataAccessImpl implements DataAccess {
                 });
     }
 
+    Long tableToMapKey(String tableName) {
+        LocalDateTime parsed = LocalDateTime
+                .parse(tableName.substring(TEMP_TABLE_PROTOTYPE.length()),
+                        TEMP_TABLE_DATEFORMATTER);
+        return Long.valueOf(parsed.toInstant(ZoneOffset.UTC).toEpochMilli());
+    }
+
+    String getTempTableName(long timestamp) {
+        return String.format(TEMP_TABLE_NAME_FORMAT_STRING,
+        ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour())
+                .format(TEMP_TABLE_DATEFORMATTER));
+    }
+
     public int getBucketIndex(long timestamp) {
         int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
                 .with(DateTimeService.startOfPreviousEvenHour())
@@ -812,7 +991,7 @@ public class DataAccessImpl implements DataAccess {
     public <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
         return metrics
                 .flatMap(m -> Observable.from(m.getDataPoints())
-                .compose(mapTempInsertStatement(m)))
+                        .compose(mapTempInsertStatement(m)))
                 .compose(applyMicroBatching());
     }
 
@@ -820,6 +999,12 @@ public class DataAccessImpl implements DataAccess {
     private <T> Observable.Transformer<DataPoint<T>, BoundStatement> mapTempInsertStatement(Metric<T> metric) {
         MetricType<T> type = metric.getMetricId().getType();
         MetricId<T> metricId = metric.getMetricId();
+
+        /*
+        TODO If the NavigableMap returns a null (no matching temp table exists anymore) then the insert is too far
+         behind (and then we should decide what to do with it.. write to data table or just ignore / throw error ?
+         */
+
         return tO -> tO
                 .map(dataPoint -> {
                     BoundStatement bs;
@@ -1216,5 +1401,50 @@ public class DataAccessImpl implements DataAccess {
     public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
         return rxSession
                 .executeAndFetch(findMetricExpiration.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    }
+
+    private class TemporaryTableStatementCreator implements SchemaChangeListener {
+
+        @Override public void onTableAdded(TableMetadata tableMetadata) {
+            Map<Integer, PreparedStatement> statementMap = new HashMap<>();
+            prepareTempStatements(statementMap, tableMetadata.getName());
+
+            // Find the integer key and insert to the prepMap
+            Long mapKey = tableToMapKey(tableMetadata.getName());
+            prepMap.put(mapKey, statementMap);
+        }
+
+        @Override public void onTableRemoved(TableMetadata tableMetadata) {
+            // Find the integer key and remove from prepMap
+            Long mapKey = tableToMapKey(tableMetadata.getName());
+            prepMap.remove(mapKey);
+        }
+
+        // Rest are not interesting to us
+
+        @Override public void onKeyspaceAdded(KeyspaceMetadata keyspaceMetadata) {}
+
+        @Override public void onKeyspaceRemoved(KeyspaceMetadata keyspaceMetadata) {}
+
+        @Override public void onKeyspaceChanged(KeyspaceMetadata keyspaceMetadata, KeyspaceMetadata keyspaceMetadata1) {}
+
+
+        @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {}
+
+        @Override public void onUserTypeAdded(UserType userType) {}
+        @Override public void onUserTypeRemoved(UserType userType) {}
+        @Override public void onUserTypeChanged(UserType userType, UserType userType1) {}
+        @Override public void onFunctionAdded(FunctionMetadata functionMetadata) {}
+        @Override public void onFunctionRemoved(FunctionMetadata functionMetadata) {}
+        @Override public void onFunctionChanged(FunctionMetadata functionMetadata, FunctionMetadata functionMetadata1) {}
+        @Override public void onAggregateAdded(AggregateMetadata aggregateMetadata) {}
+        @Override public void onAggregateRemoved(AggregateMetadata aggregateMetadata) {}
+        @Override public void onAggregateChanged(AggregateMetadata aggregateMetadata, AggregateMetadata aggregateMetadata1) {}
+        @Override public void onMaterializedViewAdded(MaterializedViewMetadata materializedViewMetadata) {}
+        @Override public void onMaterializedViewRemoved(MaterializedViewMetadata materializedViewMetadata) {}
+        @Override public void onMaterializedViewChanged(MaterializedViewMetadata materializedViewMetadata,
+                                                        MaterializedViewMetadata materializedViewMetadata1) {}
+        @Override public void onRegister(Cluster cluster) {}
+        @Override public void onUnregister(Cluster cluster) {}
     }
 }

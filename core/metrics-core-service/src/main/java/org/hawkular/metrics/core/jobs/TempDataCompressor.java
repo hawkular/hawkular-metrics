@@ -68,28 +68,11 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
     @Override
     public Completable call(JobDetails jobDetails) {
         Duration runtimeBlockSize = Duration.standardHours(2);
-        DateTime timeSliceInclusive;
 
         Trigger trigger = jobDetails.getTrigger();
-//        if(trigger instanceof RepeatingTrigger) {
-//            if (!enabled) {
-//                return Completable.complete();
-//            }
-            timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(runtimeBlockSize);
-//        }
-//        else {
-//            if(jobDetails.getParameters().containsKey(TARGET_TIME)) {
-//                // DateTime parsing fails without casting to Long first
-//                Long parsedMillis = Long.valueOf(jobDetails.getParameters().get(TARGET_TIME));
-//                timeSliceInclusive = new DateTime(parsedMillis, DateTimeZone.UTC);
-//            } else {
-//                logger.error("Missing " + TARGET_TIME + " parameter from manual execution of " + JOB_NAME + " job");
-//                return Completable.complete();
-//            }
-//        }
-//
+        DateTime timeSliceInclusive = new DateTime(trigger.getTriggerTime(), DateTimeZone.UTC).minus(runtimeBlockSize);
+
         // Rewind to previous timeslice
-        // TODO Fix these, it's always 2 hours for the first block for now
         DateTime timeSliceStart = DateTimeService.getTimeSlice(timeSliceInclusive, runtimeBlockSize);
         long startOfSlice = timeSliceStart.getMillis();
 
@@ -103,5 +86,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                             " ms");
                 });
+        // TODO Create the new tables here.. and use client's SchemaChangeNotifier (etc) to create new set of
+        // prepared statements
     }
 }
