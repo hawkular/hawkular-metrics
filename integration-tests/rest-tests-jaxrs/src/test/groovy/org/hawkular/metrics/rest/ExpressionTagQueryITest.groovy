@@ -67,37 +67,37 @@ class ExpressionTagQueryITest extends RESTTest {
       }
 
       def response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1 = '*'"],
+        query: [tags: "a1 ~ '*'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm3', 'm4', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1 = '*' AND b1 = 'B'"],
+        query: [tags: "a1 ~ '*' AND b1 = 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm2', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1 = '*' AND b1 != 'B'"],
+        query: [tags: "a1 ~ '*' AND b1 != 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1 IN ['xyz','abcd'] AND b1 = '*'"],
+        query: [tags: "a1 IN ['xyz','abcd'] AND b1 ~ '*'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm2', 'm3', 'm5')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "c1 = '*' OR b1 != 'B'"],
+        query: [tags: "c1 ~ '*' OR b1 != 'B'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm5', 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "c1 = '*' OR (b1 != 'B' AND a1 = 'abcd')"],
+        query: [tags: "c1 ~ '*' OR (b1 != 'B' AND a1 = 'abcd')"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm3', 'm6')
@@ -115,7 +115,7 @@ class ExpressionTagQueryITest extends RESTTest {
       assertMetricListById(response.data, 'm1', 'm2', 'm4')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a1 = 'd' OR ( a1 = 'ab' OR ( c1 = '*'))" ],
+        query: [tags: "a1 = 'd' OR ( a1 = 'ab' OR ( c1 ~ '*'))" ],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm1', 'm4', 'm6')
@@ -190,7 +190,7 @@ class ExpressionTagQueryITest extends RESTTest {
       assertMetricListById(response.data, 'm6')
 
       response = hawkularMetrics.get(path: "metrics",
-        query: [tags: "a.b = 'c.*'"],
+        query: [tags: "a.b ~ 'c.*'"],
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm6')

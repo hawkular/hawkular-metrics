@@ -94,6 +94,18 @@ public class TagQueryBaseListener implements TagQueryListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterRegex_operator(TagQueryParser.Regex_operatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRegex_operator(TagQueryParser.Regex_operatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterArray_operator(TagQueryParser.Array_operatorContext ctx) { }
 	/**
 	 * {@inheritDoc}

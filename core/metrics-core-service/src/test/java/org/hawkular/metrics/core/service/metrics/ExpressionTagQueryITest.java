@@ -59,7 +59,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
-        gauges = test.parse(tenantId, GAUGE, "a1 = '*'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "a1 ~ '*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
 
@@ -99,11 +99,11 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m5");
 
-        gauges = test.parse(tenantId, GAUGE, "hostname ='web.*'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "hostname ~'web.*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "mA", "mB");
 
-        gauges = test.parse(tenantId, GAUGE, "hostname ='web.*' or a1='*'").toList().toBlocking()
+        gauges = test.parse(tenantId, GAUGE, "hostname ~'web.*' or a1~'*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5", "mA", "mB");
 
@@ -147,7 +147,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
                 .lastOrDefault(null);
         assertMetricListById(counters, "c2", "c3");
 
-        counters = test.parse(tenantId, COUNTER, "a2.label1 = '5.*'").toList().toBlocking()
+        counters = test.parse(tenantId, COUNTER, "a2.label1 ~ '5.*'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(counters, "c2", "c3");
     }

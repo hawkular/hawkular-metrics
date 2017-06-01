@@ -140,19 +140,17 @@ public class ExpressionTagQueryParser {
                         .compose(new TagsIndexRowTransformerFilter<>(metricType))
                         .distinct();
             } else if (ctx.boolean_operator() != null) {
+                final String tagValue;
                 if (ctx.value().COMPLEXTEXT() != null) {
-                    String tagValue = ctx.value().COMPLEXTEXT().getText();
-                    tagValue = tagValue.substring(1, tagValue.length() - 1);
-                    Pattern p = PatternUtil.filterPattern(tagValue);
-                    boolean positive = ctx.boolean_operator().EQUAL() != null;
-
-                    result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
-                            .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
-                            .compose(new TagsIndexRowTransformerFilter<>(metricType))
-                            .distinct();
+                    String tempTagValue = ctx.value().COMPLEXTEXT().getText();
+                    tagValue = tempTagValue.substring(1, tempTagValue.length() - 1);
                 } else if (ctx.value().SIMPLETEXT() != null) {
-                    final String tagValue = ctx.value().SIMPLETEXT().getText();
+                    tagValue = ctx.value().SIMPLETEXT().getText();
+                } else {
+                    tagValue = null;
+                }
 
+                if (tagValue != null) {
                     boolean positive = ctx.boolean_operator().EQUAL() != null;
 
                     if (positive) {
@@ -166,7 +164,26 @@ public class ExpressionTagQueryParser {
                                 .distinct();
                     }
                 }
+            } else if (ctx.regex_operator() != null) {
+                final String tagValue;
+                if (ctx.value().COMPLEXTEXT() != null) {
+                    String tempTagValue = ctx.value().COMPLEXTEXT().getText();
+                    tagValue = tempTagValue.substring(1, tempTagValue.length() - 1);
+                } else if (ctx.value().SIMPLETEXT() != null) {
+                    tagValue = ctx.value().SIMPLETEXT().getText();
+                } else {
+                    tagValue = null;
+                }
 
+                if (tagValue != null) {
+                    Pattern p = PatternUtil.filterPattern(tagValue);
+                    boolean positive = ctx.regex_operator().REGEXMATCH() != null;
+
+                    result = dataAccess.findMetricsByTagName(this.tenantId, tagName)
+                            .filter(r -> positive == p.matcher(r.getString(dataIndex)).matches())
+                            .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                            .distinct();
+                }
             } else if (ctx.existence_operator() != null) {
                 if (ctx.existence_operator().NOT() != null) {
                     if (metricType != null) {

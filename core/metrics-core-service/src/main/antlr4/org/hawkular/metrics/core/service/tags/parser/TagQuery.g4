@@ -51,6 +51,7 @@ pair
   : key
   | existence_operator key
   | key boolean_operator value
+  | key regex_operator value
   | key array_operator array
   ;
 
@@ -62,6 +63,11 @@ logical_operator
 boolean_operator
   : EQUAL
   | NOTEQUAL
+  ;
+
+regex_operator
+  : REGEXMATCH
+  | NOTREGEXMATCH
   ;
 
 array_operator
@@ -94,6 +100,8 @@ AND: A N D;
 NOT: N O T;
 EQUAL: '=';
 NOTEQUAL: '!=';
+REGEXMATCH: '~';
+NOTREGEXMATCH: '!~';
 IN: I N;
 
 SIMPLETEXT  : [a-zA-Z_0-9.]+ ;
