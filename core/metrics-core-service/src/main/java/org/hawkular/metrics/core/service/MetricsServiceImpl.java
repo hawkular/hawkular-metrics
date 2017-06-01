@@ -653,8 +653,8 @@ public class MetricsServiceImpl implements MetricsService {
             Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
 
             // Calls mostly deprecated methods..
-            Observable<DataPoint<T>> uncompressedPoints = dataAccess.findOldData(metricId, start, end, limit, safeOrder,
-                    pageSize).map(mapper).doOnError(Throwable::printStackTrace);
+//            Observable<DataPoint<T>> uncompressedPoints = dataAccess.findOldData(metricId, start, end, limit, safeOrder,
+//                    pageSize).map(mapper).doOnError(Throwable::printStackTrace);
 
             Observable<DataPoint<T>> compressedPoints =
                     dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
@@ -666,16 +666,16 @@ public class MetricsServiceImpl implements MetricsService {
 
             Comparator<DataPoint<T>> comparator = getDataPointComparator(safeOrder);
             List<Observable<? extends DataPoint<T>>> sources = new ArrayList<>(3);
-            sources.add(uncompressedPoints);
+//            sources.add(uncompressedPoints);
             sources.add(compressedPoints);
+            sources.add(tempStoragePoints);
 
             // TODO This should be pluggable storage .. where we could do the queries as well. Just make it use
             // dataAccess in this Cassandra temporary table solution
             // Write an interface that allows all the necessary queries (mm.. kinda like MetricsService then I
             // guess.. iiks)
 
-            Observable<DataPoint<T>> dataPoints = SortedMerge.create(Arrays.asList(uncompressedPoints,
-                    compressedPoints, tempStoragePoints), comparator, false)
+            Observable<DataPoint<T>> dataPoints = SortedMerge.create(sources, comparator, false)
                     .distinctUntilChanged(
                             (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 

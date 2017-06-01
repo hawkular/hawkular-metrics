@@ -88,6 +88,7 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
+import rx.functions.Func2;
 
 /**
  *
@@ -102,6 +103,7 @@ public class DataAccessImpl implements DataAccess {
     public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_PROTOTYPE + "%s";
     public static final int NUMBER_OF_TEMP_TABLES = 12;
     public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
+
     public static final long DPART = 0;
     private Session session;
 
@@ -112,6 +114,9 @@ public class DataAccessImpl implements DataAccess {
     // Turn to MetricType agnostic
     // See getMapKey(byte, int)
     private NavigableMap<Long, Map<Integer, PreparedStatement>> prepMap;
+
+    // TODO Move all of these to a new class (Cassandra specific temp table) to allow multiple implementations (such
+    // as in-memory + WAL in Cassandra)
 
     private enum StatementType {
         READ, WRITE, SCAN, CREATE
@@ -368,6 +373,7 @@ public class DataAccessImpl implements DataAccess {
     }
 
     private void prepareTempStatements(Map<Integer, PreparedStatement> statementMap, String tableName) {
+        // Per metricType
         for (MetricType<?> metricType : MetricType.all()) {
             for (TempStatement st : TempStatement.values()) {
                 Integer key = getMapKey(metricType.getCode(), st.ordinal());
@@ -382,12 +388,6 @@ public class DataAccessImpl implements DataAccess {
                         formatSt = String.format(st.getStatement(), tableName,
                                 metricTypeToColumnName(metricType));
                         break;
-                    case SCAN:
-                        formatSt = String.format(st.getStatement(), tableName);
-                        break;
-//                    case CREATE:
-//                        formatSt = String.format(st.getStatement(), tableName);
-//                        break;
                     default:
                         // Not supported
                         continue;
@@ -396,6 +396,23 @@ public class DataAccessImpl implements DataAccess {
                 PreparedStatement prepared = session.prepare(formatSt);
                 statementMap.put(key, prepared);
             }
+        }
+        // Untyped
+        for (TempStatement st : TempStatement.values()) {
+            Integer key = getMapKey(MetricType.UNDEFINED.getCode(), st.ordinal());
+            String formatSt;
+            switch(st.getType()) {
+                case SCAN:
+                    formatSt = String.format(st.getStatement(), tableName);
+                    break;
+                case CREATE:
+                    formatSt = String.format(st.getStatement(), tableName);
+                    break;
+                default:
+                    continue;
+            }
+            PreparedStatement prepared = session.prepare(formatSt);
+            statementMap.put(key, prepared);
         }
     }
 
@@ -776,7 +793,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
-        return Observable.from(metricsInDatas)
+        return getPrepForAllTempTablesWithoutType(TempStatement.CHECK_EXISTENCE_OF_METRIC_IN_TABLE)
                 .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(rxSession.executeAndFetch(findMetricInData
@@ -861,12 +878,6 @@ public class DataAccessImpl implements DataAccess {
         return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
-    @Override
-    public Observable<Row> findMetricsInTempTable(long timestamp) {
-        int bucket = getBucketIndex(timestamp);
-        return rxSession.executeAndFetch(allMetricsInDatas[bucket].bind());
-    }
-
     /**
      * Fetch all the data from a temporary table for the compression job. Using TokenRanges avoids fetching first
      * all the metrics' partition keys and then requesting them.
@@ -878,13 +889,15 @@ public class DataAccessImpl implements DataAccess {
      */
     @Override
     public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
-        int bucket = getBucketIndex(timestamp);
+//        int bucket = getBucketIndex(timestamp);
 
         return Observable.from(getTokenRanges())
                 .map(tr -> rxSession.executeAndFetch(
-                        scanTempTableWithTokens[bucket].bind()
+                        getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
+                                .bind()
                                 .setToken(0, tr.getStart())
-                                .setToken(1, tr.getEnd()).setFetchSize(pageSize)));
+                                .setToken(1, tr.getEnd())
+                                .setFetchSize(pageSize)));
     }
 
     private Set<TokenRange> getTokenRanges() {
@@ -900,36 +913,50 @@ public class DataAccessImpl implements DataAccess {
     https://issues.apache.org/jira/browse/CASSANDRA-10699
     https://issues.apache.org/jira/browse/CASSANDRA-9424
      */
-    @Override
-    public Completable resetTempTable(long timestamp) {
-        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, getBucketIndex(timestamp));
+//    @Override
+//    public Completable resetTempTable(long timestamp) {
+//        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, getBucketIndex(timestamp));
+//
+//        return Completable.fromAction(() -> {
+//            String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
+//                    .getTable(fullTableName)
+//                    .asCQLQuery();
+//
+//            String dropCQL = String.format("DROP TABLE %s", fullTableName);
+//
+//            session.execute(dropCQL);
+//            while(!session.getCluster().getMetadata().checkSchemaAgreement()) {
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//            session.execute(reCreateCQL);
+//        });
+//        // TODO Needs to reprepare all the preparedstatements after dropping..
+//
+////        return Completable.fromObservable(rxSession.execute(dropCQL))
+////                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
+//    }
 
-        return Completable.fromAction(() -> {
-            String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
-                    .getTable(fullTableName)
-                    .asCQLQuery();
+    private Observable<PreparedStatement> getPrepForAllTempTablesWithoutType(TempStatement ts) {
+        return Observable.from(prepMap.entrySet())
+                .map(Map.Entry::getValue)
+                .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED.getCode(), ts.ordinal())));
 
-            String dropCQL = String.format("DROP TABLE %s", fullTableName);
+    }
 
-            session.execute(dropCQL);
-            while(!session.getCluster().getMetadata().checkSchemaAgreement()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            session.execute(reCreateCQL);
-        });
-        // TODO Needs to reprepare all the preparedstatements after dropping..
-
-//        return Completable.fromObservable(rxSession.execute(dropCQL))
-//                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
+    private Observable<PreparedStatement> getPrepForAllTempTablesAndTypes(TempStatement ts) {
+        return Observable.from(prepMap.entrySet())
+                .map(Map.Entry::getValue)
+                .zipWith(Observable.from(MetricType.all()),
+                        (pMap, metricType) -> pMap.get(getMapKey(metricType.getCode(), ts.ordinal())));
     }
 
     @Override
     public Observable<Row> findAllMetricsInData() {
-        return Observable.from(allMetricsInDatas)
+        return getPrepForAllTempTablesAndTypes(TempStatement.LIST_ALL_METRICS_FROM_TABLE)
                 .map(PreparedStatement::bind)
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(
@@ -1245,67 +1272,70 @@ public class DataAccessImpl implements DataAccess {
 
         if (order == Order.ASC) {
             if (limit <= 0) {
-                buckets
+                return buckets
                         .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dataByDateRangeExclusiveASC.ordinal())))
-                        .concatMap(p -> rxSession.execute(p
+                        .concatMap(p -> rxSession.executeAndFetch(p
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
-                                        new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
-                return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][i]
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
-                                        new Date(startTime), new Date(endTime)).setFetchSize(pageSize)));
-            } else {
-                return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][i].bind(
-                                id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
-                                new Date(endTime), limit).setFetchSize(pageSize)));
-            }
-        } else {
-            if (limit <= 0) {
-                return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][i].bind(id.getTenantId(),
-                                id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime))
+                                        new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
-                return Observable.from(buckets)
-                        .concatMap(i -> rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][i].bind(id.getTenantId(),
-                                id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
-                                limit).setFetchSize(pageSize)));
-            }
-        }
-    }
-
-    @Override
-    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-                                           int pageSize) {
-        MetricType<T> type = id.getType();
-
-        if (order == Order.ASC) {
-            if (limit <= 0) {
-                return rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][POS_OF_OLD_DATA]
-                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
-                                getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize))
-                        .doOnError(Throwable::printStackTrace);
-            } else {
-                return rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][POS_OF_OLD_DATA].bind(
-                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
-                        .doOnError(Throwable::printStackTrace);
+                return buckets
+                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dataByDateRangeExclusiveWithLimitASC.ordinal())))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                                        new Date(endTime), limit)
+                                .setFetchSize(pageSize)));
             }
         } else {
             if (limit <= 0) {
-                return rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][POS_OF_OLD_DATA].bind(id.getTenantId(),
-                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize))
-                        .doOnError(Throwable::printStackTrace);
+                return buckets
+                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dateRangeExclusive.ordinal())))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                                        new Date(endTime))
+                                .setFetchSize(pageSize)));
             } else {
-                return rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][POS_OF_OLD_DATA].bind(
-                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
-                        .doOnError(Throwable::printStackTrace);
+                return buckets
+                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dateRangeExclusiveWithLimit.ordinal())))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
+                                        limit)
+                                .setFetchSize(pageSize)));
             }
         }
     }
+
+//    @Override
+//    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+//                                           int pageSize) {
+//        MetricType<T> type = id.getType();
+//
+//        if (order == Order.ASC) {
+//            if (limit <= 0) {
+//                return rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][POS_OF_OLD_DATA]
+//                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
+//                                getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize))
+//                        .doOnError(Throwable::printStackTrace);
+//            } else {
+//                return rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][POS_OF_OLD_DATA].bind(
+//                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+//                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
+//                        .doOnError(Throwable::printStackTrace);
+//            }
+//        } else {
+//            if (limit <= 0) {
+//                return rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][POS_OF_OLD_DATA].bind(id.getTenantId(),
+//                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
+//                        .setFetchSize(pageSize))
+//                        .doOnError(Throwable::printStackTrace);
+//            } else {
+//                return rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][POS_OF_OLD_DATA].bind(
+//                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
+//                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
+//                        .doOnError(Throwable::printStackTrace);
+//            }
+//        }
+//    }
 
     @Override
     public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,

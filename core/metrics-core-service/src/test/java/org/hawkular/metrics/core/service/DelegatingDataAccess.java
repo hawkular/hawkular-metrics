@@ -112,18 +112,13 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
-    @Override
-    public Observable<Row> findMetricsInTempTable(long timestamp) {
-        return delegate.findMetricsInTempTable(timestamp);
-    }
-
     @Override public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
         return delegate.findAllDataFromBucket(timestamp, pageSize);
     }
 
-    @Override public Completable resetTempTable(long timestamp) {
-        return delegate.resetTempTable(timestamp);
-    }
+//    @Override public Completable resetTempTable(long timestamp) {
+//        return delegate.resetTempTable(timestamp);
+//    }
 
     @Override
     public Observable<Row> findAllMetricsInData() {
@@ -152,11 +147,11 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findTempData(id, startTime, endTime, limit, order, pageSize);
     }
 
-    @Override
-    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-                                           int pageSize) {
-        return delegate.findOldData(id, startTime, endTime, limit, order, pageSize);
-    }
+//    @Override
+//    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+//                                           int pageSize) {
+//        return delegate.findOldData(id, startTime, endTime, limit, order, pageSize);
+//    }
 
     @Override
     public Observable<Integer> insertStringData(Metric<String> metric, int maxSize) {

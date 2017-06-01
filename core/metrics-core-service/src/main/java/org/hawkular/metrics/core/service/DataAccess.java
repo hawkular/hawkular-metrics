@@ -65,8 +65,6 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
-    Observable<Row> findMetricsInTempTable(long timestamp);
-
     Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize);
 
     /*
@@ -74,7 +72,7 @@ public interface DataAccess {
     https://issues.apache.org/jira/browse/CASSANDRA-10699
     https://issues.apache.org/jira/browse/CASSANDRA-9424
      */
-    Completable resetTempTable(long timestamp);
+//    Completable resetTempTable(long timestamp);
 
     Observable<Row> findAllMetricsInData();
 
@@ -93,8 +91,8 @@ public interface DataAccess {
     <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
                                      int pageSize);
 
-    <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-                                    int pageSize);
+//    <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+//                                    int pageSize);
 
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
                                    int pageSize);
