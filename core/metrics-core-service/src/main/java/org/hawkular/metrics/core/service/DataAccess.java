@@ -74,6 +74,8 @@ public interface DataAccess {
      */
 //    Completable resetTempTable(long timestamp);
 
+    Completable dropTempTable(long timestamp);
+
     Observable<Row> findAllMetricsInData();
 
     <T> Observable<Integer> insertData(Observable<Metric<T>> metrics);

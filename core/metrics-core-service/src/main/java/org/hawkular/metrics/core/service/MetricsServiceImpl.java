@@ -737,8 +737,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     @SuppressWarnings("unchecked")
     public Completable compressBlock(long startTimeSlice, int pageSize) {
-        // TODO Create test that shows this matches the CORRECT bucket always
-        // TODO Test that this actually fetches everything.. always
+        // TODO Test that this actually fetches and compresses everything.. always
 
         return Completable.fromObservable(
                 Observable.switchOnNext(dataAccess.findAllDataFromBucket(startTimeSlice, pageSize))
@@ -756,35 +755,7 @@ public class MetricsServiceImpl implements MetricsService {
                             });
                         })
         ).doOnCompleted(() -> log.infof("Compress part completed"))
-                .andThen(dataAccess.resetTempTable(startTimeSlice));
-    }
-
-    @SuppressWarnings("unchecked")
-    public Completable compressBlockSlow(long startTimeSlice, int pageSize) {
-        // TODO Create test that shows this matches the CORRECT bucket always
-        // TODO Test that this actually fetches everything.. always
-        return Completable.fromObservable(dataAccess.findAllDataFromBucket(startTimeSlice, pageSize)
-                .compose(applyRetryPolicy())
-                .concatMap(rO -> rO
-                        .groupBy(r ->
-                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)), r.getString(2)))
-                        .doOnNext(g -> log.infof("Starting to process metricId %s\n", g.getKey().toString()))
-                        .concatMap(g ->
-                                g
-                                        .compose(new TempTableCompressTransformer(startTimeSlice))
-                                        .doOnNext(cpc -> log.infof("Sending to storage -> %s", g.getKey().toString()))
-                                        .concatMap(cpc -> dataAccess.insertCompressedData(g.getKey(), startTimeSlice,
-                                                (CompressedPointContainer) cpc, getTTL(g.getKey())))
-                        ))
-
-        ).doOnCompleted(() -> log.infof("Compress part completed"))
-                .andThen(dataAccess.resetTempTable(startTimeSlice));
-
-        // "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags FROM %s " +
-
-        // map from inner row -> Metric
-        // collect to be compressed
-        // call drop
+                .andThen(dataAccess.dropTempTable(startTimeSlice));
     }
 
     @Override

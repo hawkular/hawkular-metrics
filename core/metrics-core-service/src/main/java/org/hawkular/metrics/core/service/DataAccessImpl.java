@@ -446,9 +446,9 @@ public class DataAccessImpl implements DataAccess {
             }
         }
 
-        // TODO Create more tables if not sufficient amount exists, define sufficient..
+        // TempTableCreator should take care of creating tables, but we'll need at least one to be able to process
+        // writes
         if(mapKey == null) {
-            // This should be a time range
             createTemporaryTable(System.currentTimeMillis());
         }
 
@@ -906,6 +906,12 @@ public class DataAccessImpl implements DataAccess {
             tokenRanges.addAll(tokenRange.unwrap());
         }
         return tokenRanges;
+    }
+
+    @Override public Completable dropTempTable(long timestamp) {
+        String fullTableName = getTempTableName(timestamp);
+        String dropCQL = String.format("DROP TABLE %s", fullTableName);
+        return Completable.fromObservable(rxSession.execute(dropCQL));
     }
 
     /*

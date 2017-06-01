@@ -116,6 +116,10 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findAllDataFromBucket(timestamp, pageSize);
     }
 
+    @Override public Completable dropTempTable(long timestamp) {
+        return delegate.dropTempTable(timestamp);
+    }
+
 //    @Override public Completable resetTempTable(long timestamp) {
 //        return delegate.resetTempTable(timestamp);
 //    }
