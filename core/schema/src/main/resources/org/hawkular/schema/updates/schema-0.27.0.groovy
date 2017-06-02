@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+/*
 schemaChange {
   version '8.0'
   author 'burmanm'
@@ -261,3 +262,4 @@ ALTER TABLE data_temp_0 WITH compaction = {
 }
 """
 }
+*/

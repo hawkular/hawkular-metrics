@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -111,6 +112,10 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
+        TempTableCreator tempCreator = new TempTableCreator(metricsService, configurationService);
+        scheduler.register(TempTableCreator.JOB_NAME, tempCreator);
+        maybeScheduleTableCreator(backgroundJobs);
+
         TempDataCompressor tempJob = new TempDataCompressor(metricsService, configurationService);
         scheduler.register(TempDataCompressor.JOB_NAME, tempJob);
 
@@ -146,8 +151,26 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
+    private void maybeScheduleTableCreator(List<JobDetails> backgroundJobs) {
+        String configId = TempTableCreator.CONFIG_ID;
+        Configuration config = configurationService.load(configId).toBlocking()
+                .firstOrDefault(new Configuration(configId, new HashMap<>()));
+        if (config.get("jobId") == null) {
+            long nextTrigger = LocalDateTime.now(ZoneOffset.UTC)
+                    .truncatedTo(ChronoUnit.MINUTES).plusMinutes(2)
+                    .toInstant(ZoneOffset.UTC).toEpochMilli();
+
+            JobDetails jobDetails = scheduler.scheduleJob(TempTableCreator.JOB_NAME, TempTableCreator.JOB_NAME,
+                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextTrigger)
+                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
+            backgroundJobs.add(jobDetails);
+            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+            logger.info("Scheduled temporary table creator " + jobDetails);
+        }
+    }
+
     private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
-        String configId = "org.hawkular.metrics.jobs." + TempDataCompressor.JOB_NAME;
+        String configId = TempDataCompressor.CONFIG_ID;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
         if (config.get("jobId") == null) {

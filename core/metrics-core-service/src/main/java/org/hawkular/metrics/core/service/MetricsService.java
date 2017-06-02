@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,6 +175,8 @@ public interface MetricsService {
 
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order,
             int pageSize);
+
+    Completable verifyAndCreateTempTables(ZonedDateTime startTime, ZonedDateTime endTime);
 
     @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice, int pageSize);
 

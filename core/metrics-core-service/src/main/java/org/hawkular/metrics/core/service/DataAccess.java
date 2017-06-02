@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
@@ -36,6 +37,8 @@ import rx.Observable;
  * @author John Sanda
  */
 public interface DataAccess {
+
+    Completable createTempTablesIfNotExists(Set<Long> timestamps);
 
     Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 

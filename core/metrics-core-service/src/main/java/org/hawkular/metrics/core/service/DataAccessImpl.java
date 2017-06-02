@@ -30,7 +30,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,7 +39,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -77,7 +75,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SchemaChangeListener;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
@@ -88,7 +85,6 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
-import rx.functions.Func2;
 
 /**
  *
@@ -349,11 +345,11 @@ public class DataAccessImpl implements DataAccess {
         this.session = session;
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
-        initPreparedStatements();
-        initializeTemporaryTableStatements();
-
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
+
+        initPreparedStatements();
+        initializeTemporaryTableStatements();
     }
 
     /**
@@ -375,6 +371,7 @@ public class DataAccessImpl implements DataAccess {
     private void prepareTempStatements(Map<Integer, PreparedStatement> statementMap, String tableName) {
         // Per metricType
         for (MetricType<?> metricType : MetricType.all()) {
+            if(metricType == STRING) { continue; } // We don't support String metrics in temp tables yet
             for (TempStatement st : TempStatement.values()) {
                 Integer key = getMapKey(metricType.getCode(), st.ordinal());
 
@@ -416,13 +413,31 @@ public class DataAccessImpl implements DataAccess {
         }
     }
 
-    Observable<ResultSet> createTemporaryTable(long timestamp) {
-        String tempTableName = getTempTableName(timestamp);
+    @Override
+    public Completable createTempTablesIfNotExists(Set<Long> timestamps) {
+        Set<String> tables = new HashSet<>(timestamps.size());
+
+        timestamps.stream()
+                .forEach(l -> tables.add(getTempTableName(l)));
+
+        Set<String> existingTables = new HashSet<>();
+        for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
+            if (table.getName().startsWith(TEMP_TABLE_PROTOTYPE)) {
+                existingTables.add(table.getName());
+            }
+        }
+
+        tables.removeAll(existingTables);
+
+        return Completable.fromObservable(Observable.from(tables)
+                .concatMap(t -> createTemporaryTable(t)));
+    }
+
+    Observable<ResultSet> createTemporaryTable(String tempTableName) {
         SimpleStatement st =
                 new SimpleStatement(String.format(TempStatement.CREATE_TABLE.getStatement(), tempTableName));
 
         return rxSession.execute(st);
-        // The statement preparation is handled by the schemaListener
     }
 
     private void initializeTemporaryTableStatements() {
@@ -449,7 +464,7 @@ public class DataAccessImpl implements DataAccess {
         // TempTableCreator should take care of creating tables, but we'll need at least one to be able to process
         // writes
         if(mapKey == null) {
-            createTemporaryTable(System.currentTimeMillis());
+            createTemporaryTable(getTempTableName(System.currentTimeMillis()));
         }
 
         // These are for the ring buffer strategy (slightly faster but Cassandra 3.x has issues with consistent schema)
@@ -547,10 +562,10 @@ public class DataAccessImpl implements DataAccess {
 
     protected void initPreparedStatements() {
         insertTenant = session.prepare(
-            "WRITE INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
+            "INSERT INTO tenants (id, retentions) VALUES (?, ?) IF NOT EXISTS");
 
         insertTenantOverwrite = session.prepare(
-                "WRITE INTO tenants (id, retentions) VALUES (?, ?)");
+                "INSERT INTO tenants (id, retentions) VALUES (?, ?)");
 
         findAllTenantIds = session.prepare("SELECT DISTINCT id FROM tenants");
 
@@ -587,16 +602,16 @@ public class DataAccessImpl implements DataAccess {
                         "FROM metrics_tags_idx");
 
         insertIntoMetricsIndex = session.prepare(
-            "WRITE INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
+            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) " +
             "IF NOT EXISTS");
 
         insertIntoMetricsIndexOverwrite = session.prepare(
-            "WRITE INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
+            "INSERT INTO metrics_idx (tenant_id, type, metric, data_retention, tags) " +
             "VALUES (?, ?, ?, ?, ?) ");
 
         updateMetricsIndex = session.prepare(
-            "WRITE INTO metrics_idx (tenant_id, type, metric) VALUES (?, ?, ?)");
+            "INSERT INTO metrics_idx (tenant_id, type, metric) VALUES (?, ?, ?)");
 
         addTagsToMetricsIndex = session.prepare(
             "UPDATE metrics_idx " +
@@ -717,7 +732,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
         updateRetentionsIndex = session.prepare(
-            "WRITE INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
+            "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
 
         findDataRetentions = session.prepare(
             "SELECT tenant_id, type, metric, retention " +
@@ -725,7 +740,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ?");
 
         insertMetricsTagsIndex = session.prepare(
-            "WRITE INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric) VALUES (?, ?, ?, ?, ?)");
+            "INSERT INTO metrics_tags_idx (tenant_id, tname, tvalue, type, metric) VALUES (?, ?, ?, ?, ?)");
 
         deleteMetricsTagsIndex = session.prepare(
             "DELETE FROM metrics_tags_idx " +
@@ -742,7 +757,7 @@ public class DataAccessImpl implements DataAccess {
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 
         updateMetricExpirationIndex = session.prepare(
-                "WRITE INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
+                "INSERT INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
 
         deleteFromMetricExpirationIndex = session.prepare(
                 "DELETE FROM metrics_expiration_idx " +
@@ -1033,15 +1048,17 @@ public class DataAccessImpl implements DataAccess {
                 .format(TEMP_TABLE_DATEFORMATTER));
     }
 
-    public int getBucketIndex(long timestamp) {
-        int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
-                .with(DateTimeService.startOfPreviousEvenHour())
-                .getHour();
-
-        return Math.floorDiv(hour, 2);
-    }
+//    public int getBucketIndex(long timestamp) {
+//        int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
+//                .with(DateTimeService.startOfPreviousEvenHour())
+//                .getHour();
+//
+//        return Math.floorDiv(hour, 2);
+//    }
 
     PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
+        log.infof("getTempStatement called for type->%s, statement->%s, timestamp->%d", type.toString(), ts.name(),
+                timestamp);
         return prepMap
                 .floorEntry(timestamp)
                 .getValue()
@@ -1235,33 +1252,33 @@ public class DataAccessImpl implements DataAccess {
         }
     }
 
-    private Integer[] tempBuckets(long startTime, long endTime, Order order) {
-        ZonedDateTime endZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTime), UTC)
-                .with(DateTimeService.startOfPreviousEvenHour());
-
-        ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
-                .with(DateTimeService.startOfPreviousEvenHour());
-
-        // Max time back is <24 hours.
-        if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
-            startZone = endZone.minus(23, ChronoUnit.HOURS);
-        }
-
-        ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
-
-        while(startZone.isBefore(endZone)) {
-            buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
-            startZone = startZone.plus(1, ChronoUnit.HOURS);
-        }
-
-        buckets.add(getBucketIndex(endZone.toInstant().toEpochMilli()));
-
-        if(order == Order.DESC) {
-            return buckets.descendingSet().stream().toArray(Integer[]::new);
-        } else {
-            return buckets.stream().toArray(Integer[]::new);
-        }
-    }
+//    private Integer[] tempBuckets(long startTime, long endTime, Order order) {
+//        ZonedDateTime endZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTime), UTC)
+//                .with(DateTimeService.startOfPreviousEvenHour());
+//
+//        ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
+//                .with(DateTimeService.startOfPreviousEvenHour());
+//
+//        // Max time back is <24 hours.
+//        if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
+//            startZone = endZone.minus(23, ChronoUnit.HOURS);
+//        }
+//
+//        ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
+//
+//        while(startZone.isBefore(endZone)) {
+//            buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
+//            startZone = startZone.plus(1, ChronoUnit.HOURS);
+//        }
+//
+//        buckets.add(getBucketIndex(endZone.toInstant().toEpochMilli()));
+//
+//        if(order == Order.DESC) {
+//            return buckets.descendingSet().stream().toArray(Integer[]::new);
+//        } else {
+//            return buckets.stream().toArray(Integer[]::new);
+//        }
+//    }
 
     @Override
     public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
@@ -1273,10 +1290,12 @@ public class DataAccessImpl implements DataAccess {
         Long startKey = prepMap.floorKey(startTime);
         Long endKey = prepMap.floorKey(endTime);
 
-        SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = prepMap.subMap(startKey, endKey);
-        Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+        // Depending on the order, these must be read in the correct order also..
 
         if (order == Order.ASC) {
+            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = prepMap.subMap(startKey, endKey);
+            Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+
             if (limit <= 0) {
                 return buckets
                         .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dataByDateRangeExclusiveASC.ordinal())))
@@ -1293,6 +1312,12 @@ public class DataAccessImpl implements DataAccess {
                                 .setFetchSize(pageSize)));
             }
         } else {
+            // Sort to different order
+            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = new ConcurrentSkipListMap<>(
+                    (var0, var2) -> var0 < var2?1:(var0 == var2?0:-1));
+            statementMap.putAll(prepMap.subMap(startKey, endKey));
+            Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+
             if (limit <= 0) {
                 return buckets
                         .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dateRangeExclusive.ordinal())))
@@ -1497,7 +1522,11 @@ public class DataAccessImpl implements DataAccess {
 
     private class TemporaryTableStatementCreator implements SchemaChangeListener {
 
+        private final CoreLogger log = CoreLogging.getCoreLogger(TemporaryTableStatementCreator.class);
+
         @Override public void onTableAdded(TableMetadata tableMetadata) {
+            log.infof("Registering prepared statements for table %s", tableMetadata.getName());
+
             Map<Integer, PreparedStatement> statementMap = new HashMap<>();
             prepareTempStatements(statementMap, tableMetadata.getName());
 
@@ -1507,6 +1536,8 @@ public class DataAccessImpl implements DataAccess {
         }
 
         @Override public void onTableRemoved(TableMetadata tableMetadata) {
+            log.infof("Removing prepared statements for table %s", tableMetadata.getName());
+
             // Find the integer key and remove from prepMap
             Long mapKey = tableToMapKey(tableMetadata.getName());
             prepMap.remove(mapKey);

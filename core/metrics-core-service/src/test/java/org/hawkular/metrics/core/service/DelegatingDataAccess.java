@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
@@ -41,6 +42,10 @@ public class DelegatingDataAccess implements DataAccess {
 
     public DelegatingDataAccess(DataAccess delegate) {
         this.delegate = delegate;
+    }
+
+    @Override public Completable createTempTablesIfNotExists(Set<Long> timestamps) {
+        return delegate.createTempTablesIfNotExists(timestamps);
     }
 
     @Override

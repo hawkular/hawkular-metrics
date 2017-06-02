@@ -27,10 +27,12 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -635,21 +637,6 @@ public class MetricsServiceImpl implements MetricsService {
         if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
-            /*
-            TODO List
-                        - Inserts should go to the correct bucket (merge with the compress sync - two hour odd)
-                        - Create 12 temp tables for the ring buffer
-                        - Modify compress job to read temp table and truncate it afterwards
-                        - findDataPoints should merge reads from temp table + data_compressed
-                        - Should we keep data for the out-of-order writes and merge that too if necessary?
-                        - Autosnapshot behavior
-             */
-            // TODO Need to construct the proper range for tempTable query
-            // Temp tables should hold at most current time - 4 hours of data..
-            // Need to take account if compressJob is lagging behind.. where will we find the correct data (I need to
-            // know the last successful compressjob time here)
-            // TODO Out-of-order writes and a time window to insert to temp tables
-
             Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
 
             // Calls mostly deprecated methods..
@@ -669,11 +656,6 @@ public class MetricsServiceImpl implements MetricsService {
 //            sources.add(uncompressedPoints);
             sources.add(compressedPoints);
             sources.add(tempStoragePoints);
-
-            // TODO This should be pluggable storage .. where we could do the queries as well. Just make it use
-            // dataAccess in this Cassandra temporary table solution
-            // Write an interface that allows all the necessary queries (mm.. kinda like MetricsService then I
-            // guess.. iiks)
 
             Observable<DataPoint<T>> dataPoints = SortedMerge.create(sources, comparator, false)
                     .distinctUntilChanged(
@@ -729,9 +711,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .onErrorResumeNext(Observable.empty());
     }
 
-    private <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
-        // Need to filter here the datapoints that are not suitable..
-        return dataAccess.insertData(metrics);
+    @Override
+    public Completable verifyAndCreateTempTables(ZonedDateTime startTime, ZonedDateTime endTime) {
+        Set<Long> timestamps = new HashSet<>();
+
+        while(startTime.isBefore(endTime)) {
+            // Table sizes are not configurable at this point
+            timestamps.add(startTime.toInstant().toEpochMilli());
+            startTime = startTime.plus(2, ChronoUnit.HOURS);
+        }
+
+        return dataAccess.createTempTablesIfNotExists(timestamps);
     }
 
     @Override
