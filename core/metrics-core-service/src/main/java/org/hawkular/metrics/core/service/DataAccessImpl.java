@@ -562,7 +562,7 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND tname = ?");
 
         findMetricsByTagNameValue = session.prepare(
-                "SELECT tenant_id, type, metric " +
+                "SELECT tenant_id, type, metric, tvalue " +
                 "FROM metrics_tags_idx " +
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
 

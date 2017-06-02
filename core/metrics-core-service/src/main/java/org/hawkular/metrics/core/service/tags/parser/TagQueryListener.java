@@ -76,6 +76,16 @@ public interface TagQueryListener extends ParseTreeListener {
 	 */
 	void exitBoolean_operator(TagQueryParser.Boolean_operatorContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TagQueryParser#regex_operator}.
+	 * @param ctx the parse tree
+	 */
+	void enterRegex_operator(TagQueryParser.Regex_operatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TagQueryParser#regex_operator}.
+	 * @param ctx the parse tree
+	 */
+	void exitRegex_operator(TagQueryParser.Regex_operatorContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TagQueryParser#array_operator}.
 	 * @param ctx the parse tree
 	 */

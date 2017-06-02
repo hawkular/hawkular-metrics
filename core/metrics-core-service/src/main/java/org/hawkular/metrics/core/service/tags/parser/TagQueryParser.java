@@ -36,22 +36,25 @@ public class TagQueryParser extends Parser {
 		new PredictionContextCache();
 	public static final int
 		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, OR=6, AND=7, NOT=8, EQUAL=9, NOTEQUAL=10, 
-		IN=11, SIMPLETEXT=12, COMPLEXTEXT=13, WS=14;
+		REGEXMATCH=11, NOTREGEXMATCH=12, IN=13, SIMPLETEXT=14, COMPLEXTEXT=15, 
+		WS=16;
 	public static final int
 		RULE_tagquery = 0, RULE_object = 1, RULE_pair = 2, RULE_logical_operator = 3, 
-		RULE_boolean_operator = 4, RULE_array_operator = 5, RULE_existence_operator = 6, 
-		RULE_array = 7, RULE_value = 8, RULE_key = 9;
+		RULE_boolean_operator = 4, RULE_regex_operator = 5, RULE_array_operator = 6, 
+		RULE_existence_operator = 7, RULE_array = 8, RULE_value = 9, RULE_key = 10;
 	public static final String[] ruleNames = {
 		"tagquery", "object", "pair", "logical_operator", "boolean_operator", 
-		"array_operator", "existence_operator", "array", "value", "key"
+		"regex_operator", "array_operator", "existence_operator", "array", "value", 
+		"key"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'('", "')'", "'['", "','", "']'", null, null, null, "'='", "'!='"
+		null, "'('", "')'", "'['", "','", "']'", null, null, null, "'='", "'!='", 
+		"'~'", "'!~'"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
 		null, null, null, null, null, null, "OR", "AND", "NOT", "EQUAL", "NOTEQUAL", 
-		"IN", "SIMPLETEXT", "COMPLEXTEXT", "WS"
+		"REGEXMATCH", "NOTREGEXMATCH", "IN", "SIMPLETEXT", "COMPLEXTEXT", "WS"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
@@ -131,7 +134,7 @@ public class TagQueryParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(20);
+			setState(22);
 			object(0);
 			}
 		}
@@ -193,23 +196,23 @@ public class TagQueryParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(28);
+			setState(30);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case NOT:
 			case SIMPLETEXT:
 				{
-				setState(23);
+				setState(25);
 				pair();
 				}
 				break;
 			case T__0:
 				{
-				setState(24);
-				match(T__0);
-				setState(25);
-				object(0);
 				setState(26);
+				match(T__0);
+				setState(27);
+				object(0);
+				setState(28);
 				match(T__1);
 				}
 				break;
@@ -217,7 +220,7 @@ public class TagQueryParser extends Parser {
 				throw new NoViableAltException(this);
 			}
 			_ctx.stop = _input.LT(-1);
-			setState(36);
+			setState(38);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,1,_ctx);
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
@@ -228,16 +231,16 @@ public class TagQueryParser extends Parser {
 					{
 					_localctx = new ObjectContext(_parentctx, _parentState);
 					pushNewRecursionContext(_localctx, _startState, RULE_object);
-					setState(30);
-					if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
-					setState(31);
-					logical_operator();
 					setState(32);
+					if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
+					setState(33);
+					logical_operator();
+					setState(34);
 					object(2);
 					}
 					} 
 				}
-				setState(38);
+				setState(40);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,1,_ctx);
 			}
@@ -266,6 +269,9 @@ public class TagQueryParser extends Parser {
 		}
 		public ValueContext value() {
 			return getRuleContext(ValueContext.class,0);
+		}
+		public Regex_operatorContext regex_operator() {
+			return getRuleContext(Regex_operatorContext.class,0);
 		}
 		public Array_operatorContext array_operator() {
 			return getRuleContext(Array_operatorContext.class,0);
@@ -296,44 +302,55 @@ public class TagQueryParser extends Parser {
 		PairContext _localctx = new PairContext(_ctx, getState());
 		enterRule(_localctx, 4, RULE_pair);
 		try {
-			setState(51);
+			setState(57);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,2,_ctx) ) {
 			case 1:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(39);
+				setState(41);
 				key();
 				}
 				break;
 			case 2:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(40);
+				setState(42);
 				existence_operator();
-				setState(41);
+				setState(43);
 				key();
 				}
 				break;
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(43);
-				key();
-				setState(44);
-				boolean_operator();
 				setState(45);
+				key();
+				setState(46);
+				boolean_operator();
+				setState(47);
 				value();
 				}
 				break;
 			case 4:
 				enterOuterAlt(_localctx, 4);
 				{
-				setState(47);
-				key();
-				setState(48);
-				array_operator();
 				setState(49);
+				key();
+				setState(50);
+				regex_operator();
+				setState(51);
+				value();
+				}
+				break;
+			case 5:
+				enterOuterAlt(_localctx, 5);
+				{
+				setState(53);
+				key();
+				setState(54);
+				array_operator();
+				setState(55);
 				array();
 				}
 				break;
@@ -379,7 +396,7 @@ public class TagQueryParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(53);
+			setState(59);
 			_la = _input.LA(1);
 			if ( !(_la==OR || _la==AND) ) {
 			_errHandler.recoverInline(this);
@@ -431,9 +448,61 @@ public class TagQueryParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(55);
+			setState(61);
 			_la = _input.LA(1);
 			if ( !(_la==EQUAL || _la==NOTEQUAL) ) {
+			_errHandler.recoverInline(this);
+			}
+			else {
+				if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
+				_errHandler.reportMatch(this);
+				consume();
+			}
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class Regex_operatorContext extends ParserRuleContext {
+		public TerminalNode REGEXMATCH() { return getToken(TagQueryParser.REGEXMATCH, 0); }
+		public TerminalNode NOTREGEXMATCH() { return getToken(TagQueryParser.NOTREGEXMATCH, 0); }
+		public Regex_operatorContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_regex_operator; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof TagQueryListener ) ((TagQueryListener)listener).enterRegex_operator(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof TagQueryListener ) ((TagQueryListener)listener).exitRegex_operator(this);
+		}
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof TagQueryVisitor ) return ((TagQueryVisitor<? extends T>)visitor).visitRegex_operator(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final Regex_operatorContext regex_operator() throws RecognitionException {
+		Regex_operatorContext _localctx = new Regex_operatorContext(_ctx, getState());
+		enterRule(_localctx, 10, RULE_regex_operator);
+		int _la;
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(63);
+			_la = _input.LA(1);
+			if ( !(_la==REGEXMATCH || _la==NOTREGEXMATCH) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -478,24 +547,24 @@ public class TagQueryParser extends Parser {
 
 	public final Array_operatorContext array_operator() throws RecognitionException {
 		Array_operatorContext _localctx = new Array_operatorContext(_ctx, getState());
-		enterRule(_localctx, 10, RULE_array_operator);
+		enterRule(_localctx, 12, RULE_array_operator);
 		try {
-			setState(60);
+			setState(68);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case IN:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(57);
+				setState(65);
 				match(IN);
 				}
 				break;
 			case NOT:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(58);
+				setState(66);
 				match(NOT);
-				setState(59);
+				setState(67);
 				match(IN);
 				}
 				break;
@@ -537,11 +606,11 @@ public class TagQueryParser extends Parser {
 
 	public final Existence_operatorContext existence_operator() throws RecognitionException {
 		Existence_operatorContext _localctx = new Existence_operatorContext(_ctx, getState());
-		enterRule(_localctx, 12, RULE_existence_operator);
+		enterRule(_localctx, 14, RULE_existence_operator);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(62);
+			setState(70);
 			match(NOT);
 			}
 		}
@@ -584,45 +653,45 @@ public class TagQueryParser extends Parser {
 
 	public final ArrayContext array() throws RecognitionException {
 		ArrayContext _localctx = new ArrayContext(_ctx, getState());
-		enterRule(_localctx, 14, RULE_array);
+		enterRule(_localctx, 16, RULE_array);
 		int _la;
 		try {
-			setState(77);
+			setState(85);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,5,_ctx) ) {
 			case 1:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(64);
+				setState(72);
 				match(T__2);
-				setState(65);
+				setState(73);
 				value();
-				setState(70);
+				setState(78);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				while (_la==T__3) {
 					{
 					{
-					setState(66);
+					setState(74);
 					match(T__3);
-					setState(67);
+					setState(75);
 					value();
 					}
 					}
-					setState(72);
+					setState(80);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				}
-				setState(73);
+				setState(81);
 				match(T__4);
 				}
 				break;
 			case 2:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(75);
+				setState(83);
 				match(T__2);
-				setState(76);
+				setState(84);
 				match(T__4);
 				}
 				break;
@@ -663,12 +732,12 @@ public class TagQueryParser extends Parser {
 
 	public final ValueContext value() throws RecognitionException {
 		ValueContext _localctx = new ValueContext(_ctx, getState());
-		enterRule(_localctx, 16, RULE_value);
+		enterRule(_localctx, 18, RULE_value);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(79);
+			setState(87);
 			_la = _input.LA(1);
 			if ( !(_la==SIMPLETEXT || _la==COMPLEXTEXT) ) {
 			_errHandler.recoverInline(this);
@@ -714,11 +783,11 @@ public class TagQueryParser extends Parser {
 
 	public final KeyContext key() throws RecognitionException {
 		KeyContext _localctx = new KeyContext(_ctx, getState());
-		enterRule(_localctx, 18, RULE_key);
+		enterRule(_localctx, 20, RULE_key);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(81);
+			setState(89);
 			match(SIMPLETEXT);
 			}
 		}
@@ -749,27 +818,29 @@ public class TagQueryParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\20V\4\2\t\2\4\3\t"+
-		"\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\3"+
-		"\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3\37\n\3\3\3\3\3\3\3\3\3\7\3%\n\3\f\3"+
-		"\16\3(\13\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\5\4\66\n\4"+
-		"\3\5\3\5\3\6\3\6\3\7\3\7\3\7\5\7?\n\7\3\b\3\b\3\t\3\t\3\t\3\t\7\tG\n\t"+
-		"\f\t\16\tJ\13\t\3\t\3\t\3\t\3\t\5\tP\n\t\3\n\3\n\3\13\3\13\3\13\2\3\4"+
-		"\f\2\4\6\b\n\f\16\20\22\24\2\5\3\2\b\t\3\2\13\f\3\2\16\17S\2\26\3\2\2"+
-		"\2\4\36\3\2\2\2\6\65\3\2\2\2\b\67\3\2\2\2\n9\3\2\2\2\f>\3\2\2\2\16@\3"+
-		"\2\2\2\20O\3\2\2\2\22Q\3\2\2\2\24S\3\2\2\2\26\27\5\4\3\2\27\3\3\2\2\2"+
-		"\30\31\b\3\1\2\31\37\5\6\4\2\32\33\7\3\2\2\33\34\5\4\3\2\34\35\7\4\2\2"+
-		"\35\37\3\2\2\2\36\30\3\2\2\2\36\32\3\2\2\2\37&\3\2\2\2 !\f\3\2\2!\"\5"+
-		"\b\5\2\"#\5\4\3\4#%\3\2\2\2$ \3\2\2\2%(\3\2\2\2&$\3\2\2\2&\'\3\2\2\2\'"+
-		"\5\3\2\2\2(&\3\2\2\2)\66\5\24\13\2*+\5\16\b\2+,\5\24\13\2,\66\3\2\2\2"+
-		"-.\5\24\13\2./\5\n\6\2/\60\5\22\n\2\60\66\3\2\2\2\61\62\5\24\13\2\62\63"+
-		"\5\f\7\2\63\64\5\20\t\2\64\66\3\2\2\2\65)\3\2\2\2\65*\3\2\2\2\65-\3\2"+
-		"\2\2\65\61\3\2\2\2\66\7\3\2\2\2\678\t\2\2\28\t\3\2\2\29:\t\3\2\2:\13\3"+
-		"\2\2\2;?\7\r\2\2<=\7\n\2\2=?\7\r\2\2>;\3\2\2\2><\3\2\2\2?\r\3\2\2\2@A"+
-		"\7\n\2\2A\17\3\2\2\2BC\7\5\2\2CH\5\22\n\2DE\7\6\2\2EG\5\22\n\2FD\3\2\2"+
-		"\2GJ\3\2\2\2HF\3\2\2\2HI\3\2\2\2IK\3\2\2\2JH\3\2\2\2KL\7\7\2\2LP\3\2\2"+
-		"\2MN\7\5\2\2NP\7\7\2\2OB\3\2\2\2OM\3\2\2\2P\21\3\2\2\2QR\t\4\2\2R\23\3"+
-		"\2\2\2ST\7\16\2\2T\25\3\2\2\2\b\36&\65>HO";
+		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\22^\4\2\t\2\4\3\t"+
+		"\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4"+
+		"\f\t\f\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3!\n\3\3\3\3\3\3\3\3\3\7\3\'"+
+		"\n\3\f\3\16\3*\13\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3"+
+		"\4\3\4\3\4\3\4\5\4<\n\4\3\5\3\5\3\6\3\6\3\7\3\7\3\b\3\b\3\b\5\bG\n\b\3"+
+		"\t\3\t\3\n\3\n\3\n\3\n\7\nO\n\n\f\n\16\nR\13\n\3\n\3\n\3\n\3\n\5\nX\n"+
+		"\n\3\13\3\13\3\f\3\f\3\f\2\3\4\r\2\4\6\b\n\f\16\20\22\24\26\2\6\3\2\b"+
+		"\t\3\2\13\f\3\2\r\16\3\2\20\21[\2\30\3\2\2\2\4 \3\2\2\2\6;\3\2\2\2\b="+
+		"\3\2\2\2\n?\3\2\2\2\fA\3\2\2\2\16F\3\2\2\2\20H\3\2\2\2\22W\3\2\2\2\24"+
+		"Y\3\2\2\2\26[\3\2\2\2\30\31\5\4\3\2\31\3\3\2\2\2\32\33\b\3\1\2\33!\5\6"+
+		"\4\2\34\35\7\3\2\2\35\36\5\4\3\2\36\37\7\4\2\2\37!\3\2\2\2 \32\3\2\2\2"+
+		" \34\3\2\2\2!(\3\2\2\2\"#\f\3\2\2#$\5\b\5\2$%\5\4\3\4%\'\3\2\2\2&\"\3"+
+		"\2\2\2\'*\3\2\2\2(&\3\2\2\2()\3\2\2\2)\5\3\2\2\2*(\3\2\2\2+<\5\26\f\2"+
+		",-\5\20\t\2-.\5\26\f\2.<\3\2\2\2/\60\5\26\f\2\60\61\5\n\6\2\61\62\5\24"+
+		"\13\2\62<\3\2\2\2\63\64\5\26\f\2\64\65\5\f\7\2\65\66\5\24\13\2\66<\3\2"+
+		"\2\2\678\5\26\f\289\5\16\b\29:\5\22\n\2:<\3\2\2\2;+\3\2\2\2;,\3\2\2\2"+
+		";/\3\2\2\2;\63\3\2\2\2;\67\3\2\2\2<\7\3\2\2\2=>\t\2\2\2>\t\3\2\2\2?@\t"+
+		"\3\2\2@\13\3\2\2\2AB\t\4\2\2B\r\3\2\2\2CG\7\17\2\2DE\7\n\2\2EG\7\17\2"+
+		"\2FC\3\2\2\2FD\3\2\2\2G\17\3\2\2\2HI\7\n\2\2I\21\3\2\2\2JK\7\5\2\2KP\5"+
+		"\24\13\2LM\7\6\2\2MO\5\24\13\2NL\3\2\2\2OR\3\2\2\2PN\3\2\2\2PQ\3\2\2\2"+
+		"QS\3\2\2\2RP\3\2\2\2ST\7\7\2\2TX\3\2\2\2UV\7\5\2\2VX\7\7\2\2WJ\3\2\2\2"+
+		"WU\3\2\2\2X\23\3\2\2\2YZ\t\5\2\2Z\25\3\2\2\2[\\\7\20\2\2\\\27\3\2\2\2"+
+		"\b (;FPW";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
