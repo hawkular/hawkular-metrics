@@ -194,6 +194,18 @@ class ExpressionTagQueryITest extends RESTTest {
         headers: [(tenantHeaderName): tenantId])
       assertEquals(200, response.status)
       assertMetricListById(response.data, 'm6')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a1 !~ 'ab.*'"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm1', 'm2', 'm5')
+
+      response = hawkularMetrics.get(path: "metrics",
+        query: [tags: "a1 !~ 'ab.+'"],
+        headers: [(tenantHeaderName): tenantId])
+      assertEquals(200, response.status)
+      assertMetricListById(response.data, 'm1', 'm2', 'm4', 'm5')
     }
   }
 

@@ -118,6 +118,10 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         gauges = test.parse(tenantId, GAUGE, "a1=defg AND (a2 in [jkl, xyz])").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m4", "m5");
+
+        gauges = test.parse(tenantId, GAUGE, "a1 !~ 'def.*'").toList().toBlocking()
+                .lastOrDefault(null);
+        assertMetricListById(gauges, "m1", "m3");
     }
 
     @Test
