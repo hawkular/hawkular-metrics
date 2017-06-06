@@ -50,6 +50,7 @@ import org.testng.annotations.BeforeMethod;
 
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TableMetadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
@@ -95,18 +96,14 @@ public abstract class BaseMetricsITest extends BaseITest {
         session.execute("TRUNCATE retentions_idx");
         session.execute("TRUNCATE metrics_tags_idx");
         session.execute("TRUNCATE leases");
-        session.execute("TRUNCATE data_temp_0");
-        session.execute("TRUNCATE data_temp_1");
-        session.execute("TRUNCATE data_temp_2");
-        session.execute("TRUNCATE data_temp_3");
-        session.execute("TRUNCATE data_temp_4");
-        session.execute("TRUNCATE data_temp_5");
-        session.execute("TRUNCATE data_temp_6");
-        session.execute("TRUNCATE data_temp_7");
-        session.execute("TRUNCATE data_temp_8");
-        session.execute("TRUNCATE data_temp_9");
-        session.execute("TRUNCATE data_temp_10");
-        session.execute("TRUNCATE data_temp_11");
+
+        // Need to truncate all the temp tables also..
+        for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
+                .getTables()) {
+            if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_FORMAT)) {
+                session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
+            }
+        }
 
         metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
@@ -178,7 +175,7 @@ public abstract class BaseMetricsITest extends BaseITest {
     protected void assertMetricIndexMatches(String tenantId, MetricType<?> type, List<Metric<?>> expected)
         throws Exception {
         Set<Metric<?>> actualIndex = Sets
-                .newHashSet(metricsService.findMetrics(tenantId, type).toBlocking().toIterable());
+                .newHashSet(metricsService.findMetrics(tenantId, type).doOnError(Throwable::printStackTrace).toBlocking().toIterable());
         assertEquals(actualIndex, Sets.newHashSet(expected), "The metrics index results do not match");
     }
 

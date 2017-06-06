@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -284,6 +285,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
     private <T, V> void createAndDeleteMetrics(MetricType<T> mType, T[] dataPointValues) {
         String tenantId = createRandomId();
         final int iterations = 4;
+        long now = DateTimeService.now.get().getMillis();
 
         List<Metric<T>> mList = new ArrayList<>();
         for (int i = 0; i < iterations; i++) {
@@ -296,7 +298,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
             List<DataPoint<T>> dataPoints = new ArrayList<>();
             for (int j = 0; j < dataPointValues.length; j++) {
-                dataPoints.add(new DataPoint<T>((long) (j + 1), dataPointValues[j]));
+                dataPoints.add(new DataPoint<T>(now + j, dataPointValues[j]));
             }
 
             Metric<T> m = new Metric<>(mId, tags, 21, dataPoints);
@@ -312,7 +314,8 @@ public class MixedMetricsITest extends BaseMetricsITest {
             Metric<T> actualMetric = metricsService.findMetric(mId).toBlocking().firstOrDefault(null);
             assertEquals(actualMetric.getMetricId(), mId);
 
-            List<DataPoint<T>> actualDataPoints = metricsService.findDataPoints(mId, 0, 100, 100, Order.ASC).toList()
+            List<DataPoint<T>> actualDataPoints = metricsService.findDataPoints(mId, now, now+100, 100, Order.ASC)
+                    .toList()
                     .toBlocking().firstOrDefault(null);
             assertEquals(actualDataPoints, m.getDataPoints());
 

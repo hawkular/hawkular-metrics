@@ -510,8 +510,9 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
         Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
-                .distinct()
+                .doOnError(Throwable::printStackTrace)
                 .filter(row -> tenantId.equals(row.getString(0)))
+                .distinct()
                 .compose(new MetricFromFullDataRowTransformer(defaultTTL))
                 .map(m -> (Metric<T>) m);
 
@@ -627,14 +628,15 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
-            Order order, int pageSize) {
+                                                       Order order, int pageSize) {
+
         Timer.Context context = rawDataReadLatency.time();
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
 
-        if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
+        if (metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
             Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
@@ -661,7 +663,7 @@ public class MetricsServiceImpl implements MetricsService {
                     .distinctUntilChanged(
                             (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 
-            if(limit > 0) {
+            if (limit > 0) {
                 dataPoints = dataPoints.take(limit);
             }
 
@@ -670,7 +672,8 @@ public class MetricsServiceImpl implements MetricsService {
         Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
                 getDataPointFinder(metricType);
 
-        Observable<DataPoint<T>> results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
+        Observable<DataPoint<T>> results =
+                finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
         return results.doOnCompleted(context::stop);
     }
 
@@ -960,7 +963,9 @@ public class MetricsServiceImpl implements MetricsService {
             percentiles) {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
+        System.out.printf("----------_> CAN'T GET IT");
         return findDataPoints(id, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
+                .doOnError(Throwable::printStackTrace)
                 .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
     }
 

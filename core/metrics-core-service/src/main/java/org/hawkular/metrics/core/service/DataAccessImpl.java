@@ -94,9 +94,9 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
-    public static final String TEMP_TABLE_PROTOTYPE = "data_temp_";
-    public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_PROTOTYPE + "%d";
-    public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_PROTOTYPE + "%s";
+    public static final String TEMP_TABLE_NAME_PROTOTYPE = "data_temp_";
+    public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_NAME_PROTOTYPE + "%d";
+    public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
     public static final int NUMBER_OF_TEMP_TABLES = 12;
     public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
 
@@ -368,12 +368,16 @@ public class DataAccessImpl implements DataAccess {
         return key;
     }
 
+    private Integer getMapKey(MetricType type, TempStatement ts) {
+        return getMapKey(type.getCode(), ts.ordinal());
+    }
+
     private void prepareTempStatements(Map<Integer, PreparedStatement> statementMap, String tableName) {
         // Per metricType
         for (MetricType<?> metricType : MetricType.all()) {
             if(metricType == STRING) { continue; } // We don't support String metrics in temp tables yet
             for (TempStatement st : TempStatement.values()) {
-                Integer key = getMapKey(metricType.getCode(), st.ordinal());
+                Integer key = getMapKey(metricType, st);
 
                 String formatSt;
                 switch(st.getType()) {
@@ -396,7 +400,7 @@ public class DataAccessImpl implements DataAccess {
         }
         // Untyped
         for (TempStatement st : TempStatement.values()) {
-            Integer key = getMapKey(MetricType.UNDEFINED.getCode(), st.ordinal());
+            Integer key = getMapKey(MetricType.UNDEFINED, st);
             String formatSt;
             switch(st.getType()) {
                 case SCAN:
@@ -422,7 +426,7 @@ public class DataAccessImpl implements DataAccess {
 
         Set<String> existingTables = new HashSet<>();
         for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
-            if (table.getName().startsWith(TEMP_TABLE_PROTOTYPE)) {
+            if (table.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
                 existingTables.add(table.getName());
             }
         }
@@ -448,7 +452,7 @@ public class DataAccessImpl implements DataAccess {
 
         // At startup we should initialize preparedStatements for all the temporary tables that are existing
         for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
-            if(table.getName().startsWith(TEMP_TABLE_PROTOTYPE)) {
+            if(table.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
                 // Proceed to create the preparedStatements against this table
                 mapKey = tableToMapKey(table.getName());
 
@@ -465,6 +469,60 @@ public class DataAccessImpl implements DataAccess {
         // writes
         if(mapKey == null) {
             createTemporaryTable(getTempTableName(System.currentTimeMillis()));
+        }
+
+        // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
+        // These should be transparent in writes
+        if(false) { // TODO Replace with configurable setting if this is enabled or not
+            Map<Integer, PreparedStatement> statementMap = new HashMap<>();
+            for (MetricType<?> metricType : MetricType.all()) {
+                // Reads
+                PreparedStatement prepared = session.prepare(
+                        String.format(TempStatement.dateRangeExclusive.getStatement(), metricTypeToColumnName(metricType), "data")
+                );
+                Integer key = getMapKey(metricType, TempStatement.dateRangeExclusive);
+                statementMap.put(key, prepared);
+
+                prepared = session.prepare(
+                        String.format(TempStatement.dateRangeExclusiveWithLimit.getStatement(), metricTypeToColumnName(metricType)
+                                , "data")
+                );
+                key = getMapKey(metricType, TempStatement.dateRangeExclusiveWithLimit);
+                statementMap.put(key, prepared);
+
+                prepared = session.prepare(
+                        String.format(TempStatement.dataByDateRangeExclusiveASC.getStatement(), metricTypeToColumnName(metricType)
+                                , "data")
+                );
+                key = getMapKey(metricType, TempStatement.dataByDateRangeExclusiveASC);
+                statementMap.put(key, prepared);
+
+                prepared = session.prepare(
+                        String.format(TempStatement.dataByDateRangeExclusiveWithLimitASC.getStatement(), metricTypeToColumnName
+                                (metricType), "data")
+                );
+
+                key = getMapKey(metricType, TempStatement.dataByDateRangeExclusiveWithLimitASC);
+                statementMap.put(key, prepared);
+
+                // Writes
+                prepared = session.prepare(
+                        String.format(TempStatement.INSERT_DATA.getStatement(), "data",
+                                metricTypeToColumnName(metricType))
+                );
+
+                key = getMapKey(metricType, TempStatement.INSERT_DATA);
+                statementMap.put(key, prepared);
+
+                prepared = session.prepare(
+                        String.format(TempStatement.INSERT_DATA_WITH_TAGS.getStatement(), "data",
+                                metricTypeToColumnName(metricType))
+                );
+
+                key = getMapKey(metricType, TempStatement.INSERT_DATA_WITH_TAGS);
+                statementMap.put(key, prepared);
+            }
+            prepMap.put(0L, statementMap); // Fall back is always at value 0 (floorKey/floorEntry will hit it)
         }
 
         // These are for the ring buffer strategy (slightly faster but Cassandra 3.x has issues with consistent schema)
@@ -964,20 +1022,30 @@ public class DataAccessImpl implements DataAccess {
     private Observable<PreparedStatement> getPrepForAllTempTablesWithoutType(TempStatement ts) {
         return Observable.from(prepMap.entrySet())
                 .map(Map.Entry::getValue)
-                .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED.getCode(), ts.ordinal())));
+                .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED, ts)));
 
     }
 
-    private Observable<PreparedStatement> getPrepForAllTempTablesAndTypes(TempStatement ts) {
+    private Observable<PreparedStatement> getPrepForAllTempTables(TempStatement ts) {
         return Observable.from(prepMap.entrySet())
                 .map(Map.Entry::getValue)
-                .zipWith(Observable.from(MetricType.all()),
-                        (pMap, metricType) -> pMap.get(getMapKey(metricType.getCode(), ts.ordinal())));
+                .zipWith(Observable.just(MetricType.UNDEFINED), (pMap, metricType) -> pMap.get(getMapKey(metricType,
+                        ts)));
+//                .zipWith(Observable.from(MetricType.all()).filter(t -> t != STRING).doOnNext(mt -> System.out.printf
+//                                ("Next: %s\n", mt.toString())),
+//                        (pMap, metricType) -> {
+//                            PreparedStatement preparedStatement = ;
+//                            if(preparedStatement == null) {
+//                                System.out.printf("Could not find preparedStatement for %s ; %s\n", metricType
+//                                        .toString(), ts.name());
+//                            }
+//                            return preparedStatement;
+//                        });
     }
 
     @Override
     public Observable<Row> findAllMetricsInData() {
-        return getPrepForAllTempTablesAndTypes(TempStatement.LIST_ALL_METRICS_FROM_TABLE)
+        return getPrepForAllTempTables(TempStatement.LIST_ALL_METRICS_FROM_TABLE)
                 .map(PreparedStatement::bind)
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(
@@ -1036,7 +1104,7 @@ public class DataAccessImpl implements DataAccess {
 
     Long tableToMapKey(String tableName) {
         LocalDateTime parsed = LocalDateTime
-                .parse(tableName.substring(TEMP_TABLE_PROTOTYPE.length()),
+                .parse(tableName.substring(TEMP_TABLE_NAME_PROTOTYPE.length()),
                         TEMP_TABLE_DATEFORMATTER);
         return Long.valueOf(parsed.toInstant(ZoneOffset.UTC).toEpochMilli());
     }
@@ -1057,12 +1125,10 @@ public class DataAccessImpl implements DataAccess {
 //    }
 
     PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
-        log.infof("getTempStatement called for type->%s, statement->%s, timestamp->%d", type.toString(), ts.name(),
-                timestamp);
         return prepMap
                 .floorEntry(timestamp)
                 .getValue()
-                .get(getMapKey(type.getCode(), ts.ordinal()));
+                .get(getMapKey(type, ts));
     }
 
     @Override
@@ -1079,10 +1145,8 @@ public class DataAccessImpl implements DataAccess {
         MetricId<T> metricId = metric.getMetricId();
 
         /*
-        TODO If the NavigableMap returns a null (no matching temp table exists anymore) then the insert is too far
-         behind (and then we should decide what to do with it.. write to data table or just ignore / throw error ?
-
-         For now we'll ignore it and continue with the next
+        TODO If the NavigableMap returns the deprecated "data" table, then we'll need to modify this insert to bind
+        timeUuid instead of Date
          */
 
         return tO -> tO
@@ -1292,20 +1356,28 @@ public class DataAccessImpl implements DataAccess {
 
         // Depending on the order, these must be read in the correct order also..
 
+        if(startKey == null) {
+            startKey = prepMap.ceilingKey(startTime);
+        }
+        if(endKey == null) {
+            endKey = prepMap.ceilingKey(endTime);
+        }
+
         if (order == Order.ASC) {
-            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = prepMap.subMap(startKey, endKey);
+            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = prepMap.subMap(startKey, true, endKey,
+                    true);
             Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
 
             if (limit <= 0) {
                 return buckets
-                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dataByDateRangeExclusiveASC.ordinal())))
+                        .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveASC)))
                         .concatMap(p -> rxSession.executeAndFetch(p
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
                                         new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return buckets
-                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dataByDateRangeExclusiveWithLimitASC.ordinal())))
+                        .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveWithLimitASC)))
                         .concatMap(p -> rxSession.executeAndFetch(p
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
                                         new Date(endTime), limit)
@@ -1315,19 +1387,19 @@ public class DataAccessImpl implements DataAccess {
             // Sort to different order
             SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = new ConcurrentSkipListMap<>(
                     (var0, var2) -> var0 < var2?1:(var0 == var2?0:-1));
-            statementMap.putAll(prepMap.subMap(startKey, endKey));
+            statementMap.putAll(prepMap.subMap(startKey, true, endKey, true));
             Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
 
             if (limit <= 0) {
                 return buckets
-                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dateRangeExclusive.ordinal())))
+                        .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusive)))
                         .concatMap(p -> rxSession.executeAndFetch(p
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
                                         new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return buckets
-                        .map(m -> m.get(getMapKey(type.getCode(), TempStatement.dateRangeExclusiveWithLimit.ordinal())))
+                        .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusiveWithLimit)))
                         .concatMap(p -> rxSession.executeAndFetch(p
                                 .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
                                         limit)

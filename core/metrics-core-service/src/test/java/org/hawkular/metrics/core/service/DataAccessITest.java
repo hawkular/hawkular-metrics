@@ -43,6 +43,7 @@ import org.testng.annotations.Test;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -66,6 +67,12 @@ public class DataAccessITest extends BaseITest {
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
+        try {
+            // Wait for the SchemaChangeListener to do its work
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+//            e.printStackTrace();
+        }
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
         truncateCompressedData = session.prepare("TRUNCATE data_compressed");
@@ -76,8 +83,12 @@ public class DataAccessITest extends BaseITest {
         session.execute(truncateTenants.bind());
         session.execute(truncateGaugeData.bind());
         session.execute(truncateCompressedData.bind());
-        for(int i = 0; i < DataAccessImpl.NUMBER_OF_TEMP_TABLES; i++) {
-            session.execute(String.format("TRUNCATE data_temp_%d", i));
+        // Need to truncate all the temp tables also..
+        for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
+                .getTables()) {
+            if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_PROTOTYPE)) {
+                session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
+            }
         }
     }
 
@@ -198,13 +209,16 @@ public class DataAccessITest extends BaseITest {
                 new Metric<>(new MetricId<>("t1", GAUGE, "m3"), singletonList(new DataPoint<>(start+2, 0.1))),
                 new Metric<>(new MetricId<>("t1", GAUGE, "m4"), singletonList(new DataPoint<>(start+3, 0.1)))))
                 .flatMap(m -> dataAccess.insertData(Observable.just(m)))
+                .doOnError(Throwable::printStackTrace)
                 .toBlocking().lastOrDefault(null);
 
         @SuppressWarnings("unchecked")
         List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
+                .doOnError(Throwable::printStackTrace)
                 .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
-                        ()))
-                .map(m -> (Metric<Double>) m));
+                        ())).doOnError(Throwable::printStackTrace)
+                .map(m -> (Metric<Double>) m)
+        .doOnNext(m -> m.getMetricId().toString()));
 
         assertEquals(metrics.size(), 4);
     }
