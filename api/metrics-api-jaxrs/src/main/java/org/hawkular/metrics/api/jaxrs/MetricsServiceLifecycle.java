@@ -94,6 +94,8 @@ import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
 import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
+import org.hawkular.metrics.core.dropwizard.HawkularObjectNameFactory;
+import org.hawkular.metrics.core.dropwizard.MetaData;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
@@ -455,6 +457,15 @@ public class MetricsServiceLifecycle {
 
             initGCGraceSecondsManager();
 
+            if (!Boolean.parseBoolean(disableMetricsJmxReporting)) {
+                Map<String, MetaData> map = metricRegistry.getMetaDataMap();
+                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(map);
+                JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
+                        .inDomain("org.hawkular.metrics")
+                        .createsObjectNamesWith(JMXObjNameFactory)
+                        .build();
+                jmxReporter.start();
+            }
             state = State.STARTED;
             log.infoServiceStarted();
 
