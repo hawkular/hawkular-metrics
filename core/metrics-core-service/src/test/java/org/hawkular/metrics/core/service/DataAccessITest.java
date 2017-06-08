@@ -66,13 +66,8 @@ public class DataAccessITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
-        try {
-            // Wait for the SchemaChangeListener to do its work
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-//            e.printStackTrace();
-        }
+        this.dataAccess = (DataAccessImpl) TestDataAccessFactory.newInstance(session);
+
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
         truncateCompressedData = session.prepare("TRUNCATE data_compressed");
@@ -119,8 +114,8 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void insertAndFindGaugeRawData() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
 
         Metric<Double> metric = new Metric<>(new MetricId<>("tenant-1", GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
@@ -149,8 +144,8 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void addMetadataToGaugeRawData() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
         String tenantId = "tenant-1";
 
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
@@ -160,7 +155,7 @@ public class DataAccessITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertData(Observable.just(metric)).toBlocking().last();
+        doAction(() -> dataAccess.insertData(Observable.just(metric)).doOnError(Throwable::printStackTrace));
 
         Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
@@ -180,8 +175,8 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void insertAndFindAvailabilities() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
         String tenantId = "avail-test";
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));

@@ -166,8 +166,8 @@ public class CounterITest extends BaseMetricsITest {
 
     @Test
     public void addAndFetchCounterData() throws Exception {
-        DateTime start = now().minusMinutes(30);
-        DateTime end = start.plusMinutes(20);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(50);
         String tenantId = "counters-tenant";
 
         doAction(() -> metricsService.createTenant(new Tenant(tenantId), false));

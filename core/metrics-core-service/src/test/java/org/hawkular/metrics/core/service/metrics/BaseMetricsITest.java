@@ -36,6 +36,7 @@ import org.hawkular.metrics.core.service.DataRetentionsMapper;
 import org.hawkular.metrics.core.service.DelegatingDataAccess;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.PercentileWrapper;
+import org.hawkular.metrics.core.service.TestDataAccessFactory;
 import org.hawkular.metrics.core.service.transformers.NumericDataPointCollector;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -73,7 +74,7 @@ public abstract class BaseMetricsITest extends BaseITest {
 
     @BeforeClass(alwaysRun = true)
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
+        this.dataAccess = TestDataAccessFactory.newInstance(session);
 
         ConfigurationService configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
@@ -81,7 +82,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         defaultCreatePercentile = NumericDataPointCollector.createPercentile;
 
         metricsService = new MetricsServiceImpl();
-        metricsService.setDataAccess(dataAccess);
+        metricsService.setDataAccess(this.dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
         metricsService.startUp(session, getKeyspace(), true, metricRegistry);

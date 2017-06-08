@@ -120,8 +120,12 @@ public abstract class BaseITest {
         Observable<T> observable = fn.get().doOnError(Throwable::printStackTrace);
         observable.subscribe(subscriber);
         subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        for (Throwable throwable : subscriber.getOnErrorEvents()) {
+            throwable.printStackTrace();
+        }
         subscriber.assertNoErrors();
         subscriber.assertCompleted();
+
     }
 
     /**

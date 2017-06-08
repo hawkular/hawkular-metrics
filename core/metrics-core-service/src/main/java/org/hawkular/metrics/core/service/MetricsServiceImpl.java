@@ -963,7 +963,6 @@ public class MetricsServiceImpl implements MetricsService {
             percentiles) {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
-        System.out.printf("----------_> CAN'T GET IT");
         return findDataPoints(id, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
                 .doOnError(Throwable::printStackTrace)
                 .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));

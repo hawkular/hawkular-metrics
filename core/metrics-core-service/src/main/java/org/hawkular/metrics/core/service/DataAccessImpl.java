@@ -98,7 +98,6 @@ public class DataAccessImpl implements DataAccess {
     public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_NAME_PROTOTYPE + "%d";
     public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
     public static final int NUMBER_OF_TEMP_TABLES = 12;
-    public static final int POS_OF_OLD_DATA = NUMBER_OF_TEMP_TABLES;
 
     public static final long DPART = 0;
     private Session session;
@@ -179,7 +178,7 @@ public class DataAccessImpl implements DataAccess {
 
     // Create statement prototype
 
-    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE %s ( " +
+    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE IF NOT EXISTS %s ( " +
             "tenant_id text, " +
             "type tinyint, " +
             "metric text, " +
@@ -372,7 +371,14 @@ public class DataAccessImpl implements DataAccess {
         return getMapKey(type.getCode(), ts.ordinal());
     }
 
-    private void prepareTempStatements(Map<Integer, PreparedStatement> statementMap, String tableName) {
+    void prepareTempStatements(String tableName) {
+        // Proceed to create the preparedStatements against this table
+        Long mapKey = tableToMapKey(tableName);
+
+        // Create an entry to the correct Long
+        Map<Integer, PreparedStatement> statementMap = new HashMap<>();
+        prepMap.put(mapKey, statementMap);
+
         // Per metricType
         for (MetricType<?> metricType : MetricType.all()) {
             if(metricType == STRING) { continue; } // We don't support String metrics in temp tables yet
@@ -434,7 +440,7 @@ public class DataAccessImpl implements DataAccess {
         tables.removeAll(existingTables);
 
         return Completable.fromObservable(Observable.from(tables)
-                .concatMap(t -> createTemporaryTable(t)));
+                .concatMap(this::createTemporaryTable));
     }
 
     Observable<ResultSet> createTemporaryTable(String tempTableName) {
@@ -448,27 +454,21 @@ public class DataAccessImpl implements DataAccess {
         prepMap = new ConcurrentSkipListMap<>();
         session.getCluster().register(new TemporaryTableStatementCreator());
 
-        Long mapKey = null;
+        int preparedTempTables = 0;
 
-        // At startup we should initialize preparedStatements for all the temporary tables that are existing
+        // At startup we should initialize preparedStatements for all the temporary tables that exists
         for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
             if(table.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                // Proceed to create the preparedStatements against this table
-                mapKey = tableToMapKey(table.getName());
-
-                // Create an entry to the correct Long
-                Map<Integer, PreparedStatement> statementMap = new HashMap<>();
-                prepMap.put(mapKey, statementMap);
-
-                // Now prepare all the necessary statements to statementMap
-                prepareTempStatements(statementMap, table.getName());
+                prepareTempStatements(table.getName());
+                preparedTempTables++;
             }
         }
 
         // TempTableCreator should take care of creating tables, but we'll need at least one to be able to process
         // writes
-        if(mapKey == null) {
-            createTemporaryTable(getTempTableName(System.currentTimeMillis()));
+        if(preparedTempTables < 1) {
+            String tableName = getTempTableName(DateTimeService.now.get().getMillis());
+            createTemporaryTable(tableName);
         }
 
         // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
@@ -866,7 +866,7 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
-        return getPrepForAllTempTablesWithoutType(TempStatement.CHECK_EXISTENCE_OF_METRIC_IN_TABLE)
+        return getPrepForAllTempTables(TempStatement.CHECK_EXISTENCE_OF_METRIC_IN_TABLE)
                 .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(rxSession.executeAndFetch(findMetricInData
@@ -1019,28 +1019,11 @@ public class DataAccessImpl implements DataAccess {
 ////                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
 //    }
 
-    private Observable<PreparedStatement> getPrepForAllTempTablesWithoutType(TempStatement ts) {
+    private Observable<PreparedStatement> getPrepForAllTempTables(TempStatement ts) {
         return Observable.from(prepMap.entrySet())
                 .map(Map.Entry::getValue)
                 .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED, ts)));
 
-    }
-
-    private Observable<PreparedStatement> getPrepForAllTempTables(TempStatement ts) {
-        return Observable.from(prepMap.entrySet())
-                .map(Map.Entry::getValue)
-                .zipWith(Observable.just(MetricType.UNDEFINED), (pMap, metricType) -> pMap.get(getMapKey(metricType,
-                        ts)));
-//                .zipWith(Observable.from(MetricType.all()).filter(t -> t != STRING).doOnNext(mt -> System.out.printf
-//                                ("Next: %s\n", mt.toString())),
-//                        (pMap, metricType) -> {
-//                            PreparedStatement preparedStatement = ;
-//                            if(preparedStatement == null) {
-//                                System.out.printf("Could not find preparedStatement for %s ; %s\n", metricType
-//                                        .toString(), ts.name());
-//                            }
-//                            return preparedStatement;
-//                        });
     }
 
     @Override
@@ -1125,10 +1108,14 @@ public class DataAccessImpl implements DataAccess {
 //    }
 
     PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
-        return prepMap
-                .floorEntry(timestamp)
-                .getValue()
-                .get(getMapKey(type, ts));
+        Map.Entry<Long, Map<Integer, PreparedStatement>> floorEntry = prepMap
+                .floorEntry(timestamp);
+
+        if(floorEntry != null) {
+                return floorEntry.getValue()
+                    .get(getMapKey(type, ts));
+        }
+        return null;
     }
 
     @Override
@@ -1357,10 +1344,8 @@ public class DataAccessImpl implements DataAccess {
         // Depending on the order, these must be read in the correct order also..
 
         if(startKey == null) {
+            // The start time is already compressed, start the request from earliest non-compressed
             startKey = prepMap.ceilingKey(startTime);
-        }
-        if(endKey == null) {
-            endKey = prepMap.ceilingKey(endTime);
         }
 
         if (order == Order.ASC) {
@@ -1596,23 +1581,20 @@ public class DataAccessImpl implements DataAccess {
 
         private final CoreLogger log = CoreLogging.getCoreLogger(TemporaryTableStatementCreator.class);
 
-        @Override public void onTableAdded(TableMetadata tableMetadata) {
-            log.infof("Registering prepared statements for table %s", tableMetadata.getName());
-
-            Map<Integer, PreparedStatement> statementMap = new HashMap<>();
-            prepareTempStatements(statementMap, tableMetadata.getName());
-
-            // Find the integer key and insert to the prepMap
-            Long mapKey = tableToMapKey(tableMetadata.getName());
-            prepMap.put(mapKey, statementMap);
+        @Override
+        public void onTableAdded(TableMetadata tableMetadata) {
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_FORMAT)) {
+                log.infof("Registering prepared statements for table %s", tableMetadata.getName());
+                prepareTempStatements(tableMetadata.getName());
+            }
         }
 
-        @Override public void onTableRemoved(TableMetadata tableMetadata) {
-            log.infof("Removing prepared statements for table %s", tableMetadata.getName());
-
-            // Find the integer key and remove from prepMap
-            Long mapKey = tableToMapKey(tableMetadata.getName());
-            prepMap.remove(mapKey);
+        @Override
+        public void onTableRemoved(TableMetadata tableMetadata) {
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_FORMAT)) {
+                log.infof("Removing prepared statements for table %s", tableMetadata.getName());
+                removeTempStatements(tableMetadata.getName());
+            }
         }
 
         // Rest are not interesting to us
@@ -1641,5 +1623,11 @@ public class DataAccessImpl implements DataAccess {
                                                         MaterializedViewMetadata materializedViewMetadata1) {}
         @Override public void onRegister(Cluster cluster) {}
         @Override public void onUnregister(Cluster cluster) {}
+    }
+
+    void removeTempStatements(String tableName) {
+        // Find the integer key and remove from prepMap
+        Long mapKey = tableToMapKey(tableName);
+        prepMap.remove(mapKey);
     }
 }
