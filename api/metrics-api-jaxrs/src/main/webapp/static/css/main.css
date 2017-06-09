@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,30 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-html {
-  width: 100%;
+.navbar .brand-name {
+    font-size: 18pt;
+    padding-top: 15px;
 }
 
-body {
-  font-family: 'Exo 2', sans-serif;
+.navbar .brand-statement {
+    padding-top: 17px;
+}
+
+.navbar .brand-statement:hover {
+    color: #f5f5f5;
 }
 
 .content {
+    background-color: #f5f5f5;
+    width: 100%;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1em;
+    text-align: center;
+}
+
+.logo-big {
   margin-left: auto;
   margin-right: auto;
-  max-width: 100%;
-  width: 50em;
-  padding: 1em;
   text-align: center;
 }
 
-.logo {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-}
-
-.logo img {
+.logo-big img {
   max-width: 100%;
   margin-left: auto;
   margin-right: auto;
