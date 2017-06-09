@@ -38,10 +38,12 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
@@ -58,6 +60,7 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.AggregateMetadata;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
@@ -85,6 +88,9 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
+import rx.functions.Func1;
+import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 /**
  *
@@ -97,7 +103,7 @@ public class DataAccessImpl implements DataAccess {
     public static final String TEMP_TABLE_NAME_PROTOTYPE = "data_temp_";
     public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_NAME_PROTOTYPE + "%d";
     public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
-    public static final int NUMBER_OF_TEMP_TABLES = 12;
+//    public static final int NUMBER_OF_TEMP_TABLES = 12;
 
     public static final long DPART = 0;
     private Session session;
@@ -114,7 +120,7 @@ public class DataAccessImpl implements DataAccess {
     // as in-memory + WAL in Cassandra)
 
     private enum StatementType {
-        READ, WRITE, SCAN, CREATE
+        READ, WRITE, SCAN, CREATE, DELETE
     }
 
     private enum TempStatement {
@@ -128,8 +134,9 @@ public class DataAccessImpl implements DataAccess {
         LIST_ALL_METRICS_FROM_TABLE(findAllMetricsInDataBases, StatementType.SCAN),
         INSERT_DATA(data, StatementType.WRITE),
         INSERT_DATA_WITH_TAGS(dataWithTags, StatementType.WRITE),
-        CREATE_TABLE(TEMP_TABLE_BASE_CREATE, StatementType.CREATE);
+        CREATE_TABLE(TEMP_TABLE_BASE_CREATE, StatementType.CREATE),
 //        CREATE_WAL(TEMP_TABLE_WAL_CREATE, StatementType.CREATE);
+        DELETE_DATA(DELETE_FROM_DATA_BASE, StatementType.DELETE);
 
         private final String statement;
         private StatementType type;
@@ -178,7 +185,7 @@ public class DataAccessImpl implements DataAccess {
 
     // Create statement prototype
 
-    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE IF NOT EXISTS %s ( " +
+    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE %s ( " +
             "tenant_id text, " +
             "type tinyint, " +
             "metric text, " +
@@ -224,6 +231,12 @@ public class DataAccessImpl implements DataAccess {
 
     private static String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
             "FROM %s";
+
+    // Delete statement prototypes
+
+    private static String DELETE_FROM_DATA_BASE = "DELETE FROM %s " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?";
+
 
 //    private PreparedStatement[][] dateRangeExclusive;
 //    private PreparedStatement[][] dateRangeExclusiveWithLimit;
@@ -410,9 +423,8 @@ public class DataAccessImpl implements DataAccess {
             String formatSt;
             switch(st.getType()) {
                 case SCAN:
-                    formatSt = String.format(st.getStatement(), tableName);
-                    break;
                 case CREATE:
+                case DELETE:
                     formatSt = String.format(st.getStatement(), tableName);
                     break;
                 default:
@@ -424,30 +436,37 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Completable createTempTablesIfNotExists(Set<Long> timestamps) {
-        Set<String> tables = new HashSet<>(timestamps.size());
+    public Observable<ResultSet> createTempTablesIfNotExists(final Set<Long> timestamps) {
+        return Observable.fromCallable(() -> {
+            Set<String> tables = timestamps.stream()
+                    .map(this::getTempTableName)
+                    .collect(Collectors.toSet());
 
-        timestamps.stream()
-                .forEach(l -> tables.add(getTempTableName(l)));
+            // TODO This is an IO operation..
+            metadata.getKeyspace(session.getLoggedKeyspace()).getTables().stream()
+                    .map(AbstractTableMetadata::getName)
+                    .filter(t -> t.startsWith(TEMP_TABLE_NAME_PROTOTYPE))
+                    .forEach(tables::remove);
 
-        Set<String> existingTables = new HashSet<>();
-        for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
-            if (table.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                existingTables.add(table.getName());
-            }
-        }
+            return tables;
+        })
 
-        tables.removeAll(existingTables);
-
-        return Completable.fromObservable(Observable.from(tables)
-                .concatMap(this::createTemporaryTable));
+                .flatMapIterable(s -> s)
+                .flatMap(this::createTemporaryTable);
     }
 
     Observable<ResultSet> createTemporaryTable(String tempTableName) {
-        SimpleStatement st =
-                new SimpleStatement(String.format(TempStatement.CREATE_TABLE.getStatement(), tempTableName));
+        return Observable.just(tempTableName)
+                .map(t -> new SimpleStatement(String.format(TempStatement.CREATE_TABLE.getStatement(), t)))
+                .zipWith(Observable.interval(1, TimeUnit.SECONDS), (st, l) -> st)
+                .flatMap(st -> rxSession.execute(st));
+    }
 
-        return rxSession.execute(st);
+    void checkTempOperationalStatus(int preparedTempTables) {
+        if(preparedTempTables < 1) {
+            String tableName = getTempTableName(DateTimeService.now.get().getMillis());
+            createTemporaryTable(tableName);
+        }
     }
 
     private void initializeTemporaryTableStatements() {
@@ -466,10 +485,7 @@ public class DataAccessImpl implements DataAccess {
 
         // TempTableCreator should take care of creating tables, but we'll need at least one to be able to process
         // writes
-        if(preparedTempTables < 1) {
-            String tableName = getTempTableName(DateTimeService.now.get().getMillis());
-            createTemporaryTable(tableName);
-        }
+        checkTempOperationalStatus(preparedTempTables);
 
         // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
         // These should be transparent in writes
@@ -1331,13 +1347,7 @@ public class DataAccessImpl implements DataAccess {
 //        }
 //    }
 
-    @Override
-    public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-                                            int pageSize) {
-        MetricType<T> type = id.getType();
-        // Find out which tables we'll need to scan
-//        Integer[] buckets = tempBuckets(startTime, endTime, order);
-
+    private SortedMap<Long, Map<Integer, PreparedStatement>> subSetMap(long startTime, long endTime, Order order) {
         Long startKey = prepMap.floorKey(startTime);
         Long endKey = prepMap.floorKey(endTime);
 
@@ -1348,11 +1358,33 @@ public class DataAccessImpl implements DataAccess {
             startKey = prepMap.ceilingKey(startTime);
         }
 
-        if (order == Order.ASC) {
-            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = prepMap.subMap(startKey, true, endKey,
-                    true);
-            Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+        // Just in case even the end is in the past
+        if(endKey == null) {
+            endKey = startKey;
+        }
 
+        SortedMap<Long, Map<Integer, PreparedStatement>> statementMap;
+        if(order == Order.ASC) {
+             statementMap = prepMap.subMap(startKey, true, endKey,
+                    true);
+        } else {
+            statementMap = new ConcurrentSkipListMap<>(
+                    (var0, var2) -> var0 < var2?1:(var0 == var2?0:-1));
+            statementMap.putAll(prepMap.subMap(startKey, true, endKey, true));
+        }
+
+        return statementMap;
+    }
+
+    @Override
+    public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                            int pageSize) {
+        MetricType<T> type = id.getType();
+
+        SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = subSetMap(startTime, endTime, order);
+        Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+
+        if (order == Order.ASC) {
             if (limit <= 0) {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveASC)))
@@ -1369,12 +1401,6 @@ public class DataAccessImpl implements DataAccess {
                                 .setFetchSize(pageSize)));
             }
         } else {
-            // Sort to different order
-            SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = new ConcurrentSkipListMap<>(
-                    (var0, var2) -> var0 < var2?1:(var0 == var2?0:-1));
-            statementMap.putAll(prepMap.subMap(startKey, true, endKey, true));
-            Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
-
             if (limit <= 0) {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusive)))
@@ -1453,7 +1479,9 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
-        return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+        return getPrepForAllTempTables(TempStatement.DELETE_DATA)
+                .flatMap(p -> rxSession.execute(p.bind(id.getTenantId(), id.getType().getCode(), id.getName()
+                        , DPART)));
     }
 
     @Override
@@ -1583,15 +1611,21 @@ public class DataAccessImpl implements DataAccess {
 
         @Override
         public void onTableAdded(TableMetadata tableMetadata) {
-            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_FORMAT)) {
+            log.infof("Table added %s", tableMetadata.getName());
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
                 log.infof("Registering prepared statements for table %s", tableMetadata.getName());
-                prepareTempStatements(tableMetadata.getName());
+                Observable.fromCallable(() -> {
+                    prepareTempStatements(tableMetadata.getName());
+                    return null;
+                })
+                        .subscribeOn(Schedulers.io())
+                        .subscribe();
             }
         }
 
         @Override
         public void onTableRemoved(TableMetadata tableMetadata) {
-            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_FORMAT)) {
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
                 log.infof("Removing prepared statements for table %s", tableMetadata.getName());
                 removeTempStatements(tableMetadata.getName());
             }
@@ -1606,7 +1640,9 @@ public class DataAccessImpl implements DataAccess {
         @Override public void onKeyspaceChanged(KeyspaceMetadata keyspaceMetadata, KeyspaceMetadata keyspaceMetadata1) {}
 
 
-        @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {}
+        @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {
+            log.infof("Table changed %s", tableMetadata.getName());
+        }
 
         @Override public void onUserTypeAdded(UserType userType) {}
         @Override public void onUserTypeRemoved(UserType userType) {}

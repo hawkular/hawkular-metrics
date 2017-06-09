@@ -25,6 +25,8 @@ import org.joda.time.DateTime;
 
 import com.datastax.driver.core.Session;
 
+import rx.schedulers.Schedulers;
+
 /**
  * @author Michael Burman
  */
@@ -36,13 +38,19 @@ public class TestDataAccessFactory {
             @Override
             void prepareTempStatements(String tableName) {
                 super.prepareTempStatements(tableName);
+                System.out.printf("===========================> Preparing for %s\n", tableName);
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }
             }
+
+            @Override void checkTempOperationalStatus(int preparedTempTables) {
+//                super.checkTempOperationalStatus(preparedTempTables);
+            }
         };
         dataAccess.createTempTablesIfNotExists(tableListForTesting())
-                .subscribe();
+                .subscribeOn(Schedulers.io())
+                .toBlocking().subscribe();
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -58,8 +66,8 @@ public class TestDataAccessFactory {
     static Set<Long> tableListForTesting() {
         Set<Long> tempTables = new HashSet<>(2);
         DateTime now = DateTimeService.now.get();
-        tempTables.add(now.minusHours(2).getMillis());
         tempTables.add(now.getMillis());
+        tempTables.add(now.minusHours(2).getMillis());
         tempTables.add(now.plusHours(2).getMillis());
         return tempTables;
     }

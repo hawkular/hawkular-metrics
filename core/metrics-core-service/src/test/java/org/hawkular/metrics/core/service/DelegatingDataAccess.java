@@ -44,7 +44,8 @@ public class DelegatingDataAccess implements DataAccess {
         this.delegate = delegate;
     }
 
-    @Override public Completable createTempTablesIfNotExists(Set<Long> timestamps) {
+    @Override
+    public Observable<ResultSet> createTempTablesIfNotExists(Set<Long> timestamps) {
         return delegate.createTempTablesIfNotExists(timestamps);
     }
 

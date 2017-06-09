@@ -38,7 +38,7 @@ import rx.Observable;
  */
 public interface DataAccess {
 
-    Completable createTempTablesIfNotExists(Set<Long> timestamps);
+    Observable<ResultSet> createTempTablesIfNotExists(Set<Long> timestamps);
 
     Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 

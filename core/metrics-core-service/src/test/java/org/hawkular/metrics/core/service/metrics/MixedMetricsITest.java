@@ -303,8 +303,8 @@ public class MixedMetricsITest extends BaseMetricsITest {
 
             Metric<T> m = new Metric<>(mId, tags, 21, dataPoints);
             mList.add(m);
-            metricsService.createMetric(m, true).toBlocking().lastOrDefault(null);
-            metricsService.addDataPoints(mType, Observable.just(m)).toBlocking().lastOrDefault(null);
+            doAction(() -> metricsService.createMetric(m, true));
+            doAction(() -> metricsService.addDataPoints(mType, Observable.just(m)));
         }
 
         List<Metric<T>> deletedMetrics = new ArrayList<>();
@@ -322,7 +322,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
             Map<String, String> actualTags = metricsService.getMetricTags(mId).toBlocking().lastOrDefault(null);
             assertEquals(actualTags, m.getTags());
 
-            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
+            doAction(() -> metricsService.deleteMetric(mId));
             deletedMetrics.add(m);
 
             for (Metric<T> checkMetric : mList) {
