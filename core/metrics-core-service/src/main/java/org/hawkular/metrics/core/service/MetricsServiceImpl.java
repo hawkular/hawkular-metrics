@@ -724,7 +724,7 @@ public class MetricsServiceImpl implements MetricsService {
             startTime = startTime.plus(2, ChronoUnit.HOURS);
         }
 
-        return dataAccess.createTempTablesIfNotExists(timestamps);
+        return Completable.fromObservable(dataAccess.createTempTablesIfNotExists(timestamps));
     }
 
     @Override

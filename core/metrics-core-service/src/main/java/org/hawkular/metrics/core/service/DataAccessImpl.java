@@ -452,13 +452,13 @@ public class DataAccessImpl implements DataAccess {
         })
 
                 .flatMapIterable(s -> s)
-                .flatMap(this::createTemporaryTable);
+                .zipWith(Observable.interval(500, TimeUnit.MILLISECONDS), (st, l) -> st)
+                .concatMap(this::createTemporaryTable);
     }
 
     Observable<ResultSet> createTemporaryTable(String tempTableName) {
         return Observable.just(tempTableName)
                 .map(t -> new SimpleStatement(String.format(TempStatement.CREATE_TABLE.getStatement(), t)))
-                .zipWith(Observable.interval(1, TimeUnit.SECONDS), (st, l) -> st)
                 .flatMap(st -> rxSession.execute(st));
     }
 
@@ -1479,6 +1479,10 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
+        if(id.getType() == STRING) {
+            return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+        }
+
         return getPrepForAllTempTables(TempStatement.DELETE_DATA)
                 .flatMap(p -> rxSession.execute(p.bind(id.getTenantId(), id.getType().getCode(), id.getName()
                         , DPART)));

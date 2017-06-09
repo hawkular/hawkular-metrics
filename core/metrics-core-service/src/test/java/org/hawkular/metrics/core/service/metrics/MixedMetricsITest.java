@@ -335,7 +335,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
                     assertEquals(actualMetric.getMetricId(), checkId);
                 }
 
-                actualDataPoints = metricsService.findDataPoints(checkId, 0, 100, 100, Order.ASC).toList()
+                actualDataPoints = metricsService.findDataPoints(checkId, now, now+100, 100, Order.ASC).toList()
                         .toBlocking().firstOrDefault(null);
                 if (deletedMetrics.contains(checkMetric)) {
                     assertEquals(actualDataPoints.isEmpty(), true);
