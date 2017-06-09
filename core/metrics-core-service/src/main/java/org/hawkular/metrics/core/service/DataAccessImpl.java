@@ -38,7 +38,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -88,8 +87,6 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
-import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 /**

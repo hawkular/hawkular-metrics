@@ -1046,10 +1046,15 @@ public class MetricsServiceImpl implements MetricsService {
         //      for the compressed data table.
 
         return getMetricTags(id)
-                .flatMap(tags -> dataAccess.deleteFromMetricsIndexAndTags(id, tags)
-                        .concatMap(r -> dataAccess.deleteMetricData(id))
-                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))
-                        .concatMap(r -> dataAccess.deleteFromMetricExpirationIndex(id)))
+                .flatMap(tags -> dataAccess.deleteFromMetricsIndexAndTags(id, tags))
+                .concatWith(dataAccess.deleteMetricData(id))
+                .concatWith(dataAccess.deleteMetricFromRetentionIndex(id))
+                .concatWith(dataAccess.deleteFromMetricExpirationIndex(id))
+                .doOnNext(rs -> System.out.printf("=========================> Deleted %s\n", id))
+                .doOnError(Throwable::printStackTrace)
+//                        .concatMap(r -> dataAccess.deleteMetricData(id))
+//                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))
+//                        .concatMap(r -> dataAccess.deleteFromMetricExpirationIndex(id)))
                 .map(r -> null);
     }
 

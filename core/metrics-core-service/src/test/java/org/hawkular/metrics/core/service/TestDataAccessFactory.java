@@ -16,9 +16,12 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.joda.time.DateTime;
@@ -38,7 +41,6 @@ public class TestDataAccessFactory {
             @Override
             void prepareTempStatements(String tableName) {
                 super.prepareTempStatements(tableName);
-                System.out.printf("===========================> Preparing for %s\n", tableName);
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }
@@ -52,7 +54,7 @@ public class TestDataAccessFactory {
                 .subscribeOn(Schedulers.io())
                 .toBlocking().subscribe();
         try {
-            latch.await();
+            assertTrue(latch.await(10, TimeUnit.SECONDS));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
