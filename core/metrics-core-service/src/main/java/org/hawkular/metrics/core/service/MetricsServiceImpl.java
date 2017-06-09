@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -482,7 +482,7 @@ public class MetricsServiceImpl implements MetricsService {
                 // eventually want to implement more fine-grained error handling where we can
                 // notify the subscriber of what exactly fails.
                 List<Observable<ResultSet>> updates = new ArrayList<>();
-                updates.add(dataAccess.insertIntoMetricsTagsIndex(metric, metric.getTags()));
+                updates.add(dataAccess.addTags(metric, metric.getTags()));
 
                 if (metric.getDataRetention() != null) {
                     updates.add(updateRetentionsIndex(metric));
@@ -578,21 +578,20 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
-        return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
-                .toList().map(l -> null);
+        return dataAccess.addTags(metric, tags).map(l -> null);
     }
 
     @Override
     public Observable<Void> deleteTags(Metric<?> metric, Set<String> tags) {
         return getMetricTags(metric.getMetricId())
                 .map(loadedTags -> {
-                    loadedTags.keySet().retainAll(tags);
+                    if (tags != null) {
+                        loadedTags.keySet().retainAll(tags);
+                    }
                     return loadedTags;
                 })
-                .flatMap(tagsToDelete -> {
-                    return dataAccess.deleteTags(metric, tagsToDelete.keySet()).mergeWith(
-                            dataAccess.deleteFromMetricsTagsIndex(metric, tagsToDelete)).toList().map(r -> null);
-                });
+                .flatMap(tagsToDelete -> dataAccess.deleteTags(metric, tagsToDelete))
+                .map(r -> null);
     }
 
     @Override

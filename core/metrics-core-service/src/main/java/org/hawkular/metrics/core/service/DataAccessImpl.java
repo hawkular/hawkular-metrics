@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,11 +28,12 @@ import static org.hawkular.metrics.model.MetricType.STRING;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
+import org.hawkular.metrics.core.service.log.CoreLogger;
+import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
@@ -44,21 +45,26 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
+import rx.exceptions.Exceptions;
 
 /**
  *
  * @author John Sanda
  */
 public class DataAccessImpl implements DataAccess {
+
+    private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
     public static final long DPART = 0;
     private Session session;
@@ -194,6 +200,8 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement findMetricsByTagName;
 
     private PreparedStatement findMetricsByTagNameValue;
+
+    private PreparedStatement deleteMetricFromMetricsIndex;
 
     public DataAccessImpl(Session session) {
         this.session = session;
@@ -514,6 +522,10 @@ public class DataAccessImpl implements DataAccess {
                 "SELECT tenant_id, type, metric " +
                 "FROM metrics_tags_idx " +
                 "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
+
+        deleteMetricFromMetricsIndex = session.prepare(
+                "DELETE FROM metrics_idx " +
+                 "WHERE tenant_id = ? AND type = ? AND metric = ?");
     }
 
     @Override
@@ -577,17 +589,41 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags) {
         MetricId<T> metricId = metric.getMetricId();
-        BoundStatement stmt = addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
-                metricId.getName());
-        return rxSession.execute(stmt);
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(addTagsToMetricsIndex.bind(tags, metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName()));
+        tags.forEach((key, value) -> batch.add(insertMetricsTagsIndex.bind(metricId.getTenantId(), key, value,
+                metricId.getType().getCode(), metricId.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to insert metric tags for metric id " + metricId));
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags) {
+    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Map<String, String> tags) {
         MetricId<T> metricId = metric.getMetricId();
-        BoundStatement stmt = deleteTagsFromMetricsIndex.bind(tags, metricId.getTenantId(),
-                metricId.getType().getCode(), metricId.getName());
-        return rxSession.execute(stmt);
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(deleteTagsFromMetricsIndex.bind(tags.keySet(), metricId.getTenantId(), metricId.getType().getCode(),
+                metricId.getName()));
+        tags.forEach((key, value) -> batch.add(deleteMetricsTagsIndex.bind(metricId.getTenantId(), key, value,
+                metricId.getType().getCode(), metricId.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to delete metric tags for metric id " + metricId));
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteFromMetricsIndexAndTags(MetricId<T> id, Map<String, String> tags) {
+        BatchStatement batch = new BatchStatement(BatchStatement.Type.LOGGED);
+
+        batch.add(deleteMetricFromMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+        tags.forEach((key, value) -> batch.add(deleteMetricsTagsIndex.bind(id.getTenantId(), key, value,
+                id.getType().getCode(), id.getName())));
+
+        return rxSession.execute(batch)
+                .compose(applyWriteRetryPolicy("Failed to delete metric and tags for metric id " + id));
     }
 
     @Override
@@ -931,27 +967,6 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getMetricId();
-        return tagsUpdates(tags, (name, value) -> insertMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
-                metricId.getType().getCode(), metricId.getName()));
-    }
-
-    @Override
-    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
-        MetricId<T> metricId = metric.getMetricId();
-        return tagsUpdates(tags, (name, value) -> deleteMetricsTagsIndex.bind(metricId.getTenantId(), name, value,
-                metricId.getType().getCode(), metricId.getName()));
-    }
-
-    private Observable<ResultSet> tagsUpdates(Map<String, String> tags,
-                                              BiFunction<String, String, BoundStatement> bindVars) {
-        return Observable.from(tags.entrySet())
-                .map(entry -> bindVars.apply(entry.getKey(), entry.getValue()))
-                .flatMap(rxSession::execute);
-    }
-
-    @Override
     public Observable<Row> findMetricsByTagName(String tenantId, String tag) {
         return rxSession.executeAndFetch(findMetricsByTagName.bind(tenantId, tag));
     }
@@ -1017,5 +1032,28 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Row> findAllMetricsFromTagsIndex() {
         return rxSession.executeAndFetch(findAllMetricsFromTagsIndex.bind());
+    }
+
+    /*
+     * Apply our current retry policy to the insert behavior
+     */
+    private <T> Observable.Transformer<T, T> applyWriteRetryPolicy(String msg) {
+        return tObservable -> tObservable
+                .retryWhen(errors -> {
+                    Observable<Integer> range = Observable.range(1, 2);
+                    return errors
+                            .zipWith(range, (t, i) -> {
+                                if (t instanceof DriverException) {
+                                    return i;
+                                }
+                                throw Exceptions.propagate(t);
+                            })
+                            .flatMap(retryCount -> {
+                                long delay = (long) Math.min(Math.pow(2, retryCount) * 1000, 3000);
+                                log.debug(msg);
+                                log.debugf("Retrying batch insert in %d ms", delay);
+                                return Observable.timer(delay, TimeUnit.MILLISECONDS);
+                            });
+                });
     }
 }
