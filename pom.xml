@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular</groupId>
     <artifactId>hawkular-parent</artifactId>
-    <version>55</version>
+    <version>56-SNAPSHOT</version>
   </parent>
 
   <groupId>org.hawkular.metrics</groupId>
@@ -325,10 +325,6 @@
             <exclude>src/main/docker/standalone.xml</exclude>
             <!-- Exclude ANTLR token files -->
             <exclude>**/.*.tokens</exclude>
-            <!-- Exclude fonts because it comes from google fonts and has an Open Font License -->
-            <exclude>src/main/webapp/static/fonts/**/*.woff2</exclude>
-            <!-- Exclude fonts css it comes from google fonts  -->
-            <exclude>src/main/webapp/static/fonts.css</exclude>
           </excludes>
         </configuration>
       </plugin>
