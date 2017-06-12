@@ -18,7 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import static java.util.Arrays.asList;
 
-import static org.hawkular.metrics.core.jobs.CompressData.JOB_NAME;
+import static org.hawkular.metrics.core.jobs.TempDataCompressor.JOB_NAME;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
@@ -29,6 +29,7 @@ import static org.testng.AssertJUnit.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -38,9 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.core.service.TestDataAccessFactory;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -68,11 +69,6 @@ import com.google.common.collect.ImmutableMap;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
-//import static org.junit.Assert.assertEquals;
-//import static org.junit.Assert.assertNotNull;
-//import static org.junit.Assert.assertNull;
-//import static org.junit.Assert.assertTrue;
-
 /**
  * Test the compression ETL jobs
  *
@@ -94,12 +90,12 @@ public class CompressDataJobITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = TestDataAccessFactory.newInstance(session);
 
         resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
                 JOB_NAME + "'");
 
-        configurationService = new ConfigurationService() ;
+        configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
         metricsService = new MetricsServiceImpl();
@@ -115,10 +111,14 @@ public class CompressDataJobITest extends BaseITest {
         session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
-        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
+
+        // To recreate the temporary tables
+        dataAccess = TestDataAccessFactory.newInstance(session);
+        metricsService.setDataAccess(dataAccess);
+
+        long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
                 .with(DateTimeService.startOfNextOddHour())
-                .toInstant(ZoneOffset.UTC).toEpochMilli() - 60000;
-        jobScheduler.advanceTimeTo(nextStart);
+                .toInstant(ZoneOffset.UTC).toEpochMilli();
         jobScheduler.truncateTables(getKeyspace());
 
         jobsService = new JobsServiceImpl();
@@ -129,12 +129,14 @@ public class CompressDataJobITest extends BaseITest {
         compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
+        jobScheduler.advanceTimeTo(nextStart);
         assertNotNull(compressionJob);
     }
 
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
         jobsService.shutdown();
+        dataAccess.shutdown();
     }
 
     @Test

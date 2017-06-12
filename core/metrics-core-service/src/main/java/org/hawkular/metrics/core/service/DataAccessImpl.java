@@ -116,6 +116,8 @@ public class DataAccessImpl implements DataAccess {
     // TODO Move all of these to a new class (Cassandra specific temp table) to allow multiple implementations (such
     // as in-memory + WAL in Cassandra)
 
+    private TemporaryTableStatementCreator tableCreator;
+
     private enum StatementType {
         READ, WRITE, SCAN, CREATE, DELETE
     }
@@ -468,7 +470,8 @@ public class DataAccessImpl implements DataAccess {
 
     private void initializeTemporaryTableStatements() {
         prepMap = new ConcurrentSkipListMap<>();
-        session.getCluster().register(new TemporaryTableStatementCreator());
+        tableCreator = new TemporaryTableStatementCreator();
+        session.getCluster().register(tableCreator);
 
         int preparedTempTables = 0;
 
@@ -1666,5 +1669,9 @@ public class DataAccessImpl implements DataAccess {
         // Find the integer key and remove from prepMap
         Long mapKey = tableToMapKey(tableName);
         prepMap.remove(mapKey);
+    }
+
+    @Override public void shutdown() {
+        session.getCluster().unregister(tableCreator);
     }
 }

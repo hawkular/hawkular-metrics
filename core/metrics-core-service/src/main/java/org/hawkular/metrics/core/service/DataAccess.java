@@ -133,4 +133,6 @@ public interface DataAccess {
     <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
 
     <T> Observable<Row> findMetricExpiration(MetricId<T> id);
+
+    void shutdown();
 }

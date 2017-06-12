@@ -251,4 +251,8 @@ public class DelegatingDataAccess implements DataAccess {
     public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
         return delegate.findMetricExpiration(id);
     }
+
+    @Override public void shutdown() {
+        delegate.shutdown();
+    }
 }
