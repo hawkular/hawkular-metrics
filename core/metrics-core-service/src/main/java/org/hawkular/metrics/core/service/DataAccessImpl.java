@@ -1301,7 +1301,6 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order) {
-                getTempTableName(startTime), getTempTableName(endTime));
         if (order == Order.ASC) {
             if (limit <= 0) {
                 return rxSession.executeAndFetch(findCompressedDataByDateRangeExclusiveASC.bind(id.getTenantId(),
