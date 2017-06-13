@@ -730,11 +730,12 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     @SuppressWarnings("unchecked")
     public Completable compressBlock(long startTimeSlice, int pageSize) {
-        // TODO Test that this actually fetches and compresses everything.. always
-
         return Completable.fromObservable(
-                Observable.switchOnNext(dataAccess.findAllDataFromBucket(startTimeSlice, pageSize))
-                        .publish(p -> p.window(p.map(Row::getPartitionKeyToken).distinctUntilChanged()))
+                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize)
+                .flatMap(rows -> rows
+                        .publish(p -> p.window(
+                                p.map(Row::getPartitionKeyToken)
+                                        .distinctUntilChanged()))
                         .concatMap(o -> {
                             Observable<Row> sharedRows = o.share();
                             Observable<CompressedPointContainer> compressed = sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
@@ -746,7 +747,7 @@ public class MetricsServiceImpl implements MetricsService {
                                 return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
                                         .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
                             });
-                        })
+                        }))
         ).doOnCompleted(() -> log.infof("Compress part completed"))
                 .andThen(dataAccess.dropTempTable(startTimeSlice));
     }
@@ -1051,7 +1052,6 @@ public class MetricsServiceImpl implements MetricsService {
                 .concatWith(dataAccess.deleteMetricData(id))
                 .concatWith(dataAccess.deleteMetricFromRetentionIndex(id))
                 .concatWith(dataAccess.deleteFromMetricExpirationIndex(id))
-                .doOnNext(rs -> System.out.printf("=========================> Deleted %s\n", id))
                 .doOnError(Throwable::printStackTrace)
 //                        .concatMap(r -> dataAccess.deleteMetricData(id))
 //                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))

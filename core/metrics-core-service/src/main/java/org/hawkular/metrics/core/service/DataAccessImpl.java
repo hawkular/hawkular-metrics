@@ -980,6 +980,9 @@ public class DataAccessImpl implements DataAccess {
     public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
 //        int bucket = getBucketIndex(timestamp);
 
+        // TODO This is making multiple requests because of the getTokenRanges() .. I should recreate fewer amount of
+        // queries
+
         return Observable.from(getTokenRanges())
                 .map(tr -> rxSession.executeAndFetch(
                         getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
@@ -1124,7 +1127,6 @@ public class DataAccessImpl implements DataAccess {
 //    }
 
     PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
-        System.out.printf("getTempStatement %s %s", getTempTableName(timestamp), ts.name());
         Map.Entry<Long, Map<Integer, PreparedStatement>> floorEntry = prepMap
                 .floorEntry(timestamp);
 
@@ -1155,9 +1157,6 @@ public class DataAccessImpl implements DataAccess {
 
         return tO -> tO
                 .map(dataPoint -> {
-                    log.infof("===========> Writing data %d to table %s\n", dataPoint.getTimestamp(),
-                            getTempTableName(dataPoint.getTimestamp()));
-
                     BoundStatement bs;
                     int i = 1;
                     if (dataPoint.getTags().isEmpty()) {
@@ -1302,7 +1301,6 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order) {
-        log.infof("===========> Reading data between %d and %d from tables %s, %s\n", startTime, endTime,
                 getTempTableName(startTime), getTempTableName(endTime));
         if (order == Order.ASC) {
             if (limit <= 0) {

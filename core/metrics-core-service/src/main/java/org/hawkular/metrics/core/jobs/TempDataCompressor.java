@@ -86,7 +86,5 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                             " ms");
                 });
-        // TODO Create the new tables here.. and use client's SchemaChangeNotifier (etc) to create new set of
-        // prepared statements
     }
 }
