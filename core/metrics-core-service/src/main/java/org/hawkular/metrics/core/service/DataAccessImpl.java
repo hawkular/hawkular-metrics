@@ -392,7 +392,7 @@ public class DataAccessImpl implements DataAccess {
         prepMap.put(mapKey, statementMap);
 
         // Per metricType
-        for (MetricType<?> metricType : MetricType.all()) {
+        for (MetricType<?> metricType : MetricType.userTypes()) {
             if(metricType == STRING) { continue; } // We don't support String metrics in temp tables yet
             for (TempStatement st : TempStatement.values()) {
                 Integer key = getMapKey(metricType, st);
@@ -451,7 +451,7 @@ public class DataAccessImpl implements DataAccess {
         })
 
                 .flatMapIterable(s -> s)
-                .zipWith(Observable.interval(500, TimeUnit.MILLISECONDS), (st, l) -> st)
+                .zipWith(Observable.interval(300, TimeUnit.MILLISECONDS), (st, l) -> st)
                 .concatMap(this::createTemporaryTable);
     }
 
@@ -974,12 +974,12 @@ public class DataAccessImpl implements DataAccess {
      * Performance can be improved by using data locality and fetching with multiple threads.
      *
      * @param timestamp A timestamp inside the wanted bucket (such as the previous starting row timestamp)
+     * @param pageSize How many rows to fetch each time
+     * @param maxConcurrency To how many streams should token ranges be split to
      * @return Observable of Observables per partition key
      */
     @Override
-    public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
-//        int bucket = getBucketIndex(timestamp);
-
+    public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency) {
         // TODO This is making multiple requests because of the getTokenRanges() .. I should recreate fewer amount of
         // queries
 

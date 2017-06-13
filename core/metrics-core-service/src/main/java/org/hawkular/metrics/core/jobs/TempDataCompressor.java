@@ -42,22 +42,30 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
     private static Logger logger = Logger.getLogger(TempDataCompressor.class);
 
     public static final String JOB_NAME = "TEMP_DATA_COMPRESSOR";
-    public static final String CONFIG_ID = "org.hawkular.metrics.jobs." + JOB_NAME;
+    public static final String CONFIG_ID = JobsServiceImpl.CONFIG_PREFIX + "temp.table.compressor";
+    public static final String CONFIG_PAGE_SIZE = "page-size";
+    public static final String CONFIG_MAX_READ_CONCURRENCY = "concurrency.read.max";
 
     private static final int DEFAULT_PAGE_SIZE = 1000;
+    private static final int DEFAULT_READ_CONCURRENCY = 2;
 
     private MetricsService metricsService;
 
     private int pageSize;
     private boolean enabled;
+    private int maxReadConcurrency = DEFAULT_READ_CONCURRENCY;
 
     public TempDataCompressor(MetricsService service, ConfigurationService configurationService) {
         metricsService = service;
         Configuration configuration = configurationService.load(CONFIG_ID).toSingle().toBlocking().value();
-        if (configuration.get("page-size") == null) {
+        if (configuration.get(CONFIG_PAGE_SIZE) == null) {
             pageSize = DEFAULT_PAGE_SIZE;
         } else {
-            pageSize = Integer.parseInt(configuration.get("page-size"));
+            pageSize = Integer.parseInt(configuration.get(CONFIG_PAGE_SIZE));
+        }
+
+        if(configuration.get(CONFIG_MAX_READ_CONCURRENCY) != null) {
+            maxReadConcurrency = Integer.parseInt(configuration.get(CONFIG_MAX_READ_CONCURRENCY));
         }
 
         String enabledConfig = configuration.get("enabled", "true");
@@ -80,7 +88,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
         logger.infof("Starting to process temp table for starting time of %d", startOfSlice);
 
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
-        return metricsService.compressBlock(startOfSlice, pageSize)
+        return metricsService.compressBlock(startOfSlice, pageSize, maxReadConcurrency)
                 .doOnCompleted(() -> {
                     stopwatch.stop();
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +

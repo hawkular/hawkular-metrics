@@ -48,6 +48,8 @@ import rx.functions.Func2;
  */
 public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
+    public static final String CONFIG_PREFIX = "org.hawkular.metrics.jobs.";
+
     private static Logger logger = Logger.getLogger(JobsServiceImpl.class);
 
     private Scheduler scheduler;

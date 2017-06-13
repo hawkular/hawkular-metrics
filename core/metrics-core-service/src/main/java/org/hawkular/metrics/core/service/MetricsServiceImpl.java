@@ -729,9 +729,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Completable compressBlock(long startTimeSlice, int pageSize) {
+    public Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
-                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize)
+                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
                 .flatMap(rows -> rows
                         .publish(p -> p.window(
                                 p.map(Row::getPartitionKeyToken)
@@ -747,7 +747,7 @@ public class MetricsServiceImpl implements MetricsService {
                                 return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
                                         .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
                             });
-                        }))
+                        }), maxConcurrency)
         ).doOnCompleted(() -> log.infof("Compress part completed"))
                 .andThen(dataAccess.dropTempTable(startTimeSlice));
     }

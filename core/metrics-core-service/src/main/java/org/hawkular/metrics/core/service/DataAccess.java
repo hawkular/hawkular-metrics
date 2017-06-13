@@ -68,14 +68,14 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
-    Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize);
-
     /*
     https://issues.apache.org/jira/browse/CASSANDRA-11143
     https://issues.apache.org/jira/browse/CASSANDRA-10699
     https://issues.apache.org/jira/browse/CASSANDRA-9424
      */
 //    Completable resetTempTable(long timestamp);
+
+    Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency);
 
     Completable dropTempTable(long timestamp);
 

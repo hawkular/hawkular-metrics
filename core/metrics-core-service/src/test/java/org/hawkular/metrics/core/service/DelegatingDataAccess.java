@@ -118,8 +118,8 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
-    @Override public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize) {
-        return delegate.findAllDataFromBucket(timestamp, pageSize);
+    @Override public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency) {
+        return delegate.findAllDataFromBucket(timestamp, pageSize, maxConcurrency);
     }
 
     @Override public Completable dropTempTable(long timestamp) {

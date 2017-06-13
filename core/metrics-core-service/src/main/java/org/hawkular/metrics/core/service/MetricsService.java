@@ -178,7 +178,14 @@ public interface MetricsService {
 
     Completable verifyAndCreateTempTables(ZonedDateTime startTime, ZonedDateTime endTime);
 
-    @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice, int pageSize);
+    /**
+     *
+     * @param startTimeSlice
+     * @param pageSize
+     * @param maxConcurrency How many reads are concurrently called from Cassandra
+     * @return
+     */
+    @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency);
 
     /**
      * Compresses the given range between timestamps to a single block.
