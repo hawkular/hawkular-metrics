@@ -84,7 +84,6 @@ import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 
-import rx.Completable;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.schedulers.Schedulers;
@@ -540,79 +539,6 @@ public class DataAccessImpl implements DataAccess {
             }
             prepMap.put(0L, statementMap); // Fall back is always at value 0 (floorKey/floorEntry will hit it)
         }
-
-        // These are for the ring buffer strategy (slightly faster but Cassandra 3.x has issues with consistent schema)
-
-        // Read statements
-//        dateRangeExclusive = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
-//        dateRangeExclusiveWithLimit = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
-//        dataByDateRangeExclusiveASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
-//        dataByDateRangeExclusiveWithLimitASC = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES+1];
-//        scanTempTableWithTokens = new PreparedStatement[NUMBER_OF_TEMP_TABLES];
-//
-//        // Insert statements
-//        dataTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
-//        dataWithTagsTable = new PreparedStatement[MetricType.all().size()][NUMBER_OF_TEMP_TABLES];
-//
-//        // MetricDefinition statements
-//        metricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
-//        allMetricsInDatas = new PreparedStatement[NUMBER_OF_TEMP_TABLES+1];
-//
-//        // Initialize all the temporary tables for inserts
-//        for (MetricType<?> metricType : MetricType.all()) {
-//            for(int k = 0; k < NUMBER_OF_TEMP_TABLES; k++) {
-//                // String metrics are not yet supported with temp tables
-//                if(metricType.getCode() == 4) {
-//                    continue;
-//                }
-//
-//                String tempTableName = String.format(TEMP_TABLE_NAME_FORMAT, k);
-//
-//                // Insert statements
-//                dataTable[metricType.getCode()][k] = session.prepare(
-//                        String.format(data, tempTableName, metricTypeToColumnName(metricType))
-//                );
-//                dataWithTagsTable[metricType.getCode()][k] = session.prepare(
-//                        String.format(dataWithTags, tempTableName, metricTypeToColumnName(metricType))
-//                );
-//                // Read statements
-//                dateRangeExclusive[metricType.getCode()][k] = session.prepare(
-//                        String.format(byDateRangeExclusiveBase, metricTypeToColumnName(metricType), tempTableName)
-//                );
-//                dateRangeExclusiveWithLimit[metricType.getCode()][k] = session.prepare(
-//                        String.format(dateRangeExclusiveWithLimitBase, metricTypeToColumnName(metricType), tempTableName)
-//                );
-//                dataByDateRangeExclusiveASC[metricType.getCode()][k] = session.prepare(
-//                        String.format(dataByDateRangeExclusiveASCBase, metricTypeToColumnName(metricType), tempTableName)
-//                );
-//                dataByDateRangeExclusiveWithLimitASC[metricType.getCode()][k] = session.prepare(
-//                        String.format(dataByDateRangeExclusiveWithLimitASCBase, metricTypeToColumnName(metricType), tempTableName)
-//                );
-//            }
-//            // Then initialize the old fashion ones..
-//            dateRangeExclusive[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
-//                    String.format(byDateRangeExclusiveBase, metricTypeToColumnName(metricType), "data")
-//            );
-//            dateRangeExclusiveWithLimit[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
-//                    String.format(dateRangeExclusiveWithLimitBase, metricTypeToColumnName(metricType), "data")
-//            );
-//            dataByDateRangeExclusiveASC[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
-//                    String.format(dataByDateRangeExclusiveASCBase, metricTypeToColumnName(metricType), "data")
-//            );
-//            dataByDateRangeExclusiveWithLimitASC[metricType.getCode()][POS_OF_OLD_DATA] = session.prepare(
-//                    String.format(dataByDateRangeExclusiveWithLimitASCBase, metricTypeToColumnName(metricType), "data")
-//            );
-//        }
-//
-//        // MetricDefinition statements
-//        for(int i = 0; i < NUMBER_OF_TEMP_TABLES; i++) {
-//            String tempTableName = String.format(TEMP_TABLE_NAME_FORMAT, i);
-//            metricsInDatas[i] = session.prepare(String.format(findMetricInDataBase, tempTableName));
-//            allMetricsInDatas[i] = session.prepare(String.format(findAllMetricsInDataBases, tempTableName));
-//            scanTempTableWithTokens[i] = session.prepare(String.format(scanTableBase, tempTableName));
-//        }
-//        metricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findMetricInDataBase, "data"));
-//        allMetricsInDatas[POS_OF_OLD_DATA] = session.prepare(String.format(findAllMetricsInDataBases, "data"));
     }
 
     private String metricTypeToColumnName(MetricType<?> type) {
@@ -980,9 +906,6 @@ public class DataAccessImpl implements DataAccess {
      */
     @Override
     public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency) {
-        // TODO This is making multiple requests because of the getTokenRanges() .. I should recreate fewer amount of
-        // queries
-
         return Observable.from(getTokenRanges())
                 .map(tr -> rxSession.executeAndFetch(
                         getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
@@ -1000,43 +923,12 @@ public class DataAccessImpl implements DataAccess {
         return tokenRanges;
     }
 
-    @Override public Completable dropTempTable(long timestamp) {
+    @Override
+    public Observable<ResultSet> dropTempTable(long timestamp) {
         String fullTableName = getTempTableName(timestamp);
         String dropCQL = String.format("DROP TABLE %s", fullTableName);
-        return Completable.fromObservable(rxSession.execute(dropCQL));
+        return rxSession.execute(dropCQL);
     }
-
-    /*
-    https://issues.apache.org/jira/browse/CASSANDRA-11143
-    https://issues.apache.org/jira/browse/CASSANDRA-10699
-    https://issues.apache.org/jira/browse/CASSANDRA-9424
-     */
-//    @Override
-//    public Completable resetTempTable(long timestamp) {
-//        String fullTableName = String.format(TEMP_TABLE_NAME_FORMAT, getBucketIndex(timestamp));
-//
-//        return Completable.fromAction(() -> {
-//            String reCreateCQL = metadata.getKeyspace(session.getLoggedKeyspace())
-//                    .getTable(fullTableName)
-//                    .asCQLQuery();
-//
-//            String dropCQL = String.format("DROP TABLE %s", fullTableName);
-//
-//            session.execute(dropCQL);
-//            while(!session.getCluster().getMetadata().checkSchemaAgreement()) {
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//            session.execute(reCreateCQL);
-//        });
-//        // TODO Needs to reprepare all the preparedstatements after dropping..
-//
-////        return Completable.fromObservable(rxSession.execute(dropCQL))
-////                .andThen(Completable.fromObservable(rxSession.execute(reCreateCQL)));
-//    }
 
     private Observable<PreparedStatement> getPrepForAllTempTables(TempStatement ts) {
         return Observable.from(prepMap.entrySet())
@@ -1321,34 +1213,6 @@ public class DataAccessImpl implements DataAccess {
             }
         }
     }
-
-//    private Integer[] tempBuckets(long startTime, long endTime, Order order) {
-//        ZonedDateTime endZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTime), UTC)
-//                .with(DateTimeService.startOfPreviousEvenHour());
-//
-//        ZonedDateTime startZone = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTime), UTC)
-//                .with(DateTimeService.startOfPreviousEvenHour());
-//
-//        // Max time back is <24 hours.
-//        if(startZone.isBefore(endZone.minus(23, ChronoUnit.HOURS))) {
-//            startZone = endZone.minus(23, ChronoUnit.HOURS);
-//        }
-//
-//        ConcurrentSkipListSet<Integer> buckets = new ConcurrentSkipListSet<>();
-//
-//        while(startZone.isBefore(endZone)) {
-//            buckets.add(getBucketIndex(startZone.toInstant().toEpochMilli()));
-//            startZone = startZone.plus(1, ChronoUnit.HOURS);
-//        }
-//
-//        buckets.add(getBucketIndex(endZone.toInstant().toEpochMilli()));
-//
-//        if(order == Order.DESC) {
-//            return buckets.descendingSet().stream().toArray(Integer[]::new);
-//        } else {
-//            return buckets.stream().toArray(Integer[]::new);
-//        }
-//    }
 
     private SortedMap<Long, Map<Integer, PreparedStatement>> subSetMap(long startTime, long endTime, Order order) {
         Long startKey = prepMap.floorKey(startTime);

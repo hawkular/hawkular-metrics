@@ -30,6 +30,7 @@ import static org.testng.Assert.assertTrue;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,9 +49,13 @@ import org.joda.time.DateTime;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
 
+import rx.Completable;
+import rx.Emitter;
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
@@ -339,6 +344,60 @@ public class GaugeITest extends BaseMetricsITest {
 
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
+    }
+
+    @Test
+    void addAndCompressData() throws Exception {
+        String tenantId = "t1";
+        long start = now().getMillis();
+
+        int amountOfMetrics = 1000;
+        int datapointsPerMetric = 10;
+
+        for (int j = 0; j < datapointsPerMetric; j++) {
+            final int dpAdd = j;
+            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
+                for (int i = 0; i < amountOfMetrics; i++) {
+                    String metricName = String.format("m%d", i);
+                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
+                }
+                emitter.onCompleted();
+            }, Emitter.BackpressureMode.BUFFER);
+
+            TestSubscriber<Void> subscriber = new TestSubscriber<>();
+            Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
+            observable.subscribe(subscriber);
+            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+            for (Throwable throwable : subscriber.getOnErrorEvents()) {
+                throwable.printStackTrace();
+            }
+            subscriber.assertNoErrors();
+            subscriber.assertCompleted();
+        }
+
+        Completable completable = metricsService.compressBlock(start, 2000, 2);
+
+        TestSubscriber<Row> tsr = new TestSubscriber<>();
+        completable.subscribe(tsr);
+        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
+        tsr.assertCompleted();
+        tsr.assertNoErrors();
+
+        for (int i = 0; i < amountOfMetrics; i++) {
+            String metricName = String.format("m%d", i);
+            MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+
+            Observable<DataPoint<Double>> dataPoints =
+                    metricsService.findDataPoints(mId, start, start + datapointsPerMetric + 1, 0, Order.ASC);
+
+            TestSubscriber<DataPoint<Double>> tsrD = new TestSubscriber<>();
+            dataPoints.subscribe(tsrD);
+            tsrD.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            tsrD.assertCompleted();
+            tsrD.assertNoErrors();
+            tsrD.assertValueCount(datapointsPerMetric);
+        }
     }
 
 //    @Test

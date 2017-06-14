@@ -30,7 +30,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
-import rx.Completable;
 import rx.Observable;
 
 /**
@@ -122,7 +121,7 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findAllDataFromBucket(timestamp, pageSize, maxConcurrency);
     }
 
-    @Override public Completable dropTempTable(long timestamp) {
+    @Override public Observable<ResultSet> dropTempTable(long timestamp) {
         return delegate.dropTempTable(timestamp);
     }
 

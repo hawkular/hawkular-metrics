@@ -107,6 +107,7 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 /**
@@ -732,24 +733,34 @@ public class MetricsServiceImpl implements MetricsService {
     public Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
                 dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
-                .flatMap(rows -> rows
-                        .publish(p -> p.window(
-                                p.map(Row::getPartitionKeyToken)
-                                        .distinctUntilChanged()))
-                        .concatMap(o -> {
-                            Observable<Row> sharedRows = o.share();
-                            Observable<CompressedPointContainer> compressed = sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
-                            Observable<Row> keyTake = sharedRows.take(1);
+                        .flatMap(rows -> rows
+                                .publish(p -> p.window(
+                                        p.map(Row::getPartitionKeyToken)
+                                                .distinctUntilChanged()))
+                                .concatMap(o -> {
+                                    Observable<Row> sharedRows = o.share();
+                                    Observable<CompressedPointContainer> compressed =
+                                            sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
+                                    Observable<Row> keyTake = sharedRows.take(1);
 
-                            return compressed.zipWith(keyTake, (cpc, r) -> {
-                                MetricId<?> metricId =
-                                        new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)), r.getString(2));
-                                return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
-                                        .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
-                            });
-                        }), maxConcurrency)
-        ).doOnCompleted(() -> log.infof("Compress part completed"))
-                .andThen(dataAccess.dropTempTable(startTimeSlice));
+                                    return compressed.zipWith(keyTake, (cpc, r) -> {
+                                        MetricId<?> metricId =
+                                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
+                                                        r.getString(2));
+                                        return dataAccess
+                                                .insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
+                                                .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
+                                    });
+                                }), maxConcurrency)
+                        .flatMap(rs -> rs)
+                        .doOnError(Throwable::printStackTrace)
+                        .doOnCompleted(() -> {
+                            log.infof("Compress part completed");
+                            dataAccess.dropTempTable(startTimeSlice)
+                                    .subscribeOn(Schedulers.io())
+                                    .subscribe();
+                        })
+        );
     }
 
     @Override

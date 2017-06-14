@@ -25,16 +25,22 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -47,7 +53,11 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import rx.Emitter;
 import rx.Observable;
+import rx.functions.Func1;
+import rx.observers.TestSubscriber;
+import rx.schedulers.Schedulers;
 
 /**
  * @author John Sanda
@@ -216,6 +226,47 @@ public class DataAccessITest extends BaseITest {
         .doOnNext(m -> m.getMetricId().toString()));
 
         assertEquals(metrics.size(), 4);
+    }
+
+    @Test
+    void testFindAllDataFromBucket() throws Exception {
+        String tenantId = "t1";
+        long start = now().getMillis();
+
+        int amountOfMetrics = 1000;
+        int datapointsPerMetric = 10;
+
+        for (int j = 0; j < datapointsPerMetric; j++) {
+            final int dpAdd = j;
+            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
+                for (int i = 0; i < amountOfMetrics; i++) {
+                    String metricName = String.format("m%d", i);
+                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
+                }
+                emitter.onCompleted();
+            }, Emitter.BackpressureMode.BUFFER);
+
+            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+            Observable<Integer> observable = dataAccess.insertData(metrics);
+            observable.subscribe(subscriber);
+            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+            for (Throwable throwable : subscriber.getOnErrorEvents()) {
+                throwable.printStackTrace();
+            }
+            subscriber.assertNoErrors();
+            subscriber.assertCompleted();
+        }
+
+        Observable<Row> rowObservable = dataAccess.findAllDataFromBucket(start, DEFAULT_PAGE_SIZE, 2)
+                .flatMap(r -> r);
+
+        TestSubscriber<Row> tsr = new TestSubscriber<>();
+        rowObservable.subscribe(tsr);
+        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
+        tsr.assertCompleted();
+        tsr.assertNoErrors();
+        tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
     }
 
 //    @Test

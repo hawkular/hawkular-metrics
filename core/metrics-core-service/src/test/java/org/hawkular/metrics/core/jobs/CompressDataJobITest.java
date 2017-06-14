@@ -102,6 +102,7 @@ public class CompressDataJobITest extends BaseITest {
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, metricRegistry);
+        dataAccess.shutdown();
     }
 
     @BeforeMethod
@@ -114,7 +115,10 @@ public class CompressDataJobITest extends BaseITest {
 
         // To recreate the temporary tables
         dataAccess = TestDataAccessFactory.newInstance(session);
+//        metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
+//        metricsService.setConfigurationService(configurationService);
+//        metricsService.startUp(session, getKeyspace(), false, metricRegistry);
 
         long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
                 .with(DateTimeService.startOfNextOddHour())
@@ -126,7 +130,10 @@ public class CompressDataJobITest extends BaseITest {
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
+        compressionJob = jobsService
+                .start()
+                .stream()
+                .filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
         jobScheduler.advanceTimeTo(nextStart);
@@ -136,6 +143,7 @@ public class CompressDataJobITest extends BaseITest {
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
         jobsService.shutdown();
+//        metricsService.shutdown();
         dataAccess.shutdown();
     }
 
@@ -338,7 +346,6 @@ public class CompressDataJobITest extends BaseITest {
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
                 new DataPoint<>(end.getMillis(), 4.4)));
         testCompressResults(GAUGE, m1, start);
-
 
         assertNotNull(dataAccess.findMetricExpiration(m1.getMetricId()).toBlocking().firstOrDefault(null));
         assertNull(dataAccess.findMetricExpiration(m2.getMetricId()).toBlocking().firstOrDefault(null));

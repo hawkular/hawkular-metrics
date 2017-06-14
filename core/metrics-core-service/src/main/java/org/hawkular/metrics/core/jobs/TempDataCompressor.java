@@ -42,7 +42,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
     private static Logger logger = Logger.getLogger(TempDataCompressor.class);
 
     public static final String JOB_NAME = "TEMP_DATA_COMPRESSOR";
-    public static final String CONFIG_ID = JobsServiceImpl.CONFIG_PREFIX + "temp.table.compressor";
+    public static final String CONFIG_ID = JobsServiceImpl.CONFIG_PREFIX + JOB_NAME;
     public static final String CONFIG_PAGE_SIZE = "page-size";
     public static final String CONFIG_MAX_READ_CONCURRENCY = "concurrency.read.max";
 

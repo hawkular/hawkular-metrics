@@ -30,7 +30,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 
-import rx.Completable;
 import rx.Observable;
 
 /**
@@ -77,7 +76,7 @@ public interface DataAccess {
 
     Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency);
 
-    Completable dropTempTable(long timestamp);
+    Observable<ResultSet> dropTempTable(long timestamp);
 
     Observable<Row> findAllMetricsInData();
 
