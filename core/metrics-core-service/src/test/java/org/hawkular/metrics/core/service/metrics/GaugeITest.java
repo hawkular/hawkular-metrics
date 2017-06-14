@@ -66,6 +66,7 @@ public class GaugeITest extends BaseMetricsITest {
 
     @BeforeMethod
     public void initTest(Method method) {
+        super.initMethod();
         tenantId = method.getName();
     }
 
