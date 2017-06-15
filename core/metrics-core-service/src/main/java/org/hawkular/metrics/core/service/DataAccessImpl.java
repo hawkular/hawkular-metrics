@@ -97,9 +97,7 @@ public class DataAccessImpl implements DataAccess {
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
     public static final String TEMP_TABLE_NAME_PROTOTYPE = "data_temp_";
-    public static final String TEMP_TABLE_NAME_FORMAT = TEMP_TABLE_NAME_PROTOTYPE + "%d";
     public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
-//    public static final int NUMBER_OF_TEMP_TABLES = 12;
 
     public static final long DPART = 0;
     private Session session;

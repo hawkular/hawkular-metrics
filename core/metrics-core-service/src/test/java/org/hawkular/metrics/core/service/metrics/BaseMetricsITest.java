@@ -101,7 +101,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         // Need to truncate all the temp tables also..
         for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
                 .getTables()) {
-            if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_FORMAT)) {
+            if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_PROTOTYPE)) {
                 session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
             }
         }
