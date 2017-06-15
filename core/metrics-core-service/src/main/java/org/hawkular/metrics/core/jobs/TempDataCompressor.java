@@ -85,7 +85,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
         long startOfSlice = timeSliceStart.getMillis();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-        logger.infof("Starting to process temp table for starting time of %d", startOfSlice);
+        logger.infof("Starting to process temp table for starting time of %s", timeSliceStart.toString());
 
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
         return metricsService.compressBlock(startOfSlice, pageSize, maxReadConcurrency)

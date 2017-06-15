@@ -115,7 +115,7 @@ public class DataAccessImpl implements DataAccess {
     // TODO Move all of these to a new class (Cassandra specific temp table) to allow multiple implementations (such
     // as in-memory + WAL in Cassandra)
 
-    private TemporaryTableStatementCreator tableCreator;
+    private TemporaryTableStatementCreator tableCreator = null;
 
     private enum StatementType {
         READ, WRITE, SCAN, CREATE, DELETE
@@ -469,8 +469,8 @@ public class DataAccessImpl implements DataAccess {
 
     private void initializeTemporaryTableStatements() {
         prepMap = new ConcurrentSkipListMap<>();
-        tableCreator = new TemporaryTableStatementCreator();
-        session.getCluster().register(tableCreator);
+        setTempTableCreator(new TemporaryTableStatementCreator());
+//        tableCreator = new TemporaryTableStatementCreator();
 
         int preparedTempTables = 0;
 
@@ -482,7 +482,7 @@ public class DataAccessImpl implements DataAccess {
             }
         }
 
-        // TempTableCreator should take care of creating tables, but we'll need at least one to be able to process
+        // TempTableCreatorListener should take care of creating tables, but we'll need at least one to be able to process
         // writes
         checkTempOperationalStatus(preparedTempTables);
 
@@ -1541,5 +1541,13 @@ public class DataAccessImpl implements DataAccess {
     @Override public void shutdown() {
         session.getCluster().unregister(tableCreator);
         tableCreator = null;
+    }
+
+    public void setTempTableCreator(TemporaryTableStatementCreator creator) {
+        if(tableCreator != null) {
+            session.getCluster().unregister(tableCreator);
+        }
+        tableCreator = creator;
+        session.getCluster().register(tableCreator);
     }
 }

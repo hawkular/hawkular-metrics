@@ -66,7 +66,6 @@ public class GaugeITest extends BaseMetricsITest {
 
     @BeforeMethod
     public void initTest(Method method) {
-        super.initMethod();
         tenantId = method.getName();
     }
 
@@ -347,7 +346,7 @@ public class GaugeITest extends BaseMetricsITest {
         assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
 
-    @Test
+//    @Test
     void addAndCompressData() throws Exception {
         String tenantId = "t1";
         long start = now().getMillis();

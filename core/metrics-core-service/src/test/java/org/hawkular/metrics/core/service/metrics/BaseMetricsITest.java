@@ -106,7 +106,6 @@ public abstract class BaseMetricsITest extends BaseITest {
             }
         }
 
-        metricsService.setDataAccess(dataAccess);
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
     }
 

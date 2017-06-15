@@ -25,22 +25,17 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
-import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
-import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -55,9 +50,7 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Emitter;
 import rx.Observable;
-import rx.functions.Func1;
 import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
 
 /**
  * @author John Sanda

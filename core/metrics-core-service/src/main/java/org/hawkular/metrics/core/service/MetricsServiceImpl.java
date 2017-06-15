@@ -1039,7 +1039,7 @@ public class MetricsServiceImpl implements MetricsService {
         insertedDataPointEvents.onCompleted();
         metricsTasks.shutdown();
         unloadDataRetentions();
-        dataAccess.shutdown();
+//        dataAccess.shutdown();
     }
 
     private <T> T time(Timer timer, Callable<T> callable) {
