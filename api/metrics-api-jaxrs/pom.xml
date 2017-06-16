@@ -123,6 +123,48 @@
       <version>${version.org.infinispan.wildfly}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-rest-api</artifactId>
+      <version>${version.org.hawkular.commons}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hawkular.commons</groupId>
+      <artifactId>hawkular-server</artifactId>
+      <version>${version.org.hawkular.commons}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>${version.io.vertx}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web</artifactId>
+      <version>${version.io.vertx}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java</artifactId>
+      <version>${version.io.vertx}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>1.6.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-codec</artifactId>
+      <version>4.1.8.Final</version>
+    </dependency>
+
     <!-- documentation -->
     <dependency>
       <groupId>io.swagger</groupId>
@@ -151,6 +193,24 @@
   <build>
     <finalName>hawkular-metric-rest</finalName>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${version.org.apache.maven.plugins.maven-jar-plugin}</version>
+        <configuration>
+          <archive>
+            <index>true</index>
+            <manifest>
+              <addClasspath>true</addClasspath>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Vendor-Id>org.hawkular.metrics</Implementation-Vendor-Id>
+              <Implementation-Version>${project.version}</Implementation-Version>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
@@ -182,6 +242,34 @@
             </resource>
           </webResources>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <configuration>
+          <mainClass>org.hawkular.HawkularServer</mainClass>
+          <classpathScope>compile</classpathScope>
+          <arguments>
+            <argument>-cp</argument>
+            <argument>target/dependency/*</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>install-hawkular-netty-server</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
