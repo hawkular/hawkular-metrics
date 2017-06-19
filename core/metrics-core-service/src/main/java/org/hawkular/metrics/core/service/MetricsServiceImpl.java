@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static java.time.ZoneOffset.UTC;
+
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.core.service.Order.ASC;
@@ -27,6 +29,7 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -278,6 +281,8 @@ public class MetricsServiceImpl implements MetricsService {
         initConfiguration(session);
         setDefaultTTL(session, keyspace);
         initMetrics();
+
+        verifyAndCreateTempTables();
 
         tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
         expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
@@ -713,6 +718,17 @@ public class MetricsServiceImpl implements MetricsService {
                 })
                 .doOnError(t -> log.error("Failure while trying to apply compression, skipping block", t))
                 .onErrorResumeNext(Observable.empty());
+    }
+
+    /**
+     * Intended to be used at the startup of the MetricsServiceImpl to ensure we have enough tables for processing
+     */
+    public void verifyAndCreateTempTables() {
+        ZonedDateTime currentBlock = ZonedDateTime.ofInstant(Instant.ofEpochMilli(DateTimeService.now.get().getMillis()), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour());
+
+        ZonedDateTime lastStartupBlock = currentBlock.plus(6, ChronoUnit.HOURS);
+        verifyAndCreateTempTables(currentBlock, lastStartupBlock).await();
     }
 
     @Override

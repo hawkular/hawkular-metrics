@@ -39,8 +39,8 @@ public class TestDataAccessFactory {
         final CountDownLatch latch = new CountDownLatch(3);
         DataAccessImpl dataAccess = new DataAccessImpl(session) {
             @Override
-            void prepareTempStatements(String tableName) {
-                super.prepareTempStatements(tableName);
+            void prepareTempStatements(String tableName, Long mapKey) {
+                super.prepareTempStatements(tableName, mapKey);
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }

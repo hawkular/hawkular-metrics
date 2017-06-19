@@ -452,6 +452,8 @@ public class MetricsServiceLifecycle {
 
             new CassandraDriverMetrics(session, metricRegistry).registerAll();
 
+            initJobsService();
+
             if (Boolean.valueOf(metricsReportingEnabled)) {
                 DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
                 int interval = Integer.getInteger(collectionIntervalConfig, 180);
@@ -459,8 +461,6 @@ public class MetricsServiceLifecycle {
             }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
-
-            initJobsService();
 
             initGCGraceSecondsManager();
 
