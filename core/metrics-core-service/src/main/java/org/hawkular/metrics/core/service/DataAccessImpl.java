@@ -96,7 +96,7 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
-    public static final String OUT_OF_ORDER_TABLE_NAME = "data_temp_0";
+    public static final String OUT_OF_ORDER_TABLE_NAME = "data_0";
     public static final String TEMP_TABLE_NAME_PROTOTYPE = "data_temp_";
     public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
 
