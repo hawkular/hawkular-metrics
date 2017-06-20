@@ -21,10 +21,12 @@ import java.util.Map;
 
 import org.hawkular.handlers.RestEndpoint;
 import org.hawkular.handlers.RestHandler;
-import org.hawkular.metrics.api.JsonUtil;
+import org.hawkular.metrics.api.filter.TenantFilter;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
+import org.hawkular.metrics.api.util.JsonUtil;
 
 import io.swagger.annotations.ApiOperation;
+import io.vertx.core.Handler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.rx.java.ObservableHandler;
@@ -38,14 +40,15 @@ public class PingHandler implements RestHandler {
 
     @Override
     public void initRoutes(String baseUrl, Router router) {
-        router.get(baseUrl + "/ping").handler(ping().toHandler());
+        router.get(baseUrl + "/ping").handler(TenantFilter.filter());
+        router.get(baseUrl + "/ping").handler(ping());
     }
 
     @ApiOperation(value = "Returns the current time and serves to check for the availability of the api.", response =
             Map.class)
-    public ObservableHandler<RoutingContext> ping() {
+    public Handler<RoutingContext> ping() {
         ObservableHandler<RoutingContext> oh = RxHelper.observableHandler(true);
         oh.subscribe(ctx -> ctx.response().end(JsonUtil.toJson(new StringValue(new Date().toString()))));
-        return oh;
+        return oh.toHandler();
     }
 }
