@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.api.handler;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-
 import java.util.Date;
 import java.util.Map;
 
@@ -27,6 +25,7 @@ import org.hawkular.metrics.api.filter.TenantFilter;
 import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.api.util.JsonUtil;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.swagger.annotations.ApiOperation;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.Router;
@@ -54,12 +53,13 @@ public class PingHandler implements RestHandler {
         oh.subscribe(ctx -> {
             ctx.response().setChunked(true);
 
-            Observable.just(JsonUtil.toJson(new StringValue(new Date().toString()))).subscribe(
-                    ctx.response()::write,
-                    error -> {
-                        ctx.response().setStatusCode(BAD_REQUEST.code()).end(error.getMessage());
-                    },
-                    ctx.response()::end);
+            Observable.just(JsonUtil.toJson(new StringValue(new Date().toString())))
+                    .map(ctx.response()::write)
+                    .doOnError(error -> {
+                        ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
+                    })
+                    .doOnCompleted(ctx.response()::end)
+                    .subscribe();
         });
         return oh.toHandler();
     }
