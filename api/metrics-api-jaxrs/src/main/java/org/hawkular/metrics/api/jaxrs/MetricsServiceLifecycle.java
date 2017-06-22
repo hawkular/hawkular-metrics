@@ -512,9 +512,7 @@ public class MetricsServiceLifecycle {
             }
         }
 
-        if (Boolean.parseBoolean(disableMetricsJmxReporting)) {
-            clusterBuilder.withoutJMXReporting();
-        }
+        clusterBuilder.withoutJMXReporting();
 
         int newMaxConnections;
         try {
