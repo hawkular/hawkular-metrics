@@ -22,6 +22,11 @@ import org.hawkular.commons.log.MsgLogger;
 import org.hawkular.commons.log.MsgLogging;
 import org.hawkular.commons.properties.HawkularProperties;
 import org.hawkular.handlers.BaseApplication;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle;
+import org.hawkular.metrics.api.jaxrs.MetricsServiceLifecycle.State;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 public class MetricsApp implements BaseApplication {
     private static final MsgLogger log = MsgLogging.getMsgLogger(MetricsApp.class);
@@ -34,6 +39,26 @@ public class MetricsApp implements BaseApplication {
     @Override
     public void start() {
         log.infof("Metrics app started on [ %s ] ", baseUrl());
+
+        //initializeMetricsService();
+    }
+
+    private void initializeMetricsService() {
+        Injector test2 = Guice.createInjector(new ServiceModule());
+
+        MetricsServiceLifecycle test = test2.getInstance(MetricsServiceLifecycle.class);
+
+        test.init();
+        while (test.getState() != State.STARTED) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            System.out.println(test.getState());
+        }
+        System.out.println(test.getCassandraStatus());
     }
 
     @Override

@@ -154,6 +154,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>4.1.0</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>exec-maven-plugin</artifactId>
       <version>1.6.0</version>
@@ -163,6 +169,12 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-codec</artifactId>
       <version>4.1.8.Final</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.25</version>
     </dependency>
 
     <!-- documentation -->
