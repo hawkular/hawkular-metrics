@@ -156,28 +156,28 @@ public class DataAccessImpl implements DataAccess {
 
     private static String byDateRangeExclusiveBase =
             "SELECT time, %s, tags FROM %s " +
-                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?";
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ? AND time < ?";
 
     private static String dateRangeExclusiveWithLimitBase =
             "SELECT time, %s, tags FROM %s " +
-                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ? AND time < ?" +
                     " LIMIT ?";
 
     private static String dataByDateRangeExclusiveASCBase =
             "SELECT time, %s, tags FROM %s " +
-                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ?" +
                     " AND time < ? ORDER BY time ASC";
 
     private static String dataByDateRangeExclusiveWithLimitASCBase =
             "SELECT time, %s, tags FROM %s" +
-                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ?" +
                     " AND time < ? ORDER BY time ASC" +
                     " LIMIT ?";
 
     private static String scanTableBase =
             "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags, token(tenant_id, type, " +
-                    "metric, dpart) FROM %s " +
-                    "WHERE token(tenant_id, type, metric, dpart) > ? AND token(tenant_id, type, metric, dpart) <=" +
+                    "metric) FROM %s " +
+                    "WHERE token(tenant_id, type, metric) > ? AND token(tenant_id, type, metric) <=" +
                     " ?";
 
     // Create statement prototype
@@ -186,13 +186,12 @@ public class DataAccessImpl implements DataAccess {
             "tenant_id text, " +
             "type tinyint, " +
             "metric text, " +
-            "dpart bigint, " +
             "time timestamp, " +
             "n_value double, " +
             "availability blob, " +
             "l_value bigint, " +
             "tags map<text,text>, " +
-            "PRIMARY KEY ((tenant_id, type, metric, dpart), time)" +
+            "PRIMARY KEY ((tenant_id, type, metric), time)" +
             ") WITH CLUSTERING ORDER BY (time DESC)";
 
     // For in-memory buffering
@@ -206,7 +205,7 @@ public class DataAccessImpl implements DataAccess {
             "count int, " +
             "value blob, " +
             "tags blob, " +
-            "PRIMARY KEY ((tenant_id, type, metric, dpart), time) " +
+            "PRIMARY KEY ((tenant_id, type, metric), time) " +
             ") WITH CLUSTERING ORDER BY (time DESC)";
     */
 
@@ -214,38 +213,25 @@ public class DataAccessImpl implements DataAccess {
 
     private static String data = "UPDATE %s " +
             "SET %s = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND time = ? ";
 
     private static String dataWithTags = "UPDATE %s " +
             "SET %s = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ";
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND time = ? ";
 
     // Metric definition prototypes
 
-    private static String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+    private static String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric " +
             "FROM %s " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? ";
+            "WHERE tenant_id = ? AND type = ? AND metric = ?";
 
-    private static String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric, dpart " +
+    private static String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric " +
             "FROM %s";
 
     // Delete statement prototypes
 
     private static String DELETE_FROM_DATA_BASE = "DELETE FROM %s " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?";
-
-
-//    private PreparedStatement[][] dateRangeExclusive;
-//    private PreparedStatement[][] dateRangeExclusiveWithLimit;
-//    private PreparedStatement[][] dataByDateRangeExclusiveASC;
-//    private PreparedStatement[][] dataByDateRangeExclusiveWithLimitASC;
-//    private PreparedStatement[] scanTempTableWithTokens;
-//
-//    private PreparedStatement[] metricsInDatas;
-//    private PreparedStatement[] allMetricsInDatas;
-//
-//    private PreparedStatement[][] dataTable;
-//    private PreparedStatement[][] dataWithTagsTable;
+            "WHERE tenant_id = ? AND type = ? AND metric = ?";
 
     private PreparedStatement insertTenant;
 
@@ -456,13 +442,6 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(st -> rxSession.execute(st));
     }
 
-    void checkTempOperationalStatus(int preparedTempTables) {
-        if(preparedTempTables < 1) {
-            String tableName = getTempTableName(DateTimeService.now.get().getMillis());
-            createTemporaryTable(tableName).toBlocking().subscribe();
-        }
-    }
-
     private void initializeTemporaryTableStatements() {
         prepMap = new ConcurrentSkipListMap<>();
         setTempTableCreator(new TemporaryTableStatementCreator());
@@ -475,7 +454,6 @@ public class DataAccessImpl implements DataAccess {
                 // Proceed to create the preparedStatements against this table
                 Long mapKey = tableToMapKey(table.getName());
                 prepareTempStatements(table.getName(), mapKey);
-//                preparedTempTables++;
             } else if(table.getName().equals(OUT_OF_ORDER_TABLE_NAME)) {
                 zeroTableExists = true;
             }
@@ -485,23 +463,10 @@ public class DataAccessImpl implements DataAccess {
             createTemporaryTable(OUT_OF_ORDER_TABLE_NAME).toBlocking().subscribe();
         }
 
-        // TempTableCreatorListener should take care of creating tables, but we'll need at least one to be able to process
-        // writes
-//        checkTempOperationalStatus(preparedTempTables);
-
         // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
         // These should be transparent in writes
         prepareTempStatements(OUT_OF_ORDER_TABLE_NAME, 0L); // Fall back is always at value 0 (floorKey/floorEntry will hit it)
     }
-
-    // EEK: CHECK_EXISTENCE_OF_METRIC_IN_TABLE
-
-//    private String modifyToUuidFormat(String st) {
-//        st = st.replace("time = ?", "time = minTimeuuid(?)");
-//        st = st.replace("time >= ?", "time >= minTimeuuid(?)");
-//        st = st.replace("time < ?", "time < maxTimeuuid(?)");
-//        return st;
-//    }
 
     private String metricTypeToColumnName(MetricType<?> type) {
         switch(type.getCode()) {
@@ -771,7 +736,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
         return getPrepForAllTempTables(TempStatement.CHECK_EXISTENCE_OF_METRIC_IN_TABLE)
-                .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
+                .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(rxSession.executeAndFetch(findMetricInData
                         .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
@@ -981,14 +946,6 @@ public class DataAccessImpl implements DataAccess {
                 .format(TEMP_TABLE_DATEFORMATTER));
     }
 
-//    public int getBucketIndex(long timestamp) {
-//        int hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
-//                .with(DateTimeService.startOfPreviousEvenHour())
-//                .getHour();
-//
-//        return Math.floorDiv(hour, 2);
-//    }
-
     PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
         Map.Entry<Long, Map<Integer, PreparedStatement>> floorEntry = prepMap
                 .floorEntry(timestamp);
@@ -1043,7 +1000,6 @@ public class DataAccessImpl implements DataAccess {
                             .setString(i, metricId.getTenantId())
                             .setByte(++i, metricId.getType().getCode())
                             .setString(++i, metricId.getName())
-                            .setLong(++i, DPART)
                             .setTimestamp(++i, new Date(dataPoint.getTimestamp()));
                 })
                 .filter(Objects::nonNull);
@@ -1221,14 +1177,14 @@ public class DataAccessImpl implements DataAccess {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveASC)))
                         .concatMap(p -> rxSession.executeAndFetch(p
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(),
                                         new Date(startTime), new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveWithLimitASC)))
                         .concatMap(p -> rxSession.executeAndFetch(p
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime),
                                         new Date(endTime), limit)
                                 .setFetchSize(pageSize)));
             }
@@ -1237,51 +1193,19 @@ public class DataAccessImpl implements DataAccess {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusive)))
                         .concatMap(p -> rxSession.executeAndFetch(p
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime),
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime),
                                         new Date(endTime))
                                 .setFetchSize(pageSize)));
             } else {
                 return buckets
                         .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusiveWithLimit)))
                         .concatMap(p -> rxSession.executeAndFetch(p
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART, new Date(startTime), new Date(endTime),
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime), new Date(endTime),
                                         limit)
                                 .setFetchSize(pageSize)));
             }
         }
     }
-
-//    @Override
-//    public <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-//                                           int pageSize) {
-//        MetricType<T> type = id.getType();
-//
-//        if (order == Order.ASC) {
-//            if (limit <= 0) {
-//                return rxSession.executeAndFetch(dataByDateRangeExclusiveASC[type.getCode()][POS_OF_OLD_DATA]
-//                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART,
-//                                getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize))
-//                        .doOnError(Throwable::printStackTrace);
-//            } else {
-//                return rxSession.executeAndFetch(dataByDateRangeExclusiveWithLimitASC[type.getCode()][POS_OF_OLD_DATA].bind(
-//                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
-//                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
-//                        .doOnError(Throwable::printStackTrace);
-//            }
-//        } else {
-//            if (limit <= 0) {
-//                return rxSession.executeAndFetch(dateRangeExclusive[type.getCode()][POS_OF_OLD_DATA].bind(id.getTenantId(),
-//                        id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-//                        .setFetchSize(pageSize))
-//                        .doOnError(Throwable::printStackTrace);
-//            } else {
-//                return rxSession.executeAndFetch(dateRangeExclusiveWithLimit[type.getCode()][POS_OF_OLD_DATA].bind(
-//                        id.getTenantId(), id.getType().getCode(), id.getName(), DPART, getTimeUUID(startTime),
-//                        getTimeUUID(endTime), limit).setFetchSize(pageSize))
-//                        .doOnError(Throwable::printStackTrace);
-//            }
-//        }
-//    }
 
     @Override
     public Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
@@ -1316,8 +1240,7 @@ public class DataAccessImpl implements DataAccess {
         }
 
         return getPrepForAllTempTables(TempStatement.DELETE_DATA)
-                .flatMap(p -> rxSession.execute(p.bind(id.getTenantId(), id.getType().getCode(), id.getName()
-                        , DPART)));
+                .flatMap(p -> rxSession.execute(p.bind(id.getTenantId(), id.getType().getCode(), id.getName())));
     }
 
     @Override
@@ -1449,7 +1372,7 @@ public class DataAccessImpl implements DataAccess {
         public void onTableAdded(TableMetadata tableMetadata) {
             log.debugf("Table added %s", tableMetadata.getName());
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                log.infof("Registering prepared statements for table %s", tableMetadata.getName());
+                log.debugf("Registering prepared statements for table %s", tableMetadata.getName());
                 Observable.fromCallable(() -> {
                     prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName()));
                     return null;
@@ -1462,7 +1385,7 @@ public class DataAccessImpl implements DataAccess {
         @Override
         public void onTableRemoved(TableMetadata tableMetadata) {
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                log.infof("Removing prepared statements for table %s", tableMetadata.getName());
+                log.debugf("Removing prepared statements for table %s", tableMetadata.getName());
                 removeTempStatements(tableMetadata.getName());
             }
         }
@@ -1477,7 +1400,6 @@ public class DataAccessImpl implements DataAccess {
 
 
         @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {
-            log.infof("Table changed %s", tableMetadata.getName());
         }
 
         @Override public void onUserTypeAdded(UserType userType) {}

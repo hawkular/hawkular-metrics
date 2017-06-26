@@ -45,10 +45,6 @@ public class TestDataAccessFactory {
                     latch.countDown();
                 }
             }
-
-            @Override void checkTempOperationalStatus(int preparedTempTables) {
-//                super.checkTempOperationalStatus(preparedTempTables);
-            }
         };
         dataAccess.createTempTablesIfNotExists(tableListForTesting())
                 .subscribeOn(Schedulers.io())
