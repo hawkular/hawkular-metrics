@@ -40,25 +40,29 @@ public class MetricsApp implements BaseApplication {
     public void start() {
         log.infof("Metrics app started on [ %s ] ", baseUrl());
 
-        //initializeMetricsService();
+        initializeMetricsService();
     }
 
-    private void initializeMetricsService() {
+    public static MetricsServiceLifecycle msl;
+
+    private static void initializeMetricsService() {
         Injector test2 = Guice.createInjector(new ServiceModule());
 
-        MetricsServiceLifecycle test = test2.getInstance(MetricsServiceLifecycle.class);
+        msl = test2.getInstance(MetricsServiceLifecycle.class);
 
-        test.init();
-        while (test.getState() != State.STARTED) {
+        msl.init();
+        while (msl.getState() != State.STARTED) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            System.out.println(test.getState());
+            System.out.println(msl.getState());
         }
-        System.out.println(test.getCassandraStatus());
+        System.out.println(msl.getCassandraStatus());
+
+        System.out.println(msl.objectMapper);
     }
 
     @Override

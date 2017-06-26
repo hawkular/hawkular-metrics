@@ -70,7 +70,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -89,7 +88,6 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
-import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
 import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
@@ -130,6 +128,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.hash.Hashing;
@@ -311,12 +310,15 @@ public class MetricsServiceLifecycle {
     @ConfigurationProperty(METRICS_EXPIRATION_JOB_ENABLED)
     private String metricsExpirationJobEnabled;
 
-    @Inject
-    @ServiceReady
-    Event<ServiceReadyEvent> metricsServiceReady;
+    //@Inject
+    //@ServiceReady
+    //Event<ServiceReadyEvent> metricsServiceReady;
+
+    //@Inject
+    //private ManifestInformation manifestInfo;
 
     @Inject
-    private ManifestInformation manifestInfo;
+    public ObjectMapper objectMapper;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
     private Cache<String, String> locksCache;
@@ -368,8 +370,8 @@ public class MetricsServiceLifecycle {
     }
 
     @PostConstruct
-    void init() {
-        log.infof("Hawkular Metrics version: %s", manifestInfo.getAttributes().get("Implementation-Version"));
+    public void init() {
+        //log.infof("Hawkular Metrics version: %s", manifestInfo.getAttributes().get("Implementation-Version"));
 
         lifecycleExecutor.submit(this::startMetricsService);
         if (Boolean.parseBoolean(waitForService)
@@ -460,7 +462,7 @@ public class MetricsServiceLifecycle {
                 reporter.start(interval, SECONDS);
             }
 
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
+            //metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initGCGraceSecondsManager();
 

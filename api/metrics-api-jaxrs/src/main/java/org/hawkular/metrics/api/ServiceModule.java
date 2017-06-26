@@ -18,10 +18,14 @@ package org.hawkular.metrics.api;
 
 import java.lang.reflect.Field;
 
+import javax.annotation.Resource;
+
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurableProducer;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.util.ObjectMapperProducer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.MembersInjector;
 import com.google.inject.TypeLiteral;
@@ -32,15 +36,20 @@ import com.google.inject.spi.TypeListener;
 public class ServiceModule extends AbstractModule {
 
     ConfigurableProducer configurableProducer;
+    ObjectMapperProducer objectMapperProducer;
 
     public ServiceModule() {
         configurableProducer = new ConfigurableProducer();
         configurableProducer.init();
+
+        objectMapperProducer = new ObjectMapperProducer();
+        objectMapperProducer.initMapper();
     }
 
     @Override
     protected void configure() {
         bind(String.class).annotatedWith(Configurable.class).to(String.class);
+        bind(ObjectMapper.class).toInstance(objectMapperProducer.getMapper());
 
         binder().bindListener(Matchers.any(), new TypeListener() {
             @Override
@@ -55,6 +64,27 @@ public class ServiceModule extends AbstractModule {
                                     Object value = configurableProducer
                                             .getValue(field.getAnnotation(ConfigurationProperty.class));
                                     field.set(instance, value);
+                                } catch (IllegalAccessException e) {
+                                    binder().addError(e);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        binder().bindListener(Matchers.any(), new TypeListener() {
+            @Override
+            public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
+                for (Field field : type.getRawType().getDeclaredFields()) {
+                    if (field.isAnnotationPresent(Resource.class)) {
+                        field.setAccessible(true);
+                        encounter.register(new MembersInjector<Object>() {
+                            @Override
+                            public void injectMembers(Object instance) {
+                                try {
+                                    field.set(instance, IspnCacheManager.getCacheManager().getCache("locks"));
                                 } catch (IllegalAccessException e) {
                                     binder().addError(e);
                                 }

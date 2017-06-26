@@ -16,17 +16,10 @@
  */
 package org.hawkular.metrics.api.filter;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
-import org.hawkular.metrics.api.util.JsonUtil;
-import org.hawkular.metrics.model.ApiError;
 
-import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.rx.java.ObservableHandler;
-import io.vertx.rx.java.RxHelper;
 
 /**
  * @author Stefan Negrea
@@ -42,31 +35,24 @@ public class TenantFilter {
                              + "' header.";
     }
 
-    public static final String ACCEPT = "Accept";
-    public static final String CONTENT_TYPE = "Content-Type";
-    public static final String APPLICATION_JSON = "application/json";
+    public static void filter(RoutingContext ctx) {
+        String path = ctx.normalisedPath();
+        if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
+            // Some handlers do not check the tenant header
+            ctx.next();
+            return;
+        }
 
-    public static Handler<RoutingContext> filter() {
-        ObservableHandler<RoutingContext> oh = RxHelper.observableHandler(true);
-        oh.subscribe(ctx -> {
-            String path = ctx.normalisedPath();
-            if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
-                // Some handlers do not check the tenant header
-                ctx.next();
-                return;
-            }
+        String tenant = getTenant(ctx);
+        if (tenant != null && !tenant.trim().isEmpty()) {
+            ctx.next();
+            return;
+        }
 
-            String tenant = ctx.request().getHeader(TENANT_HEADER_NAME);
-            if (tenant != null && !tenant.trim().isEmpty()) {
-                ctx.next();
-                return;
-            }
+        ctx.fail(new Exception(MISSING_TENANT_MSG));
+    }
 
-            ctx.response().
-                    putHeader(ACCEPT, APPLICATION_JSON).putHeader(CONTENT_TYPE, APPLICATION_JSON)
-                    .setStatusCode(BAD_REQUEST.code()).end(JsonUtil.toJson(new ApiError(MISSING_TENANT_MSG)));
-        });
-
-        return oh.toHandler();
+    public static String getTenant(RoutingContext ctx) {
+        return ctx.request().getHeader(TENANT_HEADER_NAME);
     }
 }
