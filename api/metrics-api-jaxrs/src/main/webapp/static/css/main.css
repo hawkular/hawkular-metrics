@@ -1,0 +1,154 @@
+.navbar-fixed-top {
+    height: 55px;
+}
+
+@media (min-width: 768px) {
+    .navbar-pf .navbar-primary>li>a {
+        height: 100%;
+        margin: 0;
+        padding-top: 17px;
+    }
+}
+
+.navbar .brand-name {
+    font-size: 18pt;
+    padding-top: 15px;
+}
+
+.navbar .brand-statement {
+    padding-top: 17px;
+}
+
+.navbar .brand-statement:hover {
+    color: #f5f5f5;
+}
+
+.navbar-sidebar {
+    background: #292e33;
+    border: 0;
+    border-radius: 0;
+    bottom: 0;
+    left: -240px;
+    margin: 0;
+    padding: 0;
+    position: fixed;
+    top: 55px;
+    width: 240px;
+    z-index: 1029;
+}
+
+@media (min-width: 992px) {
+    .navbar-sidebar {
+        box-shadow: none!important;
+        left: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0;
+    }
+}
+
+.navbar-sidebar {
+    text-align: initial;
+}
+
+.navbar-sidebar .section {
+    color: #fff;
+    display: block;
+    padding: 0 20px 20px 20px;
+    border-bottom: 1px solid #393f44;
+    margin-bottom: 10px;
+}
+
+.navbar-sidebar .title {
+    font-size: 16px;
+    line-height: 60px;
+}
+
+.navbar-sidebar ul {
+    list-style: none;
+    margin: 0 -20px 0 -20px;
+    padding: 0;
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.navbar-sidebar ul li a {
+    text-decoration: none;
+    cursor: pointer;
+    color: #fff;
+    line-height: 24px;
+    display: block;
+    padding: 0 20px 0 20px;
+}
+
+.navbar-sidebar>div>ul>li a:hover {
+    background: rgba(101,109,115,.15);
+}
+
+.navbar-sidebar input {
+    width: 200px;
+    color: #363636;
+}
+
+.container-fluid {
+    padding-left: 45px;
+}
+
+.container-fluid {
+    padding-bottom: 50px;
+    padding-top: 55px;
+}
+
+@media (min-width: 992px) {
+    .container-fluid {
+        padding-left: 260px;
+    }
+}
+
+.content {
+    background-color: #f5f5f5;
+    width: 100%;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1em;
+    text-align: center;
+}
+
+.logo-big {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.logo-big img {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1, h3 {
+  text-align: center;
+  word-wrap:break-word;
+}
+
+#line-chart {
+    margin-top: 50px;
+}
+
+.navbar-sidebar .spinner {
+    float: right;
+    margin-top: 20px;
+}
+
+.chart .spinner {
+    position: absolute;
+    top: 109px;
+    right: 40px;
+}
+
+.chart .timeframe {
+    float: left;
+    margin-bottom: 20px;
+}
