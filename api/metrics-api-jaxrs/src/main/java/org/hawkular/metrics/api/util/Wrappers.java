@@ -20,6 +20,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import org.hawkular.metrics.api.filter.TenantFilter;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Route;
@@ -27,7 +28,9 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.rx.java.ObservableHandler;
 import io.vertx.rx.java.RxHelper;
+import rx.Subscriber;
 import rx.functions.Action1;
+import rx.observers.Subscribers;
 
 public class Wrappers {
 
@@ -49,6 +52,8 @@ public class Wrappers {
 
     public static void setFailureHandlre(Route route) {
         route.failureHandler(ctx -> {
+            System.out.println(ctx.failure());
+            ctx.failure().printStackTrace();
             ctx.response().putHeader(ACCEPT, APPLICATION_JSON).putHeader(CONTENT_TYPE, APPLICATION_JSON)
                     .setStatusCode(BAD_REQUEST.code())
                     .end(JsonUtil.toJson(ctx.failure().getMessage()));
@@ -61,5 +66,13 @@ public class Wrappers {
         router.route(method, path).handler(Wrappers.wrap(TenantFilter::filter));
         router.route(method, path).handler(Wrappers.wrap(action));
         Wrappers.setFailureHandlre(router.route(method, path));
+    }
+
+    public static Subscriber<String> createSubscriber(RoutingContext ctx) {
+        return Subscribers.<String> create(ctx.response()::write,
+                error -> {
+                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
+                },
+                ctx.response()::end);
     }
 }
