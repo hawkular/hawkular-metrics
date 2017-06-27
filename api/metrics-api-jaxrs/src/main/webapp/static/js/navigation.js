@@ -24,11 +24,27 @@ const { Router,
 class Chart extends React.Component {
     constructor(props) {
         super(props);
-        console.log("ctor Chart");
+        this.state = {
+            timeframe: '6h'
+        };
+    }
+
+    intervalToMilliseconds(value) {
+        const regexExtract = /(\d+)(.+)/g.exec(value);
+        const val = regexExtract[1];
+        const unit = regexExtract[2];
+        let mult = 1000;
+        if (unit == 'm') {
+            mult *= 60;
+        } else if (unit == 'h') {
+            mult *= 3600;
+        } else if (unit == 'd') {
+            mult *= 86400;
+        }
+        return val * mult;
     }
 
     render() {
-        console.log("render Chart");
         let title, notice;
         if (this.props.tenant && this.props.type && this.props.metric) {
             title = "Tenant '" + this.props.tenant + "', " + this.props.type + " '" + this.props.metric + "'";
@@ -36,54 +52,106 @@ class Chart extends React.Component {
             title = "Tenant '" + this.props.tenant + "'";
             notice = "Select a metric from the left menu"
         } else {
-            notice = "Select a tenant and a metric from the left menu"
+            notice = "Enter a tenant then select a metric from the left menu"
         }
         return (
-            <div>
-                <h1>{title}</h1><h3>{notice}</h3>
-                <div id="line-chart" class="line-chart-pf"></div>
+            <div className="chart">
+                <h1>{title}</h1>
+                <div className="spinner"></div>
+                <h3>{notice}</h3>
+                <div className="timeframe">
+                    <select className="selectpicker"
+                            value={this.state.timeframe}
+                            onChange={this.onTimeFrameChange.bind(this)}>
+                        <option value='5m'>Last 5 minutes</option>
+                        <option value='15m'>Last 15 minutes</option>
+                        <option value='30m'>Last 30 minutes</option>
+                        <option value='1h'>Last hour</option>
+                        <option value='6h'>Last 6 hours</option>
+                        <option value='1d'>Last 24 hours</option>
+                        <option value='2d'>Last 2 days</option>
+                        <option value='7d'>Last week</option>
+                        <option value='30d'>Last month</option>
+                    </select>
+                </div>
+                <div id="line-chart" className="line-chart-pf"></div>
             </div>
         );
     }
 
+    onTimeFrameChange(event) {
+        const timeframe = event.target.value;
+        this.setState({ timeframe: timeframe });
+        const format = (timeframe[timeframe.length-1] == 'd') ? '%m-%d %H:%M:%S' : '%H:%M:%S';
+        if (format != this.config.axis.x.tick.format) {
+            // Need to regenerate chart with new axis
+            this.config.axis.x.tick.format = format;
+            this.chart = c3.generate(this.config);
+        }
+        this.fetchAndUpdate({ timeframe: timeframe });
+    }
+
     componentDidMount() {
-        console.log("did mount Chart");
-        const config = $().c3ChartDefaults().getDefaultSingleLineConfig();
-        config.bindto = '#line-chart';
-        config.data = {
+        $('.selectpicker').selectpicker();
+        this.config = $().c3ChartDefaults().getDefaultSingleLineConfig();
+        this.config.bindto = '#line-chart';
+        this.config.data = {
             x: 'x',
-            columns: [['x'],['data1']],
+            columns: [['x'],['metric']],
             type: 'line'
         };
-        config.axis.x = {
+        this.config.axis.x = {
             type: 'timeseries',
             tick: {
-                format: '%I:%M:%S'
+                format: '%H:%M:%S'
             }
         };
-        const chart = c3.generate(config);
+        delete this.config.tooltip;
+        this.chart = c3.generate(this.config);
+        this.fetchAndUpdate({ timeframe: this.state.timeframe });
+    }
+
+    componentDidUpdate() {
+        this.fetchAndUpdate({ timeframe: this.state.timeframe });
+    }
+
+    fetchAndUpdate(options) {
         if (this.props.tenant && this.props.type && this.props.metric) {
+            $(".chart .spinner").show();
             let typeForUrl = this.props.type;
             if (typeForUrl != "availability") {
                 typeForUrl += "s";
             }
+            const start = new Date().getTime() - this.intervalToMilliseconds(options.timeframe);
             // FIXME: manage non numeric types
             // Fetch datapoints
             $.ajax({
-                url: "/hawkular/metrics/" + typeForUrl + "/" + encodeURI(this.props.metric) + "/raw?order=ASC",
+                url: "/hawkular/metrics/" + typeForUrl + "/" + encodeURI(this.props.metric)
+                    + "/raw?order=ASC&start=" + start,
                 contentType: "application/json",
                 headers: {"Hawkular-Tenant": this.props.tenant},
                 success: (datapoints, textStatus, xhr) => {
                     if (datapoints) {
-                        chart.load({
+                        this.chart.load({
                             columns: [
                                 ['x'].concat(datapoints.map(dp => dp.timestamp)),
-                                ['data1'].concat(datapoints.map(dp => dp.value))
+                                ['metric'].concat(datapoints.map(dp => dp.value))
                             ]
                         });
                     }
+                },
+                complete: () => {
+                    $(".chart .spinner").hide();
                 }
             });
+        } else {
+            this.chart.load({
+                columns: [
+                    ['x'],
+                    ['metric']
+                ]
+            });
+            $(".chart .spinner").hide();
         }
     }
 }
@@ -104,11 +172,13 @@ class Metrics extends React.Component {
     }
 
     render() {
-        console.log("Rendering Metrics");
         return (
             <div>
                 <nav className="navbar navbar-sidebar">
-                    <span className="section title">Metrics</span>
+                    <div className="section title">
+                        Metrics
+                        <div className="spinner spinner-inverse spinner-sm"></div>
+                    </div>
                     <div className="section">
                         Tenant
                         <input type="text" value={this.state.tenant} onChange={this.onTenantChanged}/>
@@ -118,7 +188,7 @@ class Metrics extends React.Component {
                         <ul>
                             {this.state.metrics.map(metric => (
                                 <li key={metric.id}>
-                                    <a className="sidebar-item" role="button" href={"#metrics/" + this.state.tenant + "/" + metric.type + "/" + metric.id}>
+                                    <a className="sidebar-item" role="button" title={metric.id} href={"#metrics/" + this.state.tenant + "/" + metric.type + "/" + metric.id}>
                                         {metric.id}
                                     </a>
                                 </li>
@@ -144,29 +214,38 @@ class Metrics extends React.Component {
         }, 200);
     }
 
+    componentDidMount() {
+        $(".navbar-sidebar .spinner").hide();
+    }
+
     fetchMetrics() {
+        $(".navbar-sidebar .spinner").show();
         $.ajax({
             url: "/hawkular/metrics/metrics",
             contentType: "application/json",
             headers: {"Hawkular-Tenant": this.state.tenant},
             success: (metrics, textStatus, xhr) => {
-                if (metrics.length > 0) {
+                if (metrics && metrics.length > 0) {
                     this.setState({metrics: metrics.sort((a,b) => {
                         return a.id < b.id ? -1 : 1;
                     }), message: ""});
                 } else {
                     this.setState({
+                        metrics: [],
                         message: "No metric found for this tenant"
                     });
                 }
             },
             complete: (xhr, textStatus) => {
+                $(".navbar-sidebar .spinner").hide();
                 if (xhr.status === 404 || xhr.status === 503) {
                     this.setState({
+                        metrics: [],
                         message: "The server is not available"
                     });
-                } else if (xhr.status != 200) {
+                } else if (xhr.status >= 400) {
                     this.setState({
+                        metrics: [],
                         message: "An error occured while accessing the server: " + textStatus
                     });
                 }
@@ -179,9 +258,7 @@ class Status extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            "Status": "Status: checking...",
-            "Implementation-Version": "",
-            "Built-From-Git-SHA1": ""
+            status: "Status: checking..."
         };
     }
 
@@ -189,11 +266,10 @@ class Status extends React.Component {
         return (
             <div>
                 <nav className="navbar navbar-sidebar">
-                    <span className="title">Status</span>
-                    <ul>
-                        <li>Services</li>
-                        <li>Config</li>
-                    </ul>
+                    <div className="section title">
+                        Status
+                        <div className="spinner spinner-inverse spinner-sm"></div>
+                    </div>
                 </nav>
                 <div className="container-fluid">
                     <div className="logo-big">
@@ -211,10 +287,10 @@ class Status extends React.Component {
     }
 
     componentDidMount() {
+        $(".navbar-sidebar .spinner").show();
         $.ajax({
             url: "/hawkular/metrics/status",
-            success: (data, textStatus, xhr) => {
-                const statusJson = JSON.parse(textStatus);
+            success: (statusJson, textStatus, xhr) => {
                 this.setState({
                     version: statusJson["Implementation-Version"],
                     gitref: "(Git SHA1 - " + statusJson["Built-From-Git-SHA1"] + ")",
@@ -222,11 +298,12 @@ class Status extends React.Component {
                 });
             },
             complete: (xhr, textStatus) => {
+                $(".navbar-sidebar .spinner").hide();
                 if (xhr.status === 404 || xhr.status === 503) {
                     this.setState({
                         status: "The server is not available"
                     });
-                } else if (xhr != 200) {
+                } else if (xhr.status != 200) {
                     this.setState({
                         status: "An error occured while accessing the server: " + textStatus
                     });

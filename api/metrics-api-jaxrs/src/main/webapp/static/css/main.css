@@ -1,3 +1,15 @@
+.navbar-fixed-top {
+    height: 55px;
+}
+
+@media (min-width: 768px) {
+    .navbar-pf .navbar-primary>li>a {
+        height: 100%;
+        margin: 0;
+        padding-top: 17px;
+    }
+}
+
 .navbar .brand-name {
     font-size: 18pt;
     padding-top: 15px;
@@ -20,7 +32,7 @@
     margin: 0;
     padding: 0;
     position: fixed;
-    top: 58px;
+    top: 55px;
     width: 240px;
     z-index: 1029;
 }
@@ -54,8 +66,11 @@
 
 .navbar-sidebar ul {
     list-style: none;
-    margin: 0;
+    margin: 0 -20px 0 -20px;
     padding: 0;
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .navbar-sidebar ul li a {
@@ -63,6 +78,12 @@
     cursor: pointer;
     color: #fff;
     line-height: 24px;
+    display: block;
+    padding: 0 20px 0 20px;
+}
+
+.navbar-sidebar>div>ul>li a:hover {
+    background: rgba(101,109,115,.15);
 }
 
 .navbar-sidebar input {
@@ -76,7 +97,7 @@
 
 .container-fluid {
     padding-bottom: 50px;
-    padding-top: 58px;
+    padding-top: 55px;
 }
 
 @media (min-width: 992px) {
@@ -114,4 +135,20 @@ h1, h3 {
 
 #line-chart {
     margin-top: 50px;
+}
+
+.navbar-sidebar .spinner {
+    float: right;
+    margin-top: 20px;
+}
+
+.chart .spinner {
+    position: absolute;
+    top: 109px;
+    right: 40px;
+}
+
+.chart .timeframe {
+    float: left;
+    margin-bottom: 20px;
 }
