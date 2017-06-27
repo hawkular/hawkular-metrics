@@ -92,6 +92,7 @@ public abstract class BaseMetricsITest extends BaseITest {
     public void initMethod() {
         session.execute("TRUNCATE tenants");
         session.execute("TRUNCATE data");
+        session.execute(String.format("TRUNCATE %s", DataAccessImpl.OUT_OF_ORDER_TABLE_NAME));
         session.execute("TRUNCATE data_compressed");
         session.execute("TRUNCATE metrics_idx");
         session.execute("TRUNCATE retentions_idx");

@@ -62,10 +62,9 @@ public class DataAccessITest extends BaseITest {
     private DataAccessImpl dataAccess;
 
     private PreparedStatement truncateTenants;
-
     private PreparedStatement truncateGaugeData;
-
     private PreparedStatement truncateCompressedData;
+    private PreparedStatement truncateOverflow;
 
     @BeforeClass
     public void initClass() {
@@ -74,6 +73,7 @@ public class DataAccessITest extends BaseITest {
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
         truncateCompressedData = session.prepare("TRUNCATE data_compressed");
+        truncateOverflow = session.prepare(String.format("TRUNCATE %s", DataAccessImpl.OUT_OF_ORDER_TABLE_NAME));
     }
 
     @BeforeMethod
@@ -81,6 +81,7 @@ public class DataAccessITest extends BaseITest {
         session.execute(truncateTenants.bind());
         session.execute(truncateGaugeData.bind());
         session.execute(truncateCompressedData.bind());
+        session.execute(truncateOverflow.bind());
         // Need to truncate all the temp tables also..
         for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
                 .getTables()) {
