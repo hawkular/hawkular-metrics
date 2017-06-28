@@ -16,14 +16,8 @@
  */
 package org.hawkular.metrics.api.handler.observer;
 
-import static org.hawkular.metrics.api.jaxrs.util.ApiUtils.badRequest;
-
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
-
-import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
-import org.hawkular.metrics.model.ApiError;
-
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.ext.web.RoutingContext;
 import rx.Observer;
 
 /**
@@ -33,23 +27,23 @@ import rx.Observer;
  */
 public class ResultSetObserver implements Observer<Void> {
 
-    private AsyncResponse asyncResponse;
+    private RoutingContext ctx;
 
-    public ResultSetObserver(AsyncResponse asyncResponse) {
-        this.asyncResponse = asyncResponse;
+    public ResultSetObserver(RoutingContext ctx) {
+        this.ctx = ctx;
     }
 
     @Override
     public void onCompleted() {
-        asyncResponse.resume(Response.ok().build());
+        ctx.response().end();
     }
 
     @Override
     public void onError(Throwable t) {
         if (t instanceof IllegalArgumentException) {
-            asyncResponse.resume(badRequest(new ApiError(t.getMessage())));
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(t.getMessage());
         } else {
-            asyncResponse.resume(ApiUtils.serverError(t));
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(t.getMessage());
         }
     }
 

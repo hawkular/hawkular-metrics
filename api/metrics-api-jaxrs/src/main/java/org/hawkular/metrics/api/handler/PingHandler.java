@@ -25,7 +25,6 @@ import org.hawkular.metrics.api.jaxrs.util.StringValue;
 import org.hawkular.metrics.api.util.JsonUtil;
 import org.hawkular.metrics.api.util.Wrappers;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.swagger.annotations.ApiOperation;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
@@ -50,12 +49,7 @@ public class PingHandler implements RestHandler {
         ctx.response().setChunked(true);
 
         Observable.just(JsonUtil.toJson(new StringValue(new Date().toString())))
-                .doOnNext(ctx.response()::write)
-                .doOnError(error -> {
-                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                })
-                .doOnCompleted(ctx.response()::end)
                 .subscribeOn(Schedulers.io())
-                .subscribe();
+                .subscribe(Wrappers.createSubscriber(ctx));
     }
 }

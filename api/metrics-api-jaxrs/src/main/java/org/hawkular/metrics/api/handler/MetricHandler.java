@@ -58,8 +58,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.swagger.annotations.Api;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -72,7 +70,6 @@ import rx.schedulers.Schedulers;
  * @author Stefan Negrea
  */
 @RestEndpoint(path = "/metrics")
-@Api(tags = "Metric")
 @Logged
 public class MetricHandler implements RestHandler {
 
@@ -150,13 +147,8 @@ public class MetricHandler implements RestHandler {
         metricsService.getTagNames(TenantFilter.getTenant(ctx), metricType, tagNameFilter)
                 .toList()
                 .map(JsonUtil::toJson)
-                .doOnNext(ctx.response()::write)
-                .doOnError(error -> {
-                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                })
-                .doOnCompleted(ctx.response()::end)
                 .subscribeOn(Schedulers.io())
-                .subscribe();
+                .subscribe(Wrappers.createSubscriber(ctx));
     }
 
     public <T> void getTags(RoutingContext ctx) {
@@ -178,13 +170,8 @@ public class MetricHandler implements RestHandler {
         ctx.response().setChunked(true);
         metricsService.getTagValues(TenantFilter.getTenant(ctx), metricType, tags.getTags())
                 .map(JsonUtil::toJson)
-                .doOnNext(ctx.response()::write)
-                .doOnError(error -> {
-                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                })
-                .doOnCompleted(ctx.response()::end)
                 .subscribeOn(Schedulers.io())
-                .subscribe();
+                .subscribe(Wrappers.createSubscriber(ctx));
     }
 
     public <T> void findMetrics(RoutingContext ctx) {
@@ -237,13 +224,8 @@ public class MetricHandler implements RestHandler {
         metricObservable
                 .toList()
                 .map(JsonUtil::toJson)
-                .doOnNext(ctx.response()::write)
-                .doOnError(error -> {
-                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                })
-                .doOnCompleted(ctx.response()::end)
                 .subscribeOn(Schedulers.io())
-                .subscribe();
+                .subscribe(Wrappers.createSubscriber(ctx));
     }
 
     public void addMetricsData(RoutingContext ctx) {
@@ -262,16 +244,13 @@ public class MetricHandler implements RestHandler {
         }
 
         Observable<Metric<Double>> gauges = Functions.metricToObservable(TenantFilter.getTenant(ctx),
-                metricsRequest.getGauges(),
-                GAUGE);
+                metricsRequest.getGauges(), GAUGE);
         Observable<Metric<AvailabilityType>> availabilities = Functions.metricToObservable(TenantFilter.getTenant(ctx),
                 metricsRequest.getAvailabilities(), AVAILABILITY);
         Observable<Metric<Long>> counters = Functions.metricToObservable(TenantFilter.getTenant(ctx),
-                metricsRequest.getCounters(),
-                COUNTER);
+                metricsRequest.getCounters(), COUNTER);
         Observable<Metric<String>> strings = Functions.metricToObservable(TenantFilter.getTenant(ctx),
-                metricsRequest.getStrings(),
-                STRING);
+                metricsRequest.getStrings(), STRING);
 
         ctx.response().setChunked(true);
         metricsService.addDataPoints(GAUGE, gauges)
@@ -279,13 +258,8 @@ public class MetricHandler implements RestHandler {
                 .mergeWith(metricsService.addDataPoints(COUNTER, counters))
                 .mergeWith(metricsService.addDataPoints(STRING, strings))
                 .map(JsonUtil::toJson)
-                .doOnNext(ctx.response()::write)
-                .doOnError(error -> {
-                    ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                })
-                .doOnCompleted(ctx.response()::end)
                 .subscribeOn(Schedulers.io())
-                .subscribe();
+                .subscribe(Wrappers.createSubscriber(ctx));
     }
 
     public void findStats(RoutingContext ctx) {
@@ -304,13 +278,8 @@ public class MetricHandler implements RestHandler {
             org.hawkular.metrics.api.jaxrs.handler.MetricHandler
                     .doStatsQuery(query, this.metricsService, TenantFilter.getTenant(ctx))
                     .map(JsonUtil::toJson)
-                    .doOnNext(ctx.response()::write)
-                    .doOnError(error -> {
-                        ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                    })
-                    .doOnCompleted(ctx.response()::end)
                     .subscribeOn(Schedulers.io())
-                    .subscribe();
+                    .subscribe(Wrappers.createSubscriber(ctx));
         } catch (IllegalArgumentException e) {
             ctx.fail(new Exception(e.getMessage()));
         }
@@ -342,13 +311,8 @@ public class MetricHandler implements RestHandler {
                             .map(map -> ImmutableMap.of(entry.getKey(), map)))
                     .collect(HashMap::new, HashMap::putAll)
                     .map(JsonUtil::toJson)
-                    .doOnNext(ctx.response()::write)
-                    .doOnError(error -> {
-                        ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
-                    })
-                    .doOnCompleted(ctx.response()::end)
                     .subscribeOn(Schedulers.io())
-                    .subscribe();
+                    .subscribe(Wrappers.createSubscriber(ctx));
         } catch (IllegalArgumentException e) {
             ctx.fail(new Exception(e.getMessage()));
         }
