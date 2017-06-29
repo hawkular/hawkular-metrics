@@ -1,0 +1,18 @@
+<div class="menu">
+  <nav class="navbar navbar-default navbar-pf navbar-fixed-top" role="navigation">
+    <div>
+      <a href="http://www.hawkular.org/" class="navbar-brand">
+        <img class="navbar-brand-icon" src="assets/hawkular_logo_small.png" alt=""/>
+      </a>
+      <a href="http://www.hawkular.org/" class="navbar-brand brand-name">Hawkular</a>
+      <span class="navbar-brand brand-statement">A time series metrics engine based on Cassandra</span>
+      <ul class="nav navbar-nav navbar-primary navbar-right">
+        <li><a routerLink="/metrics" activeClassName="active">Metrics</a></li>
+        <li><a routerLink="/status" activeClassName="active">Status</a></li>
+      </ul>
+    </div>
+  </nav>
+</div>
+<div class="content">
+  <router-outlet></router-outlet>
+</div>

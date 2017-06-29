@@ -1,0 +1,19 @@
+<div class="chart">
+  <h1>{{title}}</h1>
+  <div class="spinner" *ngIf="loading"></div>
+  <h3>{{notice}}</h3>
+  <div class="timeframe">
+    <select [(ngModel)]="timeframe" (ngModelChange)="onTimeFrameChanged($event)">
+      <option value='5m'>Last 5 minutes</option>
+      <option value='15m'>Last 15 minutes</option>
+      <option value='30m'>Last 30 minutes</option>
+      <option value='1h'>Last hour</option>
+      <option value='6h'>Last 6 hours</option>
+      <option value='1d'>Last 24 hours</option>
+      <option value='2d'>Last 2 days</option>
+      <option value='7d'>Last week</option>
+      <option value='30d'>Last month</option>
+    </select>
+  </div>
+  <div id="line-chart" class="line-chart-pf"></div>
+</div>

@@ -1,0 +1,24 @@
+<nav class="navbar navbar-sidebar scrollbar">
+  <div class="section title">
+    Metrics
+    <div class="spinner spinner-inverse spinner-sm" *ngIf="loading"></div>
+  </div>
+  <div class="section">
+    Tenant
+    <input type="text" [(ngModel)]="tenant" (ngModelChange)="onTenantChanged($event)"/>
+  </div>
+  <div class="section">
+    {{message}}
+    <ul>
+      <li *ngFor="let metric of metrics">
+        <a [routerLink]="['/metrics', { outlets: {'chart': [tenant, metric.type, metric.id] }}]"
+            role="button" title="{{metric.id}}">
+          {{metric.id}}
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+<div class="container-fluid">
+  <router-outlet name="chart"></router-outlet>
+</div>

@@ -1,0 +1,14 @@
+#line-chart {
+    margin-top: 50px;
+}
+
+.chart .spinner {
+    position: absolute;
+    top: 109px;
+    right: 40px;
+}
+
+.chart .timeframe {
+    float: left;
+    margin-bottom: 20px;
+}

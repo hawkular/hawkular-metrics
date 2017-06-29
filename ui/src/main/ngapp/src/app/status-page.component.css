@@ -1,0 +1,11 @@
+.logo-big {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.logo-big img {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}

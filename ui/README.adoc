@@ -1,0 +1,22 @@
+= Hawkular Metrics REST API
+:source-language: java
+
+This is the Java web application providing the REST interface of Hawkular Metrics.
+
+== Starting a development container
+
+Assuming you have a Cassandra node running on localhost,
+you can simply run the following command in the module directory:
+
+[source,bash]
+----
+mvn wildfly:run
+----
+
+You can also setup your IDE for starting a Wildfly container and deploying the WAR file. It's very easy and well
+documented for both Eclipse and IntelliJ.
+
+== Documentation
+
+The documentation is auto-generated and published on the
+http://www.hawkular.org/docs/rest/rest-metrics.html[Metrics REST API page].

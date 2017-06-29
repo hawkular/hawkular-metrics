@@ -84,6 +84,14 @@
       <type>war</type>
       <scope>provided</scope>
     </dependency>
+    <!-- UI -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-ui</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
+      <scope>provided</scope>
+    </dependency>
     <!-- Provided by container -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
@@ -118,6 +126,10 @@
             <overlay>
               <groupId>${project.groupId}</groupId>
               <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+            </overlay>
+            <overlay>
+              <groupId>${project.groupId}</groupId>
+              <artifactId>hawkular-metrics-ui</artifactId>
             </overlay>
           </overlays>
         </configuration>

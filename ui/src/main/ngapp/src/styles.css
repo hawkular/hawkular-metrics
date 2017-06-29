@@ -1,26 +1,28 @@
-.navbar-fixed-top {
-    height: 55px;
+/* You can add global styles to this file, and also import other style files */
+body {
+    background-color: #f5f5f5;
 }
 
-@media (min-width: 768px) {
-    .navbar-pf .navbar-primary>li>a {
-        height: 100%;
-        margin: 0;
-        padding-top: 17px;
-    }
+h1, h3 {
+  text-align: center;
+  word-wrap: break-word;
 }
 
-.navbar .brand-name {
-    font-size: 18pt;
-    padding-top: 15px;
+.scrollbar::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+	background-color: #F5F5F5;
 }
 
-.navbar .brand-statement {
-    padding-top: 17px;
+.scrollbar::-webkit-scrollbar
+{
+	width: 6px;
+	background-color: #F5F5F5;
 }
 
-.navbar .brand-statement:hover {
-    color: #f5f5f5;
+.scrollbar::-webkit-scrollbar-thumb
+{
+	background-color: #191e23;
 }
 
 .navbar-sidebar {
@@ -54,14 +56,15 @@
 .navbar-sidebar .section {
     color: #fff;
     display: block;
-    padding: 0 20px 20px 20px;
+    padding: 0 20px 20px 12px;
     border-bottom: 1px solid #393f44;
     margin-bottom: 10px;
 }
 
 .navbar-sidebar .title {
     font-size: 16px;
-    line-height: 60px;
+    line-height: 40px;
+    margin-top: 16px;
 }
 
 .navbar-sidebar ul {
@@ -91,11 +94,13 @@
     color: #363636;
 }
 
-.container-fluid {
-    padding-left: 45px;
+.navbar-sidebar .spinner {
+    float: right;
+    margin-top: 20px;
 }
 
 .container-fluid {
+    padding-left: 45px;
     padding-bottom: 50px;
     padding-top: 55px;
 }
@@ -104,51 +109,4 @@
     .container-fluid {
         padding-left: 260px;
     }
-}
-
-.content {
-    background-color: #f5f5f5;
-    width: 100%;
-    height: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1em;
-    text-align: center;
-}
-
-.logo-big {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-}
-
-.logo-big img {
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-h1, h3 {
-  text-align: center;
-  word-wrap:break-word;
-}
-
-#line-chart {
-    margin-top: 50px;
-}
-
-.navbar-sidebar .spinner {
-    float: right;
-    margin-top: 20px;
-}
-
-.chart .spinner {
-    position: absolute;
-    top: 109px;
-    right: 40px;
-}
-
-.chart .timeframe {
-    float: left;
-    margin-bottom: 20px;
 }
