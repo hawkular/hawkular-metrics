@@ -29,7 +29,7 @@
   </parent>
 
   <artifactId>hawkular-metrics-api-jaxrs</artifactId>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
 
   <name>Hawkular Metrics JAX-RS 2.0 API</name>
   <description>JAX-RS 2.0 REST API Implementation</description>
@@ -55,7 +55,7 @@
       <!-- the driver is packaged in the dists that need it -->
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
 
     <dependency>
@@ -87,17 +87,17 @@
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>jaxrs-api</artifactId>
       <version>${version.org.jboss.resteasy.jaxrs-api}</version>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.servlet</groupId>
@@ -117,9 +117,15 @@
     </dependency>
 
     <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.infinispan</groupId>
       <artifactId>infinispan-core</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
       <version>${version.org.infinispan.wildfly}</version>
     </dependency>
 
@@ -173,26 +179,19 @@
 
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>1.7.25</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.25</version>
     </dependency>
 
     <!-- documentation -->
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-core</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
     </dependency>
 
     <!-- test -->
@@ -209,28 +208,54 @@
   </dependencies>
 
   <build>
-    <finalName>hawkular-metric-rest</finalName>
+    <finalName>hawkular-metrics-rest</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>${version.org.apache.maven.plugins.maven-jar-plugin}</version>
         <configuration>
           <archive>
-            <index>true</index>
             <manifest>
               <addClasspath>true</addClasspath>
+              <mainClass>org.hawkular.HawkularServer</mainClass>
+              <classpathPrefix>dependency/</classpathPrefix>
             </manifest>
             <manifestEntries>
-              <Implementation-Vendor-Id>org.hawkular.metrics</Implementation-Vendor-Id>
-              <Implementation-Version>${project.version}</Implementation-Version>
+              <Class-Path>dependency/</Class-Path>
             </manifestEntries>
           </archive>
         </configuration>
       </plugin>
 
       <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <appendAssemblyId>false</appendAssemblyId>
+          <descriptors>
+            <descriptor>${basedir}/assembly.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>distro-assembly</id>
+            <phase>install</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <artifactId>maven-war-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>war</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
           <attachClasses>true</attachClasses>
           <archive>
@@ -288,6 +313,9 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <excludeArtifactIds>slf4j-nop,slf4j-jdk14</excludeArtifactIds>
+        </configuration>
       </plugin>
     </plugins>
   </build>
