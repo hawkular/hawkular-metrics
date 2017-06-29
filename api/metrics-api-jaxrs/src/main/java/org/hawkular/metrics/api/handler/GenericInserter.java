@@ -31,6 +31,7 @@ import org.hawkular.metrics.api.handler.observer.ResultSetObserver;
 import org.hawkular.metrics.api.util.Wrappers;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
 
@@ -70,20 +71,32 @@ public class GenericInserter implements RestHandler {
     }
 
     public <T> void addData(RoutingContext ctx, MetricType<T> type) {
-        List<Metric<T>> counters = null;
-
+        List<Metric<T>> metrics = null;
         try {
-            TypeReference<List<Metric<T>>> typeRef = new TypeReference<List<Metric<T>>>() {
+
+            TypeReference<?> typeRef = new TypeReference<List<Metric<String>>>() {
             };
-            counters = objectMapper.reader(typeRef).readValue(ctx.getBodyAsString());
+            if (type.equals(GAUGE)) {
+                typeRef = new TypeReference<List<Metric<Double>>>() {
+                };
+            } else if (type.equals(COUNTER)) {
+                typeRef = new TypeReference<List<Metric<Long>>>() {
+                };
+            } else if (type.equals(AVAILABILITY)) {
+                typeRef = new TypeReference<List<Metric<AvailabilityType>>>() {
+                };
+            }
+
+            metrics = objectMapper.reader(typeRef).readValue(ctx.getBodyAsString());
+            System.out.println(metrics);
         } catch (Exception e) {
             ctx.fail(e);
             return;
         }
 
-        Observable<Metric<T>> metrics = Functions.metricToObservable(TenantFilter.getTenant(ctx), counters,
-                type);
-        Observable<Void> observable = metricsService.addDataPoints(type, metrics);
+        Observable<Metric<T>> metricsObservable = Functions.metricToObservable(TenantFilter.getTenant(ctx),
+                metrics, type);
+        Observable<Void> observable = metricsService.addDataPoints(type, metricsObservable);
         observable.subscribeOn(Schedulers.io()).subscribe(new ResultSetObserver(ctx));
     }
 }
