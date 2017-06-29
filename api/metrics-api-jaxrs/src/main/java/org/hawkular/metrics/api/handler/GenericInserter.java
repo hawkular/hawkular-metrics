@@ -41,6 +41,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 @RestEndpoint(path = "/")
 public class GenericInserter implements RestHandler {
@@ -83,6 +84,6 @@ public class GenericInserter implements RestHandler {
         Observable<Metric<T>> metrics = Functions.metricToObservable(TenantFilter.getTenant(ctx), counters,
                 type);
         Observable<Void> observable = metricsService.addDataPoints(type, metrics);
-        observable.subscribe(new ResultSetObserver(ctx));
+        observable.subscribeOn(Schedulers.io()).subscribe(new ResultSetObserver(ctx));
     }
 }
