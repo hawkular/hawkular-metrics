@@ -18,6 +18,8 @@ package org.hawkular.metrics.api.util;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.hawkular.metrics.api.filter.TenantFilter;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -28,6 +30,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.rx.java.ObservableHandler;
 import io.vertx.rx.java.RxHelper;
+import rx.Observable;
+import rx.Observable.Transformer;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.Subscribers;
@@ -74,5 +78,21 @@ public class Wrappers {
                     ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(error.getMessage());
                 },
                 ctx.response()::end);
+    }
+
+    public static Transformer<String, String> toJsonArray(RoutingContext ctx) {
+        AtomicInteger counter = new AtomicInteger(0);
+
+        return source -> {
+            return source.map(t1 -> {
+                if (counter.incrementAndGet() > 1) {
+                    return ",\n" + t1;
+                }
+
+                return t1;
+            })
+            .startWith("[")
+            .concatWith(Observable.just("]"));
+        };
     }
 }

@@ -222,8 +222,8 @@ public class MetricHandler implements RestHandler {
 
         ctx.response().setChunked(true);
         metricObservable
-                .toList()
                 .map(JsonUtil::toJson)
+                .compose(Wrappers.toJsonArray(ctx))
                 .subscribeOn(Schedulers.io())
                 .subscribe(Wrappers.createSubscriber(ctx));
     }
