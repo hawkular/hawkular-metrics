@@ -82,4 +82,8 @@ public class HawkularMetricRegistry extends MetricRegistry {
     public MetaData getMetaData(String metric) {
         return metaDataMap.get(metric);
     }
+
+    public Map<String, MetaData> getMetaDataMap() {
+        return metaDataMap;
+    }
 }

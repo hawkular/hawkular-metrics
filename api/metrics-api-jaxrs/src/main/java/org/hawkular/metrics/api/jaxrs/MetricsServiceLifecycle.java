@@ -40,13 +40,14 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_U
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_QUERY_PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DISABLE_METRICS_JMX;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.JMX_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_DISABLED;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_COLLECTION_INTERVAL;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
@@ -94,6 +95,8 @@ import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
 import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
+import org.hawkular.metrics.core.dropwizard.HawkularObjectNameFactory;
+import org.hawkular.metrics.core.dropwizard.MetaData;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
@@ -240,8 +243,8 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(DISABLE_METRICS_JMX)
-    private String disableMetricsJmxReporting;
+    @ConfigurationProperty(JMX_REPORTING_ENABLED)
+    private String jmxReportingEnabled;
 
     @Inject
     @Configurable
@@ -285,8 +288,13 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(METRICS_REPORTING_DISABLED)
-    private String metricsReportingDisabled;
+    @ConfigurationProperty(METRICS_REPORTING_ENABLED)
+    private String metricsReportingEnabled;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_REPORTING_COLLECTION_INTERVAL)
+    private String collectionIntervalConfig;
 
     @Inject
     @Configurable
@@ -444,9 +452,10 @@ public class MetricsServiceLifecycle {
 
             new CassandraDriverMetrics(session, metricRegistry).registerAll();
 
-            if (!Boolean.valueOf(metricsReportingDisabled)) {
+            if (Boolean.valueOf(metricsReportingEnabled)) {
                 DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
-                reporter.start(1, MINUTES);
+                int interval = Integer.getInteger(collectionIntervalConfig, 180);
+                reporter.start(interval, SECONDS);
             }
 
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
@@ -455,6 +464,15 @@ public class MetricsServiceLifecycle {
 
             initGCGraceSecondsManager();
 
+            if (Boolean.parseBoolean(jmxReportingEnabled)) {
+                Map<String, MetaData> map = metricRegistry.getMetaDataMap();
+                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(map);
+                JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
+                        .inDomain("org.hawkular.metrics")
+                        .createsObjectNamesWith(JMXObjNameFactory)
+                        .build();
+                jmxReporter.start();
+            }
             state = State.STARTED;
             log.infoServiceStarted();
 
@@ -501,9 +519,7 @@ public class MetricsServiceLifecycle {
             }
         }
 
-        if (Boolean.parseBoolean(disableMetricsJmxReporting)) {
-            clusterBuilder.withoutJMXReporting();
-        }
+        clusterBuilder.withoutJMXReporting();
 
         int newMaxConnections;
         try {
