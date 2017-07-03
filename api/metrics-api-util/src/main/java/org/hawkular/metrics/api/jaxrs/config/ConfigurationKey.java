@@ -59,13 +59,15 @@ public enum ConfigurationKey {
     COMPRESSION_JOB_ENABLED("hawkular.metrics.jobs.compression.enabled", null, "COMPRESSION_JOB_ENABLED", false),
     WAIT_FOR_SERVICE("hawkular.metrics.waitForService", null, null, true),
     DEFAULT_TTL("hawkular.metrics.default-ttl", "7", "DEFAULT_TTL", false),
-    DISABLE_METRICS_JMX("hawkular.metrics.disable-metrics-jmx-reporting", null, "DISABLE_METRICS_JMX", true),
+    JMX_REPORTING_ENABLED("hawkular.metrics.jmx-reporting-enabled", null, "JMX_REPORTING_ENABLED", true),
 
     //Admin
     ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
     ADMIN_TENANT("hawkular.metrics.admin-tenant", "admin", "ADMIN_TENANT", false),
     METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
-    METRICS_REPORTING_DISABLED("hawkular.metrics.reporting.disabled", null, "METRICS_REPORTING_DISABLED", true),
+    METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
+    METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "180",
+            "METRICS_REPORTING_COLLECTION_INTERVAL", false),
 
     //Metric expiration job configuration
     METRICS_EXPIRATION_DELAY("hawkular.metrics.expiration.delay", "1", "METRICS_EXPIRATION_DELAY", false),
