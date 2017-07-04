@@ -461,6 +461,13 @@ public class DataAccessImpl implements DataAccess {
 
         if(!zeroTableExists) {
             createTemporaryTable(OUT_OF_ORDER_TABLE_NAME).toBlocking().subscribe();
+            session.execute((String.format("ALTER TABLE %s WITH default_time_to_live = %d",
+                    OUT_OF_ORDER_TABLE_NAME, TimeUnit.DAYS.toSeconds(7))));
+            session.execute((String.format("ALTER TABLE %s WITH compaction = " +
+                            "{'compaction_window_size': '1', " +
+                            "'compaction_window_unit': 'DAYS', " +
+                            "'class': 'org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy'}",
+                    OUT_OF_ORDER_TABLE_NAME)));
         }
 
         // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
