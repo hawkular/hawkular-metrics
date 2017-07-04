@@ -32,6 +32,7 @@ import org.hawkular.metrics.core.service.PatternUtil;
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
 import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
@@ -95,15 +96,15 @@ public class SimpleTagQueryParser {
         }
     }
 
-    public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
-                                                            Map<String, String> tagsQueries) {
+    public Observable<MetricId<?>> findMetricIdentifiersWithFilters(String tenantId, MetricType<?> metricType,
+                                                                    Map<String, String> tagsQueries) {
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
         List<Map.Entry<String, String>> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
         List<Map.Entry<String, String>> groupCEntries = costSortedMap.get(QueryOptimizer.GROUP_C_COST);
 
-        Observable<Metric<?>> groupMetrics;
+        Observable<MetricId<?>> groupMetrics;
 
         // Fetch everything from the tagsQueries
         groupMetrics = Observable.from(groupBEntries)
@@ -119,28 +120,33 @@ public class SimpleTagQueryParser {
                             s1.retainAll(s2);
                             return s1;
                         })
-                        .flatMap(Observable::from)
-                        .flatMap(metricsService::findMetric);
+                        .flatMap(Observable::from);
+//                        .flatMap(metricsService::findMetric);
 
         // There might not be any metrics fetched yet.. if this is the only query
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
-            Observable<? extends Metric<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
+            Observable<? extends MetricId<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
                     .compose(new TagsIndexRowTransformerFilter<>(metricType))
-                    .filter(mId -> mId.getTenantId().equals(tenantId))
-                    .flatMap(metricsService::findMetric);
+                    .filter(mId -> mId.getTenantId().equals(tenantId));
 
-            Observable<Metric<?>> dataMetrics = metricsService.findAllMetrics()
-                    .filter(m -> m.getMetricId().getTenantId().equals(tenantId))
+            Observable<MetricId<?>> dataMetrics = metricsService.findAllMetricIdentifiers()
+                    .filter(m -> m.getTenantId().equals(tenantId))
                     .filter(metricTypeFilter(metricType));
 
             groupMetrics = Observable.concat(tagsMetrics, dataMetrics).distinct();
         }
 
         // Group C processing, everything outside Cassandra
-        for (Map.Entry<String, String> groupCQuery : groupCEntries) {
-            groupMetrics = groupMetrics
-                    .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
+        if(groupCEntries.size() > 0) {
+            // TODO zipWith or something here instead of this monstrosity
+            Observable<Metric<?>> metrics = groupMetrics.flatMap(metricsService::findMetric);
+
+            for (Map.Entry<String, String> groupCQuery : groupCEntries) {
+                metrics = metrics
+                        .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
+            }
+            groupMetrics = metrics.map(Metric::getMetricId);
         }
 
         return groupMetrics;
@@ -246,7 +252,7 @@ public class SimpleTagQueryParser {
         };
     }
 
-    public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
-        return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
+    public Func1<MetricId<?>, Boolean> metricTypeFilter(MetricType<?> type) {
+        return tMetricId -> (type == null && tMetricId.getType().isUserType()) || tMetricId.getType() == type;
     }
 }
