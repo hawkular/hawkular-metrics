@@ -29,7 +29,7 @@ import static org.testng.Assert.assertFalse;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricIdentifierFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -218,12 +218,11 @@ public class DataAccessITest extends BaseITest {
                 .toBlocking().lastOrDefault(null);
 
         @SuppressWarnings("unchecked")
-        List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
+        List<MetricId<Double>> metrics = toList(dataAccess.findAllMetricIdentifiersInData()
                 .doOnError(Throwable::printStackTrace)
-                .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
+                .compose(new MetricIdentifierFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
                         ())).doOnError(Throwable::printStackTrace)
-                .map(m -> (Metric<Double>) m)
-        .doOnNext(m -> m.getMetricId().toString()));
+                .map(m -> (MetricId<Double>) m));
 
         assertEquals(metrics.size(), 4);
     }
