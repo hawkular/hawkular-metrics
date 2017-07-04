@@ -394,7 +394,8 @@ public class GroupTriggerManager {
                 for (String dataId : dataIds) {
                     String tagQuery = tags.get(dataId);
                     List<Metric<Object>> dataIdMetrics = metricsService
-                            .findMetricsWithFilters(mgt.getTenantId(), null, tagQuery)
+                            .findMetricIdentifiersWithFilters(mgt.getTenantId(), null, tagQuery)
+                            .flatMap(metricsService::findMetric)
                             .toList()
                             .toBlocking().firstOrDefault(Collections.emptyList());
                     dataIdMap.put(dataId, new HashSet<>(dataIdMetrics));
