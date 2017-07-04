@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,9 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.core.service.transformers.ItemsToSetTransformer;
-import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformer;
+import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
 import org.hawkular.metrics.model.Metric;
+import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 
 import com.datastax.driver.core.Row;
@@ -92,21 +93,21 @@ public class TagQueryParser {
         }
     }
 
-    public Observable<Metric<?>> findMetricsWithFilters(String tenantId, MetricType<?> metricType,
-                                                            Map<String, String> tagsQueries) {
+    public Observable<MetricId<?>> findMetricIdentifiersWithFilters(String tenantId, MetricType<?> metricType,
+                                                                    Map<String, String> tagsQueries) {
 
         Map<Long, List<Map.Entry<String, String>>> costSortedMap = QueryOptimizer.reOrderTagsQuery(tagsQueries);
 
         List<Map.Entry<String, String>> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
         List<Map.Entry<String, String>> groupCEntries = costSortedMap.get(QueryOptimizer.GROUP_C_COST);
 
-        Observable<Metric<?>> groupMetrics;
+        Observable<MetricId<?>> groupMetrics;
 
         // Fetch everything from the tagsQueries
         groupMetrics = Observable.from(groupBEntries)
                         .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getKey())
                                 .filter(tagValueFilter(e.getValue(), 3))
-                                .compose(new TagsIndexRowTransformer<>(metricType))
+                                .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
                                 .reduce((s1, s2) -> {
                                     s1.addAll(s2);
@@ -116,28 +117,33 @@ public class TagQueryParser {
                             s1.retainAll(s2);
                             return s1;
                         })
-                        .flatMap(Observable::from)
-                        .flatMap(metricsService::findMetric);
+                        .flatMap(Observable::from);
+//                        .flatMap(metricsService::findMetric);
 
         // There might not be any metrics fetched yet.. if this is the only query
         if(groupBEntries.isEmpty() && !groupCEntries.isEmpty()) {
             // Fetch all the available metrics for this tenant
-            Observable<? extends Metric<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
-                    .compose(new TagsIndexRowTransformer<>(metricType))
-                    .filter(mId -> mId.getTenantId().equals(tenantId))
-                    .flatMap(metricsService::findMetric);
+            Observable<? extends MetricId<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
+                    .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                    .filter(mId -> mId.getTenantId().equals(tenantId));
 
-            Observable<Metric<?>> dataMetrics = metricsService.findAllMetrics()
-                    .filter(m -> m.getMetricId().getTenantId().equals(tenantId))
+            Observable<MetricId<?>> dataMetrics = metricsService.findAllMetricIdentifiers()
+                    .filter(m -> m.getTenantId().equals(tenantId))
                     .filter(metricTypeFilter(metricType));
 
             groupMetrics = Observable.concat(tagsMetrics, dataMetrics).distinct();
         }
 
         // Group C processing, everything outside Cassandra
-        for (Map.Entry<String, String> groupCQuery : groupCEntries) {
-            groupMetrics = groupMetrics
-                    .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
+        if(groupCEntries.size() > 0) {
+            // TODO zipWith or something here instead of this monstrosity
+            Observable<Metric<?>> metrics = groupMetrics.flatMap(metricsService::findMetric);
+
+            for (Map.Entry<String, String> groupCQuery : groupCEntries) {
+                metrics = metrics
+                        .filter(tagNotExistsFilter(groupCQuery.getKey().substring(1)));
+            }
+            groupMetrics = metrics.map(Metric::getMetricId);
         }
 
         return groupMetrics;
@@ -243,7 +249,7 @@ public class TagQueryParser {
         };
     }
 
-    public Func1<Metric<?>, Boolean> metricTypeFilter(MetricType<?> type) {
-        return tMetric -> (type == null && tMetric.getType().isUserType()) || tMetric.getType() == type;
+    public Func1<MetricId<?>, Boolean> metricTypeFilter(MetricType<?> type) {
+        return tMetricId -> (type == null && tMetricId.getType().isUserType()) || tMetricId.getType() == type;
     }
 }

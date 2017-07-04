@@ -83,9 +83,9 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricInDataCompressed;
 
-    private PreparedStatement findAllMetricsInData;
+    private PreparedStatement findAllMetricIdsInData;
 
-    private PreparedStatement findAllMetricsInDataCompressed;
+    private PreparedStatement findAllMetricIdsInDataCompressed;
 
     private PreparedStatement findMetricInMetricsIndex;
 
@@ -274,11 +274,11 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? " +
             "ORDER BY metric ASC");
 
-        findAllMetricsInData = session.prepare(
+        findAllMetricIdsInData = session.prepare(
             "SELECT DISTINCT tenant_id, type, metric, dpart " +
             "FROM data");
 
-        findAllMetricsInDataCompressed = session.prepare(
+        findAllMetricIdsInDataCompressed = session.prepare(
                 "SELECT DISTINCT tenant_id, type, metric, dpart " +
                         "FROM data_compressed");
 
@@ -627,9 +627,9 @@ public class DataAccessImpl implements DataAccess {
 
 
     @Override
-    public Observable<Row> findAllMetricsInData() {
-        return rxSession.executeAndFetch(findAllMetricsInData.bind())
-                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
+    public Observable<Row> findAllMetricIdentifiersInData() {
+        return rxSession.executeAndFetch(findAllMetricIdsInData.bind())
+                .concatWith(rxSession.executeAndFetch(findAllMetricIdsInDataCompressed.bind()));
     }
 
     @Override

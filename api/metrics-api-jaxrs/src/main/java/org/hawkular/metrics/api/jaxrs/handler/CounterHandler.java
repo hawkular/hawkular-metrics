@@ -147,9 +147,13 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
             @QueryParam("timestamps") Boolean fetchTimestamps) {
 
-        Observable<Metric<Long>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), COUNTER)
-                : metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags.getTags());
+        Observable<Metric<Long>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags.getTags())
+                    .flatMap(metricsService::findMetric);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
+        }
 
         if(fetchTimestamps) {
             metricObservable = metricObservable

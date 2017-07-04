@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
-import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
@@ -122,8 +121,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.info("Starting compression of timestamps (UTC) between " + startOfSlice + " - " + endOfSlice);
 
-        Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetrics()
-                .map(Metric::getMetricId)
+        Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetricIdentifiers()
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
         // Fetch all partition keys and compress the previous timeSlice
