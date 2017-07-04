@@ -152,7 +152,8 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
 
         Observable<Metric<Long>> metricObservable = null;
         if (tags != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags);
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags)
+                    .flatMap(metricsService::findMetric);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), COUNTER);
         }
@@ -898,8 +899,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        metricsService.findMetricsWithFilters(getTenant(), COUNTER, tags)
-                .map(Metric::getMetricId)
+        metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Long>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)

@@ -78,7 +78,7 @@ public interface DataAccess {
 
     Observable<ResultSet> dropTempTable(long timestamp);
 
-    Observable<Row> findAllMetricsInData();
+    Observable<Row> findAllMetricIdentifiersInData();
 
     <T> Observable<Integer> insertData(Observable<Metric<T>> metrics);
 
