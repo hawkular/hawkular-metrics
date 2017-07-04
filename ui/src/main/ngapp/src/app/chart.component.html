@@ -15,5 +15,11 @@
       <option value='30d'>Last month</option>
     </select>
   </div>
-  <div id="line-chart" class="line-chart-pf"></div>
+  <hk-metric-chart *ngIf="metric &amp;&amp; tenant &amp;&amp; type"
+    metricUrl="http://localhost:8080/hawkular/metrics"
+    [metricId]="metric"
+    [metricTenantId]="tenant"
+    [metricType]="type"
+    chartType="line">
+  </hk-metric-chart>
 </div>

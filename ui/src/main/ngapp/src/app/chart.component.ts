@@ -1,5 +1,6 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Params } from '@angular/router';
+import { MetricChartComponent } from 'hawkular-charts';
 
 @Component({
   selector: 'chart',
@@ -14,7 +15,6 @@ export class ChartComponent implements OnInit {
   type: string;
   metric: string;
   loading = false;
-
   constructor(private route: ActivatedRoute) {
   }
 

@@ -23,7 +23,11 @@
         "../node_modules/patternfly/dist/css/patternfly-additions.min.css",
         "styles.css"
       ],
-      "scripts": [],
+      "scripts": [
+        "../node_modules/d3/d3.min.js",
+        "../node_modules/d3-tip/index.js",
+        "../node_modules/moment/moment.js"
+      ],
       "environmentSource": "environments/environment.ts",
       "environments": {
         "dev": "environments/environment.ts",

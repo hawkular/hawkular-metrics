@@ -1,8 +1,10 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { FormsModule }   from '@angular/forms';
-import { RouterModule }   from '@angular/router';
-import { HttpModule }    from '@angular/http';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { HttpModule } from '@angular/http';
+
+import { HawkularChartsModule } from 'hawkular-charts';
 
 import { AppComponent } from './app.component';
 import { MetricsPageComponent } from './metrics-page.component';
@@ -20,6 +22,7 @@ import { ChartComponent } from './chart.component';
     BrowserModule,
     FormsModule,
     HttpModule,
+    HawkularChartsModule,
     RouterModule.forRoot([{
         path: '',
         redirectTo: '/metrics',
