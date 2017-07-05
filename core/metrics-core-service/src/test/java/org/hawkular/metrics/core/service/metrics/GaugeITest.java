@@ -30,7 +30,6 @@ import static org.testng.Assert.assertTrue;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,13 +48,9 @@ import org.joda.time.DateTime;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableMap;
 
-import rx.Completable;
-import rx.Emitter;
 import rx.Observable;
-import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
@@ -345,120 +340,6 @@ public class GaugeITest extends BaseMetricsITest {
         assertEquals(actual, expected, "The data does not match the expected values");
         assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
     }
-
-//    @Test
-    void addAndCompressData() throws Exception {
-        String tenantId = "t1";
-        long start = now().getMillis();
-
-        int amountOfMetrics = 1000;
-        int datapointsPerMetric = 10;
-
-        for (int j = 0; j < datapointsPerMetric; j++) {
-            final int dpAdd = j;
-            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
-                for (int i = 0; i < amountOfMetrics; i++) {
-                    String metricName = String.format("m%d", i);
-                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
-                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
-                }
-                emitter.onCompleted();
-            }, Emitter.BackpressureMode.BUFFER);
-
-            TestSubscriber<Void> subscriber = new TestSubscriber<>();
-            Observable<Void> observable = metricsService.addDataPoints(GAUGE, metrics);
-            observable.subscribe(subscriber);
-            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
-            for (Throwable throwable : subscriber.getOnErrorEvents()) {
-                throwable.printStackTrace();
-            }
-            subscriber.assertNoErrors();
-            subscriber.assertCompleted();
-        }
-
-        Completable completable = metricsService.compressBlock(start, 2000, 2);
-
-        TestSubscriber<Row> tsr = new TestSubscriber<>();
-        completable.subscribe(tsr);
-        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
-        tsr.assertCompleted();
-        tsr.assertNoErrors();
-
-        for (int i = 0; i < amountOfMetrics; i++) {
-            String metricName = String.format("m%d", i);
-            MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
-
-            Observable<DataPoint<Double>> dataPoints =
-                    metricsService.findDataPoints(mId, start, start + datapointsPerMetric + 1, 0, Order.ASC);
-
-            TestSubscriber<DataPoint<Double>> tsrD = new TestSubscriber<>();
-            dataPoints.subscribe(tsrD);
-            tsrD.awaitTerminalEvent(10, TimeUnit.SECONDS);
-            tsrD.assertCompleted();
-            tsrD.assertNoErrors();
-            tsrD.assertValueCount(datapointsPerMetric);
-        }
-    }
-
-//    @Test
-//    public void addAndCompressData() throws Exception {
-//        // TODO This unit test works even if compression is broken.. as long as the data is not deleted
-//        DateTime dt = new DateTime(2016, 9, 2, 14, 15, DateTimeZone.UTC); // Causes writes to go to compressed and one
-//        // uncompressed table
-//        DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
-//
-//        DateTime start = dt.minusMinutes(30);
-//        DateTime end = start.plusMinutes(20);
-//
-//        MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
-//
-//        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
-//
-//        Metric<Double> m1 = new Metric<>(mId, asList(
-//                new DataPoint<>(start.getMillis(), 1.1),
-//                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-//                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-//                new DataPoint<>(end.getMillis(), 4.4)));
-//
-//        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
-//        insertObservable.toBlocking().lastOrDefault(null);
-//
-//        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
-////        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
-//
-//        System.out.printf("===================> Processing %d compressing %d\n", start.getMillis(), startSlice.getMillis());
-//
-//        Completable compressCompletable =
-//                metricsService.compressBlock(startSlice.getMillis(), COMPRESSION_PAGE_SIZE)
-//                .doOnError(Throwable::printStackTrace);
-////                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-////                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
-//
-//        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
-//        compressCompletable.subscribe(testSubscriber);
-//        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
-//        testSubscriber.assertCompleted();
-//        testSubscriber.assertNoErrors();
-//
-//        Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
-//                end.getMillis() + 1, 0, Order.DESC);
-//        List<DataPoint<Double>> actual = toList(observable);
-//        List<DataPoint<Double>> expected = asList(
-//                new DataPoint<>(end.getMillis(), 4.4),
-//                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-//                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-//                new DataPoint<>(start.getMillis(), 1.1));
-//
-//        assertEquals(actual, expected, "The data does not match the expected values");
-//        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
-//
-//        observable = metricsService.findDataPoints(mId, start.getMillis(),
-//                end.getMillis(), 0, Order.DESC);
-//        actual = toList(observable);
-//        assertEquals(3, actual.size(), "Last datapoint should be missing (<)");
-//
-//        DateTimeUtils.setCurrentMillisSystem();
-//    }
 
     @Test
     public void addDataForSingleGaugeAndFindWithLimit() throws Exception {

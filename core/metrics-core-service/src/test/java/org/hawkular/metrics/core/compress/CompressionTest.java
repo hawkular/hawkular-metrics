@@ -20,17 +20,33 @@ import static java.util.Arrays.asList;
 
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
+import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.metrics.BaseMetricsITest;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.datastax.driver.core.AggregateMetadata;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.FunctionMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SchemaChangeListener;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.UserType;
 
 import rx.Completable;
 import rx.Emitter;
@@ -38,25 +54,30 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 
 /**
+ * Additional tests targeting the compressBlock function in the MetricsServiceImpl. For job execution tests,
+ * check CompressDataJobITest
+ *
  * @author Michael Burman
  */
 public class CompressionTest extends BaseMetricsITest {
 
-    @Test
-    void addAndCompressData() throws Exception {
-        String tenantId = "t1";
-        long start = now().getMillis();
+    private String tenantId;
+    private static double startValue = 1.1;
 
-        int amountOfMetrics = 1000;
-        int datapointsPerMetric = 10;
+    @BeforeMethod
+    public void initTest(Method method) {
+        tenantId = method.getName();
+    }
 
+
+    private void createAndInsertMetrics(long start, int amountOfMetrics, int datapointsPerMetric) {
         for (int j = 0; j < datapointsPerMetric; j++) {
             final int dpAdd = j;
             Observable<Metric<Double>> metrics = Observable.create(emitter -> {
                 for (int i = 0; i < amountOfMetrics; i++) {
                     String metricName = String.format("m%d", i);
                     MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
-                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
+                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, startValue + dpAdd))));
                 }
                 emitter.onCompleted();
             }, Emitter.BackpressureMode.BUFFER);
@@ -71,7 +92,9 @@ public class CompressionTest extends BaseMetricsITest {
             subscriber.assertNoErrors();
             subscriber.assertCompleted();
         }
+    }
 
+    private void compressData(long start) {
         Completable completable = metricsService.compressBlock(start, 2000, 2);
 
         TestSubscriber<Row> tsr = new TestSubscriber<>();
@@ -82,9 +105,38 @@ public class CompressionTest extends BaseMetricsITest {
         }
         tsr.assertCompleted();
         tsr.assertNoErrors();
+    }
 
-        // This happens too fast after the compression job has finished.. preparedstatements are still there
-        // while the table is gone
+    @Test
+    void addAndCompressData() throws Exception {
+        long start = now().getMillis();
+
+        int amountOfMetrics = 1000;
+        int datapointsPerMetric = 10;
+
+        createAndInsertMetrics(start, amountOfMetrics, datapointsPerMetric);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        latchingSchemaChangeListener(latch);
+        compressData(start);
+
+        // Verify the count from the data_compressed table
+        TestSubscriber<Long> ts = new TestSubscriber<>();
+
+        rxSession.executeAndFetch("SELECT COUNT(*) FROM data_compressed")
+                .map(r -> r.getLong(0))
+                .subscribe(ts);
+
+        ts.awaitTerminalEvent(2, TimeUnit.SECONDS);
+        ts.assertNoErrors();
+        ts.assertCompleted();
+        List<Long> onNextEvents = ts.getOnNextEvents();
+        assertEquals(onNextEvents.size(), 1);
+        assertEquals(onNextEvents.get(0).longValue(), amountOfMetrics);
+
+        // Now read it through findDataPoints also
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+
         for (int i = 0; i < amountOfMetrics; i++) {
             String metricName = String.format("m%d", i);
             MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
@@ -98,80 +150,127 @@ public class CompressionTest extends BaseMetricsITest {
             tsrD.assertCompleted();
             tsrD.assertNoErrors();
             tsrD.assertValueCount(datapointsPerMetric);
+
+            List<DataPoint<Double>> datapoints = tsrD.getOnNextEvents();
+            for(int h = 0; h < datapoints.size(); h++) {
+                assertEquals(datapoints.get(h).getValue(), startValue + h);
+            }
         }
     }
 
-//    @Test
-//    public void addAndCompressData() throws Exception {
-//        // TODO This unit test works even if compression is broken.. as long as the data is not deleted
-//        DateTime dt = new DateTime(2016, 9, 2, 14, 15, DateTimeZone.UTC); // Causes writes to go to compressed and one
-//        // uncompressed table
-//        DateTimeUtils.setCurrentMillisFixed(dt.getMillis());
-//
-//        DateTime start = dt.minusMinutes(30);
-//        DateTime end = start.plusMinutes(20);
-//
-//        MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
-//
-//        metricsService.createTenant(new Tenant(tenantId), false).toBlocking().lastOrDefault(null);
-//
-//        Metric<Double> m1 = new Metric<>(mId, asList(
-//                new DataPoint<>(start.getMillis(), 1.1),
-//                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-//                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-//                new DataPoint<>(end.getMillis(), 4.4)));
-//
-//        Observable<Void> insertObservable = metricsService.addDataPoints(GAUGE, Observable.just(m1));
-//        insertObservable.toBlocking().lastOrDefault(null);
-//
-//        DateTime startSlice = DateTimeService.getTimeSlice(start, CompressData.DEFAULT_BLOCK_SIZE);
-////        DateTime endSlice = startSlice.plus(CompressData.DEFAULT_BLOCK_SIZE);
-//
-//        System.out.printf("===================> Processing %d compressing %d\n", start.getMillis(), startSlice.getMillis());
-//
-//        Completable compressCompletable =
-//                metricsService.compressBlock(startSlice.getMillis(), COMPRESSION_PAGE_SIZE)
-//                .doOnError(Throwable::printStackTrace);
-////                metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-////                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
-//
-//        TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
-//        compressCompletable.subscribe(testSubscriber);
-//        testSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
-//        testSubscriber.assertCompleted();
-//        testSubscriber.assertNoErrors();
-//
-//        Observable<DataPoint<Double>> observable = metricsService.findDataPoints(mId, start.getMillis(),
-//                end.getMillis() + 1, 0, Order.DESC);
-//        List<DataPoint<Double>> actual = toList(observable);
-//        List<DataPoint<Double>> expected = asList(
-//                new DataPoint<>(end.getMillis(), 4.4),
-//                new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
-//                new DataPoint<>(start.plusMinutes(2).getMillis(), 2.2),
-//                new DataPoint<>(start.getMillis(), 1.1));
-//
-//        assertEquals(actual, expected, "The data does not match the expected values");
-//        assertMetricIndexMatches(tenantId, GAUGE, singletonList(new Metric<>(m1.getMetricId(), m1.getDataPoints(), 7)));
-//
-//        observable = metricsService.findDataPoints(mId, start.getMillis(),
-//                end.getMillis(), 0, Order.DESC);
-//        actual = toList(observable);
-//        assertEquals(3, actual.size(), "Last datapoint should be missing (<)");
-//
-//        DateTimeUtils.setCurrentMillisSystem();
-//    }
-
     @Test
     public void testNonExistantCompression() throws Exception {
-        // TODO Test compressBlock with a timestamp far away in the past
-        /*
-        No errors, no data_0 compression
-         */
+        // Write to past .. should go to data_0 table
+        long start = now().minusDays(2).getMillis();
+        createAndInsertMetrics(start, 100, 1);
+        compressData(start); // Try to compress table in the past
 
-        // Write data to the data_0 table
-        // compress
-        // assertNoErrors
-        // assertNothingCompressed
-        // assertData0RemainsIntact
+        // Verify that the out of order table was not dropped
+        TableMetadata table = session.getCluster().getMetadata().getKeyspace(getKeyspace())
+                .getTable(DataAccessImpl.OUT_OF_ORDER_TABLE_NAME);
+
+        assertNotNull(table, "data_0 should not have been dropped");
+
+        TestSubscriber<Long> ts = new TestSubscriber<>();
+
+        // Verify that the out of order table was not compressed
+        rxSession.executeAndFetch(String.format("SELECT COUNT(*) FROM %s", DataAccessImpl.OUT_OF_ORDER_TABLE_NAME))
+                .map(r -> r.getLong(0))
+                .subscribe(ts);
+
+        ts.awaitTerminalEvent(2, TimeUnit.SECONDS);
+        ts.assertNoErrors();
+        ts.assertCompleted();
+        List<Long> onNextEvents = ts.getOnNextEvents();
+        assertEquals(onNextEvents.size(), 1);
+        assertEquals(onNextEvents.get(0).longValue(), 100);
+    }
+
+    private void latchingSchemaChangeListener(CountDownLatch latch) {
+        session.getCluster().register(new SchemaChangeListener() {
+            @Override public void onKeyspaceAdded(KeyspaceMetadata keyspaceMetadata) {
+
+            }
+
+            @Override public void onKeyspaceRemoved(KeyspaceMetadata keyspaceMetadata) {
+
+            }
+
+            @Override
+            public void onKeyspaceChanged(KeyspaceMetadata keyspaceMetadata, KeyspaceMetadata keyspaceMetadata1) {
+
+            }
+
+            @Override public void onTableAdded(TableMetadata tableMetadata) {
+
+            }
+
+            @Override public void onTableRemoved(TableMetadata tableMetadata) {
+                latch.countDown();
+            }
+
+            @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {
+
+            }
+
+            @Override public void onUserTypeAdded(UserType userType) {
+
+            }
+
+            @Override public void onUserTypeRemoved(UserType userType) {
+
+            }
+
+            @Override public void onUserTypeChanged(UserType userType, UserType userType1) {
+
+            }
+
+            @Override public void onFunctionAdded(FunctionMetadata functionMetadata) {
+
+            }
+
+            @Override public void onFunctionRemoved(FunctionMetadata functionMetadata) {
+
+            }
+
+            @Override
+            public void onFunctionChanged(FunctionMetadata functionMetadata, FunctionMetadata functionMetadata1) {
+
+            }
+
+            @Override public void onAggregateAdded(AggregateMetadata aggregateMetadata) {
+
+            }
+
+            @Override public void onAggregateRemoved(AggregateMetadata aggregateMetadata) {
+
+            }
+
+            @Override
+            public void onAggregateChanged(AggregateMetadata aggregateMetadata, AggregateMetadata aggregateMetadata1) {
+
+            }
+
+            @Override public void onMaterializedViewAdded(MaterializedViewMetadata materializedViewMetadata) {
+
+            }
+
+            @Override public void onMaterializedViewRemoved(MaterializedViewMetadata materializedViewMetadata) {
+
+            }
+
+            @Override public void onMaterializedViewChanged(MaterializedViewMetadata materializedViewMetadata,
+                                                            MaterializedViewMetadata materializedViewMetadata1) {
+
+            }
+
+            @Override public void onRegister(Cluster cluster) {
+
+            }
+
+            @Override public void onUnregister(Cluster cluster) {
+
+            }
+        });
     }
 }
