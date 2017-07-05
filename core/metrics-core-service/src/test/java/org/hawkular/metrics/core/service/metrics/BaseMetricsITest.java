@@ -46,6 +46,7 @@ import org.hawkular.metrics.model.NumericBucketPoint;
 import org.hawkular.metrics.model.Retention;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
@@ -108,6 +109,11 @@ public abstract class BaseMetricsITest extends BaseITest {
         }
 
         NumericDataPointCollector.createPercentile = defaultCreatePercentile;
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     protected <T extends Number> NumericBucketPoint createSingleBucket(List<? extends DataPoint<T>> combinedData,

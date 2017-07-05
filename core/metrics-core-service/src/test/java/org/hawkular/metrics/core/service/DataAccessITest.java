@@ -37,6 +37,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -89,6 +90,11 @@ public class DataAccessITest extends BaseITest {
                 session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
             }
         }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     @Test
