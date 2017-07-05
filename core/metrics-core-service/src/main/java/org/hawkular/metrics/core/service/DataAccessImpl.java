@@ -844,8 +844,8 @@ public class DataAccessImpl implements DataAccess {
                 getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp);
 
         // The table does not exists - case such as when starting Hawkular-Metrics for the first time just before
-        // compression kicks in
-        if(ts == null) {
+        // compression kicks in.
+        if(ts == null || prepMap.floorKey(timestamp) == 0L) {
             return Observable.empty();
         }
 
@@ -961,7 +961,6 @@ public class DataAccessImpl implements DataAccess {
                 return floorEntry.getValue()
                     .get(getMapKey(type, ts));
         }
-        // We should never be here..
         return null;
     }
 

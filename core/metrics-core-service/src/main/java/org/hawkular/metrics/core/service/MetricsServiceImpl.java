@@ -749,6 +749,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
                 dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
+                        .switchIfEmpty(Observable.empty())
                         .flatMap(rows -> rows
                                 // Each time the tokenrange changes inside the query, create new window, publish allows
                                 // reuse of the observable in two distinct processing phases
