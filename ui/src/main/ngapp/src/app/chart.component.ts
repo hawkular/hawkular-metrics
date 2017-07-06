@@ -15,38 +15,49 @@ export class ChartComponent implements OnInit {
   type: string;
   metric: string;
   loading = false;
+  timeRange: number;
+
   constructor(private route: ActivatedRoute) {
+    this.timeRange = this.intervalToSeconds(this.timeframe);
   }
 
   ngOnInit(): void {
-    this.route.params
-      .subscribe((params: Params) => {
-        this.tenant = params['tenant'];
-        this.type = params['type'];
-        this.metric = params['metric'];
-        if (this.tenant && this.type && this.metric) {
-            this.title = "Tenant '" + this.tenant + "', " + this.type + " '" + this.metric + "'";
-        } else {
-            this.notice = 'Enter a tenant then select a metric from the left menu'
-        }
-      });
+    this.route.params.subscribe((params: Params) => {
+      this.tenant = params['tenant'];
+      this.type = params['type'];
+      this.metric = params['metric'];
+      if (this.tenant && this.type && this.metric) {
+        this.title = "Tenant '" + this.tenant + "', " + this.type + " '" + this.metric + "'";
+      } else {
+        this.notice = 'Enter a tenant then select a metric from the left menu'
+      }
+    });
   }
 
-  intervalToMilliseconds(value) {
-      const regexExtract = /(\d+)(.+)/g.exec(value);
-      const val = +regexExtract[1];
-      const unit = regexExtract[2];
-      let mult = 1000;
-      if (unit == 'm') {
-          mult *= 60;
-      } else if (unit == 'h') {
-          mult *= 3600;
-      } else if (unit == 'd') {
-          mult *= 86400;
-      }
-      return val * mult;
+  intervalToSeconds(value) {
+    const regexExtract = /(\d+)(.+)/g.exec(value);
+    const val = +regexExtract[1];
+    const unit = regexExtract[2];
+    let mult = 1;
+    if (unit == 'm') {
+      mult *= 60;
+    } else if (unit == 'h') {
+      mult *= 3600;
+    } else if (unit == 'd') {
+      mult *= 86400;
+    }
+    return val * mult;
   }
 
   onTimeFrameChanged(event) {
+    this.timeRange = this.intervalToSeconds(this.timeframe);
+  }
+
+  childTimeRangeChange(event) {
+    console.log('ngOnChanges');
+    console.log(event);
+    if (event.hasOwnProperty('start')) {
+      this.timeframe = 'custom';
+    }
   }
 }

@@ -25,7 +25,6 @@
     "core-js": "^2.4.1",
     "d3": "^3.5.0",
     "d3-tip": "0.6.7",
-    "moment": "^2.9.0",
     "hawkular-charts": "file:///work/angular-library-starter/hawkular-charts-2.0.0-alpha.tgz",
     "patternfly": "^3.25.1",
     "rxjs": "^5.1.0",

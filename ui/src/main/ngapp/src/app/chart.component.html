@@ -13,6 +13,7 @@
       <option value='2d'>Last 2 days</option>
       <option value='7d'>Last week</option>
       <option value='30d'>Last month</option>
+      <option value='custom' disabled=true>Custom</option>
     </select>
   </div>
   <hk-metric-chart *ngIf="metric &amp;&amp; tenant &amp;&amp; type"
@@ -20,6 +21,8 @@
     [metricId]="metric"
     [metricTenantId]="tenant"
     [metricType]="type"
-    chartType="line">
+    chartType="line"
+    [timeRange]="timeRange"
+    (timeRangeChange)="childTimeRangeChange($event)">
   </hk-metric-chart>
 </div>

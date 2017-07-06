@@ -21,12 +21,12 @@
       "styles": [
         "../node_modules/patternfly/dist/css/patternfly.min.css",
         "../node_modules/patternfly/dist/css/patternfly-additions.min.css",
+        "../node_modules/hawkular-charts/styles.css",
         "styles.css"
       ],
       "scripts": [
         "../node_modules/d3/d3.min.js",
-        "../node_modules/d3-tip/index.js",
-        "../node_modules/moment/moment.js"
+        "../node_modules/d3-tip/index.js"
       ],
       "environmentSource": "environments/environment.ts",
       "environments": {
