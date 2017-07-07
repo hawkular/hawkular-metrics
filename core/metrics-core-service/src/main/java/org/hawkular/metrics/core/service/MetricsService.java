@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,6 +175,17 @@ public interface MetricsService {
 
     <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> id, long start, long end, int limit, Order order,
             int pageSize);
+
+    Completable verifyAndCreateTempTables(ZonedDateTime startTime, ZonedDateTime endTime);
+
+    /**
+     *
+     * @param startTimeSlice
+     * @param pageSize
+     * @param maxConcurrency How many reads are concurrently called from Cassandra
+     * @return
+     */
+    @SuppressWarnings("unchecked") Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency);
 
     /**
      * Compresses the given range between timestamps to a single block.
@@ -356,5 +368,5 @@ public interface MetricsService {
 
     <T> Func1<Metric<T>, Boolean> idFilter(String regexp);
 
-    <T> Observable<Void> updateMetricExpiration(Metric<T> metric);
+    <T> Observable<Void> updateMetricExpiration(MetricId<T> metric);
 }

@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static java.time.ZoneOffset.UTC;
+
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.core.service.Order.ASC;
@@ -27,10 +29,13 @@ import static org.hawkular.metrics.model.Utils.isValidTimeRange;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +63,7 @@ import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.SortedMerge;
 import org.hawkular.metrics.core.service.transformers.TaggedBucketPointTransformer;
+import org.hawkular.metrics.core.service.transformers.TempTableCompressTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityBucketPoint;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -104,6 +110,7 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 /**
@@ -167,7 +174,6 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
-
     /**
      * Measurements of the throughput of inserting data points.
      */
@@ -193,6 +199,8 @@ public class MetricsServiceImpl implements MetricsService {
      * Functions used to transform a row into a data point object.
      */
     private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> dataPointMappers;
+
+    private Map<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> tempDataPointMappers;
 
     /**
      * Tools that do tag query parsing and execution
@@ -228,17 +236,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(GAUGE, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Double>> gauge = (Observable<Metric<Double>>) metric;
-                    return dataAccess.insertGaugeDatas(gauge, this::getTTL);
+                    return dataAccess.insertData(gauge);
                 })
                 .put(COUNTER, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<Long>> counter = (Observable<Metric<Long>>) metric;
-                    return dataAccess.insertCounterDatas(counter, this::getTTL);
+                    return dataAccess.insertData(counter);
                 })
                 .put(AVAILABILITY, metric -> {
                     @SuppressWarnings("unchecked")
                     Observable<Metric<AvailabilityType>> avail = (Observable<Metric<AvailabilityType>>) metric;
-                    return dataAccess.insertAvailabilityDatas(avail, this::getTTL);
+                    return dataAccess.insertData(avail);
                 })
                 .put(STRING, metric -> {
                     @SuppressWarnings("unchecked")
@@ -250,21 +258,6 @@ public class MetricsServiceImpl implements MetricsService {
         dataPointFinders = ImmutableMap
                 .<MetricType<?>, Func6<? extends MetricId<?>, Long, Long, Integer, Order, Integer,
                         Observable<Row>>>builder()
-                .put(GAUGE, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Double> gaugeId = (MetricId<Double>) metricId;
-                    return dataAccess.findGaugeData(gaugeId, start, end, limit, order, pageSize);
-                })
-                .put(AVAILABILITY, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<AvailabilityType> availabilityId = (MetricId<AvailabilityType>) metricId;
-                    return dataAccess.findAvailabilityData(availabilityId, start, end, limit, order, pageSize);
-                })
-                .put(COUNTER, (metricId, start, end, limit, order, pageSize) -> {
-                    @SuppressWarnings("unchecked")
-                    MetricId<Long> counterId = (MetricId<Long>) metricId;
-                    return dataAccess.findCounterData(counterId, start, end, limit, order, pageSize);
-                })
                 .put(STRING, (metricId, start, end, limit, order, pageSize) -> {
                     @SuppressWarnings("unchecked")
                     MetricId<String> stringId = (MetricId<String>) metricId;
@@ -279,9 +272,17 @@ public class MetricsServiceImpl implements MetricsService {
                 .put(STRING, Functions::getStringDataPoint)
                 .build();
 
+        tempDataPointMappers = ImmutableMap.<MetricType<?>, Func1<Row, ? extends DataPoint<?>>> builder()
+                .put(GAUGE, Functions::getTempGaugeDataPoint)
+                .put(COUNTER, Functions::getTempCounterDataPoint)
+                .put(AVAILABILITY, Functions::getTempAvailabilityDataPoint)
+                .build();
+
         initConfiguration(session);
         setDefaultTTL(session, keyspace);
         initMetrics();
+
+        verifyAndCreateTempTables();
 
         tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
         expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
@@ -461,7 +462,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
 
-        this.updateMetricExpiration(metric);
+        this.updateMetricExpiration(metric.getMetricId());
 
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
@@ -515,8 +516,9 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
         Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
-                .distinct()
+                .doOnError(Throwable::printStackTrace)
                 .filter(row -> tenantId.equals(row.getString(0)))
+                .distinct()
                 .compose(new MetricFromFullDataRowTransformer(defaultTTL))
                 .map(m -> (Metric<T>) m);
 
@@ -543,7 +545,7 @@ public class MetricsServiceImpl implements MetricsService {
         try {
             results = expresssionTagQueryParser
                     .parse(tenantId, metricType, tags)
-                    .map(tMetric -> (Metric<T>) tMetric);
+                    .map(tMetric -> tMetric);
         } catch (Exception e1) {
             try {
                 Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
@@ -593,7 +595,7 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
-        this.updateMetricExpiration(metric);
+        this.updateMetricExpiration(metric.getMetricId());
 
         return dataAccess.addTags(metric, tags).map(l -> null);
     }
@@ -610,7 +612,6 @@ public class MetricsServiceImpl implements MetricsService {
                 .flatMap(tagsToDelete -> dataAccess.deleteTags(metric, tagsToDelete))
                 .map(r -> null);
     }
-
 
     @Override
     public <T> Observable<Void> addDataPoints(MetricType<T> metricType, Observable<Metric<T>> metrics) {
@@ -633,54 +634,70 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
-            Order order, int pageSize) {
+                                                       Order order, int pageSize) {
+
         Timer.Context context = rawDataReadLatency.time();
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
         Func1<Row, DataPoint<T>> mapper = getDataPointMapper(metricType);
 
-        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
-                getDataPointFinder(metricType);
-
-        Observable<DataPoint<T>> results;
-
-        if(metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
+        if (metricType == GAUGE || metricType == AVAILABILITY || metricType == COUNTER) {
             long sliceStart = DateTimeService.getTimeSlice(start, Duration.standardHours(2));
 
-            Observable<DataPoint<T>> uncompressedPoints = finder.call(metricId, start, end, limit, safeOrder, pageSize)
-                    .map(mapper);
+            Func1<Row, DataPoint<T>> tempMapper = (Func1<Row, DataPoint<T>>) tempDataPointMappers.get(metricType);
+
+            // Calls mostly deprecated methods..
+//            Observable<DataPoint<T>> uncompressedPoints = dataAccess.findOldData(metricId, start, end, limit, safeOrder,
+//                    pageSize).map(mapper).doOnError(Throwable::printStackTrace);
 
             Observable<DataPoint<T>> compressedPoints =
                     dataAccess.findCompressedData(metricId, sliceStart, end, limit, safeOrder)
                             .compose(new DataPointDecompressTransformer(metricType, safeOrder, limit, start, end));
 
-            Comparator<DataPoint<T>> comparator;
+            Observable<DataPoint<T>> tempStoragePoints = dataAccess.findTempData(metricId, start, end, limit,
+                    safeOrder, pageSize)
+                    .map(tempMapper);
 
-            switch(safeOrder) {
-                case ASC:
-                    comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
-                    break;
-                case DESC:
-                    comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
-                    break;
-                default:
-                    throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
-            }
+            Comparator<DataPoint<T>> comparator = getDataPointComparator(safeOrder);
+            List<Observable<? extends DataPoint<T>>> sources = new ArrayList<>(3);
+//            sources.add(uncompressedPoints);
+            sources.add(compressedPoints);
+            sources.add(tempStoragePoints);
 
-            Observable<DataPoint<T>> dataPoints = SortedMerge
-                    .create(Arrays.asList(uncompressedPoints, compressedPoints), comparator, false, true);
+            Observable<DataPoint<T>> dataPoints = SortedMerge.create(sources, comparator, false)
+                    .distinctUntilChanged(
+                            (tDataPoint, tDataPoint2) -> comparator.compare(tDataPoint, tDataPoint2) == 0);
 
-            if(limit > 0) {
+            if (limit > 0) {
                 dataPoints = dataPoints.take(limit);
             }
 
-            results = dataPoints;
-        } else {
-            results = finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
+            return dataPoints;
+        }
+        Func6<MetricId<T>, Long, Long, Integer, Order, Integer, Observable<Row>> finder =
+                getDataPointFinder(metricType);
+
+        Observable<DataPoint<T>> results =
+                finder.call(metricId, start, end, limit, safeOrder, pageSize).map(mapper);
+        return results.doOnCompleted(context::stop);
+    }
+
+    private <T> Comparator<DataPoint<T>> getDataPointComparator(Order safeOrder) {
+        Comparator<DataPoint<T>> comparator;
+
+        switch(safeOrder) {
+            case ASC:
+                comparator = (tDataPoint, t1) -> (int) (tDataPoint.getTimestamp() - t1.getTimestamp());
+                break;
+            case DESC:
+                comparator = (tDataPoint, t1) -> (int) (t1.getTimestamp() - tDataPoint.getTimestamp());
+                break;
+            default:
+                throw new RuntimeException(safeOrder.toString() + " is not correct sorting order");
         }
 
-        return results.doOnCompleted(context::stop);
+        return comparator;
     }
 
     private <T> Observable.Transformer<T, T> applyRetryPolicy() {
@@ -703,7 +720,70 @@ public class MetricsServiceImpl implements MetricsService {
                 .onErrorResumeNext(Observable.empty());
     }
 
+    /**
+     * Intended to be used at the startup of the MetricsServiceImpl to ensure we have enough tables for processing
+     */
+    public void verifyAndCreateTempTables() {
+        ZonedDateTime currentBlock = ZonedDateTime.ofInstant(Instant.ofEpochMilli(DateTimeService.now.get().getMillis()), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour());
+
+        ZonedDateTime lastStartupBlock = currentBlock.plus(6, ChronoUnit.HOURS);
+        verifyAndCreateTempTables(currentBlock, lastStartupBlock).await();
+    }
+
     @Override
+    public Completable verifyAndCreateTempTables(ZonedDateTime startTime, ZonedDateTime endTime) {
+        Set<Long> timestamps = new HashSet<>();
+
+        while(startTime.isBefore(endTime)) {
+            // Table sizes are not configurable at this point
+            timestamps.add(startTime.toInstant().toEpochMilli());
+            startTime = startTime.plus(2, ChronoUnit.HOURS);
+        }
+
+        return Completable.fromObservable(dataAccess.createTempTablesIfNotExists(timestamps));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency) {
+        return Completable.fromObservable(
+                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
+                        .switchIfEmpty(Observable.empty())
+                        .flatMap(rows -> rows
+                                // Each time the tokenrange changes inside the query, create new window, publish allows
+                                // reuse of the observable in two distinct processing phases
+                                .publish(p -> p.window(
+                                        p.map(Row::getPartitionKeyToken)
+                                                .distinctUntilChanged()))
+                                // ConcatMap so we don't mess the order as that's important in the compression job
+                                .concatMap(o -> {
+                                    // Cache the first key from the observable so we can use it to create a key later
+                                    Observable<Row> sharedRows = o.share();
+                                    Observable<CompressedPointContainer> compressed =
+                                            sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
+                                    Observable<Row> keyTake = sharedRows.take(1);
+
+                                    // Merge the first row with the compressed package to be able to write to Cassandra
+                                    return compressed.zipWith(keyTake, (cpc, r) -> {
+                                        MetricId<?> metricId =
+                                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
+                                                        r.getString(2));
+                                        return dataAccess
+                                                .insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
+                                                .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
+                                    });
+                                }), maxConcurrency)
+                        .flatMap(rs -> rs)
+                        .doOnCompleted(() -> dataAccess.dropTempTable(startTimeSlice)
+                                .compose(applyRetryPolicy())
+                                .subscribeOn(Schedulers.io())
+                                .subscribe())
+        );
+    }
+
+    @Override
+    @Deprecated
     @SuppressWarnings("unchecked")
     public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
             long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {
@@ -713,9 +793,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .doOnNext(cpc -> {
-                            subject.onNext(new Metric<>(metricId, getTTL(metricId)));
-                        })
+                        .doOnNext(cpc -> subject.onNext(new Metric<>(metricId, getTTL(metricId))))
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                 .compose(applyRetryPolicy()))));
@@ -917,6 +995,7 @@ public class MetricsServiceImpl implements MetricsService {
         TimeRange timeRange = bucketConfig.getTimeRange();
         checkArgument(isValidTimeRange(timeRange.getStart(), timeRange.getEnd()), "Invalid time range");
         return findDataPoints(id, timeRange.getStart(), timeRange.getEnd(), 0, ASC)
+                .doOnError(Throwable::printStackTrace)
                 .compose(new NumericBucketPointTransformer(bucketConfig.getBuckets(), percentiles));
     }
 
@@ -979,6 +1058,7 @@ public class MetricsServiceImpl implements MetricsService {
         insertedDataPointEvents.onCompleted();
         metricsTasks.shutdown();
         unloadDataRetentions();
+//        dataAccess.shutdown();
     }
 
     private <T> T time(Timer timer, Callable<T> callable) {
@@ -998,24 +1078,23 @@ public class MetricsServiceImpl implements MetricsService {
         //      for the compressed data table.
 
         return getMetricTags(id)
-                .flatMap(tags -> dataAccess.deleteFromMetricsIndexAndTags(id, tags)
-                        .concatMap(r -> dataAccess.deleteMetricData(id))
-                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))
-                        .concatMap(r -> dataAccess.deleteFromMetricExpirationIndex(id)))
+                .flatMap(tags -> dataAccess.deleteFromMetricsIndexAndTags(id, tags))
+                .concatWith(dataAccess.deleteMetricData(id))
+                .concatWith(dataAccess.deleteMetricFromRetentionIndex(id))
+                .concatWith(dataAccess.deleteFromMetricExpirationIndex(id))
+                .doOnError(Throwable::printStackTrace)
+//                        .concatMap(r -> dataAccess.deleteMetricData(id))
+//                        .concatMap(r -> dataAccess.deleteMetricFromRetentionIndex(id))
+//                        .concatMap(r -> dataAccess.deleteFromMetricExpirationIndex(id)))
                 .map(r -> null);
     }
 
     @Override
-    public <T> Observable<Void> updateMetricExpiration(Metric<T> metric) {
+    public <T> Observable<Void> updateMetricExpiration(MetricId<T> metric) {
         if (!MetricType.STRING.equals(metric.getType())) {
-            long expiration = 0;
-            if (metric.getDataRetention() != null) {
-                expiration = DateTimeService.now.get().getMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
-            } else {
-                expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
-            }
+                long expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric) * DAY_TO_MILLIS;
 
-            return dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration)
+            return dataAccess.updateMetricExpirationIndex(metric, expiration)
                     .doOnError(t -> log.error("Failure to update expiration index", t))
                     .flatMap(r -> null);
         }

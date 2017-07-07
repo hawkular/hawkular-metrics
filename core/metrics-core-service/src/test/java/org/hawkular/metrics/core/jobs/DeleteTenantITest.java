@@ -36,8 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.TestDataAccessFactory;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -91,7 +91,7 @@ public class DeleteTenantITest extends BaseITest {
                 "SELECT tvalue, type, metric FROM metrics_tags_idx WHERE tenant_id = ? AND tname = ?");
         getRetentions = session.prepare("SELECT metric FROM retentions_idx WHERE tenant_id = ? AND type = ?");
 
-        DataAccess dataAccess = new DataAccessImpl(session);
+        DataAccess dataAccess = TestDataAccessFactory.newInstance(session);
 
         configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);

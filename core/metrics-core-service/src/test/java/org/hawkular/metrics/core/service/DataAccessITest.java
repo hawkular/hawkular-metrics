@@ -27,6 +27,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -36,6 +37,7 @@ import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -43,34 +45,36 @@ import org.testng.annotations.Test;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import rx.Emitter;
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
  */
 public class DataAccessITest extends BaseITest {
 
-    private static int DEFAULT_TTL = 600;
-
     private static int DEFAULT_PAGE_SIZE = 5000;
 
     private DataAccessImpl dataAccess;
 
     private PreparedStatement truncateTenants;
-
     private PreparedStatement truncateGaugeData;
-
     private PreparedStatement truncateCompressedData;
+    private PreparedStatement truncateOverflow;
 
     @BeforeClass
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
+        this.dataAccess = (DataAccessImpl) TestDataAccessFactory.newInstance(session);
+
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
         truncateCompressedData = session.prepare("TRUNCATE data_compressed");
+        truncateOverflow = session.prepare(String.format("TRUNCATE %s", DataAccessImpl.OUT_OF_ORDER_TABLE_NAME));
     }
 
     @BeforeMethod
@@ -78,6 +82,19 @@ public class DataAccessITest extends BaseITest {
         session.execute(truncateTenants.bind());
         session.execute(truncateGaugeData.bind());
         session.execute(truncateCompressedData.bind());
+        session.execute(truncateOverflow.bind());
+        // Need to truncate all the temp tables also..
+        for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
+                .getTables()) {
+            if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_PROTOTYPE)) {
+                session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
+            }
+        }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     @Test
@@ -107,8 +124,8 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void insertAndFindGaugeRawData() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
 
         Metric<Double> metric = new Metric<>(new MetricId<>("tenant-1", GAUGE, "metric-1"), asList(
                 new DataPoint<>(start.getMillis(), 1.23),
@@ -117,12 +134,12 @@ public class DataAccessITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        dataAccess.insertData(Observable.just(metric)).toBlocking().last();
 
-        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .map(Functions::getGaugeDataPoint)
+                .map(Functions::getTempGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
@@ -137,8 +154,8 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void addMetadataToGaugeRawData() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
         String tenantId = "tenant-1";
 
         Metric<Double> metric = new Metric<>(new MetricId<>(tenantId, GAUGE, "metric-1"), asList(
@@ -148,12 +165,12 @@ public class DataAccessITest extends BaseITest {
                 new DataPoint<>(end.getMillis(), 1.234)
         ));
 
-        dataAccess.insertGaugeData(metric, DEFAULT_TTL).toBlocking().last();
+        doAction(() -> dataAccess.insertData(Observable.just(metric)).doOnError(Throwable::printStackTrace));
 
-        Observable<Row> observable = dataAccess.findGaugeData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
+        Observable<Row> observable = dataAccess.findTempData(new MetricId<>("tenant-1", GAUGE, "metric-1"),
                 start.getMillis(), end.getMillis(), 0, Order.DESC, DEFAULT_PAGE_SIZE);
         List<DataPoint<Double>> actual = ImmutableList.copyOf(observable
-                .map(Functions::getGaugeDataPoint)
+                .map(Functions::getTempGaugeDataPoint)
                 .toBlocking()
                 .toIterable());
 
@@ -168,18 +185,18 @@ public class DataAccessITest extends BaseITest {
 
     @Test
     public void insertAndFindAvailabilities() throws Exception {
-        DateTime start = now().minusMinutes(10);
-        DateTime end = start.plusMinutes(6);
+        DateTime start = now();
+        DateTime end = start.plusMinutes(16);
         String tenantId = "avail-test";
         Metric<AvailabilityType> metric = new Metric<>(new MetricId<>(tenantId, AVAILABILITY, "m1"),
                 singletonList(new DataPoint<>(start.getMillis(), UP)));
 
-        dataAccess.insertAvailabilityData(metric, 360).toBlocking().lastOrDefault(null);
+        dataAccess.insertData(Observable.just(metric)).toBlocking().lastOrDefault(null);
 
         List<DataPoint<AvailabilityType>> actual = dataAccess
-                .findAvailabilityData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
+                .findTempData(new MetricId<>(tenantId, AVAILABILITY, "m1"), start.getMillis(), end.getMillis(),
                         0, Order.DESC, DEFAULT_PAGE_SIZE)
-                .map(Functions::getAvailabilityDataPoint)
+                .map(Functions::getTempAvailabilityDataPoint)
                 .toList().toBlocking().lastOrDefault(null);
         List<DataPoint<AvailabilityType>> expected = singletonList(new DataPoint<AvailabilityType>(start.getMillis(),
                 UP));
@@ -196,15 +213,70 @@ public class DataAccessITest extends BaseITest {
                 new Metric<>(new MetricId<>("t1", GAUGE, "m2"), singletonList(new DataPoint<>(start+1, 0.1))),
                 new Metric<>(new MetricId<>("t1", GAUGE, "m3"), singletonList(new DataPoint<>(start+2, 0.1))),
                 new Metric<>(new MetricId<>("t1", GAUGE, "m4"), singletonList(new DataPoint<>(start+3, 0.1)))))
-                .flatMap(m -> dataAccess.insertGaugeData(m, DEFAULT_TTL))
+                .flatMap(m -> dataAccess.insertData(Observable.just(m)))
+                .doOnError(Throwable::printStackTrace)
                 .toBlocking().lastOrDefault(null);
 
         @SuppressWarnings("unchecked")
         List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
+                .doOnError(Throwable::printStackTrace)
                 .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
-                        ()))
-                .map(m -> (Metric<Double>) m));
+                        ())).doOnError(Throwable::printStackTrace)
+                .map(m -> (Metric<Double>) m)
+        .doOnNext(m -> m.getMetricId().toString()));
 
         assertEquals(metrics.size(), 4);
     }
+
+    @Test
+    void testFindAllDataFromBucket() throws Exception {
+        String tenantId = "t1";
+        long start = now().getMillis();
+
+        int amountOfMetrics = 1000;
+        int datapointsPerMetric = 10;
+
+        for (int j = 0; j < datapointsPerMetric; j++) {
+            final int dpAdd = j;
+            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
+                for (int i = 0; i < amountOfMetrics; i++) {
+                    String metricName = String.format("m%d", i);
+                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
+                }
+                emitter.onCompleted();
+            }, Emitter.BackpressureMode.BUFFER);
+
+            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+            Observable<Integer> observable = dataAccess.insertData(metrics);
+            observable.subscribe(subscriber);
+            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+            for (Throwable throwable : subscriber.getOnErrorEvents()) {
+                throwable.printStackTrace();
+            }
+            subscriber.assertNoErrors();
+            subscriber.assertCompleted();
+        }
+
+        Observable<Row> rowObservable = dataAccess.findAllDataFromBucket(start, DEFAULT_PAGE_SIZE, 2)
+                .flatMap(r -> r);
+
+        TestSubscriber<Row> tsr = new TestSubscriber<>();
+        rowObservable.subscribe(tsr);
+        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
+        tsr.assertCompleted();
+        tsr.assertNoErrors();
+        tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
+    }
+
+//    @Test
+//    public void testBucketIndexes() throws Exception {
+//        ZonedDateTime of = ZonedDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+//        ZonedDateTime limit = ZonedDateTime.of(2017, 1, 1, 23, 59, 0, 0, ZoneOffset.UTC);
+//        int bucketIndex = dataAccess.getBucketIndex(of.toInstant().toEpochMilli());
+//        assertEquals(0, bucketIndex);
+//
+//        bucketIndex = dataAccess.getBucketIndex(limit.toInstant().toEpochMilli());
+//        assertEquals(11, bucketIndex);
+//    }
 }

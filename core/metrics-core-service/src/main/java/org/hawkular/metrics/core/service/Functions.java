@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,9 +76,23 @@ public class Functions {
                 row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class));
     }
 
+    public static DataPoint<Double> getTempGaugeDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(GAUGE_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
+                row.getDouble(GAUGE_COLS.VALUE.ordinal()),
+                row.getMap(GAUGE_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
     public static DataPoint<Long> getCounterDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(COUNTER_COLS.TIME.ordinal())),
+                row.getLong(COUNTER_COLS.VALUE.ordinal()),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
+    public static DataPoint<Long> getTempCounterDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(COUNTER_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
                 row.getLong(COUNTER_COLS.VALUE.ordinal()),
                 row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }
@@ -93,6 +107,13 @@ public class Functions {
     public static DataPoint<AvailabilityType> getAvailabilityDataPoint(Row row) {
         return new DataPoint<>(
                 UUIDs.unixTimestamp(row.getUUID(AVAILABILITY_COLS.TIME.ordinal())),
+                AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
+                row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
+    }
+
+    public static DataPoint<AvailabilityType> getTempAvailabilityDataPoint(Row row) {
+        return new DataPoint<>(
+                row.getTimestamp(AVAILABILITY_COLS.TIME.ordinal()).toInstant().toEpochMilli(),
                 AvailabilityType.fromBytes(row.getBytes(AVAILABILITY_COLS.AVAILABILITY.ordinal())),
                 row.getMap(COUNTER_COLS.TAGS.ordinal(), String.class, String.class));
     }

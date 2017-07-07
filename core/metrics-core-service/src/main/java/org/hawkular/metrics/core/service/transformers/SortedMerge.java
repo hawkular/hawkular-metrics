@@ -35,11 +35,11 @@ import rx.internal.util.RxRingBuffer;
 import rx.internal.util.unsafe.MpscLinkedQueue;
 
 /**
- * Merges two sorted streams to one sorted stream.
+ * Merges two or more sorted streams to one sorted stream (not removing duplicates)
  *
  * Originally from https://gist.github.com/akarnokd/c86a89738199bbb37348
  *
- * This is modified with remove duplicates from stream and updated to use RxJava 1.2.x API
+ * This is updated to use RxJava 1.2.x API
  *
  * @author Michael Burman
  */
@@ -47,38 +47,35 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
     final List<Observable<? extends T>> sources;
     final Comparator<? super T> comparator;
     final boolean delayErrors;
-    final boolean removeDuplicates;
 
     public static <U extends Comparable<? super U>> Observable<U> create(
             Collection<Observable<? extends U>> sources) {
-        return create(sources, false, false);
+        return create(sources, false);
     }
 
     public static <U> Observable<U> create(
             Collection<Observable<? extends U>> sources,
             Comparator<? super U> comparator) {
-        return create(sources, comparator, false, false);
+        return create(sources, comparator, false);
     }
 
     public static <U extends Comparable<? super U>> Observable<U> create(
-            Collection<Observable<? extends U>> sources, boolean delayErrors, boolean removeDuplicates) {
-        return Observable.create(new SortedMerge<>(sources, (o1, o2) -> o1.compareTo(o2), delayErrors,
-                removeDuplicates));
+            Collection<Observable<? extends U>> sources, boolean delayErrors) {
+        return Observable.create(new SortedMerge<>(sources, (o1, o2) -> o1.compareTo(o2), delayErrors));
     }
 
     public static <U> Observable<U> create(
             Collection<Observable<? extends U>> sources,
-            Comparator<? super U> comparator, boolean delayErrors, boolean removeDuplicates) {
-        return Observable.create(new SortedMerge<>(sources, comparator, delayErrors, removeDuplicates));
+            Comparator<? super U> comparator, boolean delayErrors) {
+        return Observable.create(new SortedMerge<>(sources, comparator, delayErrors));
     }
 
     protected SortedMerge(Collection<Observable<? extends T>> sources,
                           Comparator<? super T> comparator,
-                          boolean delayErrors, boolean removeDuplicates) {
+                          boolean delayErrors) {
         this.sources = sources instanceof List ? (List<Observable<? extends T>>)sources : new ArrayList<>(sources);
         this.comparator = comparator;
         this.delayErrors = delayErrors;
-        this.removeDuplicates = removeDuplicates;
     }
 
     @Override
@@ -109,8 +106,6 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
     static final class MergeProducer<T> extends AtomicLong implements Producer {
         /** */
         private static final long serialVersionUID = -812969080497027108L;
-
-//        final NotificationLite<T> nl = NotificationLite.instance();
 
         final boolean delayErrors;
         final Comparator<? super T> comparator;
@@ -205,8 +200,6 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
                     boolean fullRow = true;
                     // indicates that at least one value is available
                     boolean hasAtLeastOne = false;
-                    // indicates duplicate value
-                    boolean hasDuplicate = false;
                     // holds the smallest of the available values
                     T minimum = null;
                     // indicates which source's value is taken so it can be polled/replenished
@@ -244,9 +237,6 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
                             if (c > 0) {
                                 minimum = v;
                                 toPoll = i;
-                            } else if (c == 0) {
-                                hasDuplicate = true;
-                                toPoll = i;
                             }
                         } else {
                             // this is the first value found
@@ -270,10 +260,7 @@ public final class SortedMerge<T> implements OnSubscribe<T> {
                             // request replenishment
                             s.requestMore(1);
                         }
-                        // emit the smallest
-                        if(!hasDuplicate) {
-                            child.onNext(minimum);
-                        }
+                        child.onNext(minimum);
                         // decrement the available request and increment the emit count
                         if (r != Long.MAX_VALUE) {
                             r--;

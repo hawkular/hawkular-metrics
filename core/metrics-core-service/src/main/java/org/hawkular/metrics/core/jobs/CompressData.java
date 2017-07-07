@@ -128,7 +128,7 @@ public class CompressData implements Func1<JobDetails, Completable> {
         PublishSubject<Metric<?>> subject = PublishSubject.create();
         subject.subscribe(metric -> {
             try {
-                this.metricsService.updateMetricExpiration(metric);
+                this.metricsService.updateMetricExpiration(metric.getMetricId());
             } catch (Exception e) {
                 logger.error("Could not update the metric expiration index for metric " + metric.getId()
                         + " of tenant " + metric.getTenantId());

@@ -16,6 +16,7 @@
  */
 package org.hawkular.metrics.benchmark.jmh;
 
+import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.util.ArrayList;
@@ -25,9 +26,12 @@ import java.util.concurrent.TimeUnit;
 import org.hawkular.metrics.benchmark.jmh.util.LiveCassandraManager;
 import org.hawkular.metrics.benchmark.jmh.util.MetricServiceManager;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
+import org.hawkular.rx.cassandra.driver.RxSession;
+import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -43,6 +47,8 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+
+import com.datastax.driver.core.PreparedStatement;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -67,12 +73,53 @@ public class InsertBenchmark {
         private MetricsService metricsService;
         private MetricServiceManager metricsManager;
 
+        public RxSession rxSession;
+
+        public PreparedStatement createSingleTable;
+        public PreparedStatement createMultiTable;
+
+        public PreparedStatement truncateSingleTable;
+        public PreparedStatement truncateMultiTable;
+
+        public PreparedStatement insertPartition;
+        public PreparedStatement insertMultiPartition;
+
         @Setup
         public void setup() {
             metricsManager = new MetricServiceManager(new LiveCassandraManager());
 //            metricsManager = new MetricServiceManager(new SCassandraManager());
 //            metricsManager = new MetricServiceManager(new MockCassandraManager());
             metricsService = metricsManager.getMetricsService();
+
+            rxSession = new RxSessionImpl(metricsManager.getSession());
+
+            createSingleTable = metricsManager.getSession().prepare(
+                    "CREATE TABLE IF NOT EXISTS data_temp_single (tenant_id text, type tinyint, metric text, dpart " +
+                            "bigint, time " +
+                            "timeuuid, n_value double, PRIMARY KEY ((tenant_id, type, dpart), time)) WITH CLUSTERING ORDER BY (time DESC)");
+
+            createMultiTable = metricsManager.getSession().prepare(
+                    "CREATE TABLE IF NOT EXISTS data_temp_multi (tenant_id text, type tinyint, metric text, dpart " +
+                            "bigint, time " +
+                            "timeuuid, n_value double, PRIMARY KEY ((tenant_id, type, metric, dpart), time)) WITH CLUSTERING ORDER BY (time DESC)");
+
+            metricsManager.getSession().execute(createMultiTable.bind());
+            metricsManager.getSession().execute(createSingleTable.bind());
+
+            truncateSingleTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_temp_single");
+            truncateMultiTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_temp_multi");
+
+            // Temp table with a single partition
+            insertPartition = metricsManager.getSession().prepare(
+                    "UPDATE data_temp_single " +
+                            "SET n_value = ? " +
+                            "WHERE tenant_id = ? AND type = ? AND dpart = 0 AND time = ? ");
+
+            // Current table in temp format
+            insertMultiPartition = metricsManager.getSession().prepare(
+                    "UPDATE data_temp_multi " +
+                            "SET n_value = ? " +
+                            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = 0 AND time = ? ");
         }
 
         @TearDown
@@ -91,7 +138,8 @@ public class InsertBenchmark {
         @Param({"100000"}) // 1M caused some GC issues and unstable test results
         public int size;
 
-        @Param({"1", "10"})
+//        @Param({"1", "10"})
+        @Param({"1"})
         public int datapointsPerMetric;
 
         private List<Metric<Double>> metricList;
@@ -122,7 +170,7 @@ public class InsertBenchmark {
     }
 
     // Equivalent to REST-tests for inserting size-amount of metrics in one call
-    @Benchmark
+//    @Benchmark
     @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
     public void insertBenchmarkRxJava1(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
         bh.consume(service.getMetricsService().addDataPoints(GAUGE, creator.getMetricObservable())
@@ -130,7 +178,7 @@ public class InsertBenchmark {
     }
 
     // Equivalent of REST-test for inserting for single-metric id one call
-    @Benchmark
+//    @Benchmark
     @OperationsPerInvocation(100000) // Note, this is metric amount from param size, not datapoints
 //    @Fork(jvmArgsAppend =
 //            {"-XX:+UnlockCommercialFeatures",
@@ -142,6 +190,43 @@ public class InsertBenchmark {
         bh.consume(creator.getMetricObservable()
                 .flatMap(m -> service.getMetricsService().addDataPoints(GAUGE, Observable.just(m)))
                 .toBlocking().lastOrDefault(null));
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(100000)
+    public void insertToMultiplePartitions(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
+        bh.consume(
+                creator.getMetricObservable()
+                .flatMap(m ->
+                        Observable.from(m.getDataPoints())
+                                .map(d -> service.insertMultiPartition.bind(d.getValue(), m.getTenantId(),
+                                        m.getMetricId().getType().getCode(),
+                                        m.getMetricId().getName(), getTimeUUID(d.getTimestamp())))
+                )
+                        .compose(new BatchStatementTransformer())
+                        .flatMap(batch -> service.rxSession.execute(batch).map(resultSet -> batch.size()))
+//                .doOnCompleted(() -> service.rxSession.execute(service.truncateMultiTable.bind()))
+                .toBlocking().lastOrDefault(null)
+        );
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(100000)
+    public void insertToSinglePartition(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
+        bh.consume(
+                creator.getMetricObservable()
+                        .flatMap(m ->
+                                Observable.from(m.getDataPoints())
+                                        .map(d -> service.insertPartition.bind(d.getValue(), m.getTenantId(),
+                                                m.getMetricId().getType().getCode(),
+                                                getTimeUUID(d.getTimestamp())))
+                        )
+                        .compose(new BatchStatementTransformer())
+                        .flatMap(batch -> service.rxSession.execute(batch).map(resultSet -> batch.size()))
+//                        .doOnCompleted(() -> service.rxSession.execute(service.truncateMultiTable.bind()))
+                        .toBlocking().lastOrDefault(null)
+        );
+
     }
 
     @SuppressWarnings("unused")

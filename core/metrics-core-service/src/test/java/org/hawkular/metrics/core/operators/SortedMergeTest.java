@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,7 +55,9 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.just(2, 4, 6, 8);
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), false, true).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), false)
+                .distinctUntilChanged((integer, integer2) -> integer.compareTo(integer2) == 0)
+                .subscribe(ts);
 
         ts.assertNoErrors();
         ts.assertCompleted();
@@ -81,7 +83,9 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.just(2, 3);
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), false, true).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), false)
+                .distinctUntilChanged((integer, integer2) -> integer.compareTo(integer2) == 0)
+                .subscribe(ts);
 
         ts.assertNoErrors();
         ts.assertCompleted();
@@ -108,7 +112,9 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.just(2, 4, 6, 8).observeOn(Schedulers.computation());
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), false, true).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), false)
+                .distinctUntilChanged((integer, integer2) -> integer.compareTo(integer2) == 0)
+                .subscribe(ts);
 
         ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
         ts.assertNoErrors();
@@ -136,7 +142,9 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.just(2, 3).observeOn(Schedulers.computation());
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), false, true).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), false)
+                .distinctUntilChanged((integer, integer2) -> integer.compareTo(integer2) == 0)
+                .subscribe(ts);
 
         ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
         ts.assertNoErrors();
@@ -189,7 +197,7 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.empty();
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), false, true).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), true).subscribe(ts);
 
         ts.assertNoErrors();
         ts.assertCompleted();
@@ -228,7 +236,7 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.just(2).concatWith(Observable.<Integer>error(new RuntimeException()));
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), true, false).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), true).subscribe(ts);
 
         ts.assertError(RuntimeException.class);
         ts.assertValues(1, 2, 3, 5, 7);
@@ -241,7 +249,7 @@ public class SortedMergeTest {
         Observable<Integer> o2 = Observable.<Integer>error(new RuntimeException());
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2), true, false).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2), true).subscribe(ts);
 
         ts.assertError(RuntimeException.class);
         ts.assertNotCompleted();
@@ -252,10 +260,15 @@ public class SortedMergeTest {
     public void testTake() {
         Observable<Integer> o1 = Observable.just(1, 3, 5, 7);
         Observable<Integer> o2 = Observable.just(2, 4, 6, 8);
+        Observable<Integer> o3 = Observable.just(2, 4, 6, 8);
 
         TestSubscriber<Integer> ts = new TestSubscriber<>();
-        SortedMerge.create(Arrays.asList(o1, o2)).take(2).subscribe(ts);
+        SortedMerge.create(Arrays.asList(o1, o2, o3))
+                .distinctUntilChanged((integer, integer2) -> integer.compareTo(integer2) != 0)
+                .take(2)
+                .subscribe(ts);
 
+        ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
         ts.assertNoErrors();
         ts.assertCompleted();
         ts.assertValues(1, 2);

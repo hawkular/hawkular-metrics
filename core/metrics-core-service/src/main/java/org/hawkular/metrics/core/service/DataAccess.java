@@ -17,10 +17,10 @@
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
-import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
@@ -36,6 +36,8 @@ import rx.Observable;
  * @author John Sanda
  */
 public interface DataAccess {
+
+    Observable<ResultSet> createTempTablesIfNotExists(Set<Long> timestamps);
 
     Observable<ResultSet> insertTenant(Tenant tenant, boolean overwrite);
 
@@ -65,14 +67,20 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
+    /*
+    https://issues.apache.org/jira/browse/CASSANDRA-11143
+    https://issues.apache.org/jira/browse/CASSANDRA-10699
+    https://issues.apache.org/jira/browse/CASSANDRA-9424
+     */
+//    Completable resetTempTable(long timestamp);
+
+    Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency);
+
+    Observable<ResultSet> dropTempTable(long timestamp);
+
     Observable<Row> findAllMetricsInData();
 
-    Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
-            Function<MetricId<Double>, Integer> ttlFunc);
-
-    Observable<Integer> insertGaugeData(Metric<Double> metric);
-
-    Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
+    <T> Observable<Integer> insertData(Observable<Metric<T>> metrics);
 
     Observable<Integer> insertStringDatas(Observable<Metric<String>> strings,
             Function<MetricId<String>, Integer> ttlFetcher, int maxSize);
@@ -81,42 +89,23 @@ public interface DataAccess {
 
     Observable<Integer> insertStringData(Metric<String> metric, int ttl, int maxSize);
 
-    Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-            Function<MetricId<Long>, Integer> ttlFetcher);
-
-    Observable<Integer> insertCounterData(Metric<Long> counter);
-
-    Observable<Integer> insertCounterData(Metric<Long> counter, int ttl);
-
-    Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
-
     Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order);
 
-    Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
+    <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                     int pageSize);
+
+//    <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+//                                    int pageSize);
 
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
-            int pageSize);
-
-    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime, int limit,
-            Order order, int pageSize);
-
-    Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp);
+                                   int pageSize);
 
     <T> Observable<ResultSet> deleteMetricData(MetricId<T> id);
 
     <T> Observable<ResultSet> deleteMetricFromRetentionIndex(MetricId<T> id);
 
     <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id);
-
-    Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-            Function<MetricId<AvailabilityType>, Integer> ttlFetcher);
-
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric);
-
-    Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl);
 
     <T> ResultSetFuture findDataRetentions(String tenantId, MetricType<T> type);
 
@@ -131,6 +120,9 @@ public interface DataAccess {
 
     Observable<Row> findAllMetricsFromTagsIndex();
 
+    <T> Observable<ResultSet> insertCompressedData(MetricId<T> id, long timeslice,
+                                                   CompressedPointContainer cpc, int ttl);
+
     <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
                                                              CompressedPointContainer cpc,
                                                              long sliceStart, long sliceEnd, int ttl);
@@ -140,4 +132,6 @@ public interface DataAccess {
     <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
 
     <T> Observable<Row> findMetricExpiration(MetricId<T> id);
+
+    void shutdown();
 }

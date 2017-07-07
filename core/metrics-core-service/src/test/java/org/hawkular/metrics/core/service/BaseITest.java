@@ -117,11 +117,15 @@ public abstract class BaseITest {
      */
     protected <T> void doAction(Supplier<Observable<T>> fn) {
         TestSubscriber<T> subscriber = new TestSubscriber<>();
-        Observable<T> observable = fn.get();
+        Observable<T> observable = fn.get().doOnError(Throwable::printStackTrace);
         observable.subscribe(subscriber);
         subscriber.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        for (Throwable throwable : subscriber.getOnErrorEvents()) {
+            throwable.printStackTrace();
+        }
         subscriber.assertNoErrors();
         subscriber.assertCompleted();
+
     }
 
     /**

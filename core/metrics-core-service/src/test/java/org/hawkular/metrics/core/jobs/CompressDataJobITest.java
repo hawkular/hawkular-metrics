@@ -18,7 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import static java.util.Arrays.asList;
 
-import static org.hawkular.metrics.core.jobs.CompressData.JOB_NAME;
+import static org.hawkular.metrics.core.jobs.TempDataCompressor.JOB_NAME;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
@@ -29,6 +29,7 @@ import static org.testng.AssertJUnit.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -38,9 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.core.service.Order;
+import org.hawkular.metrics.core.service.TestDataAccessFactory;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -68,11 +69,6 @@ import com.google.common.collect.ImmutableMap;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
-//import static org.junit.Assert.assertEquals;
-//import static org.junit.Assert.assertNotNull;
-//import static org.junit.Assert.assertNull;
-//import static org.junit.Assert.assertTrue;
-
 /**
  * Test the compression ETL jobs
  *
@@ -89,36 +85,34 @@ public class CompressDataJobITest extends BaseITest {
     private ConfigurationService configurationService;
     private TestScheduler jobScheduler;
     private PreparedStatement resetConfig;
+    private PreparedStatement resetConfig2;
+
+    private boolean firstExecute = true;
 
     private JobDetails compressionJob;
 
     @BeforeClass
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = TestDataAccessFactory.newInstance(session);
 
         resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
                 JOB_NAME + "'");
 
-        configurationService = new ConfigurationService() ;
+        resetConfig2 = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
+                TempTableCreator.JOB_NAME + "'");
+
+        session.execute(resetConfig.bind());
+        session.execute(resetConfig2.bind());
+
+        configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
         metricsService.startUp(session, getKeyspace(), true, metricRegistry);
-    }
-
-    @BeforeMethod
-    public void initTest(Method method) {
-        logger.debug("Starting [" + method.getName() + "]");
-
-        session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
-        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
-                .with(DateTimeService.startOfNextOddHour())
-                .toInstant(ZoneOffset.UTC).toEpochMilli() - 60000;
-        jobScheduler.advanceTimeTo(nextStart);
         jobScheduler.truncateTables(getKeyspace());
 
         jobsService = new JobsServiceImpl();
@@ -126,18 +120,69 @@ public class CompressDataJobITest extends BaseITest {
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
+        List<JobDetails> jobDetails = jobsService.start();
+
+        JobDetails tableCreator =
+                jobDetails.stream().filter(d -> d.getJobName().equalsIgnoreCase(TempTableCreator.JOB_NAME))
+                        .findFirst().get();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        jobScheduler.onJobFinished(details -> {
+            if(details.getJobName().equals(TempTableCreator.JOB_NAME)) {
+                latch.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(tableCreator.getTrigger().getTriggerTime());
+        jobScheduler.advanceTimeBy(1);
+
+        try {
+            assertTrue(latch.await(25, TimeUnit.SECONDS)); // Wait for tables to be ready
+            Thread.sleep(3000); // Wait for the prepared statements to be initialized even in Travis
+        } catch (InterruptedException e) {
+            assertTrue(false);
+        }
+
+        compressionJob = jobDetails
+                .stream()
+                .filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
+        long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
+                .with(DateTimeService.startOfNextOddHour())
+                .toInstant(ZoneOffset.UTC).toEpochMilli();
+
+        CountDownLatch latch2 = new CountDownLatch(1);
+        jobScheduler.onJobFinished(details -> {
+            if(details.getJobName().equals(JOB_NAME)) {
+                latch2.countDown();
+            }
+        });
+
+        jobScheduler.advanceTimeTo(nextStart);
+        jobScheduler.advanceTimeBy(1);
         assertNotNull(compressionJob);
+        try {
+            assertTrue(latch.await(25, TimeUnit.SECONDS)); // Wait for first compression to pass
+        } catch (InterruptedException e) {
+            assertTrue(false);
+        }
+    }
+
+    @BeforeMethod
+    public void initTest(Method method) {
+        logger.debug("Starting [" + method.getName() + "]");
+
+        if(!firstExecute) {
+            jobScheduler.advanceTimeBy(120);
+        }
     }
 
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
-        jobsService.shutdown();
     }
 
-    @Test
+    @Test(priority = 1)
     public void testCompressJob() throws Exception {
         long now = jobScheduler.now();
 
@@ -160,7 +205,9 @@ public class CompressDataJobITest extends BaseITest {
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
-            latch.countDown();
+            if(jobDetails.getJobName().equals(JOB_NAME)) {
+                latch.countDown();
+            }
         });
 
         jobScheduler.advanceTimeTo(compressionJob.getTrigger().getTriggerTime());
@@ -186,6 +233,8 @@ public class CompressDataJobITest extends BaseITest {
 
         assertNotNull(c_value);
         assertNull(tags);
+
+        firstExecute = false;
     }
 
     private <T> void testCompressResults(MetricType<T> type, Metric<T> metric, DateTime start) throws
@@ -196,14 +245,17 @@ public class CompressDataJobITest extends BaseITest {
 
         CountDownLatch latch = new CountDownLatch(1);
         jobScheduler.onJobFinished(jobDetails -> {
-            latch.countDown();
+            if(jobDetails.getJobName().equals(JOB_NAME)) {
+                latch.countDown();
+            }
         });
 
-        jobScheduler.advanceTimeTo(compressionJob.getTrigger().getTriggerTime());
+        jobScheduler.advanceTimeBy(1);
 
         assertTrue(latch.await(25, TimeUnit.SECONDS));
         long startSlice = DateTimeService.getTimeSlice(start.getMillis(), Duration.standardHours(2));
-        long endSlice = DateTimeService.getTimeSlice(jobScheduler.now(), Duration.standardHours(2));
+        long endSlice = DateTimeService.getTimeSlice(start.plusHours(1).plusMinutes(59).getMillis(), Duration
+                .standardHours(2));
 
         DataPointDecompressTransformer<T> decompressor = new DataPointDecompressTransformer<>(type, Order.ASC, 0, start
                 .getMillis(), start.plusMinutes(30).getMillis());
@@ -220,7 +272,7 @@ public class CompressDataJobITest extends BaseITest {
         assertEquals(metric.getDataPoints(), compressedPoints);
     }
 
-    @Test
+    @Test(dependsOnMethods={"testCompressJob"})
     public void testGaugeCompress() throws Exception {
         long now = jobScheduler.now();
 
@@ -243,7 +295,7 @@ public class CompressDataJobITest extends BaseITest {
         testCompressResults(GAUGE, m1, start);
     }
 
-    @Test
+    @Test(dependsOnMethods={"testCompressJob"})
     public void testCounterCompress() throws Exception {
         long now = jobScheduler.now();
 
@@ -265,9 +317,9 @@ public class CompressDataJobITest extends BaseITest {
         testCompressResults(COUNTER, m1, start);
     }
 
-    @Test
+    @Test(dependsOnMethods={"testCompressJob"})
     public void testAvailabilityCompress() throws Exception {
-        long now = jobScheduler.now();
+        long now = jobScheduler.now(); // I need to advance the triggerTime of compression job also
 
         DateTime start = DateTimeService.getTimeSlice(new DateTime(now, DateTimeZone.UTC).minusHours(2),
                 Duration.standardHours(2)).plusMinutes(30);
@@ -287,7 +339,7 @@ public class CompressDataJobITest extends BaseITest {
         testCompressResults(AVAILABILITY, m1, start);
     }
 
-    @Test
+    @Test(dependsOnMethods={"testCompressJob"})
     public void testGaugeWithTags() throws Exception {
         long now = jobScheduler.now();
 
@@ -310,7 +362,7 @@ public class CompressDataJobITest extends BaseITest {
         testCompressResults(GAUGE, m1, start);
     }
 
-    @Test
+    @Test(dependsOnMethods={"testCompressJob"})
     public void testCompressRetentionIndex() throws Exception {
         long now = jobScheduler.now();
 
@@ -336,7 +388,6 @@ public class CompressDataJobITest extends BaseITest {
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
                 new DataPoint<>(end.getMillis(), 4.4)));
         testCompressResults(GAUGE, m1, start);
-
 
         assertNotNull(dataAccess.findMetricExpiration(m1.getMetricId()).toBlocking().firstOrDefault(null));
         assertNull(dataAccess.findMetricExpiration(m2.getMetricId()).toBlocking().firstOrDefault(null));

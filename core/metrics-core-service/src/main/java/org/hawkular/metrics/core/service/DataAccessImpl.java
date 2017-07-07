@@ -16,26 +16,40 @@
  */
 package org.hawkular.metrics.core.service;
 
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.toMap;
 
 import static org.hawkular.metrics.core.service.TimeUUIDUtils.getTimeUUID;
-import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.model.MetricType.COUNTER;
-import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.core.service.transformers.BatchStatementTransformer;
 import org.hawkular.metrics.core.service.transformers.BoundBatchStatementTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -45,24 +59,34 @@ import org.hawkular.metrics.model.Tenant;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.datastax.driver.core.AbstractTableMetadata;
+import com.datastax.driver.core.AggregateMetadata;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.CodecRegistry;
+import com.datastax.driver.core.FunctionMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SchemaChangeListener;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
+import com.datastax.driver.core.UserType;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
 import rx.exceptions.Exceptions;
+import rx.schedulers.Schedulers;
 
 /**
  *
@@ -72,12 +96,142 @@ public class DataAccessImpl implements DataAccess {
 
     private static final CoreLogger log = CoreLogging.getCoreLogger(DataAccessImpl.class);
 
+    public static final String OUT_OF_ORDER_TABLE_NAME = "data_0";
+    public static final String TEMP_TABLE_NAME_PROTOTYPE = "data_temp_";
+    public static final String TEMP_TABLE_NAME_FORMAT_STRING = TEMP_TABLE_NAME_PROTOTYPE + "%s";
+
     public static final long DPART = 0;
     private Session session;
 
     private RxSession rxSession;
 
     private LoadBalancingPolicy loadBalancingPolicy;
+
+    // Turn to MetricType agnostic
+    // See getMapKey(byte, int)
+    private NavigableMap<Long, Map<Integer, PreparedStatement>> prepMap;
+
+    // TODO Move all of these to a new class (Cassandra specific temp table) to allow multiple implementations (such
+    // as in-memory + WAL in Cassandra)
+
+    private TemporaryTableStatementCreator tableCreator = null;
+
+    private enum StatementType {
+        READ, WRITE, SCAN, CREATE, DELETE
+    }
+
+    private enum TempStatement {
+        // Should I map these to something else..? More like a key to the actual statement
+        dateRangeExclusive(byDateRangeExclusiveBase, StatementType.READ),
+        dateRangeExclusiveWithLimit(dateRangeExclusiveWithLimitBase, StatementType.READ),
+        dataByDateRangeExclusiveASC(dataByDateRangeExclusiveASCBase, StatementType.READ),
+        dataByDateRangeExclusiveWithLimitASC(dataByDateRangeExclusiveWithLimitASCBase, StatementType.READ),
+        SCAN_WITH_TOKEN_RANGES(scanTableBase, StatementType.SCAN),
+        CHECK_EXISTENCE_OF_METRIC_IN_TABLE(findMetricInDataBase, StatementType.SCAN),
+        LIST_ALL_METRICS_FROM_TABLE(findAllMetricsInDataBases, StatementType.SCAN),
+        INSERT_DATA(data, StatementType.WRITE),
+        INSERT_DATA_WITH_TAGS(dataWithTags, StatementType.WRITE),
+        CREATE_TABLE(TEMP_TABLE_BASE_CREATE, StatementType.CREATE),
+//        CREATE_WAL(TEMP_TABLE_WAL_CREATE, StatementType.CREATE);
+        DELETE_DATA(DELETE_FROM_DATA_BASE, StatementType.DELETE);
+
+        private final String statement;
+        private StatementType type;
+
+        TempStatement(String st, StatementType t) {
+            statement = st;
+            type = t;
+        }
+
+        public String getStatement() {
+            return statement;
+        }
+
+        public StatementType getType() {
+            return type;
+        }
+    }
+
+    // Read statement prototypes
+
+    private static String byDateRangeExclusiveBase =
+            "SELECT time, %s, tags FROM %s " +
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ? AND time < ?";
+
+    private static String dateRangeExclusiveWithLimitBase =
+            "SELECT time, %s, tags FROM %s " +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ? AND time < ?" +
+                    " LIMIT ?";
+
+    private static String dataByDateRangeExclusiveASCBase =
+            "SELECT time, %s, tags FROM %s " +
+                    "WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ?" +
+                    " AND time < ? ORDER BY time ASC";
+
+    private static String dataByDateRangeExclusiveWithLimitASCBase =
+            "SELECT time, %s, tags FROM %s" +
+                    " WHERE tenant_id = ? AND type = ? AND metric = ? AND time >= ?" +
+                    " AND time < ? ORDER BY time ASC" +
+                    " LIMIT ?";
+
+    private static String scanTableBase =
+            "SELECT tenant_id, type, metric, time, n_value, availability, l_value, tags, token(tenant_id, type, " +
+                    "metric) FROM %s " +
+                    "WHERE token(tenant_id, type, metric) > ? AND token(tenant_id, type, metric) <=" +
+                    " ?";
+
+    // Create statement prototype
+
+    private static String TEMP_TABLE_BASE_CREATE = "CREATE TABLE %s ( " +
+            "tenant_id text, " +
+            "type tinyint, " +
+            "metric text, " +
+            "time timestamp, " +
+            "n_value double, " +
+            "availability blob, " +
+            "l_value bigint, " +
+            "tags map<text,text>, " +
+            "PRIMARY KEY ((tenant_id, type, metric), time)" +
+            ") WITH CLUSTERING ORDER BY (time DESC)";
+
+    // For in-memory buffering
+    /*
+    private static String TEMP_TABLE_WAL_CREATE = "CREATE TABLE %s (" +
+            "tenant_id text, " +
+            "type tinyint, " +
+            "metric text, " +
+            "dpart bigint, " +
+            "time timestamp, " +
+            "count int, " +
+            "value blob, " +
+            "tags blob, " +
+            "PRIMARY KEY ((tenant_id, type, metric), time) " +
+            ") WITH CLUSTERING ORDER BY (time DESC)";
+    */
+
+    // Insert statement prototypes
+
+    private static String data = "UPDATE %s " +
+            "SET %s = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND time = ? ";
+
+    private static String dataWithTags = "UPDATE %s " +
+            "SET %s = ?, tags = ? " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ? AND time = ? ";
+
+    // Metric definition prototypes
+
+    private static String findMetricInDataBase = "SELECT DISTINCT tenant_id, type, metric " +
+            "FROM %s " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ?";
+
+    private static String findAllMetricsInDataBases = "SELECT DISTINCT tenant_id, type, metric " +
+            "FROM %s";
+
+    // Delete statement prototypes
+
+    private static String DELETE_FROM_DATA_BASE = "DELETE FROM %s " +
+            "WHERE tenant_id = ? AND type = ? AND metric = ?";
 
     private PreparedStatement insertTenant;
 
@@ -111,25 +265,9 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement getTagNamesWithType;
 
-    private PreparedStatement insertGaugeData;
-
     private PreparedStatement insertCompressedData;
 
     private PreparedStatement insertCompressedDataWithTags;
-
-    private PreparedStatement insertGaugeDataUsingTTL;
-
-    private PreparedStatement insertGaugeDataWithTags;
-
-    private PreparedStatement insertGaugeDataWithTagsUsingTTL;
-
-    private PreparedStatement insertCounterData;
-
-    private PreparedStatement insertCounterDataUsingTTL;
-
-    private PreparedStatement insertCounterDataWithTags;
-
-    private PreparedStatement insertCounterDataWithTagsUsingTTL;
 
     private PreparedStatement insertStringData;
 
@@ -147,22 +285,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findCompressedDataByDateRangeExclusiveWithLimitASC;
 
-    private PreparedStatement findCounterDataExclusive;
-
-    private PreparedStatement findCounterDataExclusiveWithLimit;
-
-    private PreparedStatement findCounterDataExclusiveASC;
-
-    private PreparedStatement findCounterDataExclusiveWithLimitASC;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusive;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimit;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveASC;
-
-    private PreparedStatement findGaugeDataByDateRangeExclusiveWithLimitASC;
-
     private PreparedStatement findStringDataByDateRangeExclusive;
 
     private PreparedStatement findStringDataByDateRangeExclusiveWithLimit;
@@ -171,8 +293,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findStringDataByDateRangeExclusiveWithLimitASC;
 
-    private PreparedStatement findAvailabilityByDateRangeInclusive;
-
     private PreparedStatement deleteMetricData;
 
     private PreparedStatement deleteFromMetricRetentionIndex;
@@ -180,22 +300,6 @@ public class DataAccessImpl implements DataAccess {
     private PreparedStatement deleteMetricFromMetricsIndex;
 
     private PreparedStatement deleteMetricDataWithLimit;
-
-    private PreparedStatement insertAvailability;
-
-    private PreparedStatement insertAvailabilityUsingTTL;
-
-    private PreparedStatement insertAvailabilityWithTags;
-
-    private PreparedStatement insertAvailabilityWithTagsUsingTTL;
-
-    private PreparedStatement findAvailabilities;
-
-    private PreparedStatement findAvailabilitiesWithLimit;
-
-    private PreparedStatement findAvailabilitiesASC;
-
-    private PreparedStatement findAvailabilitiesWithLimitASC;
 
     private PreparedStatement updateMetricsIndex;
 
@@ -223,6 +327,12 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricExpiration;
 
+    private static DateTimeFormatter TEMP_TABLE_DATEFORMATTER = (new DateTimeFormatterBuilder())
+            .appendValue(ChronoField.YEAR, 4)
+            .appendValue(ChronoField.MONTH_OF_YEAR, 2)
+            .appendValue(ChronoField.DAY_OF_MONTH, 2)
+            .appendValue(ChronoField.HOUR_OF_DAY, 2).toFormatter();
+
     private CodecRegistry codecRegistry;
     private Metadata metadata;
 
@@ -230,10 +340,158 @@ public class DataAccessImpl implements DataAccess {
         this.session = session;
         rxSession = new RxSessionImpl(session);
         loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
-        initPreparedStatements();
-
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
+
+        initPreparedStatements();
+        initializeTemporaryTableStatements();
+    }
+
+    /**
+     * Creates a key with ordinal and MetricType code for the NavigableMap.
+     *
+     * First 8 bits are reserved for the metricType code and the rest 24 bits are reserved for the ordinal
+     *
+     * @param code MetricType code
+     * @param ordinal TempStatement ordinal()
+     *
+     * @return Integer with those two combined
+     */
+    private Integer getMapKey(byte code, int ordinal) {
+        int key = ordinal;
+        key |= code << 24;
+        return key;
+    }
+
+    private Integer getMapKey(MetricType type, TempStatement ts) {
+        return getMapKey(type.getCode(), ts.ordinal());
+    }
+
+    void prepareTempStatements(String tableName, Long mapKey) {
+        // Create an entry to the correct Long
+        Map<Integer, PreparedStatement> statementMap = new HashMap<>();
+
+        // Per metricType
+        for (MetricType<?> metricType : MetricType.userTypes()) {
+            if(metricType == STRING) { continue; } // We don't support String metrics in temp tables yet
+            for (TempStatement st : TempStatement.values()) {
+                Integer key = getMapKey(metricType, st);
+
+                String formatSt;
+                switch(st.getType()) {
+                    case READ:
+                        formatSt = String.format(st.getStatement(), metricTypeToColumnName(metricType),
+                                tableName);
+                        break;
+                    case WRITE:
+                        formatSt = String.format(st.getStatement(), tableName,
+                                metricTypeToColumnName(metricType));
+                        break;
+                    default:
+                        // Not supported
+                        continue;
+                }
+
+                PreparedStatement prepared = session.prepare(formatSt);
+                statementMap.put(key, prepared);
+            }
+        }
+        // Untyped
+        for (TempStatement st : TempStatement.values()) {
+            Integer key = getMapKey(MetricType.UNDEFINED, st);
+            String formatSt;
+            switch(st.getType()) {
+                case SCAN:
+                case CREATE:
+                case DELETE:
+                    formatSt = String.format(st.getStatement(), tableName);
+                    break;
+                default:
+                    continue;
+            }
+            PreparedStatement prepared = session.prepare(formatSt);
+            statementMap.put(key, prepared);
+        }
+        prepMap.put(mapKey, statementMap);
+    }
+
+    @Override
+    public Observable<ResultSet> createTempTablesIfNotExists(final Set<Long> timestamps) {
+        return Observable.fromCallable(() -> {
+            Set<String> tables = timestamps.stream()
+                    .map(this::getTempTableName)
+                    .collect(Collectors.toSet());
+
+            // TODO This is an IO operation..
+            metadata.getKeyspace(session.getLoggedKeyspace()).getTables().stream()
+                    .map(AbstractTableMetadata::getName)
+                    .filter(t -> t.startsWith(TEMP_TABLE_NAME_PROTOTYPE))
+                    .forEach(tables::remove);
+
+            return tables;
+        })
+
+                .flatMapIterable(s -> s)
+                .zipWith(Observable.interval(300, TimeUnit.MILLISECONDS), (st, l) -> st)
+                .concatMap(this::createTemporaryTable);
+    }
+
+    Observable<ResultSet> createTemporaryTable(String tempTableName) {
+        return Observable.just(tempTableName)
+                .map(t -> new SimpleStatement(String.format(TempStatement.CREATE_TABLE.getStatement(), t)))
+                .flatMap(st -> rxSession.execute(st));
+    }
+
+    private void initializeTemporaryTableStatements() {
+        prepMap = new ConcurrentSkipListMap<>();
+        setTempTableCreator(new TemporaryTableStatementCreator());
+
+        boolean zeroTableExists = false;
+
+        // At startup we should initialize preparedStatements for all the temporary tables that exists
+        for (TableMetadata table : metadata.getKeyspace(session.getLoggedKeyspace()).getTables()) {
+            if(table.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
+                // Proceed to create the preparedStatements against this table
+                Long mapKey = tableToMapKey(table.getName());
+                prepareTempStatements(table.getName(), mapKey);
+            } else if(table.getName().equals(OUT_OF_ORDER_TABLE_NAME)) {
+                zeroTableExists = true;
+            }
+        }
+
+        if(!zeroTableExists) {
+            createTemporaryTable(OUT_OF_ORDER_TABLE_NAME).toBlocking().subscribe();
+            session.execute((String.format("ALTER TABLE %s WITH default_time_to_live = %d",
+                    OUT_OF_ORDER_TABLE_NAME, TimeUnit.DAYS.toSeconds(7))));
+            session.execute((String.format("ALTER TABLE %s WITH compaction = " +
+                            "{'compaction_window_size': '1', " +
+                            "'compaction_window_unit': 'DAYS', " +
+                            "'class': 'org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy'}",
+                    OUT_OF_ORDER_TABLE_NAME)));
+        }
+
+        // Prepare the old fashioned way (data table) as fallback when out-of-order writes happen..
+        // These should be transparent in writes
+        prepareTempStatements(OUT_OF_ORDER_TABLE_NAME, 0L); // Fall back is always at value 0 (floorKey/floorEntry will hit it)
+    }
+
+    private String metricTypeToColumnName(MetricType<?> type) {
+        switch(type.getCode()) {
+            case 0:
+                return "n_value";
+            case 1:
+                return "availability";
+            case 2:
+                return "l_value";
+            case 3:
+                return "l_value";
+            case 4:
+                return "s_value";
+            case 5:
+                return "n_value";
+            default:
+                throw new RuntimeException("Unsupported metricType");
+        }
     }
 
     protected void initPreparedStatements() {
@@ -329,28 +587,6 @@ public class DataAccessImpl implements DataAccess {
                         "SET c_value = ?, tags = ? " +
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
-        insertGaugeData = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertGaugeDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
         insertStringData = session.prepare(
             "UPDATE data " +
             "SET s_value = ? " +
@@ -372,48 +608,6 @@ public class DataAccessImpl implements DataAccess {
               "USING TTL ? " +
               "SET s_value = ?, tags = ? " +
               "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterData = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        insertCounterDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
-
-        findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
-
-        findGaugeDataByDateRangeExclusiveWithLimit = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-            " LIMIT ?");
-
-        findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC");
-
-        findGaugeDataByDateRangeExclusiveWithLimitASC = session.prepare(
-            "SELECT time, n_value, tags FROM data" +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC" +
-            " LIMIT ?");
 
         findCompressedDataByDateRangeExclusive = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed " +
@@ -455,30 +649,6 @@ public class DataAccessImpl implements DataAccess {
              " AND time < ? ORDER BY time ASC" +
              " LIMIT ?");
 
-        findCounterDataExclusive = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
-
-        findCounterDataExclusiveWithLimit = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " LIMIT ?");
-
-        findCounterDataExclusiveASC = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            "ORDER BY time ASC");
-
-        findCounterDataExclusiveWithLimitASC = session.prepare(
-            "SELECT time, l_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC" +
-            " LIMIT ?");
-
-        findAvailabilityByDateRangeInclusive = session.prepare(
-            "SELECT time, availability, WRITETIME(availability) FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time <= ?");
-
         deleteMetricData = session.prepare(
             "DELETE FROM data " +
             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ?");
@@ -494,52 +664,6 @@ public class DataAccessImpl implements DataAccess {
         deleteMetricFromMetricsIndex = session.prepare(
             "DELETE FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
-
-        insertAvailability = session.prepare(
-            "UPDATE data " +
-            "SET availability = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET availability = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityWithTags = session.prepare(
-            "UPDATE data " +
-            "SET availability = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        insertAvailabilityWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET availability = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ?");
-
-        findAvailabilities = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? ");
-
-        findAvailabilitiesWithLimit = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " LIMIT ?");
-
-        findAvailabilitiesASC = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC");
-
-        findAvailabilitiesWithLimitASC = session.prepare(
-            "SELECT time, availability, tags " +
-            " FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ? " +
-            " ORDER BY time ASC" +
-            " LIMIT ?");
 
         updateRetentionsIndex = session.prepare(
             "INSERT INTO retentions_idx (tenant_id, type, metric, retention) VALUES (?, ?, ?, ?)");
@@ -618,11 +742,14 @@ public class DataAccessImpl implements DataAccess {
 
     @Override
     public <T> Observable<Row> findMetricInData(MetricId<T> id) {
-        return rxSession.executeAndFetch(findMetricInData
-                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
-                .concatWith(
-                        rxSession.executeAndFetch(findMetricInDataCompressed
-                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART)))
+        return getPrepForAllTempTables(TempStatement.CHECK_EXISTENCE_OF_METRIC_IN_TABLE)
+                .map(b -> b.bind(id.getTenantId(), id.getType().getCode(), id.getName()))
+                .flatMap(b -> rxSession.executeAndFetch(b))
+                .concatWith(rxSession.executeAndFetch(findMetricInData
+                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))
+                        .concatWith(
+                                rxSession.executeAndFetch(findMetricInDataCompressed
+                                        .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))))
                 .take(1);
     }
 
@@ -700,11 +827,68 @@ public class DataAccessImpl implements DataAccess {
         return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
+    /**
+     * Fetch all the data from a temporary table for the compression job. Using TokenRanges avoids fetching first
+     * all the metrics' partition keys and then requesting them.
+     *
+     * Performance can be improved by using data locality and fetching with multiple threads.
+     *
+     * @param timestamp A timestamp inside the wanted bucket (such as the previous starting row timestamp)
+     * @param pageSize How many rows to fetch each time
+     * @param maxConcurrency To how many streams should token ranges be split to
+     * @return Observable of Observables per partition key
+     */
+    @Override
+    public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency) {
+        PreparedStatement ts =
+                getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp);
+
+        // The table does not exists - case such as when starting Hawkular-Metrics for the first time just before
+        // compression kicks in.
+        if(ts == null || prepMap.floorKey(timestamp) == 0L) {
+            return Observable.empty();
+        }
+
+        return Observable.from(getTokenRanges())
+                .map(tr -> rxSession.executeAndFetch(
+                        getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
+                                .bind()
+                                .setToken(0, tr.getStart())
+                                .setToken(1, tr.getEnd())
+                                .setFetchSize(pageSize)));
+    }
+
+    private Set<TokenRange> getTokenRanges() {
+        Set<TokenRange> tokenRanges = new HashSet<>();
+        for (TokenRange tokenRange : metadata.getTokenRanges()) {
+            tokenRanges.addAll(tokenRange.unwrap());
+        }
+        return tokenRanges;
+    }
+
+    @Override
+    public Observable<ResultSet> dropTempTable(long timestamp) {
+        String fullTableName = getTempTableName(timestamp);
+        String dropCQL = String.format("DROP TABLE %s", fullTableName);
+        return rxSession.execute(dropCQL);
+    }
+
+    private Observable<PreparedStatement> getPrepForAllTempTables(TempStatement ts) {
+        return Observable.from(prepMap.entrySet())
+                .map(Map.Entry::getValue)
+                .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED, ts)));
+
+    }
 
     @Override
     public Observable<Row> findAllMetricsInData() {
-        return rxSession.executeAndFetch(findAllMetricsInData.bind())
-                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
+        return getPrepForAllTempTables(TempStatement.LIST_ALL_METRICS_FROM_TABLE)
+                .map(PreparedStatement::bind)
+                .flatMap(b -> rxSession.executeAndFetch(b))
+                .concatWith(
+                        rxSession.executeAndFetch(findAllMetricsInData.bind())
+                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())))
+                .distinct();
     }
 
     /*
@@ -755,53 +939,100 @@ public class DataAccessImpl implements DataAccess {
                 });
     }
 
+    Long tableToMapKey(String tableName) {
+        LocalDateTime parsed = LocalDateTime
+                .parse(tableName.substring(TEMP_TABLE_NAME_PROTOTYPE.length()),
+                        TEMP_TABLE_DATEFORMATTER);
+        return Long.valueOf(parsed.toInstant(ZoneOffset.UTC).toEpochMilli());
+    }
+
+    String getTempTableName(long timestamp) {
+        return String.format(TEMP_TABLE_NAME_FORMAT_STRING,
+        ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), UTC)
+                .with(DateTimeService.startOfPreviousEvenHour())
+                .format(TEMP_TABLE_DATEFORMATTER));
+    }
+
+    PreparedStatement getTempStatement(MetricType type, TempStatement ts, long timestamp) {
+        Map.Entry<Long, Map<Integer, PreparedStatement>> floorEntry = prepMap
+                .floorEntry(timestamp);
+
+        if(floorEntry != null) {
+                return floorEntry.getValue()
+                    .get(getMapKey(type, ts));
+        }
+        return null;
+    }
+
     @Override
-    public Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
-            Function<MetricId<Double>, Integer> ttlFetcher) {
-        return gauges
-                .flatMap(gauge -> {
-                            int ttl = ttlFetcher.apply(gauge.getMetricId());
-                            return Observable.from(gauge.getDataPoints())
-                                    .compose(mapGaugeDatapoint(gauge, ttl));
-                        }
-                )
+    public <T> Observable<Integer> insertData(Observable<Metric<T>> metrics) {
+        return metrics
+                .flatMap(m -> Observable.from(m.getDataPoints())
+                        .compose(mapTempInsertStatement(m)))
                 .compose(applyMicroBatching());
     }
 
-    private Observable.Transformer<DataPoint<Double>, BoundStatement> mapGaugeDatapoint(Metric<Double> gauge, int ttl) {
-        return tObservable -> tObservable
+    @SuppressWarnings("unchecked")
+    private <T> Observable.Transformer<DataPoint<T>, BoundStatement> mapTempInsertStatement(Metric<T> metric) {
+        MetricType<T> type = metric.getMetricId().getType();
+        MetricId<T> metricId = metric.getMetricId();
+
+        return tO -> tO
                 .map(dataPoint -> {
+                    BoundStatement bs;
+                    int i = 1;
+                    PreparedStatement st;
                     if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataUsingTTL, gauge, dataPoint.getValue(),
-                                    dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertGaugeData, gauge, dataPoint.getValue(),
-                                    dataPoint.getTimestamp());
+                        st = getTempStatement(type, TempStatement.INSERT_DATA, dataPoint.getTimestamp());
+
+                        if(st == null) {
+                            return null;
                         }
+
+                        bs = st.bind();
                     } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertGaugeDataWithTagsUsingTTL, gauge, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertGaugeDataWithTags, gauge, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
+                        st = getTempStatement(type, TempStatement.INSERT_DATA_WITH_TAGS, dataPoint.getTimestamp());
+
+                        if(st == null) {
+                            return null;
                         }
+
+                        bs = st.bind();
+                        bs.setMap(1, dataPoint.getTags());
+                        i++;
                     }
-                });
+                    bindValue(bs, type, dataPoint);
+                    return bs
+                            .setString(i, metricId.getTenantId())
+                            .setByte(++i, metricId.getType().getCode())
+                            .setString(++i, metricId.getName())
+                            .setTimestamp(++i, new Date(dataPoint.getTimestamp()));
+                })
+                .filter(Objects::nonNull);
     }
 
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge) {
-        return insertGaugeData(gauge, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertGaugeData(Metric<Double> gauge, int ttl) {
-        return Observable.from(gauge.getDataPoints())
-                .compose(mapGaugeDatapoint(gauge, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
+    private <T> void bindValue(BoundStatement bs, MetricType<T> type, DataPoint<T> dataPoint) {
+        switch(type.getCode()) {
+            case 0:
+                bs.setDouble(0, (Double) dataPoint.getValue());
+                break;
+            case 1:
+                bs.setBytes(0, getBytes((DataPoint<AvailabilityType>) dataPoint));
+                break;
+            case 2:
+                bs.setLong(0, (Long) dataPoint.getValue());
+                break;
+            case 3:
+                bs.setLong(0, (Long) dataPoint.getValue());
+                break;
+            case 4:
+                throw new IllegalArgumentException("Not implemented yet");
+            case 5:
+                bs.setDouble(0, (Double) dataPoint.getValue());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported metricType");
+        }
     }
 
     private Observable.Transformer<DataPoint<String>, BoundStatement> mapStringDatapoint(Metric<String> metric, int
@@ -860,57 +1091,7 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
-    private Observable.Transformer<DataPoint<Long>, BoundStatement> mapCounterDatapoint(Metric<Long> counter, int ttl) {
-        return o -> o
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataUsingTTL, counter, dataPoint.getValue(),
-                                    dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterData, counter, dataPoint.getValue(),
-                                    dataPoint.getTimestamp());
-
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertCounterDataWithTagsUsingTTL, counter, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertCounterDataWithTags, counter, dataPoint.getValue(),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                });
-    }
-
-    @Override
-    public Observable<Integer> insertCounterDatas(Observable<Metric<Long>> counters,
-            Function<MetricId<Long>, Integer> ttlFetcher) {
-
-        return counters
-                .flatMap(counter -> {
-                            int ttl = ttlFetcher.apply(counter.getMetricId());
-                            return Observable.from(counter.getDataPoints())
-                                    .compose(mapCounterDatapoint(counter, ttl));
-                        }
-                )
-                .compose(applyMicroBatching());
-    }
-
-    @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter) {
-        return insertCounterData(counter, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertCounterData(Metric<Long> counter, int ttl) {
-        return Observable.from(counter.getDataPoints())
-                .compose(mapCounterDatapoint(counter, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
-    }
-
+    // TODO These are only used by the String methods
     private BoundStatement bindDataPoint(PreparedStatement statement, Metric<?> metric, Object value, long timestamp) {
         MetricId<?> metricId = metric.getMetricId();
         return statement.bind(value, metricId.getTenantId(), metricId.getType().getCode(), metricId.getName(),
@@ -939,36 +1120,6 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findCounterData(MetricId<Long> id, long startTime, long endTime, int limit, Order order,
-            int pageSize) {
-        if (order == Order.ASC) {
-            if (limit <= 0) {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveASC.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                                .setFetchSize(pageSize));
-            } else {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveWithLimitASC.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit)
-                                .setFetchSize(pageSize));
-            }
-        } else {
-            if (limit <= 0) {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusive.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                                .setFetchSize(pageSize));
-            } else {
-                return rxSession
-                        .executeAndFetch(findCounterDataExclusiveWithLimit.bind(id.getTenantId(), COUNTER.getCode(),
-                                id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime), limit)
-                                .setFetchSize(pageSize));
-            }
-        }
-    }
-
-    @Override
     public Observable<Row> findCompressedData(MetricId<?> id, long startTime, long endTime, int limit, Order
             order) {
         if (order == Order.ASC) {
@@ -992,29 +1143,72 @@ public class DataAccessImpl implements DataAccess {
         }
     }
 
+    private SortedMap<Long, Map<Integer, PreparedStatement>> subSetMap(long startTime, long endTime, Order order) {
+        Long startKey = prepMap.floorKey(startTime);
+        Long endKey = prepMap.floorKey(endTime);
+
+        // The start time is already compressed, start the request from earliest non-compressed
+        if(startKey == null) {
+            startKey = prepMap.ceilingKey(startTime);
+        }
+
+        // Just in case even the end is in the past
+        if(endKey == null) {
+            endKey = startKey;
+        }
+
+        // Depending on the order, these must be read in the correct order also..
+        SortedMap<Long, Map<Integer, PreparedStatement>> statementMap;
+        if(order == Order.ASC) {
+             statementMap = prepMap.subMap(startKey, true, endKey,
+                    true);
+        } else {
+            statementMap = new ConcurrentSkipListMap<>((var0, var2) -> var0 < var2?1:(var0 == var2?0:-1));
+            statementMap.putAll(prepMap.subMap(startKey, true, endKey, true));
+        }
+
+        return statementMap;
+    }
+
     @Override
-    public Observable<Row> findGaugeData(MetricId<Double> id, long startTime, long endTime, int limit, Order order,
-            int pageSize) {
+    public <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
+                                            int pageSize) {
+        MetricType<T> type = id.getType();
+
+        SortedMap<Long, Map<Integer, PreparedStatement>> statementMap = subSetMap(startTime, endTime, order);
+        Observable<Map<Integer, PreparedStatement>> buckets = Observable.from(statementMap.values());
+
         if (order == Order.ASC) {
             if (limit <= 0) {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveASC.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
+                return buckets
+                        .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveASC)))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(),
+                                        new Date(startTime), new Date(endTime))
+                                .setFetchSize(pageSize)));
             } else {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimitASC.bind(
-                        id.getTenantId(), GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime),
-                        getTimeUUID(endTime), limit)
-                        .setFetchSize(pageSize));
+                return buckets
+                        .map(m -> m.get(getMapKey(type, TempStatement.dataByDateRangeExclusiveWithLimitASC)))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime),
+                                        new Date(endTime), limit)
+                                .setFetchSize(pageSize)));
             }
         } else {
             if (limit <= 0) {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusive.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
+                return buckets
+                        .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusive)))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime),
+                                        new Date(endTime))
+                                .setFetchSize(pageSize)));
             } else {
-                return rxSession.executeAndFetch(findGaugeDataByDateRangeExclusiveWithLimit.bind(id.getTenantId(),
-                        GAUGE.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
+                return buckets
+                        .map(m -> m.get(getMapKey(type, TempStatement.dateRangeExclusiveWithLimit)))
+                        .concatMap(p -> rxSession.executeAndFetch(p
+                                .bind(id.getTenantId(), id.getType().getCode(), id.getName(), new Date(startTime), new Date(endTime),
+                                        limit)
+                                .setFetchSize(pageSize)));
             }
         }
     }
@@ -1046,39 +1240,13 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long startTime, long endTime,
-            int limit, Order order, int pageSize) {
-        if (order == Order.ASC) {
-            if (limit <= 0) {
-                return rxSession.executeAndFetch(findAvailabilitiesASC.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime))
-                        .setFetchSize(pageSize));
-            } else {
-                return rxSession.executeAndFetch(findAvailabilitiesWithLimitASC.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
-            }
-        } else {
-            if (limit <= 0) {
-                return rxSession.executeAndFetch(findAvailabilities.bind(id.getTenantId(), AVAILABILITY.getCode(),
-                        id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime)).setFetchSize(pageSize));
-            } else {
-                return rxSession.executeAndFetch(findAvailabilitiesWithLimit.bind(id.getTenantId(),
-                        AVAILABILITY.getCode(), id.getName(), DPART, getTimeUUID(startTime), getTimeUUID(endTime),
-                        limit).setFetchSize(pageSize));
-            }
-        }
-    }
-
-    @Override
-    public Observable<Row> findAvailabilityData(MetricId<AvailabilityType> id, long timestamp) {
-        return rxSession.executeAndFetch(findAvailabilityByDateRangeInclusive.bind(id.getTenantId(),
-                AVAILABILITY.getCode(), id.getName(), DPART, UUIDs.startOf(timestamp), UUIDs.endOf(timestamp)));
-    }
-
-    @Override
     public <T> Observable<ResultSet> deleteMetricData(MetricId<T> id) {
-        return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+        if(id.getType() == STRING) {
+            return rxSession.execute(deleteMetricData.bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART));
+        }
+
+        return getPrepForAllTempTables(TempStatement.DELETE_DATA)
+                .flatMap(p -> rxSession.execute(p.bind(id.getTenantId(), id.getType().getCode(), id.getName())));
     }
 
     @Override
@@ -1091,57 +1259,6 @@ public class DataAccessImpl implements DataAccess {
     public <T> Observable<ResultSet> deleteMetricFromMetricsIndex(MetricId<T> id) {
         return rxSession
                 .execute(deleteMetricFromMetricsIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
-    }
-
-    private Observable.Transformer<DataPoint<AvailabilityType>, BoundStatement> mapAvailabilityDatapoint(
-            Metric<AvailabilityType> metric, int ttl) {
-        return a -> a
-                .map(dataPoint -> {
-                    if (dataPoint.getTags().isEmpty()) {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityUsingTTL, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp(),
-                                    ttl);
-                        } else{
-                            return bindDataPoint(insertAvailability, metric, getBytes(dataPoint),
-                                    dataPoint.getTimestamp());
-                        }
-                    } else {
-                        if (ttl >= 0) {
-                            return bindDataPoint(insertAvailabilityWithTagsUsingTTL, metric, getBytes(dataPoint),
-                                    dataPoint.getTags(), dataPoint.getTimestamp(), ttl);
-                        } else {
-                            return bindDataPoint(insertAvailabilityWithTags, metric, getBytes(dataPoint),
-                                    dataPoint.getTags(), dataPoint.getTimestamp());
-                        }
-                    }
-                });
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityDatas(Observable<Metric<AvailabilityType>> avail,
-            Function<MetricId<AvailabilityType>, Integer> ttlFetcher) {
-        return avail
-                .flatMap(a -> {
-                            int ttl = ttlFetcher.apply(a.getMetricId());
-                            return Observable.from(a.getDataPoints())
-                                    .compose(mapAvailabilityDatapoint(a, ttl));
-                        }
-                )
-                .compose(applyMicroBatching());
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric) {
-        return insertAvailabilityData(metric, -1);
-    }
-
-    @Override
-    public Observable<Integer> insertAvailabilityData(Metric<AvailabilityType> metric, int ttl) {
-        return Observable.from(metric.getDataPoints())
-                .compose(mapAvailabilityDatapoint(metric, ttl))
-                .compose(new BatchStatementTransformer())
-                .flatMap(batch -> rxSession.execute(batch).map(resultSet -> batch.size()));
     }
 
     private ByteBuffer getBytes(DataPoint<AvailabilityType> dataPoint) {
@@ -1179,10 +1296,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
-                                                                    CompressedPointContainer cpc,
-                                                                    long sliceStart, long sliceEnd, int ttl) {
-
+    public <T> Observable<ResultSet> insertCompressedData(MetricId<T> id, long timeslice,
+                                                          CompressedPointContainer cpc, int ttl) {
         // ByteBuffer position must be 0!
         Observable.just(cpc.getValueBuffer(), cpc.getTimestampBuffer(), cpc.getTagsBuffer())
                 .doOnNext(bb -> {
@@ -1214,6 +1329,13 @@ public class DataAccessImpl implements DataAccess {
             mapper.accept(b, 2);
         }
 
+        return rxSession.execute(b);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
+                                                                    CompressedPointContainer cpc,
+                                                                    long sliceStart, long sliceEnd, int ttl) {
         return Observable.just(deleteMetricDataWithLimit.bind()
                 .setString(0, id.getTenantId())
                 .setByte(1, id.getType().getCode())
@@ -1221,8 +1343,8 @@ public class DataAccessImpl implements DataAccess {
                 .setLong(3, DPART)
                 .setUUID(4, getTimeUUID(sliceStart))
                 .setUUID(5, getTimeUUID(sliceEnd)))
-                .concatWith(Observable.just(b))
-                .concatMap(st -> rxSession.execute(st));
+                .concatMap(st -> rxSession.execute(st))
+                .concatWith(insertCompressedData(id, timeslice, cpc, ttl));
     }
 
     @Override
@@ -1246,5 +1368,79 @@ public class DataAccessImpl implements DataAccess {
     public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
         return rxSession
                 .executeAndFetch(findMetricExpiration.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
+    }
+
+    private class TemporaryTableStatementCreator implements SchemaChangeListener {
+
+        private final CoreLogger log = CoreLogging.getCoreLogger(TemporaryTableStatementCreator.class);
+
+        @Override
+        public void onTableAdded(TableMetadata tableMetadata) {
+            log.debugf("Table added %s", tableMetadata.getName());
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
+                log.debugf("Registering prepared statements for table %s", tableMetadata.getName());
+                Observable.fromCallable(() -> {
+                    prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName()));
+                    return null;
+                })
+                        .subscribeOn(Schedulers.io())
+                        .subscribe();
+            }
+        }
+
+        @Override
+        public void onTableRemoved(TableMetadata tableMetadata) {
+            if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
+                log.debugf("Removing prepared statements for table %s", tableMetadata.getName());
+                removeTempStatements(tableMetadata.getName());
+            }
+        }
+
+        // Rest are not interesting to us
+
+        @Override public void onKeyspaceAdded(KeyspaceMetadata keyspaceMetadata) {}
+
+        @Override public void onKeyspaceRemoved(KeyspaceMetadata keyspaceMetadata) {}
+
+        @Override public void onKeyspaceChanged(KeyspaceMetadata keyspaceMetadata, KeyspaceMetadata keyspaceMetadata1) {}
+
+
+        @Override public void onTableChanged(TableMetadata tableMetadata, TableMetadata tableMetadata1) {
+        }
+
+        @Override public void onUserTypeAdded(UserType userType) {}
+        @Override public void onUserTypeRemoved(UserType userType) {}
+        @Override public void onUserTypeChanged(UserType userType, UserType userType1) {}
+        @Override public void onFunctionAdded(FunctionMetadata functionMetadata) {}
+        @Override public void onFunctionRemoved(FunctionMetadata functionMetadata) {}
+        @Override public void onFunctionChanged(FunctionMetadata functionMetadata, FunctionMetadata functionMetadata1) {}
+        @Override public void onAggregateAdded(AggregateMetadata aggregateMetadata) {}
+        @Override public void onAggregateRemoved(AggregateMetadata aggregateMetadata) {}
+        @Override public void onAggregateChanged(AggregateMetadata aggregateMetadata, AggregateMetadata aggregateMetadata1) {}
+        @Override public void onMaterializedViewAdded(MaterializedViewMetadata materializedViewMetadata) {}
+        @Override public void onMaterializedViewRemoved(MaterializedViewMetadata materializedViewMetadata) {}
+        @Override public void onMaterializedViewChanged(MaterializedViewMetadata materializedViewMetadata,
+                                                        MaterializedViewMetadata materializedViewMetadata1) {}
+        @Override public void onRegister(Cluster cluster) {}
+        @Override public void onUnregister(Cluster cluster) {}
+    }
+
+    void removeTempStatements(String tableName) {
+        // Find the integer key and remove from prepMap
+        Long mapKey = tableToMapKey(tableName);
+        prepMap.remove(mapKey);
+    }
+
+    @Override public void shutdown() {
+        session.getCluster().unregister(tableCreator);
+        tableCreator = null;
+    }
+
+    public void setTempTableCreator(TemporaryTableStatementCreator creator) {
+        if(tableCreator != null) {
+            session.getCluster().unregister(tableCreator);
+        }
+        tableCreator = creator;
+        session.getCluster().register(tableCreator);
     }
 }

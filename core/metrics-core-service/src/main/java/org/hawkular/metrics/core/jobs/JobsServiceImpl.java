@@ -18,6 +18,7 @@ package org.hawkular.metrics.core.jobs;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,8 @@ import rx.functions.Func2;
  * @author jsanda
  */
 public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
+
+    public static final String CONFIG_PREFIX = "org.hawkular.metrics.jobs.";
 
     private static Logger logger = Logger.getLogger(JobsServiceImpl.class);
 
@@ -111,8 +114,15 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 };
         scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
 
-        CompressData compressDataJob = new CompressData(metricsService, configurationService);
-        scheduler.register(CompressData.JOB_NAME, compressDataJob);
+        TempTableCreator tempCreator = new TempTableCreator(metricsService, configurationService);
+        scheduler.register(TempTableCreator.JOB_NAME, tempCreator);
+        maybeScheduleTableCreator(backgroundJobs);
+
+        TempDataCompressor tempJob = new TempDataCompressor(metricsService, configurationService);
+        scheduler.register(TempDataCompressor.JOB_NAME, tempJob);
+
+//        CompressData compressDataJob = new CompressData(metricsService, configurationService);
+//        scheduler.register(CompressData.JOB_NAME, compressDataJob);
         maybeScheduleCompressData(backgroundJobs);
 
         deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
@@ -143,18 +153,45 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
-    private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
-        String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
+    private void maybeScheduleTableCreator(List<JobDetails> backgroundJobs) {
+        String configId = TempTableCreator.CONFIG_ID;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
         if (config.get("jobId") == null) {
-            logger.info("Preparing to create and schedule " + CompressData.JOB_NAME + " job");
+            long nextTrigger = LocalDateTime.now(ZoneOffset.UTC)
+                    .truncatedTo(ChronoUnit.MINUTES).plusMinutes(2)
+                    .toInstant(ZoneOffset.UTC).toEpochMilli();
+
+            JobDetails jobDetails = scheduler.scheduleJob(TempTableCreator.JOB_NAME, TempTableCreator.JOB_NAME,
+                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextTrigger)
+                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
+            backgroundJobs.add(jobDetails);
+            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+            logger.info("Scheduled temporary table creator " + jobDetails);
+        }
+    }
+
+    private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
+        String configId = TempDataCompressor.CONFIG_ID;
+        Configuration config = configurationService.load(configId).toBlocking()
+                .firstOrDefault(new Configuration(configId, new HashMap<>()));
+        if (config.get("jobId") == null) {
+            logger.info("Preparing to create and schedule " + TempDataCompressor.JOB_NAME + " job");
 
             // Get next start of odd hour
             long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                     .with(DateTimeService.startOfNextOddHour())
                     .toInstant(ZoneOffset.UTC).toEpochMilli();
-            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+
+            // CompressData
+//            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
+//                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
+//                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
+//            backgroundJobs.add(jobDetails);
+//            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
+
+            // Temp table processing
+            JobDetails jobDetails = scheduler.scheduleJob(TempDataCompressor.JOB_NAME, TempDataCompressor.JOB_NAME,
                     ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
             backgroundJobs.add(jobDetails);
