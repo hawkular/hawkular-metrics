@@ -35,66 +35,6 @@ public final class AvailabilityBucketPoint extends BucketPoint {
     private final Long notUpCount;
     private final Long samples;
 
-    ////
-    // Deprecated fields/methods kept for backward compatibility with 0.16.0.Final on June 22, 2016
-    // Note, deprecated fields are maontained for exported JSON compatibility
-
-    @Deprecated
-    private final Long downtimeDuration;
-    @Deprecated
-    private final Long lastDowntime;
-    @Deprecated
-    private final Long downtimeCount;
-
-    /**
-     * @deprecated Use {@link #AvailabilityBucketPoint(long, long, Map, long, double, long)}
-     */
-    @Deprecated
-    protected AvailabilityBucketPoint(long start, long end, long downtimeDuration, long lastDowntime, double
-            uptimeRatio, long downtimeCount) {
-        super(start, end);
-        this.durationMap = new HashMap<>();
-        this.durationMap.put(AvailabilityType.DOWN, downtimeDuration);
-        this.lastNotUptime = lastDowntime;
-        this.uptimeRatio = getDoubleValue(uptimeRatio);
-        this.notUpCount = downtimeCount;
-        this.samples = 0L;
-
-        this.downtimeCount = downtimeCount;
-        this.downtimeDuration = downtimeDuration;
-        this.lastDowntime = lastDowntime;
-    }
-
-    /**
-     * @Deprecated Use {@link #getDownDuration()} or {@link #getNotUpDuration()}
-     * @return This is equivalent to calling {@link #getDownDuration()}
-     */
-    @Deprecated
-    public Long getDowntimeDuration() {
-        return getDownDuration();
-    }
-
-    /**
-     * @Deprecated Use {@link #getLastNotUptime()}
-     * @return This is equivalent to calling {@link #getLastNotUptime()}
-     */
-    @Deprecated
-    public Long getLastDowntime() {
-        return getLastNotUptime();
-    }
-
-    /**
-     * @Deprecated Use {@link #getNotUpCount()}
-     * @return This is equivalent to calling {@link #getNotUpCount()}
-     */
-    @Deprecated
-    public Long getDowntimeCount() {
-        return getNotUpCount();
-    }
-
-    // End Deprecated methods
-    ////
-
     protected AvailabilityBucketPoint(long start, long end, Map<AvailabilityType, Long> durationMap,
             long lastNotUptime, double uptimeRatio, long notUpCount, long samples) {
         super(start, end);
@@ -103,10 +43,6 @@ public final class AvailabilityBucketPoint extends BucketPoint {
         this.uptimeRatio = getDoubleValue(uptimeRatio);
         this.notUpCount = notUpCount;
         this.samples = samples;
-
-        this.downtimeCount = notUpCount;
-        this.downtimeDuration = getDownDuration();
-        this.lastDowntime = lastNotUptime;
     }
 
     /**
