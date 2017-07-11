@@ -6,7 +6,6 @@
   "apps": [
     {
       "root": "src",
-      "outDir": "../../../webroot",
       "assets": [
         "assets",
         "favicon.ico"
