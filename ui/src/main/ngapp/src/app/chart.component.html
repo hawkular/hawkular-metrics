@@ -2,19 +2,39 @@
   <h1>{{title}}</h1>
   <div class="spinner" *ngIf="loading"></div>
   <h3>{{notice}}</h3>
-  <div class="timeframe">
-    <select [(ngModel)]="timeframe" (ngModelChange)="onTimeFrameChanged($event)">
-      <option value='5m'>Last 5 minutes</option>
-      <option value='15m'>Last 15 minutes</option>
-      <option value='30m'>Last 30 minutes</option>
-      <option value='1h'>Last hour</option>
-      <option value='6h'>Last 6 hours</option>
-      <option value='1d'>Last 24 hours</option>
-      <option value='2d'>Last 2 days</option>
-      <option value='7d'>Last week</option>
-      <option value='30d'>Last month</option>
-      <option value='custom' disabled=true>Custom</option>
-    </select>
+  <div class="row toolbar-pf">
+    <div class="col-sm-12">
+      <form class="toolbar-pf-actions">
+        <div class="form-group">
+          <select [(ngModel)]="timeframe" (ngModelChange)="onTimeFrameChanged($event)" [ngModelOptions]="{standalone: true}">
+            <option value='5m'>Last 5 minutes</option>
+            <option value='15m'>Last 15 minutes</option>
+            <option value='30m'>Last 30 minutes</option>
+            <option value='1h'>Last hour</option>
+            <option value='6h'>Last 6 hours</option>
+            <option value='1d'>Last 24 hours</option>
+            <option value='2d'>Last 2 days</option>
+            <option value='7d'>Last week</option>
+            <option value='30d'>Last month</option>
+            <option value='custom' disabled=true>Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <span>Refresh rate:</span>
+          <select [(ngModel)]="refreshRate" [ngModelOptions]="{standalone: true}">
+            <option value='5'>5 seconds</option>
+            <option value='10'>10 seconds</option>
+            <option value='30'>30 seconds</option>
+            <option value='60'>1 minute</option>
+            <option value='0'>Never</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="checkbox" class="checkbox-inline" [(ngModel)]="rawData" [ngModelOptions]="{standalone: true}">
+          <span>Raw data</span>
+        </div>
+      </form>
+    </div>
   </div>
   <hk-metric-chart *ngIf="metric &amp;&amp; tenant &amp;&amp; type"
     metricUrl="http://localhost:8080/hawkular/metrics"
@@ -23,6 +43,9 @@
     [metricType]="type"
     chartType="line"
     [timeRange]="timeRange"
-    (timeRangeChange)="childTimeRangeChange($event)">
+    (timeRangeChange)="childTimeRangeChange($event)"
+    show-data-points=true
+    [raw]="rawData"
+    [refreshIntervalInSeconds]="refreshRate">
   </hk-metric-chart>
 </div>

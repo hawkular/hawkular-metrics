@@ -9,6 +9,7 @@ import { MetricChartComponent } from 'hawkular-charts';
 })
 export class ChartComponent implements OnInit {
   timeframe: string = '6h';
+  refreshRate = 5;
   title: string = '';
   notice: string = '';
   tenant: string;

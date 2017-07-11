@@ -8,11 +8,15 @@
     right: 40px;
 }
 
-.chart .timeframe {
+.chart .options {
     float: left;
     margin-bottom: 20px;
 }
 
 .chart {
     min-height: 400px;
+}
+
+.checkbox-inline {
+    margin: 0;
 }

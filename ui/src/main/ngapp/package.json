@@ -26,6 +26,7 @@
     "d3": "^3.5.0",
     "d3-tip": "0.6.7",
     "hawkular-charts": "file:///work/angular-library-starter/hawkular-charts-2.0.0-alpha.tgz",
+    "moment": "^2.9.0",
     "patternfly": "^3.25.1",
     "rxjs": "^5.1.0",
     "zone.js": "^0.8.4"
