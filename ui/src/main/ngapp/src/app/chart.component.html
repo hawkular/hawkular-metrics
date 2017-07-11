@@ -30,7 +30,7 @@
           </select>
         </div>
         <div class="form-group">
-          <input type="checkbox" class="checkbox-inline" [(ngModel)]="rawData" [ngModelOptions]="{standalone: true}">
+          <input type="checkbox" class="checkbox-inline" [(ngModel)]="useRawData" [ngModelOptions]="{standalone: true}">
           <span>Raw data</span>
         </div>
       </form>
@@ -45,7 +45,7 @@
     [timeRange]="timeRange"
     (timeRangeChange)="childTimeRangeChange($event)"
     show-data-points=true
-    [raw]="rawData"
+    [raw]="useRawData"
     [refreshIntervalInSeconds]="refreshRate">
   </hk-metric-chart>
 </div>

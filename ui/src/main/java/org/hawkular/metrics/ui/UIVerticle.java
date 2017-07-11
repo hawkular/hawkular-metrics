@@ -1,3 +1,19 @@
+/*
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * and other contributors as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hawkular.metrics.ui;
 
 import io.vertx.core.AbstractVerticle;
@@ -17,11 +33,8 @@ public class UIVerticle extends AbstractVerticle {
     @Override
     public void start() throws Exception {
         Router router = Router.router(vertx);
-
-        // Create a router endpoint for the static content.
         router.route().handler(StaticHandler.create());
-
-        // Start the web server and tell it to use the router to handle requests.
+        // For the time being, serve it on 8081. That will have to change once vertx is truly in the place
         vertx.createHttpServer().requestHandler(router::accept).listen(8081);
     }
 }

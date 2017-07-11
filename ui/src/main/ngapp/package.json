@@ -1,6 +1,6 @@
 {
   "name": "hawkular-ui",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "license": "Apache-2.0",
   "scripts": {
     "ng": "ng",
@@ -8,7 +8,8 @@
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "prod": "ng build -prod"
   },
   "private": true,
   "dependencies": {
@@ -25,7 +26,7 @@
     "core-js": "^2.4.1",
     "d3": "^3.5.0",
     "d3-tip": "0.6.7",
-    "hawkular-charts": "file:///work/angular-library-starter/hawkular-charts-2.0.0-alpha.tgz",
+    "hawkular-charts": "2.0.0-alpha",
     "moment": "^2.9.0",
     "patternfly": "^3.25.1",
     "rxjs": "^5.1.0",
