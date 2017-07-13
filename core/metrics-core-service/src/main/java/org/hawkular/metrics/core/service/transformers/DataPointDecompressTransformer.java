@@ -25,6 +25,8 @@ import java.util.stream.Stream;
 
 import org.hawkular.metrics.core.service.Order;
 import org.hawkular.metrics.core.service.compress.TagsDeserializer;
+import org.hawkular.metrics.core.service.log.CoreLogger;
+import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.MetricType;
@@ -43,6 +45,8 @@ import rx.Observable;
  * @author Michael Burman
  */
 public class DataPointDecompressTransformer<T> implements Observable.Transformer<Row, DataPoint<T>> {
+
+    private static final CoreLogger log = CoreLogging.getCoreLogger(DataPointDecompressTransformer.class);
 
     private Order order;
     private int limit;
@@ -68,6 +72,18 @@ public class DataPointDecompressTransformer<T> implements Observable.Transformer
 
                     ByteBuffer tagsBuffer = r.getBytes("tags");
                     ByteBuffer compressedValue = r.getBytes("c_value");
+
+                    // Logging for soak-test
+                    try {
+                        byte[] array = compressedValue.array();
+                        StringBuilder sb = new StringBuilder();
+                        for(byte b : array) {
+                            sb.append(String.format("%02x", b));
+                        }
+                        log.infof("ByteArrayContents: %s\n", sb.toString());
+                    } catch(Exception e) {
+                        // Ignore
+                    }
 
                     if (compressedValue != null) {
                         // Read the HWKMETRICS internal header here, but don't process as of now
