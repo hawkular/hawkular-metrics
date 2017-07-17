@@ -37,7 +37,7 @@ export class StatusPageComponent {
   loading = true;
 
   constructor (http: Http) {
-    http.get('http://localhost:8080/hawkular/metrics/status')
+    http.get('/hawkular/metrics/status')
       .map((response) => response.json())
       .finally(() => this.loading = false)
       .subscribe((json) => {

@@ -65,7 +65,7 @@ export class MetricsPageComponent implements OnInit {
     const options = new RequestOptions({ headers: new Headers({
       'Hawkular-Tenant': this.tenant
     })});
-    this.http.get('http://localhost:8080/hawkular/metrics/metrics', options)
+    this.http.get('/hawkular/metrics/metrics', options)
       .map((response) => response.json())
       .finally(() => this.loading = false)
       .subscribe((metrics: Metric[]) => {
