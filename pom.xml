@@ -134,7 +134,7 @@
     <version.org.codehaus.groovy.modules.http-builder>0.7</version.org.codehaus.groovy.modules.http-builder>
     <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
-    <version.fi.iki.yak.compression-gorilla>2.0.2</version.fi.iki.yak.compression-gorilla>
+    <version.fi.iki.yak.compression-gorilla>1.1.0</version.fi.iki.yak.compression-gorilla>
   </properties>
 
   <dependencyManagement>
