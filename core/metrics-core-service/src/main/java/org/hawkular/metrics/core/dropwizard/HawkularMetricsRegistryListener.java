@@ -31,6 +31,7 @@ import org.jboss.logging.Logger;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistryListener;
 import com.codahale.metrics.Timer;
@@ -38,7 +39,8 @@ import com.codahale.metrics.Timer;
 import rx.Observable;
 
 /**
- * A listener that receives notifications about registered metrics and persists the metric tags.
+ * A listener that receives notifications about registered metrics and persists the metric tags. Only metrics having
+ * meta data will be persisted. A warning is logged if no meta data is found for a metric.
  *
  * @author jsanda
  */
@@ -68,7 +70,7 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
     public void onMeterAdded(String name, Meter meter) {
         MetaData metaData = metricRegistry.getMetaData(name);
         if (metaData == null) {
-            logger.warnf("Did not find meta data for %s in the metric registry", name);
+            logger.warnf("Did not find meta data for meter %s that has been added to the registry", name);
             return;
         }
 
@@ -76,19 +78,37 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
         String metricName = metricNameService.createMetricName(metaData);
 
         createMetrics(metricName, asList(
-                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-1min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-5min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-15min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-mean"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-mean"), metaData.getTags())
+                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName), metaData.getTags())
         ));
      }
+
+    @Override
+    public void onMeterRemoved(String name) {
+        MetaData metaData = metricRegistry.removeMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for meter %s that has been removed from the registry", name);
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        deleteMetrics(metricName, asList(
+                new MetricId<>(tenantId, GAUGE, metricName + "-5min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-15min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-mean"),
+                new MetricId<>(tenantId, COUNTER, metricName)
+        ));
+    }
 
     @Override
     public void onTimerAdded(String name, Timer timer) {
         MetaData metaData = metricRegistry.getMetaData(name);
         if (metaData == null) {
-            logger.warnf("Did not find meta data for %s in the metric registry", name);
+            logger.warnf("Did not find meta data for timer %s that has been added to the registry", name);
             return;
         }
 
@@ -96,20 +116,93 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
         String metricName = metricNameService.createMetricName(metaData);
 
         createMetrics(metricName, asList(
-                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-1min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-5min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-15min"), metaData.getTags()),
                 new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-mean"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-mean"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-median"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-max"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-min"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-stddev"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-75p"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-95p"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-99p"), metaData.getTags()),
-                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName + "-999p"), metaData.getTags())
+                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-median"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-max"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-min"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-75p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-95p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-99p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-999p"), metaData.getTags())
 
+        ));
+    }
+
+    @Override
+    public void onTimerRemoved(String name) {
+        MetaData metaData = metricRegistry.removeMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for timer %s that has been removed from the registry");
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        deleteMetrics(metricName, asList(
+                new MetricId<>(tenantId, GAUGE, metricName + "-5min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-15min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-mean"),
+                new MetricId<>(tenantId, COUNTER, metricName),
+                new MetricId<>(tenantId, GAUGE, metricName + "-median"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-max"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-75p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-95p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-99p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-999p")
+        ));
+    }
+
+    @Override
+    public void onHistogramAdded(String name, Histogram histogram) {
+        MetaData metaData = metricRegistry.getMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for histogram %s that has been added to the registry", name);
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        createMetrics(metricName, asList(
+                new Metric<>(new MetricId<>(tenantId, COUNTER, metricName), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-mean"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-median"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-max"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-min"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-75p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-95p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-99p"), metaData.getTags()),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, metricName + "-999p"), metaData.getTags())
+
+        ));
+    }
+
+    @Override
+    public void onHistogramRemoved(String name) {
+        MetaData metaData = metricRegistry.removeMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for histogram %s that has been removed from the registry");
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        deleteMetrics(metricName, asList(
+                new MetricId<>(tenantId, GAUGE, metricName + "-mean"),
+                new MetricId<>(tenantId, COUNTER, metricName),
+                new MetricId<>(tenantId, GAUGE, metricName + "-median"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-max"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-min"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-75p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-95p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-99p"),
+                new MetricId<>(tenantId, GAUGE, metricName + "-999p")
         ));
     }
 
@@ -117,7 +210,7 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
     public void onGaugeAdded(String name, Gauge<?> gauge) {
         MetaData metaData = metricRegistry.getMetaData(name);
         if (metaData == null) {
-            logger.warnf("Did not find meta data for %s in the metric registry", name);
+            logger.warnf("Did not find meta data for gauge %s that has been added to the registry", name);
             return;
         }
 
@@ -129,10 +222,24 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
     }
 
     @Override
+    public void onGaugeRemoved(String name) {
+        MetaData metaData = metricRegistry.removeMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for gauge %s that has been removed from the registry");
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        deleteMetrics(metricName, singletonList(new MetricId<>(tenantId, GAUGE, metricName)));
+    }
+
+    @Override
     public void onCounterAdded(String name, Counter counter) {
         MetaData metaData = metricRegistry.getMetaData(name);
         if (metaData == null) {
-            logger.warnf("Did not find meta data for %s in the metric registry", name);
+            logger.warnf("Did not find meta data for counter %s that has been added to the registry", name);
             return;
         }
 
@@ -143,6 +250,20 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
                 metaData.getTags())));
     }
 
+    @Override
+    public void onCounterRemoved(String name) {
+        MetaData metaData = metricRegistry.removeMetaData(name);
+        if (metaData == null) {
+            logger.warnf("Did not find meta data for counter %s that has been removed from the registry");
+            return;
+        }
+
+        String tenantId = metricNameService.getTenantId();
+        String metricName = metricNameService.createMetricName(metaData);
+
+        deleteMetrics(metricName, singletonList(new MetricId<>(tenantId, COUNTER, metricName)));
+    }
+
     private void createMetrics(String metricName, List<Metric<?>> metrics) {
         Observable.from(metrics)
                 .flatMap(metric -> metricsService.createMetric(metric, true)
@@ -151,6 +272,17 @@ public class HawkularMetricsRegistryListener extends MetricRegistryListener.Base
                 .subscribe(
                         () -> logger.debugf("Finished creating metrics for %s", metricName),
                         t -> logger.warnf(t, "Failed to create metrics for %s", metricName)
+                );
+    }
+
+    private void deleteMetrics(String metricName, List<MetricId<?>> metrics) {
+        Observable.from(metrics)
+                .flatMap(metricId -> metricsService.deleteMetric(metricId)
+                        .doOnNext(aVoid -> logger.debugf("Deleted %s", metricId)))
+                .toCompletable()
+                .subscribe(
+                        () -> logger.debugf("Finished deleting metrics for %s", metricName),
+                        t -> logger.warnf(t, "Failed to delete metrics for %s", metricName)
                 );
     }
 

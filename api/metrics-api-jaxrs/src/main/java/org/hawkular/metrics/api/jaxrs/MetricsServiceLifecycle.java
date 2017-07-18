@@ -85,6 +85,7 @@ import javax.net.ssl.SSLContext;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
+import org.hawkular.metrics.api.jaxrs.dropwizard.RESTMetrics;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
@@ -321,6 +322,10 @@ public class MetricsServiceLifecycle {
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
     private Cache<String, String> locksCache;
 
+
+    @Inject
+    RESTMetrics restMetrics;
+
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -441,6 +446,9 @@ public class MetricsServiceLifecycle {
             HawkularMetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
             metricRegistry.setMetricNameService(metricNameService);
 
+            restMetrics.setMetricNameService(metricNameService);
+            restMetrics.initMetrics();
+
             metricsService.setMetricNameService(metricNameService);
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
@@ -465,8 +473,7 @@ public class MetricsServiceLifecycle {
             initGCGraceSecondsManager();
 
             if (Boolean.parseBoolean(jmxReportingEnabled)) {
-                Map<String, MetaData> map = metricRegistry.getMetaDataMap();
-                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(map);
+                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(metricRegistry);
                 JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
                         .inDomain("org.hawkular.metrics")
                         .createsObjectNamesWith(JMXObjNameFactory)

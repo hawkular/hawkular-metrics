@@ -23,8 +23,10 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.DataPoint;
@@ -46,7 +48,7 @@ import rx.Observable;
 /**
  * A scheduled reporter that persists internally collected metrics. Several of the DropWizard metric types are complex
  * types having multiple values, and they do not map directly to metric types in Hawkular Metrics. Numeric gauges and
- * counters map directly, but meters, times, and histograms do not.
+ * counters map directly, but meters, times, and histograms do not. Only metrics having meta data will be persisted.
  *
  * @author jsanda
  */
@@ -75,105 +77,122 @@ public class DropWizardReporter extends ScheduledReporter {
             SortedMap<String, Histogram> histograms, SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
         long timestamp = System.currentTimeMillis();
 
-        Observable<Metric<Double>> gaugeObservable = Observable.from(gauges.entrySet())
-                .map(entry -> new Metric<>(getMetricId(entry.getKey(), GAUGE), singletonList(
-                        new DataPoint<>(timestamp, (Double) entry.getValue().getValue()))));
-
         List<Metric<Long>> countersList = new ArrayList<>();
         List<Metric<Double>> gaugesList = new ArrayList<>();
 
-        meters.entrySet().forEach(entry -> {
-            MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
-            MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
+        meters.entrySet()
+                .stream()
+                .filter(entry -> metricRegistry.getMetaData(entry.getKey()) != null)
+                .forEach(entry -> {
+                    MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
+                    MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
 
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-1min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getOneMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-5min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getFiveMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-15min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getFifteenMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-mean"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getMeanRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-5min"), singletonList(new DataPoint<>(timestamp, entry.getValue().getFiveMinuteRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-15min"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getFifteenMinuteRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-mean"), singletonList(new DataPoint<>(timestamp, entry.getValue().getMeanRate()))));
 
-            countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
-                    entry.getValue().getCount()))));
-        });
+                    countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getCount()))));
+                });
 
-        timers.entrySet().forEach(entry -> {
-            MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
-            MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
+        timers.entrySet()
+                .stream()
+                .filter(entry -> metricRegistry.getMetaData(entry.getKey()) != null)
+                .forEach(entry -> {
+                    MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
+                    MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
 
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-1min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getOneMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-5min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getFiveMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-15min"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getFifteenMinuteRate()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-mean"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getMeanRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-5min"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getFiveMinuteRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-15min"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getFifteenMinuteRate()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-mean"), singletonList(new DataPoint<>(timestamp, entry.getValue().getMeanRate()))));
 
-            countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
-                    entry.getValue().getCount()))));
+                    countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getCount()))));
 
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-median"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().getMedian()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-max"),
-                    singletonList(new DataPoint<>(timestamp, (double) entry.getValue().getSnapshot().getMax())
-                    )));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-min"),
-                    singletonList(new DataPoint<>(timestamp, (double) entry.getValue().getSnapshot().getMin()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-stdDev"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().getStdDev()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-75p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get75thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-95p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get95thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-98p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get98thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-99p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get99thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-999p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get999thPercentile()))));
-        });
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-median"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().getMedian()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-max"), singletonList(new DataPoint<>(timestamp,
+                            (double) entry.getValue().getSnapshot().getMax()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-min"), singletonList(new DataPoint<>(timestamp,
+                            (double) entry.getValue().getSnapshot().getMin()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-75p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get75thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-95p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get95thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-99p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get99thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-999p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get999thPercentile()))));
+                });
 
-        gauges.entrySet().forEach(entry -> {
-            MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
-            gaugesList.add(new Metric<>(gaugeId, singletonList(new DataPoint<>(timestamp,
-                    Double.parseDouble(entry.getValue().getValue().toString())))));
-        });
+        gauges.entrySet()
+                .stream()
+                .filter(entry -> metricRegistry.getMetaData(entry.getKey()) != null)
+                .forEach(entry -> {
+                    MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
+                    gaugesList.add(new Metric<>(gaugeId, singletonList(new DataPoint<>(timestamp,
+                            Double.parseDouble(entry.getValue().getValue().toString())))));
+                });
 
-        counters.entrySet().forEach(entry -> {
-            MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
-            countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
-                    entry.getValue().getCount()))));
-        });
+        counters.entrySet()
+                .stream()
+                .filter(entry -> metricRegistry.getMetaData(entry.getKey()) != null)
+                .forEach(entry -> {
+                    MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
+                    countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getCount()))));
+                });
 
-        histograms.entrySet().forEach(entry -> {
-            MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
-            MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
+        histograms.entrySet()
+                .stream()
+                .filter(entry -> metricRegistry.getMetaData(entry.getKey()) != null)
+                .forEach(entry -> {
+                    MetricId<Double> gaugeId = getMetricId(entry.getKey(), GAUGE);
+                    MetricId<Long> counterId = getMetricId(entry.getKey(), COUNTER);
 
-            countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
-                    entry.getValue().getCount()))));
+                    countersList.add(new Metric<>(counterId, singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getCount()))));
 
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-median"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().getMedian()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-max"),
-                    singletonList(new DataPoint<>(timestamp, (double) entry.getValue().getSnapshot().getMax())
-                    )));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-min"),
-                    singletonList(new DataPoint<>(timestamp, (double) entry.getValue().getSnapshot().getMin()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-stdDev"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().getStdDev()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-75p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get75thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-95p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get95thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-98p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get98thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-99p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get99thPercentile()))));
-            gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() + "-999p"),
-                    singletonList(new DataPoint<>(timestamp, entry.getValue().getSnapshot().get999thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-mean"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().getMean()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-median"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().getMedian()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-max"), singletonList(new DataPoint<>(timestamp,
+                            (double) entry.getValue().getSnapshot().getMax()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-min"), singletonList(new DataPoint<>(timestamp,
+                            (double) entry.getValue().getSnapshot().getMin()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-75p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get75thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-95p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get95thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-99p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get99thPercentile()))));
+                    gaugesList.add(new Metric<>(new MetricId<>(gaugeId.getTenantId(), GAUGE, gaugeId.getName() +
+                            "-999p"), singletonList(new DataPoint<>(timestamp,
+                            entry.getValue().getSnapshot().get999thPercentile()))));
         });
 
         // TODO add failover support
