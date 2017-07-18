@@ -167,22 +167,6 @@ public class MetricsServiceImpl implements MetricsService {
      */
     private Map<MetricType<?>, Func1<Observable<? extends Metric<?>>, Observable<Integer>>> pointsInserter;
 
-
-    /**
-     * Measurements of the throughput of inserting data points.
-     */
-    private Meter dataPointsInserted;
-
-    /**
-     * Raw data read metrics
-     */
-    private Timer rawDataReadLatency;
-
-    /**
-     * Metric tag query metrics
-     */
-    private Timer metricTagsTimer;
-
     /**
      * Functions used to find metric data points rows.
      */
@@ -316,9 +300,30 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private void initMetrics() {
-        dataPointsInserted = metricRegistry.meter("DataPointsInserted", "Core", "Write");
-        rawDataReadLatency = metricRegistry.timer("RawDataReadLatency", "Core", "Read");
-        metricTagsTimer = metricRegistry.timer("MetricTagsQueryLatency", "Core", "Read");
+        metricRegistry.registerMetaData("DataPointsInserted", "Core", "Write");
+        metricRegistry.registerMetaData("RawDataReadLatency", "Core", "Read");
+        metricRegistry.registerMetaData("MetricTagsQueryLatency", "Core", "Read");
+    }
+
+    /**
+     * Measurements of the throughput of inserting data points.
+     */
+    private Meter getDataPointsInserted() {
+        return metricRegistry.meter("DataPointsInserted");
+    }
+
+    /**
+     * Raw data read metrics
+     */
+    private Timer getRawDataReadLatency() {
+        return metricRegistry.timer("RawDataReadLatency");
+    }
+
+    /**
+     * Metric tag query metrics
+     */
+    private Timer getMetricsTagsQueryLatency() {
+        return metricRegistry.timer("MetricTagsQueryLatency");
     }
 
     private void initConfiguration(Session session) {
@@ -515,8 +520,8 @@ public class MetricsServiceImpl implements MetricsService {
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
         Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
-                .distinct()
                 .filter(row -> tenantId.equals(row.getString(0)))
+                .distinct()
                 .compose(new MetricFromFullDataRowTransformer(defaultTTL))
                 .map(m -> (Metric<T>) m);
 
@@ -538,12 +543,12 @@ public class MetricsServiceImpl implements MetricsService {
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, String tags) {
-        Timer.Context context = metricTagsTimer.time();
+        Timer.Context context = getMetricsTagsQueryLatency().time();
         Observable<Metric<T>> results;
         try {
             results = expresssionTagQueryParser
                     .parse(tenantId, metricType, tags)
-                    .map(tMetric -> (Metric<T>) tMetric);
+                    .map(tMetric -> tMetric);
         } catch (Exception e1) {
             try {
                 Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
@@ -622,7 +627,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .call(metrics
                         .filter(metric -> !metric.getDataPoints().isEmpty())
                         .doOnNext(insertedDataPointEvents::onNext))
-                .doOnNext(dataPointsInserted::mark)
+                .doOnNext(getDataPointsInserted()::mark)
                 .map(i -> null);
     }
 
@@ -634,8 +639,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<DataPoint<T>> findDataPoints(MetricId<T> metricId, long start, long end, int limit,
-            Order order, int pageSize) {
-        Timer.Context context = rawDataReadLatency.time();
+                                                       Order order, int pageSize) {
+
+        Timer.Context context = getRawDataReadLatency().time();
         checkArgument(isValidTimeRange(start, end), "Invalid time range");
         Order safeOrder = (null == order) ? Order.ASC : order;
         MetricType<T> metricType = metricId.getType();
@@ -714,9 +720,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .doOnNext(cpc -> {
-                            subject.onNext(new Metric<>(metricId, getTTL(metricId)));
-                        })
+                        .doOnNext(cpc -> subject.onNext(new Metric<>(metricId, getTTL(metricId))))
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                 .compose(applyRetryPolicy()))));
