@@ -54,16 +54,16 @@ public class RESTMetaData extends MetaData {
     private Type type;
 
 
-    public static RESTMetaData forRead(HTTPMethod method, String uri) {
-        return new RESTMetaData(new RESTMetricName(method, uri), Type.READ);
+    public static RESTMetaData forRead(HTTPMethod method, String uri, String hostname) {
+        return new RESTMetaData(new RESTMetricName(method, uri), Type.READ, hostname);
     }
 
-    public static RESTMetaData forWrite(HTTPMethod method, String uri) {
-        return new RESTMetaData(new RESTMetricName(method, uri), Type.WRITE);
+    public static RESTMetaData forWrite(HTTPMethod method, String uri, String hostname) {
+        return new RESTMetaData(new RESTMetricName(method, uri), Type.WRITE, hostname);
     }
 
-    private RESTMetaData(RESTMetricName name, Type type) {
-        super(name.getName(), SCOPE, type.toString(), null, ImmutableMap.of(
+    private RESTMetaData(RESTMetricName name, Type type, String hostname) {
+        super(name.getName(), SCOPE, type.toString(), hostname, ImmutableMap.of(
                 "method", name.getMethod().toString(),
                 "uri", name.getUri()
         ));

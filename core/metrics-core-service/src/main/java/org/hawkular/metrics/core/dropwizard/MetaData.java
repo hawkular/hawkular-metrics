@@ -72,6 +72,7 @@ public class MetaData {
         tags.put(NAME_PROPERTY, name);
         tags.put(SCOPE_PROPERTY, scope);
         tags.put(TYPE_PROPERTY, type);
+        tags.put(HOSTNAME_PROPERTY, hostname);
         tags.putAll(optional);
     }
 
@@ -119,10 +120,11 @@ public class MetaData {
                 .filter(e -> !REQUIRED_PROPERTIES.contains(e.getKey()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
         return MoreObjects.toStringHelper(this)
-                .add("namespace", tags.get(NAMESPACE_PROPERTY))
-                .add("name", tags.get(NAME_PROPERTY))
-                .add("scope", tags.get(SCOPE_PROPERTY))
-                .add("type", tags.get(TYPE_PROPERTY))
+                .add("namespace", getNamespace())
+                .add("hostname", getHostname())
+                .add("name", getName())
+                .add("scope", getScope())
+                .add("type", getType())
                 .add("optional", optional)
                 .toString();
     }

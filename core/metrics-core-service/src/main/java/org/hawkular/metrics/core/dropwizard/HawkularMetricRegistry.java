@@ -16,23 +16,21 @@
  */
 package org.hawkular.metrics.core.dropwizard;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 
 /**
- * A customer DropWizard metric registry that provides support for creating and registering metrics with
- * {@link MetaData}.
+ * A customer metric registry that stores {@link MetaData} for metrics. Note that you must register meta data
+ * for a metric in order for it to get persisted.
  *
  * @author jsanda
  */
 public class HawkularMetricRegistry extends MetricRegistry {
 
-    private Map<String, MetaData> metaDataMap = new HashMap<>();
+    private Map<String, MetaData> metaDataMap = new ConcurrentHashMap<>();
 
     private MetricNameService metricNameService;
 
@@ -40,50 +38,37 @@ public class HawkularMetricRegistry extends MetricRegistry {
         this.metricNameService = metricNameService;
     }
 
-    public Meter meter(String name, String scope, String type) {
+    /**
+     * Registering meta data does not create a metric. The reason there are two distinct steps for registering meta
+     * data and for registering a metric is to allow metrics to be registered lazily. Registering a metric results in
+     * metric tags and data points getting persisted whereas the meta data is just stored in memory. This two step
+     * approach allows us to persist internal metrics that are actually being used.
+     */
+    public void registerMetaData(String name, String scope, String type) {
         metaDataMap.put(name, new MetaData(name, scope, type, metricNameService.getHostName()));
-        Meter meter = meter(name);
-        return meter;
     }
 
-    public Meter meter(MetaData metaData) {
+    /**
+     * @see #registerMetaData(String, String, String)
+     */
+    public void registerMetaData(MetaData metaData) {
         metaDataMap.put(metaData.getName(), metaData);
-        Meter meter = meter(metaData.getName());
-        return meter;
     }
 
-    public Timer timer(String name, String scope, String type) {
-        metaDataMap.put(name, new MetaData(name, scope, type, metricNameService.getHostName()));
-        Timer timer = timer(name);
-        return timer;
-    }
-
-    public Timer timer(MetaData metaData) {
-        metaDataMap.put(metaData.getName(), metaData);
-        Timer timer = timer(metaData.getName());
-        return timer;
-    }
-
+    /**
+     * Registers the metric along with its meta data.
+     */
     public <T extends Metric> T register(String name, String scope, String type, T metric) {
         metaDataMap.put(name, new MetaData(name, scope, type, metricNameService.getHostName()));
-        T registered = register(name, metric);
-        return registered;
-    }
-
-    @Override
-    public boolean remove(String name) {
-        boolean removed = super.remove(name);
-        if (removed) {
-            metaDataMap.remove(name);
-        }
-        return removed;
+        return super.register(name, metric);
     }
 
     public MetaData getMetaData(String metric) {
         return metaDataMap.get(metric);
     }
 
-    public Map<String, MetaData> getMetaDataMap() {
-        return metaDataMap;
+    public MetaData removeMetaData(String metric) {
+        return metaDataMap.remove(metric);
     }
+
 }
