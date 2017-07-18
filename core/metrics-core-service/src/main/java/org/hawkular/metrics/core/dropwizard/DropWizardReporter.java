@@ -23,10 +23,8 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.DataPoint;
