@@ -16,9 +16,7 @@
  */
 package org.hawkular.metrics.core.dropwizard;
 
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
