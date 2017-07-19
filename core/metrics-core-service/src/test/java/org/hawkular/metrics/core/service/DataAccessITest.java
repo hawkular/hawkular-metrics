@@ -54,7 +54,6 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Emitter;
 import rx.Observable;
-import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
