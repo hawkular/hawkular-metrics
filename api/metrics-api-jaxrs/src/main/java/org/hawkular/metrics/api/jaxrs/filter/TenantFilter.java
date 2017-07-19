@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.api.jaxrs.filter;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
@@ -56,7 +55,10 @@ public class TenantFilter implements ContainerRequestFilter {
         UriInfo uriInfo = requestContext.getUriInfo();
         String path = uriInfo.getPath();
 
-        if (path.startsWith("/tenants") || path.startsWith(StatusHandler.PATH) || path.equals(BaseHandler.PATH)) {
+        if (path.startsWith("/tenants")
+                || path.startsWith(StatusHandler.PATH)
+                || path.startsWith("/ui")
+                || path.equals(BaseHandler.PATH)) {
             // Some handlers do not check the tenant header
             return;
         }

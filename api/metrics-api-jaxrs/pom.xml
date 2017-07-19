@@ -109,6 +109,11 @@
       <artifactId>cdi-api</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.undertow</groupId>
+      <artifactId>undertow-servlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.jboss.logging</groupId>
@@ -152,6 +157,29 @@
     <finalName>hawkular-metric-rest</finalName>
     <plugins>
       <plugin>
+        <artifactId>maven-scm-plugin</artifactId>
+        <version>1.9.5</version>
+        <executions>
+          <execution>
+            <id>Pull hawkular-ui webapp</id>
+            <goals>
+              <goal>checkout</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <connectionUrl>scm:git:git://github.com/jotak/hawkular-ui</connectionUrl>
+              <scmVersion>release</scmVersion>
+              <scmVersionType>branch</scmVersionType>
+              <checkoutDirectory>${project.build.directory}/hawkular-ui</checkoutDirectory>
+              <includes>
+                metrics/ngapp/dist/**
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
           <attachClasses>true</attachClasses>
@@ -166,10 +194,13 @@
           <webResources>
             <resource>
               <filtering>false</filtering>
+              <directory>${project.build.directory}/hawkular-ui/metrics/ngapp/dist</directory>
+            </resource>
+            <resource>
+              <filtering>false</filtering>
               <directory>${basedir}/src/main/webapp</directory>
               <excludes>
                 <exclude>WEB-INF/web.xml</exclude>
-                <exclude>static/index.html</exclude>
               </excludes>
             </resource>
             <resource>
@@ -177,7 +208,6 @@
               <directory>${basedir}/src/main/webapp</directory>
               <includes>
                 <include>WEB-INF/web.xml</include>
-                <include>static/index.html</include>
               </includes>
             </resource>
           </webResources>
