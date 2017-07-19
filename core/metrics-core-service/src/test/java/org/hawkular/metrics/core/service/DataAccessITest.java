@@ -29,7 +29,6 @@ import static org.testng.Assert.fail;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -237,7 +236,7 @@ public class DataAccessITest extends BaseITest {
         String tenantId = "t1";
         long start = now().getMillis();
 
-        int amountOfMetrics = 1000;
+        int amountOfMetrics = 10;
         int datapointsPerMetric = 10;
         AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
@@ -253,7 +252,7 @@ public class DataAccessITest extends BaseITest {
             }, Emitter.BackpressureMode.BUFFER);
 
             CountDownLatch dataPointsInserted = new CountDownLatch(1);
-            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+//            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
             Observable<Integer> observable = dataAccess.insertData(metrics);
 //            observable.subscribe(subscriber);
 //            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
