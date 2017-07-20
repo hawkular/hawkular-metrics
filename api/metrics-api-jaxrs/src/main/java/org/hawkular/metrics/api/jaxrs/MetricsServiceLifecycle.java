@@ -97,7 +97,6 @@ import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
 import org.hawkular.metrics.core.dropwizard.HawkularObjectNameFactory;
-import org.hawkular.metrics.core.dropwizard.MetaData;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
