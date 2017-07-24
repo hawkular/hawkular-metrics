@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,17 @@
 
 package org.hawkular.rx.cassandra.driver;
 
+import java.util.function.Function;
+
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Host;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -38,6 +42,7 @@ import rx.schedulers.Schedulers;
 public class RxSessionImpl implements RxSession {
 
     private Session session;
+    private static int MAXIMUM_INFLIGHT_REQUESTS = 1024;
 
     public RxSessionImpl(Session session) {
         this.session = session;
@@ -54,10 +59,32 @@ public class RxSessionImpl implements RxSession {
         return this;
     }
 
+    public static Function<Session, Integer> mostInFlightRequests = (session) -> {
+        int inFlights = 0;
+        for (Host host : session.getState().getConnectedHosts()) {
+            inFlights = Math.max(inFlights, session.getState().getInFlightQueries(host));
+        }
+        return inFlights;
+    };
+
+    private Observable<ResultSet> scheduleStatement(Statement st, Scheduler scheduler) {
+        while(true) {
+            if(mostInFlightRequests.apply(session) < MAXIMUM_INFLIGHT_REQUESTS) {
+                ResultSetFuture future = session.executeAsync(st);
+                return ListenableFutureObservable.from(future, scheduler);
+            } else {
+                try {
+                    Thread.sleep(0, 1);
+                } catch (InterruptedException e) {
+                    //
+                }
+            }
+        }
+    }
+
     @Override
     public Observable<ResultSet> execute(String query) {
-        ResultSetFuture future = session.executeAsync(query);
-        return ListenableFutureObservable.from(future, Schedulers.computation());
+        return scheduleStatement(new SimpleStatement(query), Schedulers.computation());
     }
 
     @Override
@@ -67,8 +94,7 @@ public class RxSessionImpl implements RxSession {
 
     @Override
     public Observable<ResultSet> execute(String query, Scheduler scheduler) {
-        ResultSetFuture future = session.executeAsync(query);
-        return ListenableFutureObservable.from(future, scheduler);
+        return scheduleStatement(new SimpleStatement(query), scheduler);
     }
 
     @Override
@@ -100,8 +126,7 @@ public class RxSessionImpl implements RxSession {
 
     @Override
     public Observable<ResultSet> execute(Statement statement) {
-        ResultSetFuture future = session.executeAsync(statement);
-        return ListenableFutureObservable.from(future, Schedulers.computation());
+        return scheduleStatement(statement, Schedulers.computation());
     }
 
     @Override
@@ -111,8 +136,7 @@ public class RxSessionImpl implements RxSession {
 
     @Override
     public Observable<ResultSet> execute(Statement statement, Scheduler scheduler) {
-        ResultSetFuture future = session.executeAsync(statement);
-        return ListenableFutureObservable.from(future, scheduler);
+        return scheduleStatement(statement, scheduler);
     }
 
     @Override
