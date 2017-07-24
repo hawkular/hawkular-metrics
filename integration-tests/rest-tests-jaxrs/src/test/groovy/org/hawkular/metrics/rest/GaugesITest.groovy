@@ -466,7 +466,135 @@ Actual:   ${response.data}
           bucketPoint << [empty: true]
           break
       }
-      expectedData.push(bucketPoint);
+      expectedData.push(bucketPoint)
+    }
+
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
+
+  @Test
+  void fetchStatsWithPercentiles() {
+    String gauge = "G1"
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$gauge/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 321.8],
+            [timestamp: 60_000 * 7.0, value: 468.0],
+            [timestamp: 60_000 * 7.2, value: 472.0],
+            [timestamp: 60_000 * 7.5, value: 968.0],
+            [timestamp: 60_000 * 7.6, value: 474.0],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.get(
+        path: "gauges/$gauge/stats",
+        headers: [(tenantHeaderName): tenantId],
+        query: [start: 60_000, end: 60_000 * 8, buckets: 7, percentiles: '50,99']
+    )
+    assertEquals(200, response.status)
+    assertContentEncoding(response)
+
+    def expectedData = []
+    (1..7).each { i ->
+      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1)]
+      double val
+      switch (i) {
+        case 1:
+          val = 321.8
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val,
+                          percentiles: [
+                              [value: val, originalQuantile: 50, quantile: 50.0],
+                              [value: val, originalQuantile: 99, quantile: 99.0]
+                          ],
+                          empty: false, samples: 1]
+          break
+        case 7:
+          bucketPoint << [min: 468.0, avg:595.5, median:472.0, max:968.0, sum:2382.0,
+                          percentiles: [
+                              [value: 472.0, originalQuantile: 50, quantile: 50.0],
+                              [value: 474.0, originalQuantile: 99, quantile: 99.0]
+                          ],
+                          empty: false, samples: 4]
+          break
+        default:
+          bucketPoint << [empty: true]
+          break
+      }
+      expectedData.push(bucketPoint)
+    }
+
+    assertNumericBucketsEquals(expectedData, response.data ?: [])
+  }
+
+  @Test
+  void fetchStackedStatsWithPercentiles() {
+    String g1 = "G1"
+    String g2 = "G2"
+
+    def response = hawkularMetrics.post(
+        path: "gauges/$g1/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 321.8],
+            [timestamp: 60_000 * 7.0, value: 468.0],
+            [timestamp: 60_000 * 7.2, value: 472.0],
+            [timestamp: 60_000 * 7.5, value: 968.0],
+            [timestamp: 60_000 * 7.6, value: 474.0],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/$g2/raw",
+        headers: [(tenantHeaderName): tenantId],
+        body: [
+            [timestamp: 60_000 * 1.0, value: 100.0],
+            [timestamp: 60_000 * 7.0, value: 368.0],
+            [timestamp: 60_000 * 7.2, value: 372.0],
+            [timestamp: 60_000 * 7.5, value: 868.0],
+            [timestamp: 60_000 * 7.6, value: 374.0],
+        ]
+    )
+    assertEquals(200, response.status)
+
+    response = hawkularMetrics.post(
+        path: "gauges/stats/query",
+        headers: [(tenantHeaderName): tenantId, "Content-Type": "application/json"],
+        body: [metrics: [g1, g2], start: 60_000, end: 60_000 * 8, buckets: 7, stacked: true, percentiles: '50,99']
+    )
+    assertEquals(200, response.status)
+    assertContentEncoding(response)
+
+    def expectedData = []
+    (1..7).each { i ->
+      Map bucketPoint = [start: 60_000 * i, end: 60_000 * (i + 1), min:0.0, avg:0.0, median:0.0, max:0.0, sum:0.0]
+      double val
+      switch (i) {
+        case 1:
+          val = 421.8
+          bucketPoint << [min: val, avg: val, median: val, max: val, sum: val,
+                          percentiles: [
+                              [value: val, originalQuantile: 50, quantile: 50.0],
+                              [value: val, originalQuantile: 99, quantile: 99.0]
+                          ],
+                          empty: false, samples: 2]
+          break
+        case 7:
+          bucketPoint << [min: 836.0, avg:1091.0, median:844.0, max:1836.0, sum:4364.0,
+                          percentiles: [
+                              [value: 844.0, originalQuantile: 50, quantile: 50.0],
+                              [value: 848.0, originalQuantile: 99, quantile: 99.0]
+                          ],
+                          empty: false, samples: 2] // should be 8??
+          break
+        default:
+          bucketPoint << [empty: true]
+          break
+      }
+      expectedData.push(bucketPoint)
     }
 
     assertNumericBucketsEquals(expectedData, response.data ?: [])

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,13 @@
  */
 package org.hawkular.metrics.core.service;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.hawkular.metrics.model.NumericBucketPoint;
+import org.hawkular.metrics.model.Percentile;
 
 /**
  * Accumulates numeric data points to produce a {@link NumericBucketPoint}.
@@ -32,6 +37,7 @@ final class SumNumericBucketPointCollector {
     private Sum max = new Sum();
     private Sum sum = new Sum();
     private Sum samples = new Sum();
+    private Map<String, Sum> percentiles = new HashMap<>();
     private Long start;
     private Long end;
 
@@ -46,6 +52,12 @@ final class SumNumericBucketPointCollector {
             max.increment(bucketPoint.getMax());
             sum.increment(bucketPoint.getSum());
             samples.increment(1);
+            if (bucketPoint.getPercentiles() != null) {
+                for (Percentile p : bucketPoint.getPercentiles()) {
+                    percentiles.computeIfAbsent(p.getOriginalQuantile(), k -> new Sum())
+                            .increment(p.getValue());
+                }
+            }
         }
 
         start = bucketPoint.getStart();
@@ -58,13 +70,20 @@ final class SumNumericBucketPointCollector {
             localSamples = (int) samples.getN();
         }
 
-        return new NumericBucketPoint.Builder(start, end)
+        NumericBucketPoint.Builder builder = new NumericBucketPoint.Builder(start, end)
                 .setMin(min.getResult())
                 .setAvg(average.getResult())
                 .setMedian(median.getResult())
                 .setMax(max.getResult())
                 .setSum(sum.getResult())
-                .setSamples(localSamples)
-                .build();
+                .setSamples(localSamples);
+
+        if (!percentiles.isEmpty()) {
+            builder.setPercentiles(percentiles.entrySet().stream()
+                    .map(e -> new Percentile(e.getKey(), e.getValue().getResult()))
+                    .collect(Collectors.toList()));
+        }
+
+        return builder.build();
     }
 }
