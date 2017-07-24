@@ -268,15 +268,4 @@ public class DataAccessITest extends BaseITest {
         tsr.assertNoErrors();
         tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
     }
-
-//    @Test
-//    public void testBucketIndexes() throws Exception {
-//        ZonedDateTime of = ZonedDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-//        ZonedDateTime limit = ZonedDateTime.of(2017, 1, 1, 23, 59, 0, 0, ZoneOffset.UTC);
-//        int bucketIndex = dataAccess.getBucketIndex(of.toInstant().toEpochMilli());
-//        assertEquals(0, bucketIndex);
-//
-//        bucketIndex = dataAccess.getBucketIndex(limit.toInstant().toEpochMilli());
-//        assertEquals(11, bucketIndex);
-//    }
 }
