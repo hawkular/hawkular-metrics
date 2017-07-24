@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,9 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
+import org.hawkular.openshift.auth.org.hawkular.openshift.namespace.NamespaceHandler;
+import org.jboss.logging.Logger;
+
 import io.undertow.servlet.ServletExtension;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.ListenerInfo;
@@ -38,8 +41,13 @@ import io.undertow.servlet.util.ImmediateInstanceFactory;
  */
 public class OpenshiftAuthServletExtension implements ServletExtension {
     private OpenshiftAuthHandler openshiftAuthHandler;
+    private NamespaceHandler namespaceHandler;
+
+    private static final Logger log = Logger.getLogger(OpenshiftAuthServletExtension.class);
 
     private static final String PROPERTY_FILE = "/WEB-INF/openshift-security-filter.properties";
+
+    private static final String DISABLE_NAMESPACE_FILTER = System.getProperty("DISABLE_NAMESPACE_FILTER", "false");
 
     @Override
     public void handleDeployment(DeploymentInfo deploymentInfo, ServletContext servletContext) {
@@ -90,6 +98,17 @@ public class OpenshiftAuthServletExtension implements ServletExtension {
             openshiftAuthHandler = new OpenshiftAuthHandler(containerHandler, cName, rName, insecurePattern, postQuery);
             return openshiftAuthHandler;
         });
+
+        if (DISABLE_NAMESPACE_FILTER.equalsIgnoreCase("true")) {
+            log.info("The OpenShift Namespace Filter has been disabled via the 'DISABLE_NAMESPACE_FILTER' system property.");
+        }
+        else {
+            log.info("Enabling the OpenShift Namespace Filter.");
+            deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
+                namespaceHandler = new NamespaceHandler(containerHandler);
+                return namespaceHandler;
+            });
+        }
     }
 
     private class SCListener implements ServletContextListener {
@@ -101,6 +120,9 @@ public class OpenshiftAuthServletExtension implements ServletExtension {
         public void contextDestroyed(ServletContextEvent sce) {
             if (openshiftAuthHandler != null) {
                 openshiftAuthHandler.stop();
+            }
+            if (namespaceHandler != null) {
+                namespaceHandler.stop();
             }
         }
     }
