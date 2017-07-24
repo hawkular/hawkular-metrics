@@ -66,7 +66,7 @@ public enum ConfigurationKey {
     ADMIN_TENANT("hawkular.metrics.admin-tenant", "admin", "ADMIN_TENANT", false),
     METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
     METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
-    METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "180",
+    METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "300",
             "METRICS_REPORTING_COLLECTION_INTERVAL", false),
 
     //Metric expiration job configuration

@@ -25,9 +25,12 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.fail;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -51,7 +54,6 @@ import com.google.common.collect.ImmutableMap;
 
 import rx.Emitter;
 import rx.Observable;
-import rx.observers.TestSubscriber;
 
 /**
  * @author John Sanda
@@ -233,8 +235,9 @@ public class DataAccessITest extends BaseITest {
         String tenantId = "t1";
         long start = now().getMillis();
 
-        int amountOfMetrics = 1000;
+        int amountOfMetrics = 10;
         int datapointsPerMetric = 10;
+        AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
         for (int j = 0; j < datapointsPerMetric; j++) {
             final int dpAdd = j;
@@ -247,26 +250,50 @@ public class DataAccessITest extends BaseITest {
                 emitter.onCompleted();
             }, Emitter.BackpressureMode.BUFFER);
 
-            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+            CountDownLatch dataPointsInserted = new CountDownLatch(1);
+//            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
             Observable<Integer> observable = dataAccess.insertData(metrics);
-            observable.subscribe(subscriber);
-            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
-            for (Throwable throwable : subscriber.getOnErrorEvents()) {
-                throwable.printStackTrace();
+//            observable.subscribe(subscriber);
+//            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+//            for (Throwable throwable : subscriber.getOnErrorEvents()) {
+//                throwable.printStackTrace();
+//            }
+//            subscriber.assertNoErrors();
+//            subscriber.assertCompleted();
+            observable.subscribe(
+                    i -> {},
+                    t -> {
+                        exceptionRef.set(t);
+                        dataPointsInserted.countDown();
+                    },
+                    dataPointsInserted::countDown
+            );
+            dataPointsInserted.await();
+            if (exceptionRef.get() != null) {
+                fail("Failed to insert data points", exceptionRef.get());
             }
-            subscriber.assertNoErrors();
-            subscriber.assertCompleted();
         }
 
         Observable<Row> rowObservable = dataAccess.findAllDataFromBucket(start, DEFAULT_PAGE_SIZE, 2)
                 .flatMap(r -> r);
-
-        TestSubscriber<Row> tsr = new TestSubscriber<>();
-        rowObservable.subscribe(tsr);
-        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
-        tsr.assertCompleted();
-        tsr.assertNoErrors();
-        tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
+        CountDownLatch dataFetched = new CountDownLatch(1);
+        AtomicInteger count = new AtomicInteger();
+//        TestSubscriber<Row> tsr = new TestSubscriber<>();
+//        rowObservable.subscribe(tsr);
+//        tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
+//        tsr.assertCompleted();
+//        tsr.assertNoErrors();
+        rowObservable.subscribe(
+                r -> count.incrementAndGet(),
+                t -> {
+                    exceptionRef.set(t);
+                    dataFetched.countDown();
+                },
+                dataFetched::countDown
+        );
+        dataFetched.await();
+        assertEquals(amountOfMetrics * datapointsPerMetric, count.get());
+//        tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
     }
 
 //    @Test

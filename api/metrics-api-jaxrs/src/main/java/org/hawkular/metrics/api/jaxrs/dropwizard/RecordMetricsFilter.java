@@ -37,7 +37,6 @@ import javax.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
 import com.codahale.metrics.Timer;
-import com.google.common.base.Stopwatch;
 
 /**
  * This filter records DropWizard metrics for REST endpoints.
@@ -54,11 +53,10 @@ public class RecordMetricsFilter implements ContainerRequestFilter, ContainerRes
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
         String path = getPath(requestContext.getUriInfo());
         HTTPMethod method = HTTPMethod.fromString(requestContext.getMethod());
         RESTMetricName metricName = new RESTMetricName(method, path);
-        Timer timer = restMetrics.getTimers().get(metricName);
+        Timer timer = restMetrics.getTimer(metricName.getName());
         if (timer != null) {
             Timer.Context context = timer.time();
             requestContext.setProperty("timerContext", context);
