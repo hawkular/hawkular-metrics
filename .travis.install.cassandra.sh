@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+# Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,8 +52,8 @@ mkdir "${CASSANDRA_HOME}/logs"
 export HEAP_NEWSIZE="100M"
 export MAX_HEAP_SIZE="1G"
 
+echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.unsafesystem=true"' >> ${CASSANDRA_HOME}/conf/cassandra-env.sh
 nohup sh ${CASSANDRA_HOME}/bin/cassandra -f -p ${HOME}/cassandra.pid > ${CASSANDRA_HOME}/logs/stdout.log 2>&1 &
-
 
 CASSANDRA_STATUS="undecided"
 TOTAL_WAIT=0;
