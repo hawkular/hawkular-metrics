@@ -31,22 +31,17 @@ import io.undertow.servlet.handlers.DefaultServlet;
  */
 public class ClientRouterDispatchingServlet extends DefaultServlet {
 
+    public static final String PATH = "/ui";
+    public static final String PATH_INDEX_HTML = PATH + "/index.html";
+    private static final String CLIENTSIDE_ROUTE_PREFIX = "/r/";
+
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-        String path = req.getPathInfo();
-        // FIXME: find a safer & more generic way.
-        // Beware, urls could be like "hawkular/metrics/ui/something/file/abc.json" which is not necessarily static content
-        // Maybe put all in "assets", but need to find how to do it with dynamically loaded fonts
-        if (path.endsWith(".js")
-                || path.endsWith(".css")
-                || path.endsWith(".woff2")
-                || path.endsWith(".ttf")
-                || path.endsWith(".html")
-                || path.endsWith(".png")
-                || path.endsWith(".jpg")) {
+        if (req.getPathInfo().startsWith(CLIENTSIDE_ROUTE_PREFIX)) {
+            // This is for client-side router, send it to index.html
+            req.getRequestDispatcher(PATH_INDEX_HTML).forward(req, resp);
+        } else {
             super.doGet(req, resp);
-            return;
         }
-        req.getRequestDispatcher("/ui/index.html").forward(req, resp);
     }
 }

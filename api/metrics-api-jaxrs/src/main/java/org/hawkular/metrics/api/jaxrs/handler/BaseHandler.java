@@ -66,6 +66,6 @@ public class BaseHandler {
     @Produces({APPLICATION_XHTML_XML, TEXT_HTML})
     public void baseHTML(@Context ServletContext context) throws Exception {
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-        response.sendRedirect("/hawkular/metrics/ui/index.html");
+        response.sendRedirect("/hawkular/metrics" + ClientRouterDispatchingServlet.PATH_INDEX_HTML);
     }
 }

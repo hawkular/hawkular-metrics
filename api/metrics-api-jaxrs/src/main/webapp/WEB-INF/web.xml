@@ -35,17 +35,21 @@
   </resource-env-ref>
 
   <servlet>
-    <servlet-name>angularRoutes</servlet-name>
+    <servlet-name>uiServlet</servlet-name>
     <servlet-class>org.hawkular.metrics.api.jaxrs.handler.ClientRouterDispatchingServlet</servlet-class>
+    <!--<init-param>-->
+      <!--<param-name>resolve-against-context-root</param-name>-->
+      <!--<param-value>true</param-value>-->
+    <!--</init-param>-->
   </servlet>
 
   <servlet-mapping>
-    <servlet-name>angularRoutes</servlet-name>
+    <servlet-name>uiServlet</servlet-name>
     <url-pattern>/ui</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>angularRoutes</servlet-name>
+    <servlet-name>uiServlet</servlet-name>
     <url-pattern>/ui/*</url-pattern>
   </servlet-mapping>
 

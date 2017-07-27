@@ -30,6 +30,7 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
 import org.hawkular.metrics.api.jaxrs.handler.BaseHandler;
+import org.hawkular.metrics.api.jaxrs.handler.ClientRouterDispatchingServlet;
 import org.hawkular.metrics.api.jaxrs.handler.StatusHandler;
 import org.hawkular.metrics.model.ApiError;
 
@@ -57,7 +58,7 @@ public class TenantFilter implements ContainerRequestFilter {
 
         if (path.startsWith("/tenants")
                 || path.startsWith(StatusHandler.PATH)
-                || path.startsWith("/ui")
+                || path.startsWith(ClientRouterDispatchingServlet.PATH)
                 || path.equals(BaseHandler.PATH)) {
             // Some handlers do not check the tenant header
             return;
