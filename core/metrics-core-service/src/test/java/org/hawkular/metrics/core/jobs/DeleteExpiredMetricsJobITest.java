@@ -33,8 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.BaseITest;
 import org.hawkular.metrics.core.service.DataAccess;
-import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.TestDataAccessFactory;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -44,6 +44,7 @@ import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -75,7 +76,7 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
-        dataAccess = new DataAccessImpl(session);
+        dataAccess = TestDataAccessFactory.newInstance(session);
 
         resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
                 DeleteExpiredMetrics.JOB_NAME + "'");
@@ -115,6 +116,11 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
         jobsService.shutdown();
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     @Test

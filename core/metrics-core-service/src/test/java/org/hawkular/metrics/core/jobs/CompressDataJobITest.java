@@ -57,6 +57,7 @@ import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -180,6 +181,11 @@ public class CompressDataJobITest extends BaseITest {
 
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     @Test(priority = 1)

@@ -62,7 +62,7 @@ public class TestDataAccessFactory {
      * Create few temporary tables for tests
      */
     static Set<Long> tableListForTesting() {
-        Set<Long> tempTables = new HashSet<>(2);
+        Set<Long> tempTables = new HashSet<>(3);
         DateTime now = DateTimeService.now.get();
         tempTables.add(now.getMillis());
         tempTables.add(now.minusHours(2).getMillis());

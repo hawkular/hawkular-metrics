@@ -49,6 +49,7 @@ import org.hawkular.metrics.scheduler.impl.TestScheduler;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -67,6 +68,7 @@ public class DeleteTenantITest extends BaseITest {
 
     private static Logger logger = Logger.getLogger(DeleteTenantITest.class);
 
+    private DataAccess dataAccess;
     private MetricsServiceImpl metricsService;
 
     private ConfigurationService configurationService;
@@ -91,7 +93,7 @@ public class DeleteTenantITest extends BaseITest {
                 "SELECT tvalue, type, metric FROM metrics_tags_idx WHERE tenant_id = ? AND tname = ?");
         getRetentions = session.prepare("SELECT metric FROM retentions_idx WHERE tenant_id = ? AND type = ?");
 
-        DataAccess dataAccess = TestDataAccessFactory.newInstance(session);
+        dataAccess = TestDataAccessFactory.newInstance(session);
 
         configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
@@ -122,6 +124,11 @@ public class DeleteTenantITest extends BaseITest {
     @AfterMethod(alwaysRun = true)
     public void tearDown() {
         jobsService.shutdown();
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void shutdown() {
+        dataAccess.shutdown();
     }
 
     @Test
