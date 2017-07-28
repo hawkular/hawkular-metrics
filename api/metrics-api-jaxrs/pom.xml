@@ -36,7 +36,7 @@
 
   <properties>
     <version.org.jboss.resteasy.jaxrs-api>3.0.12.Final</version.org.jboss.resteasy.jaxrs-api>
-    <hawkular-ui.git.repo>scm:git:git://github.com/jotak/hawkular-ui</hawkular-ui.git.repo>
+    <hawkular-ui.git.repo>scm:git:git://github.com/hawkular/hawkular-ui</hawkular-ui.git.repo>
     <hawkular-ui.git.branch>release</hawkular-ui.git.branch>
   </properties>
 
