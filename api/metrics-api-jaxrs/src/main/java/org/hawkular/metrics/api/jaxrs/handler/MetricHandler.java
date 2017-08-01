@@ -58,7 +58,6 @@ import javax.ws.rs.core.UriInfo;
 
 import org.hawkular.metrics.api.jaxrs.StatsQueryRequest;
 import org.hawkular.metrics.api.jaxrs.handler.observer.MetricCreatedObserver;
-import org.hawkular.metrics.api.jaxrs.handler.transformer.MinMaxTimestampTransformer;
 import org.hawkular.metrics.api.jaxrs.param.DurationConverter;
 import org.hawkular.metrics.api.jaxrs.param.PercentilesConverter;
 import org.hawkular.metrics.api.jaxrs.param.TagsConverter;
@@ -66,6 +65,7 @@ import org.hawkular.metrics.api.jaxrs.util.ApiUtils;
 import org.hawkular.metrics.api.jaxrs.util.MetricTypeTextConverter;
 import org.hawkular.metrics.core.service.Functions;
 import org.hawkular.metrics.core.service.MetricsService;
+import org.hawkular.metrics.core.service.transformers.MinMaxTimestampTransformer;
 import org.hawkular.metrics.model.ApiError;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.BucketPoint;
@@ -195,6 +195,8 @@ public class MetricHandler {
             @ApiParam(value = "Queried metric type", required = false, allowableValues = "gauge, availability, " +
                     "counter, string")
             @QueryParam("type") MetricType<T> metricType,
+            @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
+            @QueryParam("timestamps") Boolean fetchTimestamps,
             @ApiParam(value = "List of tags filters", required = false) @QueryParam("tags") Tags tags,
             @ApiParam(value = "Regexp to match metricId if tags filtering is used, otherwise exact matching",
                     required = false) @QueryParam("id") String id) {
@@ -226,8 +228,12 @@ public class MetricHandler {
             }
         }
 
+        if(fetchTimestamps) {
+            metricObservable = metricObservable
+                    .compose(new MinMaxTimestampTransformer<>(metricsService));
+        }
+
         metricObservable
-                .compose(new MinMaxTimestampTransformer<>(metricsService))
                 .toList()
                 .map(ApiUtils::collectionToResponse)
                 .subscribe(asyncResponse::resume, t -> {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -132,7 +132,8 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Now query for the gauge metrics
-    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge"], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge", timestamps: "true"], headers: [
+            (tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
     assertEquals([
@@ -162,7 +163,7 @@ class CORSITest extends RESTTest {
     assertEquals(responseHeaders, (72 * 60 * 60) + "", response.headers[ACCESS_CONTROL_MAX_AGE].value)
 
     //Requery "metrics" endpoint to make sure data gets returned and check headers
-    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge"],
+    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge", timestamps: "true"],
         headers: [
             (tenantHeaderName): tenantId,
             (ORIGIN): testOrigin
@@ -209,7 +210,7 @@ class CORSITest extends RESTTest {
     assertEquals(200, response.status)
 
     // Now query for the gauge metrics
-    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge"], headers: [(tenantHeaderName): tenantId])
+    response = hawkularMetrics.get(path: "metrics", query: [type: "gauge", timestamps: "true"], headers: [(tenantHeaderName): tenantId])
 
     assertEquals(200, response.status)
     assertEquals([
