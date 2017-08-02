@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.27.2.Final</version>
+    <version>0.27.3.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-containers</artifactId>
