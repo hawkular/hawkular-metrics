@@ -887,8 +887,7 @@ public class DataAccessImpl implements DataAccess {
                 .flatMap(b -> rxSession.executeAndFetch(b))
                 .concatWith(
                         rxSession.executeAndFetch(findAllMetricsInData.bind())
-                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())))
-                .distinct();
+                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())));
     }
 
     /*
