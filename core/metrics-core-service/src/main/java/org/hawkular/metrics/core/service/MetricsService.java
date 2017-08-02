@@ -98,7 +98,7 @@ public interface MetricsService {
      */
     Observable<Void> createMetric(Metric<?> metric, boolean overwrite);
 
-    Observable<Metric<?>> findAllMetrics();
+    Observable<MetricId<?>> findAllMetricIdentifiers();
 
     <T> Observable<Metric<T>> findMetric(MetricId<T> id);
 
@@ -125,9 +125,9 @@ public interface MetricsService {
      * @param tenantId The id of the tenant to which the metrics belong
      * @param type If type is null, no type filtering is used
      * @param tagsQuery If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
-     * @return Metric's that are filtered with given conditions
+     * @return MetricIds that are filtered with given conditions
      */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, String tags);
+    <T> Observable<MetricId<T>> findMetricIdentifiersWithFilters(String tenantId, MetricType<T> type, String tags);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
@@ -366,7 +366,7 @@ public interface MetricsService {
      */
     Observable<Metric<?>> insertedDataEvents();
 
-    <T> Func1<Metric<T>, Boolean> idFilter(String regexp);
+    <T> Func1<MetricId<T>, Boolean> idFilter(String regexp);
 
     <T> Observable<Void> updateMetricExpiration(MetricId<T> metric);
 }
