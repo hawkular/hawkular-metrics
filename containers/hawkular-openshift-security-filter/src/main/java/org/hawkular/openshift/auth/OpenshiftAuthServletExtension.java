@@ -92,13 +92,6 @@ public class OpenshiftAuthServletExtension implements ServletExtension {
         final Pattern insecurePattern = insecureEndpointPattern;
         final Pattern postQuery = postQueryPattern;
 
-        ImmediateInstanceFactory<EventListener> instanceFactory = new ImmediateInstanceFactory<>(new SCListener());
-        deploymentInfo.addListener(new ListenerInfo(SCListener.class, instanceFactory));
-        deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
-            openshiftAuthHandler = new OpenshiftAuthHandler(containerHandler, cName, rName, insecurePattern, postQuery);
-            return openshiftAuthHandler;
-        });
-
         if (DISABLE_NAMESPACE_FILTER.equalsIgnoreCase("true")) {
             log.info("The OpenShift Namespace Filter has been disabled via the 'DISABLE_NAMESPACE_FILTER' system property.");
         }
@@ -109,6 +102,14 @@ public class OpenshiftAuthServletExtension implements ServletExtension {
                 return namespaceHandler;
             });
         }
+
+        ImmediateInstanceFactory<EventListener> instanceFactory = new ImmediateInstanceFactory<>(new SCListener());
+        deploymentInfo.addListener(new ListenerInfo(SCListener.class, instanceFactory));
+        deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
+            openshiftAuthHandler = new OpenshiftAuthHandler(containerHandler, cName, rName, insecurePattern, postQuery);
+            return openshiftAuthHandler;
+        });
+
     }
 
     private class SCListener implements ServletContextListener {
