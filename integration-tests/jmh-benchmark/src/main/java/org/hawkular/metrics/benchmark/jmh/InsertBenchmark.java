@@ -93,31 +93,35 @@ public class InsertBenchmark {
 
             rxSession = new RxSessionImpl(metricsManager.getSession());
 
+            metricsManager.getSession().execute("ALTER KEYSPACE benchmark WITH replication = {'class': " +
+                    "'SimpleStrategy', 'replication_factor': 1" +
+                    "} AND durable_writes = false");
+
             createSingleTable = metricsManager.getSession().prepare(
-                    "CREATE TABLE IF NOT EXISTS data_temp_single (tenant_id text, type tinyint, metric text, dpart " +
+                    "CREATE TABLE IF NOT EXISTS data_bench_single (tenant_id text, type tinyint, metric text, dpart " +
                             "bigint, time " +
                             "timeuuid, n_value double, PRIMARY KEY ((tenant_id, type, dpart), time)) WITH CLUSTERING ORDER BY (time DESC)");
 
             createMultiTable = metricsManager.getSession().prepare(
-                    "CREATE TABLE IF NOT EXISTS data_temp_multi (tenant_id text, type tinyint, metric text, dpart " +
+                    "CREATE TABLE IF NOT EXISTS data_bench_multi (tenant_id text, type tinyint, metric text, dpart " +
                             "bigint, time " +
                             "timeuuid, n_value double, PRIMARY KEY ((tenant_id, type, metric, dpart), time)) WITH CLUSTERING ORDER BY (time DESC)");
 
             metricsManager.getSession().execute(createMultiTable.bind());
             metricsManager.getSession().execute(createSingleTable.bind());
 
-            truncateSingleTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_temp_single");
-            truncateMultiTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_temp_multi");
+            truncateSingleTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_bench_single");
+            truncateMultiTable = metricsManager.getSession().prepare("TRUNCATE TABLE data_bench_multi");
 
             // Temp table with a single partition
             insertPartition = metricsManager.getSession().prepare(
-                    "UPDATE data_temp_single " +
+                    "UPDATE data_bench_single " +
                             "SET n_value = ? " +
                             "WHERE tenant_id = ? AND type = ? AND dpart = 0 AND time = ? ");
 
             // Current table in temp format
             insertMultiPartition = metricsManager.getSession().prepare(
-                    "UPDATE data_temp_multi " +
+                    "UPDATE data_bench_multi " +
                             "SET n_value = ? " +
                             "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = 0 AND time = ? ");
         }
@@ -210,7 +214,7 @@ public class InsertBenchmark {
         );
     }
 
-    @Benchmark
+//    @Benchmark
     @OperationsPerInvocation(100000)
     public void insertToSinglePartition(GaugeMetricCreator creator, ServiceCreator service, Blackhole bh) {
         bh.consume(
