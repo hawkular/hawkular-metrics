@@ -16,13 +16,38 @@
  */
 package org.hawkular.metrics.api.jaxrs.dropwizard;
 
-import javax.enterprise.context.ApplicationScoped;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.util.AnnotationLiteral;
+import javax.inject.Inject;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
+import javax.ws.rs.OPTIONS;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+
+import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
+import org.jboss.logging.Logger;
 
 import com.codahale.metrics.Timer;
+import com.google.common.reflect.ClassPath;
+
+import rx.Observable;
+import rx.exceptions.Exceptions;
 
 /**
  * Registers metric meta data for REST endpoints. The actual metrics are registered when the end points are invoked for
@@ -35,97 +60,97 @@ import com.codahale.metrics.Timer;
 @ApplicationScoped
 public class RESTMetrics {
 
+    private static Logger logger = Logger.getLogger(RESTMetrics.class);
+
     private MetricNameService metricNameService;
+
+    @Inject
+    BeanManager beanManager;
 
     public void setMetricNameService(MetricNameService metricNameService) {
         this.metricNameService = metricNameService;
     }
 
-    public void initMetrics() {
+    public void initMetrics() throws IOException {
         String hostname = metricNameService.getHostName();
 
-        register(RESTMetaData.forRead(HTTPMethod.GET, "status", hostname));
+        Observable.from(beanManager.getBeans(Object.class, new AnnotationLiteral<Any>() {}))
+                .map(Bean::getBeanClass)
+                .filter(this::isRESTHandler)
+                .flatMap(c -> Observable.from(c.getMethods()))
+                .filter(this::isRESTHandlerMethod)
+                .subscribe(
+                        method -> {
+                            HTTPMethod httpMethod = getHttpMethod(method);
+                            String uri = getURI(method);
+                            if (isWrite(method, uri)) {
+                                register(RESTMetaData.forWrite(httpMethod, uri, hostname));
+                            } else {
+                                register(RESTMetaData.forRead(httpMethod, uri, hostname));
+                            }
+                        },
+                        t -> logger.warn("Failed to register meta data for REST metrics", t),
+                        () -> {}
+                );
+    }
 
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "gauges", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "gauges/id", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/tags/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.PUT, "gauges/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "gauges/id/tags/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "gauges/id/raw", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "gauges/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "gauges/raw/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "gauges/rate/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "gauges/stats/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/stats/tags/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/periods", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/rate", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/id/rate/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "gauges/rate/stats", hostname));
+    private boolean isRESTHandler(Class clazz) {
+        return clazz.getName().startsWith("org.hawkular.metrics") && (clazz.isAnnotationPresent(Path.class) || Arrays
+                .stream(clazz.getMethods()).anyMatch(method -> method.isAnnotationPresent(Path.class)));
+    }
 
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "counters", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "counters/id", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/tags/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.PUT, "counters/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "counters/id/tags/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "counters/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "counters/raw/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "counters/rate/query", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "counters/id/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/rate", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/rate/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "counters/stats/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/rate/stats", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "counters/id/stats/tags/tags", hostname));
+    private boolean isRESTHandlerMethod(Method method) {
+        return method.isAnnotationPresent(GET.class) ||
+                method.isAnnotationPresent(POST.class) ||
+                method.isAnnotationPresent(PUT.class) ||
+                method.isAnnotationPresent(DELETE.class) ||
+                method.isAnnotationPresent(HEAD.class) ||
+                method.isAnnotationPresent(OPTIONS.class);
+    }
 
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "metrics", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "metrics", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "metrics/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "metrics/tags/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "metrics/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "metrics/stats/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "metrics/stats/batch/query", hostname));
+    private boolean isWrite(Method m, String uri) {
+        return m.isAnnotationPresent(DELETE.class) || m.isAnnotationPresent(PUT.class) ||
+                (m.isAnnotationPresent(POST.class) && !uri.endsWith("query"));
+    }
 
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "strings", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "strings", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "strings/id", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "strings/id", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "strings/tags/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "strings/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.PUT, "strings/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "strings/tags/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "strings/id/raw", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "strings/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "strings/raw/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "strings/id/raw", hostname));
+    private HTTPMethod getHttpMethod(Method m) {
+        if (m.isAnnotationPresent(GET.class)) {
+            return HTTPMethod.GET;
+        }
+        if (m.isAnnotationPresent(POST.class)) {
+            return HTTPMethod.POST;
+        }
+        if (m.isAnnotationPresent(PUT.class)) {
+            return HTTPMethod.PUT;
+        }
+        if (m.isAnnotationPresent(DELETE.class)) {
+            return HTTPMethod.DELETE;
+        }
+        if (m.isAnnotationPresent(HEAD.class)) {
+            return HTTPMethod.HEAD;
+        }
+        return HTTPMethod.OPTIONS;
+    }
 
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "availability", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability/id", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "availability/id", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability/tags/tags", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.PUT, "availability/id/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.DELETE, "availability/id/tags/tags", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "availability/id/raw", hostname));
-        register(RESTMetaData.forWrite(HTTPMethod.POST, "availability/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.POST, "availability/raw/query", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability/id/raw", hostname));
-        register(RESTMetaData.forRead(HTTPMethod.GET, "availability/id/stats", hostname));
+    private String getURI(Method method) {
+        Path classLevelURI = method.getDeclaringClass().getAnnotation(Path.class);
+        Path methodLevelURI = method.getAnnotation(Path.class);
+
+        StringBuilder uri = new StringBuilder();
+        if (classLevelURI != null) {
+            uri.append(classLevelURI.value());
+        }
+        if (methodLevelURI != null)
+        uri.append(methodLevelURI.value());
+
+        if (uri.charAt(0) == '/') {
+            uri.deleteCharAt(0);
+        }
+        return uri.toString();
     }
 
     private void register(RESTMetaData metaData) {
+        logger.debugf("Registering meta data for %s ", metaData.getRESTMetricName().getName());
         HawkularMetricRegistry registry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
         registry.registerMetaData(metaData);
     }

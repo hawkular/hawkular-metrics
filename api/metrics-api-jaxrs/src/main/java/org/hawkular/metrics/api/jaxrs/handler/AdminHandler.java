@@ -54,7 +54,7 @@ public class AdminHandler {
     ManifestInformation manifestInformation;
 
     @GET
-    @Path("status")
+    @Path("/status")
     @ApiOperation(value = "Returns the current status for various components.",
             response = Map.class)
     public Response status(@Context ServletContext servletContext) {
