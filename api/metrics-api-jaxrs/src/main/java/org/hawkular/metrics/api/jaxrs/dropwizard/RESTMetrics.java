@@ -19,12 +19,9 @@ package org.hawkular.metrics.api.jaxrs.dropwizard;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.util.AnnotationLiteral;
@@ -37,17 +34,14 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 
-import org.hawkular.metrics.api.jaxrs.handler.template.IMetricsHandler;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.jboss.logging.Logger;
 
 import com.codahale.metrics.Timer;
-import com.google.common.reflect.ClassPath;
 
 import rx.Observable;
-import rx.exceptions.Exceptions;
 
 /**
  * Registers metric meta data for REST endpoints. The actual metrics are registered when the end points are invoked for
