@@ -76,7 +76,7 @@ public class RecordMetricsFilter implements ContainerRequestFilter, ContainerRes
         MultivaluedMap<String, String> pathParameters = uriInfo.getPathParameters(true);
         final Map<String, String> valuesToParams = pathParameters.entrySet().stream()
                 .map(entry -> entry.getValue().stream()
-                        .collect(toMap(Function.identity(), value -> entry.getKey())))
+                        .collect(toMap(Function.identity(), value -> "{" + entry.getKey() + "}")))
                 .reduce(new HashMap<>(), (m1, m2) -> {
                     m1.putAll(m2);
                     return m1;
