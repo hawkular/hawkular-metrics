@@ -17,9 +17,6 @@
 
 package org.hawkular.metrics.api.jaxrs.log.time;
 
-import java.io.InputStream;
-import java.util.Properties;
-
 import javax.servlet.ServletContext;
 
 import io.undertow.servlet.ServletExtension;
@@ -30,25 +27,28 @@ public class TimerLoggerServletExtension implements ServletExtension {
 
     private RequestTimeLogger requestTimeLogger;
 
-    private static final String PROPERTY_FILE = "/WEB-INF/time-logger-filter.properties";
+    private static final String THRESHOLD_PROPERTY_KEY = "hawkular.metrics.request.logging.time.threshold";
+    private static final String THRESHOLD_ENV_VAR = "REQUEST_LOGGING_TIME_THRESHOLD";
 
+    // Threshold units are in ms, 10sec is the default here.
+    private static final long DEFAULT_THRESHOLD_VALUE = 10000;
 
     @Override
     public void handleDeployment(DeploymentInfo deploymentInfo, ServletContext servletContext) {
 
-        long timeThreshold = 0;
+        long timeThreshold = DEFAULT_THRESHOLD_VALUE;
 
-        InputStream is = servletContext.getResourceAsStream(PROPERTY_FILE);
+        String thresholdValue;
 
-        if (is != null) {
+        thresholdValue = System.getProperty(THRESHOLD_PROPERTY_KEY);
+
+        if ( thresholdValue == null){
+            thresholdValue = System.getenv(THRESHOLD_ENV_VAR);
+        }
+
+        if ( thresholdValue != null && !thresholdValue.isEmpty()) {
             try {
-                String timeThresholdString;
-                Properties props = new Properties();
-                props.load(is);
-                timeThresholdString = props.getProperty("logging-time-threshold");
-                if (timeThresholdString != null && !timeThresholdString.isEmpty()) {
-                    timeThreshold = Long.parseLong(timeThresholdString);
-                }
+                timeThreshold = Long.parseLong(thresholdValue);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -56,11 +56,9 @@ public class TimerLoggerServletExtension implements ServletExtension {
 
         final long cTimeThreshold = timeThreshold;
 
-        if (timeThreshold > 0) {
-            deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
-                requestTimeLogger = new RequestTimeLogger(containerHandler, cTimeThreshold);
-                return requestTimeLogger;
-            });
-        }
+        deploymentInfo.addInitialHandlerChainWrapper(containerHandler -> {
+            requestTimeLogger = new RequestTimeLogger(containerHandler, cTimeThreshold);
+            return requestTimeLogger;
+        });
     }
 }
