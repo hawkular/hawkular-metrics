@@ -48,8 +48,14 @@ if (reset) {
   executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
 }
 
-executeCQL("CREATE KEYSPACE IF NOT EXISTS $keyspace WITH replication = {'class': 'SimpleStrategy', " +
-    "'replication_factor': $replicationFactor}")
+def keyspaceCreate = "CREATE KEYSPACE IF NOT EXISTS $keyspace WITH replication = {'class': 'SimpleStrategy', " +
+    "'replication_factor': $replicationFactor}"
+
+if (keyspace.equals("hawkulartest") || keyspace.equals("hawkular_metrics_rest_tests")) {
+  keyspaceCreate = "$keyspaceCreate AND DURABLE_WRITES = 'false'"
+}
+
+executeCQL(keyspaceCreate)
 executeCQL("USE $keyspace")
 
 // The retentions map entries are {metric type, retention} key/value paris where
