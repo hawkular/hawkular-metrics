@@ -615,7 +615,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         this.updateMetricExpiration(metric.getMetricId());
 
-        return dataAccess.addTags(metric, tags).mergeWith(dataAccess.insertIntoMetricsTagsIndex(metric, tags))
+        return dataAccess.insertIntoMetricsTagsIndex(metric, tags).concatWith(dataAccess.addTags(metric, tags))
                 .toList().map(l -> null);
     }
 
