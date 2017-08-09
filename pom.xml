@@ -99,7 +99,8 @@
     <!-- Dependencies versions -->
     <version.org.cassalog>0.4.2</version.org.cassalog>
     <version.org.hawkular.alerts>1.7.0.Final</version.org.hawkular.alerts>
-    <version.org.hawkular.commons>0.9.6.Final</version.org.hawkular.commons>
+    <version.org.hawkular.commons>0.9.7.Final-SRC-revision-b76074c26ebad20064f2a0b8185c5f6b1a11b415</version.org.hawkular.commons>
+    <!--version.org.hawkular.commons>0.9.7.Final-SNAPSHOT</version.org.hawkular.commons-->
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.9.5</version.joda-time>
     <version.logback>1.1.3</version.logback>
@@ -123,7 +124,7 @@
     <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
     <version.commons-codec>1.10</version.commons-codec>
     <version.io.fabric8>2.2.16</version.io.fabric8>
-    <version.io.netty>4.0.47.Final</version.io.netty>
+    <version.io.netty>4.1.8.Final</version.io.netty>
     <version.io.vertx.vertx-core>3.3.1</version.io.vertx.vertx-core>
     <version.maven-surefire-report-plugin>2.6</version.maven-surefire-report-plugin>
     <version.org.acplt.oncrpc>1.0.7</version.org.acplt.oncrpc>
@@ -135,6 +136,7 @@
     <version.org.codehaus.mojo.dashboard-maven-plugin>1.0.0-beta-1</version.org.codehaus.mojo.dashboard-maven-plugin>
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
     <version.fi.iki.yak.compression-gorilla>2.0.3</version.fi.iki.yak.compression-gorilla>
+    <version.io.vertx>3.4.1</version.io.vertx>
   </properties>
 
   <dependencyManagement>
@@ -288,6 +290,12 @@
             * or consider adding the plugin to hawkular-parent
         -->
 
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>1.6.0</version>
+        </plugin>
+
       </plugins>
     </pluginManagement>
     <plugins>
@@ -401,12 +409,12 @@
         <module>data-generator</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
-        <module>alerting</module>
+        <!--module>alerting</module>
         <module>containers</module>
         <module>bus</module>
         <module>dist</module>
         <module>clients</module>
-        <module>integration-tests</module>
+        <module>integration-tests</module-->
       </modules>
     </profile>
     <profile>

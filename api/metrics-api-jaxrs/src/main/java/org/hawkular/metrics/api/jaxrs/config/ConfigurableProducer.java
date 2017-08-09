@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ public class ConfigurableProducer {
     private EnumMap<ConfigurationKey, String> effectiveConfig;
 
     @PostConstruct
-    void init() {
+    public void init() {
         effectiveConfig = new EnumMap<>(ConfigurationKey.class);
 
         Properties configFileProperties = new Properties();
@@ -78,6 +78,10 @@ public class ConfigurableProducer {
             throw new IllegalArgumentException(message);
         }
         return effectiveConfig.get(configProp.value());
+    }
+
+    public String getValue(ConfigurationProperty test) {
+        return effectiveConfig.get(test.value());
     }
 
     private File findConfigurationFile() {
