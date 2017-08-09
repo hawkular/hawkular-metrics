@@ -23,10 +23,13 @@ import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import io.undertow.server.ExchangeCompletionListener;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HeaderMap;
 
 public class RequestTimeLogger implements HttpHandler {
 
     private static final RestLogger log = RestLogging.getRestLogger(RequestTimeLogger.class);
+
+    private static final String tenantHeader = "Hawkular-Tenant";
 
     private HttpHandler next;
 
@@ -52,7 +55,7 @@ public class RequestTimeLogger implements HttpHandler {
 
         private long timeThreshold;
 
-        TimeMeasurer(long timeThreshold){
+        TimeMeasurer(long timeThreshold) {
             this.timeThreshold = timeThreshold;
         }
 
@@ -63,10 +66,18 @@ public class RequestTimeLogger implements HttpHandler {
                 long duration = end - start;
                 if (duration > this.timeThreshold) {
                     String method = exchange.getRequestMethod().toString();
-                    String uri = exchange.getRequestURI();
                     String query = exchange.getQueryString();
-                    log.warn("Request " + method + " " + uri + (query.isEmpty() ? "":("?" + query)) + " took: "+
-                            duration + " ms, exceeds " +  this.timeThreshold +" ms threshold");
+                    String request_url = exchange.getRequestURI() + (query.isEmpty() ? "" : ("?" + query));
+                    HeaderMap headers = exchange.getRequestHeaders();
+                    if (headers.contains(tenantHeader)) {
+                        String tenantId = headers.get(tenantHeader, 0);
+                        log.warnf("Request %s %s took: %d ms, exceeds %d ms threshold, tenant-id: %s",
+                                method, request_url, duration, timeThreshold, tenantId);
+                    } else {
+                        log.warnf("Request %s %s took: %d ms, exceeds %d ms threshold, no tenant",
+                                method, request_url, duration, timeThreshold);
+                    }
+
                 }
             } finally {
                 if (nextListener != null) {
