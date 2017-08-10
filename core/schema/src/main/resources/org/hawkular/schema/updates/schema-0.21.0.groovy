@@ -20,6 +20,7 @@ schemaChange {
   author 'jsanda'
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD job_name text"
+  verify { columnExists(keyspace, 'scheduled_jobs_idx', 'job_name') }
 }
 
 schemaChange {
@@ -27,6 +28,7 @@ schemaChange {
   author 'jsanda'
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD job_params frozen<map<text, text>>"
+  verify { columnExists(keyspace, 'scheduled_jobs_idx', 'job_params') }
 }
 
 schemaChange {
@@ -34,6 +36,7 @@ schemaChange {
   author 'jsanda'
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD trigger frozen<trigger_def>"
+  verify { columnExists(keyspace, 'scheduled_jobs_idx', 'trigger') }
 }
 
 schemaChange {
@@ -41,6 +44,7 @@ schemaChange {
   author 'jsanda'
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD job_type text"
+  verify { columnExists(keyspace, 'scheduled_jobs_idx', 'job_type') }
 }
 
 schemaChange {
@@ -48,6 +52,7 @@ schemaChange {
   author 'jsanda'
   tags '0.21.x'
   cql "ALTER TABLE scheduled_jobs_idx ADD status tinyint"
+  verify { columnExists(keyspace, 'scheduled_jobs_idx', 'status') }
 }
 
 schemaChange {

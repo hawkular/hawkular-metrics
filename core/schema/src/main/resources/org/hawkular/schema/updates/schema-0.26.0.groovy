@@ -28,4 +28,5 @@ schemaChange {
     PRIMARY KEY ((tenant_id, type), metric)
   )
 """
+  verify { tableExists(keyspace, 'metrics_expiration_idx') }
 }
