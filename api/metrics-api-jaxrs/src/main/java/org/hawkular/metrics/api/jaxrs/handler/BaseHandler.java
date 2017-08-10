@@ -26,7 +26,6 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -66,8 +65,7 @@ public class BaseHandler {
     @GET
     @Produces({APPLICATION_XHTML_XML, TEXT_HTML})
     public void baseHTML(@Context ServletContext context) throws Exception {
-        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
-        request.getRequestDispatcher("/static/index.html").forward(request, response);
+        response.sendRedirect("/hawkular/metrics" + ClientRouterDispatchingServlet.PATH_INDEX_HTML);
     }
 }
