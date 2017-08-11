@@ -60,6 +60,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.jboss.logging.Logger;
 import org.xnio.BufferAllocator;
 import org.xnio.ByteBufferSlicePool;
@@ -70,8 +71,6 @@ import org.xnio.XnioExecutor;
 import org.xnio.XnioIoThread;
 import org.xnio.ssl.XnioSsl;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -148,6 +147,10 @@ class TokenAuthenticator implements Authenticator {
     private static final String TOO_MANY_PENDING_REQUESTS = "Too many pending requests";
     private static final String CLIENT_REQUEST_FAILURE = "Kubernetes client request failure";
 
+    private static final String METRICS_SCOPE = "OpenShift";
+    private static final String METRICS_TYPE = "Security";
+
+
     private final HttpHandler containerHandler;
     private final ObjectMapper objectMapper;
     private final URI kubernetesMasterUri;
@@ -174,8 +177,10 @@ class TokenAuthenticator implements Authenticator {
         }
         connectionPools = new ConcurrentHashMap<>(Runtime.getRuntime().availableProcessors(), 1);
         connectionFactory = new ConnectionFactory(kubernetesMasterUri);
-        MetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+        HawkularMetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+        metrics.registerMetaData("openshift-oauth-latency", METRICS_SCOPE, METRICS_TYPE);
         authLatency = metrics.timer("openshift-oauth-latency");
+        metrics.registerMetaData("openshift-oauth-kubernetes-response-time", METRICS_SCOPE, METRICS_TYPE);
         apiLatency = metrics.timer("openshift-oauth-kubernetes-response-time");
     }
 
@@ -511,11 +516,7 @@ class TokenAuthenticator implements Authenticator {
      * A {@link ClientConnection} pool. Each {@link XnioIoThread} has its own pool. While it may not be perfect if
      * the container does not evenly assign requests to IO threads, implementation is easier as no synchronization is
      * needed. But remember that only the corresponding io thread must manipulate its own pool instance.
-     */
-    /**
-     * @author snegrea
-     */
-    /**
+     *
      * @author snegrea
      */
     private static class ConnectionPool {
@@ -534,54 +535,8 @@ class TokenAuthenticator implements Authenticator {
             waiters = new ArrayDeque<>();
             XnioIoThread ioThread = (XnioIoThread) Thread.currentThread();
             periodicTaskKey = ioThread.executeAtInterval(this::periodicTask, 1, SECONDS);
-
-            try {
-                Gauge<Integer> connectionsGauge = () -> connectionCount;
-                this.registerMetric(componentName, "openshift-oauth-" + ioThread.getName() + "-pool-connections",
-                    connectionsGauge);
-            } catch (Exception e) {
-                log.error("Failed to register connection count metric.", e);
-            }
-
-            try {
-                Gauge<Integer> waitersGauge = () -> waiterCount;
-                this.registerMetric(componentName, "openshift-oauth-" + ioThread.getName() + "-pool-waiters",
-                    waitersGauge);
-            } catch (Exception e) {
-                log.error("Failed to register waiter count metric.", e);
-            }
-
             ongoingCreations = 0;
             stop = false;
-        }
-
-        /**
-         * Attempt to register a metric in a shared metrics repository.
-         *
-         * @param metricName metric name
-         * @param componentName deployment component name
-         * @param gauge gauge to register
-         */
-        public void registerMetric(String componentName, String metricName, Gauge<Integer> gauge) throws Exception {
-            int number = 0;
-            MetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            do {
-                String tempName = componentName + "-" + metricName + '-' + number;
-                if (metrics.getGauges().get(tempName) == null) {
-                    try {
-                        metrics.register(tempName, gauge);
-                        break;
-                    } catch (IllegalArgumentException e) {
-                        //continue trying, that means the metric name was allocated meanwhile
-                    }
-                }
-
-                number++;
-                if (number > 1000) {
-                    throw new Exception("Too many failed attempts to register the metric.");
-                }
-            }
-            while (true);
         }
 
         /**
