@@ -37,7 +37,7 @@
   <properties>
     <version.org.jboss.resteasy.jaxrs-api>3.0.12.Final</version.org.jboss.resteasy.jaxrs-api>
     <hawkular-ui.git.repo>scm:git:https://github.com/hawkular/hawkular-ui</hawkular-ui.git.repo>
-    <hawkular-ui.git.branch>release</hawkular-ui.git.branch>
+    <hawkular-ui.git.tag>0.0.2</hawkular-ui.git.tag>
   </properties>
 
   <dependencyManagement>
@@ -170,8 +170,8 @@
             <phase>generate-resources</phase>
             <configuration>
               <connectionUrl>${hawkular-ui.git.repo}</connectionUrl>
-              <scmVersion>${hawkular-ui.git.branch}</scmVersion>
-              <scmVersionType>branch</scmVersionType>
+              <scmVersion>${hawkular-ui.git.tag}</scmVersion>
+              <scmVersionType>tag</scmVersionType>
               <checkoutDirectory>${project.build.directory}/hawkular-ui</checkoutDirectory>
               <includes>
                 metrics/dist/**
