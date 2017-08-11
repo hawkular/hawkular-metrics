@@ -853,17 +853,14 @@ public class DataAccessImpl implements DataAccess {
         return Observable.from(prepMap.entrySet())
                 .map(Map.Entry::getValue)
                 .map(pMap -> pMap.get(getMapKey(MetricType.UNDEFINED, ts)));
-
     }
 
     @Override
     public Observable<Row> findAllMetricIdentifiersInData() {
         return getPrepForAllTempTables(TempStatement.LIST_ALL_METRICS_FROM_TABLE)
-                .map(PreparedStatement::bind)
-                .flatMap(b -> rxSession.executeAndFetch(b))
-                .concatWith(
-                        rxSession.executeAndFetch(findAllMetricsInData.bind())
-                                .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind())));
+                .flatMap(b -> rxSession.executeAndFetch(b.bind()))
+                .mergeWith(rxSession.executeAndFetch(findAllMetricsInData.bind()))
+                .mergeWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }
 
     /*

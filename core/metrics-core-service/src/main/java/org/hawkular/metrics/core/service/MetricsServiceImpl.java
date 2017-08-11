@@ -1092,20 +1092,17 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     public <T> Observable<Void> deleteMetric(MetricId<T> id) {
+        //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
+        //      for the compressed data table.
         Observable<Void> result = dataAccess.getMetricTags(id)
                 .map(row -> row.getMap(0, String.class, String.class))
                 .defaultIfEmpty(new HashMap<>())
                 .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
-                .toList()
-                .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
-                .flatMap(r -> null);
-
-        //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
-        //      for the compressed data table.
-        result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
-
-        result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
-        result.mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).flatMap(r -> null));
+                .map(r -> null);
+        result = result.mergeWith(dataAccess.deleteMetricFromMetricsIndex(id).map(r -> null))
+                .mergeWith(dataAccess.deleteMetricData(id).map(r -> null))
+                .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null))
+                .mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).map(r -> null));
 
         return result;
     }
