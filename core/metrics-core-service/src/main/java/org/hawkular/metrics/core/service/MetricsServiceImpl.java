@@ -1097,8 +1097,12 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Void> result = dataAccess.getMetricTags(id)
                 .map(row -> row.getMap(0, String.class, String.class))
                 .defaultIfEmpty(new HashMap<>())
-                .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
-                .map(r -> null);
+                .flatMap(map -> {
+                    if (map.isEmpty()) {
+                        return Observable.empty();
+                    }
+                    return dataAccess.deleteFromMetricsTagsIndex(id, map).map(r -> null);
+                });
         result = result.mergeWith(dataAccess.deleteMetricFromMetricsIndex(id).map(r -> null))
                 .mergeWith(dataAccess.deleteMetricData(id).map(r -> null))
                 .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null))

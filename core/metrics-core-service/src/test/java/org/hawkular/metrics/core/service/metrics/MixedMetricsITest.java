@@ -322,7 +322,7 @@ public class MixedMetricsITest extends BaseMetricsITest {
             Map<String, String> actualTags = metricsService.getMetricTags(mId).toBlocking().lastOrDefault(null);
             assertEquals(actualTags, m.getTags());
 
-            doAction(() -> metricsService.deleteMetric(mId));
+            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
             deletedMetrics.add(m);
 
             for (Metric<T> checkMetric : mList) {
