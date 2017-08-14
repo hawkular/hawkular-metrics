@@ -16,9 +16,7 @@
  */
 package org.hawkular.metrics.core.dropwizard;
 
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -33,10 +31,11 @@ import com.codahale.metrics.ObjectNameFactory;
  */
 public class HawkularObjectNameFactory implements ObjectNameFactory {
     private static final CoreLogger LOGGER = CoreLogging.getCoreLogger(HawkularObjectNameFactory.class);
-    private Map<String, MetaData> metaDataMap = new HashMap<>();
 
-    public HawkularObjectNameFactory(Map<String, MetaData> map) {
-        this.metaDataMap = map;
+    private HawkularMetricRegistry metricRegistry;
+
+    public HawkularObjectNameFactory(HawkularMetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
     }
 
     private boolean needsQuote(String propertyValue){
@@ -51,9 +50,15 @@ public class HawkularObjectNameFactory implements ObjectNameFactory {
     public ObjectName createName(String type, String domain, String name) {
         try {
             Hashtable<String, String> table = new Hashtable<>();
-            table.putAll(metaDataMap.get(name).getTags());
-            table.replaceAll((k,v) -> needsQuote(v) ? ObjectName.quote(v): v );
-            return new ObjectName(domain, table);
+            MetaData metaData = metricRegistry.getMetaData(name);
+            if (metaData == null) {
+                LOGGER.warnf("No meta data found for %s", name);
+                return new ObjectName(domain, type, name);
+            } else {
+                table.putAll(metricRegistry.getMetaData(name).getTags());
+                table.replaceAll((k,v) -> needsQuote(v) ? ObjectName.quote(v): v );
+                return new ObjectName(domain, table);
+            }
         } catch (MalformedObjectNameException e) {
             LOGGER.warn("Unable to register {" + type + "} {" + name + "}", e);
             throw new RuntimeException(e);
