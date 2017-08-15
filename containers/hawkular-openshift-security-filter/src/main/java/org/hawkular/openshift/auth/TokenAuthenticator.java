@@ -178,9 +178,9 @@ class TokenAuthenticator implements Authenticator {
         connectionPools = new ConcurrentHashMap<>(Runtime.getRuntime().availableProcessors(), 1);
         connectionFactory = new ConnectionFactory(kubernetesMasterUri);
         HawkularMetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-        metrics.registerMetaData("openshift-oauth-latency", METRICS_SCOPE, METRICS_TYPE);
+        // Note: HawkularMetricRegistry.registerMetaData cannot be used here because the registry is not yet
+        // fully initialized. Calling registerMetaData will result in an NPE.
         authLatency = metrics.timer("openshift-oauth-latency");
-        metrics.registerMetaData("openshift-oauth-kubernetes-response-time", METRICS_SCOPE, METRICS_TYPE);
         apiLatency = metrics.timer("openshift-oauth-kubernetes-response-time");
     }
 
