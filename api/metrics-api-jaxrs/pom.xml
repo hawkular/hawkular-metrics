@@ -130,6 +130,12 @@
       <version>${version.org.infinispan.wildfly}</version>
     </dependency>
 
+    <dependency>
+      <groupId>io.undertow</groupId>
+      <artifactId>undertow-servlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- documentation -->
     <dependency>
       <groupId>io.swagger</groupId>
