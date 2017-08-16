@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.cassandra.management.CassandraManager;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
@@ -129,6 +130,9 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                 this.metricExpirationDelay);
         scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
         maybeScheduleMetricExpirationJob(backgroundJobs);
+
+        CassandraManager cassandraManager = new CassandraManager(session, scheduler, configurationService);
+        cassandraManager.setupMaintenanceJob();
 
         scheduler.start();
 

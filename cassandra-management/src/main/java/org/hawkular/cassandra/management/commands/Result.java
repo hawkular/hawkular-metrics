@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,16 +14,21 @@ package org.hawkular.schema
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.hawkular.cassandra.management.commands;
 
-include '/org/hawkular/schema/bootstrap.groovy'
+/**
+ * @author jsanda
+ */
+public class Result {
 
-setKeyspace keyspace
+    private boolean succeeded;
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.27.0.groovy'
+    public Result(boolean succeeded) {
+        this.succeeded = succeeded;
+    }
+
+    public boolean succeeded() {
+        return succeeded;
+    }
+
+}

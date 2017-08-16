@@ -78,6 +78,12 @@
       <version>${version.org.hawkular.commons}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-cassandra-management</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Wildfly provided -->
     <!-- No need to set the jboss-logging scope here since Wildfly BOM includes jboss-logging -->
     <dependency>

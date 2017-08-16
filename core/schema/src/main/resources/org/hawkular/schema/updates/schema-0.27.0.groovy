@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,15 +15,21 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
-
-setKeyspace keyspace
-
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.27.0.groovy'
+schemaChange {
+  version '8.0'
+  author 'jsanda'
+  tags '0.27.x'
+  description """
+This is an event log used to track interesting events in the Cassandra cluster for which maintenance may need to be
+performed. See HWKMETRICS-546 and HWKMETRICS-548 for more information.
+"""
+  cql """
+  CREATE TABLE cassandra_mgmt_history (
+    bucket timestamp,
+    time timestamp,
+    event smallint,
+    details map<text,text>,
+    PRIMARY KEY (bucket, time)
+  )
+"""
+}
