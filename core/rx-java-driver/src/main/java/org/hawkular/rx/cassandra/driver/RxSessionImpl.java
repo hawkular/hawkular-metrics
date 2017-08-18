@@ -21,6 +21,7 @@ import java.util.function.Function;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
@@ -42,10 +43,14 @@ import rx.schedulers.Schedulers;
 public class RxSessionImpl implements RxSession {
 
     private Session session;
-    private static int MAXIMUM_INFLIGHT_REQUESTS = 1024;
+    private int maximumInflightRequests;
 
     public RxSessionImpl(Session session) {
         this.session = session;
+        maximumInflightRequests = Math.min(
+                session.getCluster().getConfiguration().getPoolingOptions().getMaxRequestsPerConnection(HostDistance.LOCAL),
+                session.getCluster().getConfiguration().getPoolingOptions().getMaxRequestsPerConnection(HostDistance.REMOTE)
+        );
     }
 
     @Override
@@ -69,7 +74,7 @@ public class RxSessionImpl implements RxSession {
 
     private Observable<ResultSet> scheduleStatement(Statement st, Scheduler scheduler) {
         while(true) {
-            if(mostInFlightRequests.apply(session) < MAXIMUM_INFLIGHT_REQUESTS) {
+            if(mostInFlightRequests.apply(session) < maximumInflightRequests) {
                 ResultSetFuture future = session.executeAsync(st);
                 return ListenableFutureObservable.from(future, scheduler);
             } else {
