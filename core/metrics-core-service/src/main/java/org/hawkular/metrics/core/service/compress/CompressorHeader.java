@@ -76,7 +76,7 @@ public class CompressorHeader {
     public static byte getHeader(Compressor compressor, EnumSet<? extends CompressorSetting> settings) {
         byte b = (byte) (compressor.getByteValue() & 0xF0);
         for (CompressorSetting setting : settings) {
-            b ^= setting.getByteValue();
+            b |= setting.getByteValue();
         }
 
         return b;
