@@ -17,10 +17,11 @@
 
 package org.hawkular.openshift.auth.org.hawkular.openshift.namespace;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -54,7 +55,7 @@ public class NamespaceListener {
         log.debug("Creating NamespaceListener");
         this.token = token;
 
-        namespaces = new HashMap<>();
+        namespaces = new ConcurrentHashMap<>();
         log.debug("Namespace listener starting.");
         new Thread(new Listener()).start();
     }
@@ -70,7 +71,71 @@ public class NamespaceListener {
      * @return The id of the namespace or null if the namespace does not exist
      */
     public String getNamespaceId(String namespaceName) {
-        return namespaces.get(namespaceName);
+        return namespaces.computeIfAbsent(namespaceName, n -> getProjectId(namespaceName, token));
+    }
+
+    private static String getProjectId(String projectName, String token) {
+        String projectId = null;
+
+        HttpsURLConnection connection = null;
+        InputStream inputStream = null;
+        JsonParser jsonParser = null;
+
+        try {
+            String path = "api/v1/namespaces/" + projectName;
+            URL url = new URL(NamespaceHandler.KUBERNETES_MASTER_URL + "/" + path);
+
+            connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+
+            connection.connect();
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+
+                JsonFactory jsonFactory = new JsonFactory();
+                jsonFactory.setCodec(new ObjectMapper());
+
+                inputStream = connection.getInputStream();
+                jsonParser = jsonFactory.createParser(inputStream);
+                JsonNode jsonNode = jsonParser.readValueAsTree();
+                if (jsonNode != null) {
+                    JsonNode metadata = jsonNode.get("metadata");
+                    projectId = metadata.get("uid").asText();
+                }
+
+            } else {
+                log.warnf("Error getting project metadata. Code %s: %s", responseCode, connection.getResponseMessage());
+            }
+
+        } catch (IOException io) {
+            log.error(io);
+        } finally {
+            try {
+                if (jsonParser != null) {
+                    jsonParser.close();
+                }
+            }
+            catch (IOException io) {
+                log.error(io);
+            }
+
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException io) {
+                log.error(io);
+            }
+
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+
+        return projectId;
     }
 
     private class Listener implements Runnable {
