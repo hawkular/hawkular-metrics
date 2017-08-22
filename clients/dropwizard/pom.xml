@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-clients</artifactId>
-    <version>0.27.4.Final</version>
+    <version>0.27.5.Final</version>
   </parent>
 
   <artifactId>hawkular-dropwizard-reporter-parent</artifactId>
