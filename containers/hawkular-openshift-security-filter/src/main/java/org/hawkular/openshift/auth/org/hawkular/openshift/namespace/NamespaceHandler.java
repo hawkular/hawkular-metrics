@@ -87,7 +87,6 @@ public class NamespaceHandler implements HttpHandler {
         } else {
 
             StringJoiner namespaceName = new StringJoiner(",");
-            String[] splitted = originalTenantName.split(",");
 
             for (String namespace: originalTenantName.split(",")) {
                 String namespaceID = namespaceListener.getNamespaceId(namespace);
@@ -102,9 +101,8 @@ public class NamespaceHandler implements HttpHandler {
                     }
                     namespaceName.add(tenantName);
 
-
                 } else {
-                    log.info("Could not determine a namespace id for namespace " + namespaceID + ". Cannot process request. Returning an INTERNAL_SERVER_ERROR.");
+                    log.info("Could not determine a namespace id for namespace. Cannot process request. Returning an INTERNAL_SERVER_ERROR.");
                     Utils.endExchange(serverExchange, INTERNAL_SERVER_ERROR, "Could not determine a namespace id for namespace " + namespaceID);
                     return;
                 }
