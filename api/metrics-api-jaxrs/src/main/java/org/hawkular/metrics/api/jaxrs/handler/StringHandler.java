@@ -135,7 +135,8 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
 
         Observable<Metric<String>> metricObservable = null;
         if (tags != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), STRING, tags);
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), STRING, tags)
+                    .flatMap(metricsService::findMetric);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), STRING);
         }
@@ -371,8 +372,7 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        metricsService.findMetricsWithFilters(getTenant(), STRING, tags)
-                .map(Metric::getMetricId)
+        metricsService.findMetricIdentifiersWithFilters(getTenant(), STRING, tags)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<String>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)

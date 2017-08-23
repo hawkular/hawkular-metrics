@@ -351,14 +351,14 @@ public class MixedMetricsITest extends BaseMetricsITest {
                 }
 
                 String testTagName = "test0";
-                Metric<T> taggedMetric = metricsService.findMetricsWithFilters(checkMetric.getTenantId(),
+                MetricId<T> taggedMetric = metricsService.findMetricIdentifiersWithFilters(checkMetric.getTenantId(),
                         checkMetric.getType(), testTagName + "= '" + checkMetric.getTags().get(testTagName) + "'")
                         .toBlocking()
                         .firstOrDefault(null);
                 if (deletedMetrics.contains(checkMetric)) {
                     assertEquals(taggedMetric, null);
                 } else {
-                    assertEquals(taggedMetric.getMetricId(), checkMetric.getMetricId());
+                    assertEquals(taggedMetric, checkMetric.getMetricId());
                 }
 
                 int countFromTagIndex = dataAccess.findMetricsByTagNameValue(checkMetric.getTenantId(), testTagName,

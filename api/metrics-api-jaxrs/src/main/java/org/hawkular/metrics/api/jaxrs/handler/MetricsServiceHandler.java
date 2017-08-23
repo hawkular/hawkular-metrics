@@ -73,8 +73,7 @@ abstract class MetricsServiceHandler {
                     .map(id -> new MetricId<>(getTenant(), type, id));
         }
 
-        return metricsService.findMetricsWithFilters(getTenant(), type, tags)
-                .map(Metric::getMetricId);
+        return metricsService.findMetricIdentifiersWithFilters(getTenant(), type, tags);
     }
 
     <T> Observable<TimeRange> findTimeRange(String start, String end, Boolean fromEarliest,
