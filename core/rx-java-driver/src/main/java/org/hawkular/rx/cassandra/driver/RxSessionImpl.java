@@ -17,11 +17,12 @@
 
 package org.hawkular.rx.cassandra.driver;
 
-import java.util.function.Function;
+import java.util.Iterator;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
@@ -30,6 +31,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import rx.Observable;
@@ -39,18 +41,27 @@ import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
+ * @author Michael Burman
  */
 public class RxSessionImpl implements RxSession {
 
     private Session session;
-    private int maximumInflightRequests;
+    private LoadBalancingPolicy loadBalancingPolicy;
+
+    private int maxInFlightLocal = 0;
+    private int maxInFlightRemote = 0;
 
     public RxSessionImpl(Session session) {
         this.session = session;
-        maximumInflightRequests = Math.min(
-                session.getCluster().getConfiguration().getPoolingOptions().getMaxRequestsPerConnection(HostDistance.LOCAL),
-                session.getCluster().getConfiguration().getPoolingOptions().getMaxRequestsPerConnection(HostDistance.REMOTE)
-        );
+        this.loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
+
+        PoolingOptions poolingOptions = session.getCluster().getConfiguration().getPoolingOptions();
+
+        maxInFlightLocal = poolingOptions.getCoreConnectionsPerHost(HostDistance.LOCAL) *
+                poolingOptions.getMaxRequestsPerConnection(HostDistance.LOCAL);
+
+        maxInFlightRemote = poolingOptions.getCoreConnectionsPerHost(HostDistance.REMOTE) *
+                poolingOptions.getMaxRequestsPerConnection(HostDistance.REMOTE);
     }
 
     @Override
@@ -64,17 +75,36 @@ public class RxSessionImpl implements RxSession {
         return this;
     }
 
-    public static Function<Session, Integer> mostInFlightRequests = (session) -> {
-        int inFlights = 0;
-        for (Host host : session.getState().getConnectedHosts()) {
-            inFlights = Math.max(inFlights, session.getState().getInFlightQueries(host));
+    private boolean availableInFlightSlots(Statement st) {
+        boolean available = false;
+        Iterator<Host> hostIterator = loadBalancingPolicy.newQueryPlan(session.getLoggedKeyspace(), st);
+        hostIter: while(hostIterator.hasNext()) {
+            Host host = hostIterator.next();
+            int inFlightQueries = session.getState().getInFlightQueries(host);
+            switch(loadBalancingPolicy.distance(host)) {
+                case LOCAL:
+                    if(inFlightQueries < maxInFlightLocal) {
+                        available = true;
+                        break hostIter;
+                    }
+                    break;
+                case REMOTE:
+                    if(inFlightQueries < maxInFlightRemote) {
+                        available = true;
+                        break hostIter;
+                    }
+                    break;
+                default:
+                    // IGNORED is something we're not going to write to
+                    break;
+            }
         }
-        return inFlights;
-    };
+        return available;
+    }
 
     private Observable<ResultSet> scheduleStatement(Statement st, Scheduler scheduler) {
         while(true) {
-            if(mostInFlightRequests.apply(session) < maximumInflightRequests) {
+            if(availableInFlightSlots(st)) {
                 ResultSetFuture future = session.executeAsync(st);
                 return ListenableFutureObservable.from(future, scheduler);
             } else {
