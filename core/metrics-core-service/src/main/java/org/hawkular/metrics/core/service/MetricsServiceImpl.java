@@ -186,6 +186,7 @@ public class MetricsServiceImpl implements MetricsService {
     private ExpressionTagQueryParser expresssionTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+    private int DEFAULT_RETENTION = (int) Duration.standardSeconds(defaultTTL).getStandardDays();
 
     private int maxStringSize;
 
@@ -532,8 +533,7 @@ public class MetricsServiceImpl implements MetricsService {
                 .filter(row -> tenantId.equals(row.getString(0)))
                 .compose(new MetricIdentifierFromFullDataRowTransformer(defaultTTL))
                 .distinct()
-                .flatMap(this::findMetric)
-                .map(m -> (Metric<T>) m);
+                .map(m -> new Metric(m, DEFAULT_RETENTION));
 
         if (metricType == null) {
             setFromMetricsIndex = Observable.from(MetricType.userTypes())
@@ -544,7 +544,7 @@ public class MetricsServiceImpl implements MetricsService {
             setFromMetricsIndex = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
                     .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
 
-            setFromData = setFromData.filter(m -> metricType.equals(m.getMetricId().getType()));
+            setFromData = setFromData.filter(m -> metricType.equals(m.getType()));
         }
 
         return setFromMetricsIndex.concatWith(setFromData).distinct(Metric::getMetricId);
