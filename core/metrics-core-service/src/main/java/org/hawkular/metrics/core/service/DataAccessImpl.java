@@ -849,7 +849,9 @@ public class DataAccessImpl implements DataAccess {
             return Observable.empty();
         }
 
-        return Observable.from(getTokenRanges())
+        // Should we wish to increase maxConcurrency, we can split the processing by node or even
+        // using TokenRange.splitEvenly for a single node
+        return getTokenRangesByNode()
                 .map(tr -> rxSession.executeAndFetch(
                         getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
                                 .bind()
@@ -858,7 +860,17 @@ public class DataAccessImpl implements DataAccess {
                                 .setFetchSize(pageSize)));
     }
 
-    private Set<TokenRange> getTokenRanges() {
+    Observable<TokenRange> getTokenRangesByNode() {
+        return Observable.from(getUnWrappedTokenRanges())
+                .groupBy(tokenRange -> metadata.getReplicas(session.getLoggedKeyspace(), tokenRange))
+                .flatMap(Observable::toList)
+                .map(l -> l.stream().sorted()
+                        .reduce(TokenRange::mergeWith)
+                        .get());
+
+    }
+
+    Set<TokenRange> getUnWrappedTokenRanges() {
         Set<TokenRange> tokenRanges = new HashSet<>();
         for (TokenRange tokenRange : metadata.getTokenRanges()) {
             tokenRanges.addAll(tokenRange.unwrap());

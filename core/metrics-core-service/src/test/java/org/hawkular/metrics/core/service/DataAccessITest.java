@@ -46,6 +46,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TokenRange;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -232,8 +233,8 @@ public class DataAccessITest extends BaseITest {
         String tenantId = "t1";
         long start = now().getMillis();
 
-        int amountOfMetrics = 1000;
-        int datapointsPerMetric = 10;
+        int amountOfMetrics = 5000;
+        int datapointsPerMetric = 2;
 
         for (int j = 0; j < datapointsPerMetric; j++) {
             final int dpAdd = j;
@@ -266,5 +267,46 @@ public class DataAccessITest extends BaseITest {
         tsr.assertCompleted();
         tsr.assertNoErrors();
         tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
+    }
+
+    @Test
+    public void testTokenRangeQueryLoad() throws Exception {
+        String tenantId = "t1";
+        long start = now().getMillis();
+
+        int amountOfMetrics = 2000;
+        int datapointsPerMetric = 2;
+
+        for (int j = 0; j < datapointsPerMetric; j++) {
+            final int dpAdd = j;
+            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
+                for (int i = 0; i < amountOfMetrics; i++) {
+                    String metricName = String.format("m%d", i);
+                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
+                }
+                emitter.onCompleted();
+            }, Emitter.BackpressureMode.BUFFER);
+
+            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+            Observable<Integer> observable = dataAccess.insertData(metrics);
+            observable.subscribe(subscriber);
+            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+            for (Throwable throwable : subscriber.getOnErrorEvents()) {
+                throwable.printStackTrace();
+            }
+            subscriber.assertNoErrors();
+            subscriber.assertCompleted();
+        }
+
+        int expectedSize = session.getCluster().getMetadata().getAllHosts().size();
+
+        Observable<TokenRange> tokenRangesByNode = dataAccess.getTokenRangesByNode();
+        TestSubscriber<TokenRange> tsRR = new TestSubscriber<>();
+        tokenRangesByNode.subscribe(tsRR);
+        tsRR.awaitTerminalEvent(5, TimeUnit.SECONDS);
+        tsRR.assertCompleted();
+        tsRR.assertNoErrors();
+        tsRR.assertValueCount(expectedSize);
     }
 }
