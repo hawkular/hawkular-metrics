@@ -122,10 +122,12 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
         @Override
         protected void expandAllocation() {
             ByteBuffer largerBB = ByteBuffer.allocateDirect(byteBuf.capacity()*2);
+            byteBuf.position(lBuf.position() * Long.BYTES);
             byteBuf.flip();
             largerBB.put(byteBuf);
-            largerBB.position(byteBuf.capacity());
+            largerBB.position(byteBuf.limit());
             byteBuf = largerBB;
+            lBuf = largerBB.asLongBuffer();
         }
 
         @Override
@@ -141,7 +143,8 @@ public class TempTableCompressTransformer implements Observable.Transformer<Row,
         }
 
         public ByteBuffer getByteBuffer() {
-            this.byteBuf.position(lBuf.position() * Long.BYTES);
+            byteBuf.limit(lBuf.position() * Long.BYTES);
+            byteBuf.position(lBuf.position() * Long.BYTES);
             return this.byteBuf;
         }
     }
