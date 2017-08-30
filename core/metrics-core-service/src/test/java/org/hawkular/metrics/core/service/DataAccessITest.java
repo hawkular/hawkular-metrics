@@ -28,6 +28,7 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.transformers.MetricIdentifierFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -49,8 +50,9 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import rx.Emitter;
 import rx.Observable;
+import rx.Observer;
+import rx.observables.SyncOnSubscribe;
 import rx.observers.TestSubscriber;
 
 /**
@@ -232,30 +234,31 @@ public class DataAccessITest extends BaseITest {
         String tenantId = "t1";
         long start = now().getMillis();
 
-        int amountOfMetrics = 1000;
-        int datapointsPerMetric = 10;
+        int amountOfMetrics = 10_000;
 
-        for (int j = 0; j < datapointsPerMetric; j++) {
-            final int dpAdd = j;
-            Observable<Metric<Double>> metrics = Observable.create(emitter -> {
-                for (int i = 0; i < amountOfMetrics; i++) {
-                    String metricName = String.format("m%d", i);
-                    MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
-                    emitter.onNext(new Metric<>(mId, asList(new DataPoint<>(start + dpAdd, 1.1))));
-                }
-                emitter.onCompleted();
-            }, Emitter.BackpressureMode.BUFFER);
+        Observable<Metric<Double>> metrics =
+                Observable.create(new SyncOnSubscribe<AtomicInteger, Metric<Double>>() {
+                    @Override protected AtomicInteger generateState() {
+                        return new AtomicInteger(0);
+                    }
 
-            TestSubscriber<Integer> subscriber = new TestSubscriber<>();
-            Observable<Integer> observable = dataAccess.insertData(metrics);
-            observable.subscribe(subscriber);
-            subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
-            for (Throwable throwable : subscriber.getOnErrorEvents()) {
-                throwable.printStackTrace();
-            }
-            subscriber.assertNoErrors();
-            subscriber.assertCompleted();
+                    @Override protected AtomicInteger next(AtomicInteger previous, Observer<? super Metric<Double>> observer) {
+                        String metricName = String.format("m%d", previous.incrementAndGet());
+                        MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, metricName);
+                        observer.onNext(new Metric<>(mId, asList(new DataPoint<>(start + previous.get(), 1.1))));
+                        return previous;
+                    }
+                });
+
+        TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+        Observable<Integer> observable = dataAccess.insertData(metrics.take(amountOfMetrics));
+        observable.subscribe(subscriber);
+        subscriber.awaitTerminalEvent(20, TimeUnit.SECONDS); // For Travis..
+        for (Throwable throwable : subscriber.getOnErrorEvents()) {
+            throwable.printStackTrace();
         }
+        subscriber.assertNoErrors();
+        subscriber.assertCompleted();
 
         Observable<Row> rowObservable = dataAccess.findAllDataFromBucket(start, DEFAULT_PAGE_SIZE, 2)
                 .flatMap(r -> r);
@@ -265,6 +268,6 @@ public class DataAccessITest extends BaseITest {
         tsr.awaitTerminalEvent(100, TimeUnit.SECONDS); // Travis again
         tsr.assertCompleted();
         tsr.assertNoErrors();
-        tsr.assertValueCount(amountOfMetrics * datapointsPerMetric);
+        tsr.assertValueCount(amountOfMetrics);
     }
 }
