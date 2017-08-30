@@ -595,6 +595,7 @@ public class MetricsServiceLifecycle {
                 .setConnectTimeoutMillis(driverConnectionTimeout)
         ).withQueryOptions(new QueryOptions()
                 .setFetchSize(driverPageSize)
+                .setDefaultIdempotence(true)
                 .setRefreshSchemaIntervalMillis(driverSchemaRefreshInterval)
         ).withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build(), false));
 
