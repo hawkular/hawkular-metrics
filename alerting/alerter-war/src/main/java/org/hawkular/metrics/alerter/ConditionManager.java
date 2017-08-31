@@ -53,7 +53,6 @@ import org.hawkular.metrics.alerter.ConditionExpression.Query;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.BucketPoint;
 import org.hawkular.metrics.model.Buckets;
-import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 import org.hawkular.metrics.model.Percentile;
@@ -591,8 +590,7 @@ public class ConditionManager {
             }
 
             // Tags case
-            return metricsService.findMetricsWithFilters(tenantId, type, tags)
-                    .map(Metric::getMetricId);
+            return metricsService.findMetricIdentifiersWithFilters(tenantId, type, tags);
         }
     }
 

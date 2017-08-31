@@ -146,7 +146,8 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
 
         Observable<Metric<AvailabilityType>> metricObservable = null;
         if (tags != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags);
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), AVAILABILITY, tags)
+                    .flatMap(metricsService::findMetric);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
         }
@@ -509,8 +510,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags)
-                .map(Metric::getMetricId)
+        metricsService.findMetricIdentifiersWithFilters(getTenant(), AVAILABILITY, tags)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<AvailabilityType>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
