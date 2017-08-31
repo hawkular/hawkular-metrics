@@ -323,6 +323,10 @@
             <exclude>**/.*.sw*</exclude>
             <!-- Exclude the standalone.xml file since it comes from upstream EAP -->
             <exclude>src/main/docker/standalone.xml</exclude>
+            <!-- Exclude Ansible files -->
+            <exclude>ansible-build/**</exclude>
+            <!-- Exclude Ansible Hosts Configuration -->
+            <exclude>docker/hosts</exclude>
             <!-- Exclude ANTLR token files -->
             <exclude>**/.*.tokens</exclude>
           </excludes>
