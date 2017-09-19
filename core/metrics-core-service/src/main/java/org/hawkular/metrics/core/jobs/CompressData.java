@@ -121,14 +121,13 @@ public class CompressData implements Func1<JobDetails, Completable> {
         Stopwatch stopwatch = Stopwatch.createStarted();
         logger.info("Starting compression of timestamps (UTC) between " + startOfSlice + " - " + endOfSlice);
 
-        Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetrics()
-                .map(Metric::getMetricId)
+        Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetricIdentifiers()
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
         PublishSubject<Metric<?>> subject = PublishSubject.create();
         subject.subscribe(metric -> {
             try {
-                this.metricsService.updateMetricExpiration(metric);
+                this.metricsService.updateMetricExpiration(metric.getMetricId());
             } catch (Exception e) {
                 logger.error("Could not update the metric expiration index for metric " + metric.getId()
                         + " of tenant " + metric.getTenantId());

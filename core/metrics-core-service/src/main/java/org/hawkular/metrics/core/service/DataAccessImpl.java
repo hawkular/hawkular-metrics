@@ -59,7 +59,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Token;
 import com.datastax.driver.core.TokenRange;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.utils.UUIDs;
 
 import rx.Observable;
@@ -77,8 +76,6 @@ public class DataAccessImpl implements DataAccess {
     private Session session;
 
     private RxSession rxSession;
-
-    private LoadBalancingPolicy loadBalancingPolicy;
 
     private PreparedStatement insertTenant;
 
@@ -230,11 +227,26 @@ public class DataAccessImpl implements DataAccess {
     public DataAccessImpl(Session session) {
         this.session = session;
         rxSession = new RxSessionImpl(session);
-        loadBalancingPolicy = session.getCluster().getConfiguration().getPolicies().getLoadBalancingPolicy();
-        initPreparedStatements();
-
         codecRegistry = session.getCluster().getConfiguration().getCodecRegistry();
         metadata = session.getCluster().getMetadata();
+
+        initPreparedStatements();
+    }
+
+    /**
+     * Creates a key with ordinal and MetricType code for the NavigableMap.
+     *
+     * First 8 bits are reserved for the metricType code and the rest 24 bits are reserved for the ordinal
+     *
+     * @param code MetricType code
+     * @param ordinal TempStatement ordinal()
+     *
+     * @return Integer with those two combined
+     */
+    private Integer getMapKey(byte code, int ordinal) {
+        int key = ordinal;
+        key |= code << 24;
+        return key;
     }
 
     protected void initPreparedStatements() {
@@ -331,26 +343,26 @@ public class DataAccessImpl implements DataAccess {
                         "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeData = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "SET n_value = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "USING TTL ? " +
+                      "SET n_value = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "SET n_value = ?, tags = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertGaugeDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET n_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "USING TTL ? " +
+                      "SET n_value = ?, tags = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertStringData = session.prepare(
             "UPDATE data " +
@@ -375,66 +387,66 @@ public class DataAccessImpl implements DataAccess {
               "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertCounterData = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "SET l_value = ?" +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertCounterDataUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?" +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "USING TTL ? " +
+                      "SET l_value = ?" +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertCounterDataWithTags = session.prepare(
-            "UPDATE data " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "SET l_value = ?, tags = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         insertCounterDataWithTagsUsingTTL = session.prepare(
-            "UPDATE data " +
-            "USING TTL ? " +
-            "SET l_value = ?, tags = ? " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
+                "UPDATE data " +
+                      "USING TTL ? " +
+                      "SET l_value = ?, tags = ? " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time = ? ");
 
         findGaugeDataByDateRangeExclusive = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+                "SELECT time, n_value, tags FROM data " +
+                       "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findGaugeDataByDateRangeExclusiveWithLimit = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-            " LIMIT ?");
+                "SELECT time, n_value, tags FROM data " +
+                      " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                      " LIMIT ?");
 
         findGaugeDataByDateRangeExclusiveASC = session.prepare(
-            "SELECT time, n_value, tags FROM data " +
-            "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC");
+                "SELECT time, n_value, tags FROM data " +
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                      " AND time < ? ORDER BY time ASC");
 
         findGaugeDataByDateRangeExclusiveWithLimitASC = session.prepare(
-            "SELECT time, n_value, tags FROM data" +
-            " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-            " AND time < ? ORDER BY time ASC" +
-            " LIMIT ?");
+                "SELECT time, n_value, tags FROM data" +
+                      " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                      " AND time < ? ORDER BY time ASC" +
+                      " LIMIT ?");
 
         findCompressedDataByDateRangeExclusive = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?");
 
         findCompressedDataByDateRangeExclusiveWithLimit = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed " +
-                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
-                        " LIMIT ?");
+                      " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ? AND time < ?" +
+                      " LIMIT ?");
 
         findCompressedDataByDateRangeExclusiveASC = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed " +
-                        "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-                        " AND time < ? ORDER BY time ASC");
+                      "WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                      " AND time < ? ORDER BY time ASC");
 
         findCompressedDataByDateRangeExclusiveWithLimitASC = session.prepare(
                 "SELECT time, c_value, tags FROM data_compressed" +
-                        " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
-                        " AND time < ? ORDER BY time ASC" +
-                        " LIMIT ?");
+                      " WHERE tenant_id = ? AND type = ? AND metric = ? AND dpart = ? AND time >= ?" +
+                      " AND time < ? ORDER BY time ASC" +
+                      " LIMIT ?");
 
         findStringDataByDateRangeExclusive = session.prepare(
             "SELECT time, s_value, tags FROM data " +
@@ -678,15 +690,14 @@ public class DataAccessImpl implements DataAccess {
     }
 
 
-    @Override
-    public Observable<Row> findAllMetricsInData() {
+    @Override public Observable<Row> findAllMetricIdentifiersInData() {
         return rxSession.executeAndFetch(findAllMetricsInData.bind())
                 .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }
 
     /*
-     * Applies micro-batching capabilities by taking advantage of token ranges in the Cassandra
-     */
+         * Applies micro-batching capabilities by taking advantage of token ranges in the Cassandra
+         */
     private Observable.Transformer<BoundStatement, Integer> applyMicroBatching() {
         return tObservable -> tObservable
                 .groupBy(b -> {
