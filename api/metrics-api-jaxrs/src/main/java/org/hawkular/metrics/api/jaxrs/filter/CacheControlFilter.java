@@ -37,8 +37,6 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 @Provider
 public class CacheControlFilter implements ContainerResponseFilter {
 
-    public static final String HEADER_KEY = "Cache-Control";
-
     @Inject
     @Configurable
     @ConfigurationProperty(CACHE_CONTROL_HEADER)
@@ -50,7 +48,8 @@ public class CacheControlFilter implements ContainerResponseFilter {
 
         if (cacheControl != null) {
             MultivaluedMap<String, Object> responseHeaders = responseContext.getHeaders();
-            responseHeaders.add(HEADER_KEY, cacheControl);
+            responseHeaders.add("Cache-Control", cacheControl);
+            responseHeaders.add("Vary", "Origin,Accept-Encoding");
         }
     }
 }

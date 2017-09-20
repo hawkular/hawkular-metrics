@@ -39,7 +39,6 @@ import javax.ws.rs.core.Response;
 import org.hawkular.jaxrs.filter.cors.Headers;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.api.jaxrs.filter.CacheControlFilter;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.annotations.GZIP;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
@@ -88,7 +87,8 @@ public class BaseHandler {
     }
 
     private void addHeaders(HttpServletRequest request, HttpServletResponse response) {
-        response.addHeader(CacheControlFilter.HEADER_KEY, STATIC_CACHE_CONTROL);
+        response.addHeader("Cache-Control", STATIC_CACHE_CONTROL);
+        response.addHeader("Vary", "Origin,Accept-Encoding");
 
         String requestOrigin = request.getHeader(Headers.ORIGIN);
         if (requestOrigin == null) {
