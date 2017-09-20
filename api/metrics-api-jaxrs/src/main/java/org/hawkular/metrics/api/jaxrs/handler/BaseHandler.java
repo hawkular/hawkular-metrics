@@ -20,6 +20,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XHTML_XML;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +36,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.hawkular.jaxrs.filter.cors.Headers;
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.jboss.resteasy.annotations.GZIP;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
@@ -47,10 +52,17 @@ import io.swagger.annotations.ApiOperation;
 @GZIP
 @ApplicationScoped
 public class BaseHandler {
+
     public static final String PATH = "/";
+    private static final String STATIC_CACHE_CONTROL = "private, max-age=86400";    // 1 day
 
     @Inject
     ManifestInformation manifestInformation;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(ALLOWED_CORS_ACCESS_CONTROL_ALLOW_HEADERS)
+    String extraAccesControlAllowHeaders;
 
     @GET
     @Produces(APPLICATION_JSON)
@@ -68,6 +80,32 @@ public class BaseHandler {
     public void baseHTML(@Context ServletContext context) throws Exception {
         HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
+        // Response filters are not effective here, probably because of the redirect
+        // So we handle that special case here
+        addHeaders(request, response);
         request.getRequestDispatcher("/static/index.html").forward(request, response);
+    }
+
+    private void addHeaders(HttpServletRequest request, HttpServletResponse response) {
+        response.addHeader("Cache-Control", STATIC_CACHE_CONTROL);
+        response.addHeader("Vary", "Origin,Accept-Encoding");
+
+        String requestOrigin = request.getHeader(Headers.ORIGIN);
+        if (requestOrigin == null) {
+            return;
+        }
+
+        // CORS validation already checked on request filter, see AbstractCorsRequestFilter
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        response.setHeader(Headers.ACCESS_CONTROL_ALLOW_METHODS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        response.setHeader(Headers.ACCESS_CONTROL_MAX_AGE, String.valueOf(72 * 60 * 60));
+
+        if (extraAccesControlAllowHeaders != null) {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS,
+                    Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS + "," + extraAccesControlAllowHeaders.trim());
+        } else {
+            response.setHeader(Headers.ACCESS_CONTROL_ALLOW_HEADERS, Headers.DEFAULT_CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+        }
     }
 }
