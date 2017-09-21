@@ -35,22 +35,16 @@
   </resource-env-ref>
 
   <servlet>
-    <servlet-name>uiServlet</servlet-name>
-    <servlet-class>org.hawkular.metrics.api.jaxrs.handler.ClientRouterDispatchingServlet</servlet-class>
-    <!--<init-param>-->
-      <!--<param-name>resolve-against-context-root</param-name>-->
-      <!--<param-value>true</param-value>-->
-    <!--</init-param>-->
+    <servlet-name>staticContent</servlet-name>
+    <servlet-class>io.undertow.servlet.handlers.DefaultServlet</servlet-class>
+    <init-param>
+      <param-name>resolve-against-context-root</param-name>
+      <param-value>true</param-value>
+    </init-param>
   </servlet>
 
   <servlet-mapping>
-    <servlet-name>uiServlet</servlet-name>
-    <url-pattern>/ui</url-pattern>
+    <servlet-name>staticContent</servlet-name>
+    <url-pattern>/static/*</url-pattern>
   </servlet-mapping>
-
-  <servlet-mapping>
-    <servlet-name>uiServlet</servlet-name>
-    <url-pattern>/ui/*</url-pattern>
-  </servlet-mapping>
-
 </web-app>
