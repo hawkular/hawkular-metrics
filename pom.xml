@@ -329,6 +329,10 @@
             <exclude>docker/hosts</exclude>
             <!-- Exclude ANTLR token files -->
             <exclude>**/.*.tokens</exclude>
+            <!-- Exclude fonts because it comes from google fonts and has an Open Font License -->
+            <exclude>src/main/webapp/static/fonts/**/*.woff2</exclude>
+            <!-- Exclude fonts css it comes from google fonts  -->
+            <exclude>src/main/webapp/static/fonts.css</exclude>
           </excludes>
         </configuration>
       </plugin>
