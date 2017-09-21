@@ -78,9 +78,10 @@ public class BaseHandler {
     @GET
     @Produces({APPLICATION_XHTML_XML, TEXT_HTML})
     public void baseHTML(@Context ServletContext context) throws Exception {
+        HttpServletRequest request = ResteasyProviderFactory.getContextData(HttpServletRequest.class);
         HttpServletResponse response = ResteasyProviderFactory.getContextData(HttpServletResponse.class);
         addHeaders(response);
-        response.sendRedirect("/hawkular/metrics" + ClientRouterDispatchingServlet.PATH_INDEX_HTML);
+        request.getRequestDispatcher("/static/index.html").forward(request, response);
     }
 
     private void addHeaders(HttpServletResponse response) {
