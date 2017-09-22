@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-alerting-parent</artifactId>
-    <version>0.27.5.Final</version>
+    <version>0.27.6.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-alerter</artifactId>
