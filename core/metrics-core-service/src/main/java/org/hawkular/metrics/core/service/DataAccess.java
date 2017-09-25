@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -58,9 +59,7 @@ public interface DataAccess {
 
     <T> Observable<ResultSet> addTags(Metric<T> metric, Map<String, String> tags);
 
-    <T> Observable<ResultSet> deleteTags(Metric<T> metric, Map<String, String> tags);
-
-    <T> Observable<ResultSet> deleteFromMetricsIndexAndTags(MetricId<T> id, Map<String, String> tags);
+    <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags);
 
     <T> Observable<Integer> updateMetricsIndex(Observable<Metric<T>> metrics);
 
@@ -109,6 +108,10 @@ public interface DataAccess {
             Map<String, Integer> retentions);
 
     <T> ResultSetFuture updateRetentionsIndex(Metric<T> metric);
+
+    <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags);
+
+    <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags);
 
     Observable<Row> findMetricsByTagName(String tenantId, String tag);
 
