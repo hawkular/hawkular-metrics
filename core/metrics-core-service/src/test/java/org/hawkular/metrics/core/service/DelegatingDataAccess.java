@@ -18,6 +18,7 @@
 package org.hawkular.metrics.core.service;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.model.AvailabilityType;
@@ -85,13 +86,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Map<String, String> tags) {
+    public <T> Observable<ResultSet> deleteTags(Metric<T> metric, Set<String> tags) {
         return delegate.deleteTags(metric, tags);
-    }
-
-    @Override
-    public <T> Observable<ResultSet> deleteFromMetricsIndexAndTags(MetricId<T> id, Map<String, String> tags) {
-        return delegate.deleteFromMetricsIndexAndTags(id, tags);
     }
 
     @Override
@@ -197,6 +193,16 @@ public class DelegatingDataAccess implements DataAccess {
     @Override
     public <T> ResultSetFuture updateRetentionsIndex(Metric<T> metric) {
         return delegate.updateRetentionsIndex(metric);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> insertIntoMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
+        return delegate.insertIntoMetricsTagsIndex(metric, tags);
+    }
+
+    @Override
+    public <T> Observable<ResultSet> deleteFromMetricsTagsIndex(Metric<T> metric, Map<String, String> tags) {
+        return delegate.deleteFromMetricsTagsIndex(metric, tags);
     }
 
     @Override
