@@ -24,6 +24,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 
+import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
@@ -41,6 +42,8 @@ public class ConfigurationService {
     private PreparedStatement updateConfigurationValue;
 
     private PreparedStatement deleteConfigurationValue;
+
+    private PreparedStatement deleteConfiguration;
 
     // TODO make async
     // I could have just as easily passed the session as a constructor arg. I am doing it in the init method because
@@ -61,6 +64,10 @@ public class ConfigurationService {
 
         deleteConfigurationValue = session.getSession().prepare(
                 "DELETE FROM sys_config WHERE config_id =? and name = ?")
+                .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+        deleteConfiguration = session.getSession().prepare(
+                "DELETE FROM sys_config WHERE config_id = ?")
                 .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
@@ -97,7 +104,11 @@ public class ConfigurationService {
         return session.execute(updateConfigurationValue.bind(configId, name, value), scheduler).map(resultSet -> null);
     }
 
-    public Observable<Void> delete(String configId, String name) {
-        return session.execute(deleteConfigurationValue.bind(configId, name)).map(resultSet -> null);
+    public Completable delete(String configId, String name) {
+        return session.execute(deleteConfigurationValue.bind(configId, name)).toCompletable();
+    }
+
+    public Completable delete(String configId) {
+        return session.execute(deleteConfiguration.bind(configId)).toCompletable();
     }
 }
