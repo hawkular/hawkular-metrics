@@ -245,8 +245,16 @@ public class SchedulerImpl implements Scheduler {
     }
 
     @Override
-    public Completable unscheduleJob(String jobId) {
+    public Completable unscheduleJobById(String jobId) {
         return jobsService.deleteJob(UUID.fromString(jobId), queryScheduler);
+    }
+
+    @Override public Completable unscheduleJobByTypeAndName(String jobType, String jobName) {
+        return Completable.merge(
+                jobsService.findAllScheduledJobs(queryScheduler)
+                .filter(details -> details.getJobType().equals(jobType) && details.getJobName().equals(jobName))
+                .map(details -> jobsService.deleteJob(details.getJobId(), queryScheduler))
+        );
     }
 
     @Override
@@ -390,7 +398,9 @@ public class SchedulerImpl implements Scheduler {
         Func1<JobDetails, Completable> factory = jobFactories.get(details.getJobType());
         Completable job;
 
-        if (details.getStatus() == JobStatus.FINISHED) {
+        if (factory == null) {
+            job = Completable.error(new UnregisteredJobException(details, timeSlice));
+        } else if (details.getStatus() == JobStatus.FINISHED) {
             Observable<Completable> observable = jobsService.findScheduledExecutions(details.getJobId(), queryScheduler)
                     .filter(scheduledExecution -> scheduledExecution.getJobDetails().getStatus() == JobStatus.NONE &&
                             scheduledExecution.getJobDetails().getTrigger().getTriggerTime() >

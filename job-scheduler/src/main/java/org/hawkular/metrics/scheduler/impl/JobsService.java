@@ -75,8 +75,12 @@ public class JobsService {
         findScheduledForTime = session.getSession().prepare(
                 "SELECT job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx " +
                 "WHERE time_slice = ?");
+
+        // In general this is not a good way to execute queries in Cassandra; however, the number partitions with which
+        // we are dealing is going to very small. The Cassandra clusters are also generally only two or three nodes.
         findAllScheduled = session.getSession().prepare(
                 "SELECT time_slice, job_id, job_type, job_name, job_params, trigger, status FROM scheduled_jobs_idx");
+
         update = session.getSession().prepare(
                 "INSERT INTO jobs (id, type, name, params, trigger) VALUES (?, ?, ?, ?, ?)");
         insertScheduled =  session.getSession().prepare(
@@ -98,6 +102,18 @@ public class JobsService {
                 .doOnNext(timeSlices -> logger.debugf("Active time slices %s", timeSlices))
                 .flatMap(Observable::from)
                 .concatWith(Observable.just(currentTime));
+    }
+
+    public Observable<JobDetailsImpl> findAllScheduledJobs(rx.Scheduler scheduler) {
+        return session.executeAndFetch(findAllScheduled.bind(), scheduler)
+                .map(row -> createJobDetails(
+                        row.getUUID(1),
+                        row.getString(2),
+                        row.getString(3),
+                        row.getMap(4, String.class, String.class),
+                        getTrigger(row.getUDTValue(5)),
+                        JobStatus.fromCode(row.getByte(6)),
+                        row.getTimestamp(0)));
     }
 
     public Observable<JobDetailsImpl> findJobs(Date timeSlice, rx.Scheduler scheduler) {
