@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-dropwizard-reporter-parent</artifactId>
-    <version>0.28.0.Final</version>
+    <version>0.28.1.Final</version>
   </parent>
 
   <artifactId>hawkular-dropwizard-reporter-factory</artifactId>
