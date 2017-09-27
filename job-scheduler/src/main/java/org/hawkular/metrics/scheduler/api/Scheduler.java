@@ -47,7 +47,9 @@ public interface Scheduler {
      * @param jobId
      * @return Completable instance
      */
-    Completable unscheduleJob(String jobId);
+    Completable unscheduleJobById(String jobId);
+
+    Completable unscheduleJobByTypeAndName(String jobType, String jobName);
 
     /**
      * Register a function that produces a job of the specified type. This method should be called prior to scheduling

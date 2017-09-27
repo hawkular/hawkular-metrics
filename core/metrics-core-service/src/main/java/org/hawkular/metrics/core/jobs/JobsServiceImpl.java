@@ -40,6 +40,7 @@ import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
 
+import rx.Completable;
 import rx.Single;
 import rx.functions.Func2;
 
@@ -102,6 +103,9 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     public List<JobDetails> start() {
         List<JobDetails> backgroundJobs = new ArrayList<>();
 
+        // The CompressData job has been replaced by the TempDataCompressor job
+        unscheduleCompressData();
+
         deleteTenant = new DeleteTenant(session, metricsService);
 
         // Use a simple retry policy to make sure tenant deletion does complete in the event of failure. For now
@@ -121,9 +125,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         TempDataCompressor tempJob = new TempDataCompressor(metricsService, configurationService);
         scheduler.register(TempDataCompressor.JOB_NAME, tempJob);
 
-//        CompressData compressDataJob = new CompressData(metricsService, configurationService);
-//        scheduler.register(CompressData.JOB_NAME, compressDataJob);
-        maybeScheduleCompressData(backgroundJobs);
+        maybeScheduleTempDataCompressor(backgroundJobs);
 
         deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
                 this.metricExpirationDelay);
@@ -171,7 +173,31 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         }
     }
 
-    private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
+    private void unscheduleCompressData() {
+        Configuration config = configurationService.load(CompressData.CONFIG_ID).toBlocking()
+                .firstOrDefault(new Configuration(CompressData.CONFIG_ID, new HashMap<>()));
+        String jobId = config.get("jobId");
+
+        if (config.getProperties().isEmpty()) {
+            // This means we have a new installation and not an upgrade. The CompressData job has not been previously
+            // installed so there is no db clean up necessary.
+        } else {
+            Completable unscheduled;
+            if (jobId == null) {
+                logger.warnf("Expected to find a jobId property in database for %s. Attempting to unschedule job by " +
+                        "name.", CompressData.JOB_NAME);
+                unscheduled = scheduler.unscheduleJobByTypeAndName(CompressData.JOB_NAME, CompressData.JOB_NAME);
+            } else {
+                unscheduled = scheduler.unscheduleJobById(jobId);
+            }
+            unscheduled.await();
+            if (!config.getProperties().isEmpty()) {
+                configurationService.delete(CompressData.CONFIG_ID).await();
+            }
+        }
+    }
+
+    private void maybeScheduleTempDataCompressor(List<JobDetails> backgroundJobs) {
         String configId = TempDataCompressor.CONFIG_ID;
         Configuration config = configurationService.load(configId).toBlocking()
                 .firstOrDefault(new Configuration(configId, new HashMap<>()));
@@ -182,13 +208,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
             long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                     .with(DateTimeService.startOfNextOddHour())
                     .toInstant(ZoneOffset.UTC).toEpochMilli();
-
-            // CompressData
-//            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
-//                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
-//                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-//            backgroundJobs.add(jobDetails);
-//            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
 
             // Temp table processing
             JobDetails jobDetails = scheduler.scheduleJob(TempDataCompressor.JOB_NAME, TempDataCompressor.JOB_NAME,
@@ -220,10 +239,11 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
             if (configuredJobFrequency == null || configuredJobFrequency != this.metricExpirationJobFrequencyInDays
                     || this.metricExpirationJobFrequencyInDays <= 0 || configuredJobFrequency <= 0 ||
                     !this.metricExpirationJobEnabled) {
-                scheduler.unscheduleJob(config.get(jobIdConfigKey)).await();
-                configurationService.delete(configId, jobIdConfigKey).toBlocking();
+                scheduler.unscheduleJobById(config.get(jobIdConfigKey)).await();
+                configurationService.delete(configId, jobIdConfigKey)
+                        .concatWith(configurationService.delete(configId, jobFrequencyKey))
+                        .await();
                 config.delete(jobIdConfigKey);
-                configurationService.delete(configId, jobFrequencyKey).toBlocking();
                 config.delete(jobFrequencyKey);
             }
         }

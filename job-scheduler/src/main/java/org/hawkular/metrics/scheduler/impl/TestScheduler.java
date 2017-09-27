@@ -135,8 +135,13 @@ public class TestScheduler implements Scheduler {
     }
 
     @Override
-    public Completable unscheduleJob(String jobId) {
-        return scheduler.unscheduleJob(jobId);
+    public Completable unscheduleJobById(String jobId) {
+        return scheduler.unscheduleJobById(jobId);
+    }
+
+    @Override
+    public Completable unscheduleJobByTypeAndName(String jobType, String jobName) {
+        return scheduler.unscheduleJobByTypeAndName(jobType, jobName);
     }
 
     @Override
