@@ -75,6 +75,7 @@ public class TempTableCreator implements Func1<JobDetails, Completable> {
         ZonedDateTime lastMaintainedBlock = currentBlock.plus(forwardTime);
 
         return service.verifyAndCreateTempTables(currentBlock, lastMaintainedBlock)
-                .doOnCompleted(() -> logger.infof("Temporary tables are valid until %s", lastMaintainedBlock.toString()));
+                .doOnCompleted(() -> logger.debugf("Temporary tables are valid until %s",
+                        lastMaintainedBlock.toString()));
     }
 }
