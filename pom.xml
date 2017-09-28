@@ -28,7 +28,7 @@
 
   <groupId>org.hawkular.metrics</groupId>
   <artifactId>hawkular-metrics-parent</artifactId>
-  <version>0.28.1.Final</version>
+  <version>0.28.2.Final</version>
   <packaging>pom</packaging>
 
   <name>Hawkular Metrics</name>
