@@ -119,7 +119,7 @@
     <version.wildfly-maven-plugin>1.1.0.Alpha4</version.wildfly-maven-plugin>
 
     <!-- from various submodules -->
-    <version.com.github.jnr.jnr-posix>3.0.9</version.com.github.jnr.jnr-posix>
+    <version.com.github.jnr.jnr-posix>3.0.27</version.com.github.jnr.jnr-posix>
     <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
     <version.commons-codec>1.10</version.commons-codec>
     <version.io.fabric8>2.2.16</version.io.fabric8>
