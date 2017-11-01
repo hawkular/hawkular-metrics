@@ -845,7 +845,7 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<ResultSet> dropTempTable(long timestamp) {
         String fullTableName = getTempTableName(timestamp);
-        String dropCQL = String.format("DROP TABLE %s", fullTableName);
+        String dropCQL = String.format("DROP TABLE IF EXISTS %s", fullTableName);
         return rxSession.execute(dropCQL);
     }
 
