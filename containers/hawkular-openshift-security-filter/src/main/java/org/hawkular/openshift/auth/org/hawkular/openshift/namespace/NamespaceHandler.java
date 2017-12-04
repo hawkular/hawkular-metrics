@@ -82,7 +82,7 @@ public class NamespaceHandler implements HttpHandler {
     @Override
     public void handleRequest(HttpServerExchange serverExchange) throws Exception {
         String originalTenantName = getTenantName(serverExchange);
-        if (originalTenantName == null || originalTenantName.startsWith("_")) {
+        if (originalTenantName == null || originalTenantName.startsWith("_") || originalTenantName.contains(":")) {
             containerHandler.handleRequest(serverExchange);
         } else {
 
