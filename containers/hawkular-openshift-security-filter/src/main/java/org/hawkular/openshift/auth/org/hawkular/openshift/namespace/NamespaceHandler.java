@@ -16,7 +16,7 @@
  */
 package org.hawkular.openshift.auth.org.hawkular.openshift.namespace;
 
-import static io.undertow.util.StatusCodes.INTERNAL_SERVER_ERROR;
+import static io.undertow.util.StatusCodes.NOT_FOUND;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,8 +102,8 @@ public class NamespaceHandler implements HttpHandler {
                     namespaceName.add(tenantName);
 
                 } else {
-                    log.info("Could not determine a namespace id for namespace. Cannot process request. Returning an INTERNAL_SERVER_ERROR.");
-                    Utils.endExchange(serverExchange, INTERNAL_SERVER_ERROR, "Could not determine a namespace id for namespace " + namespaceID);
+                    log.debug("Could not determine a namespace id for namespace. Cannot process request. Returning NOT_FOUND.");
+                    Utils.endExchange(serverExchange, NOT_FOUND, "Could not determine a namespace id for namespace " + namespaceID);
                     return;
                 }
             }
