@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -129,7 +129,8 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
 
         Observable<Metric<String>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), STRING)
-                : metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
+                : metricsService.findMetricIndentifiersWithFilters(getTenant(), STRING, tags.getTags())
+                        .flatMap(metricsService::findMetric);
 
         metricObservable
                 .compose(new MinMaxTimestampTransformer<>(metricsService))
