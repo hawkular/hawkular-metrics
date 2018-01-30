@@ -262,10 +262,10 @@ public class DataAccessImpl implements DataAccess {
             "WHERE tenant_id = ? AND type = ? " +
             "ORDER BY metric ASC");
 
-        findAllMetricIdsInData = session.prepare("SELECT DISTINCT tenant_id, type, metric FROM data");
+        findAllMetricIdsInData = session.prepare("SELECT DISTINCT tenant_id, type, metric, dpart FROM data");
 
         findAllMetricIdsInDataCompressed = session.prepare(
-                "SELECT DISTINCT tenant_id, type, metric FROM data_compressed");
+                "SELECT DISTINCT tenant_id, type, metric, dpart FROM data_compressed");
 
         findAllMetricsFromTagsIndex = session.prepare(
                 "SELECT tenant_id, type, metric " +
