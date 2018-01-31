@@ -115,7 +115,7 @@ public class TagsITest extends BaseMetricsITest {
         // Test that we actually get correct gauges also, not just correct size
         gauges = metricsService.findMetricIndentifiersWithFilters(tenantId, GAUGE, ImmutableMap.of("a1", "2", "a2", "2"))
                 .toList().toBlocking().lastOrDefault(null);
-        Metric m3 = metricsToAdd.get(2);
+        MetricId m3 = metricsToAdd.get(2).getMetricId();
         assertEquals(gauges.size(), 1, "Only metric m3 should have been returned");
         assertEquals(gauges.get(0), m3, "m3 did not match the original inserted metric");
 
