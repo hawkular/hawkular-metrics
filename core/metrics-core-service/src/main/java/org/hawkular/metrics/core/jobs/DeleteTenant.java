@@ -116,7 +116,7 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                 .flatMap(type -> {
                     logger.debugf("Deleting retentions for tenant %s", tenantId);
                     return session.execute(deleteRetentions.bind(tenantId, type.getCode()));
-                });
+                }).doOnCompleted(() -> logger.debugf("Retentions deleted for %s", tenantId));
     }
 
     private Observable<ResultSet> deleteTenant(String tenantId) {
