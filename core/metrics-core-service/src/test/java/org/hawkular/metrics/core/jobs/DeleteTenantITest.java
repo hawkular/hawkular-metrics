@@ -378,7 +378,10 @@ public class DeleteTenantITest extends BaseITest {
 
     private <T> void assertRetentionsIndexEmpty(String tenantId, MetricType<T> type) {
         ResultSet resultSet = session.execute(getRetentions.bind(tenantId, type.getCode()));
-        assertEquals(resultSet.all().size(), 0, "Expected retentions index to be empty for " + type.getText() +
+        int count = resultSet.all().size();
+        logger.debugf("Found %d rows in retentions index for tenant %s and metric type %s", count, tenantId,
+                tenantId);
+        assertEquals(count, 0, "Expected retentions index to be empty for " + type.getText() +
                 " metrics");
     }
 
