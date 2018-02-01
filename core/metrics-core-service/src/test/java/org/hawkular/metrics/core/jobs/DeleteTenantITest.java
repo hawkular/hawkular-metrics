@@ -215,6 +215,7 @@ public class DeleteTenantITest extends BaseITest {
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
+        Thread.sleep(3000);
 
         assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
         assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
