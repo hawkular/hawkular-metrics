@@ -29,6 +29,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -379,10 +380,11 @@ public class DeleteTenantITest extends BaseITest {
 
     private <T> void assertRetentionsIndexEmpty(String tenantId, MetricType<T> type) {
         ResultSet resultSet = session.execute(getRetentions.bind(tenantId, type.getCode()));
-        int count = resultSet.all().size();
-        logger.debugf("Found %d rows in retentions index for tenant %s and metric type %s", count, tenantId,
+        List<String> metrics = new ArrayList<>();
+        resultSet.all().forEach(r -> metrics.add(r.getString(0)));
+        logger.debugf("Found metrics %s in retentions index for tenant %s and metric type %s", metrics, tenantId,
                 tenantId);
-        assertEquals(count, 0, "Expected retentions index to be empty for " + type.getText() +
+        assertEquals(metrics.size(), 0, "Expected retentions index to be empty for " + type.getText() +
                 " metrics");
     }
 
