@@ -218,13 +218,13 @@ public class DeleteTenantITest extends BaseITest {
         assertTrue(latch.await(10, TimeUnit.SECONDS));
         Thread.sleep(10000);
 
-        assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
-        assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
-        assertRetentionsIndexEmpty(tenant.getId(), STRING);
-
         List<Tenant> tenants = getOnNextEvents(() -> metricsService.getTenants()
                 .filter(t -> t.getId().equals(tenant.getId())));
         assertEquals(tenants.size(), 0, "Expected " + tenant + " to be deleted from tenants table");
+
+        assertRetentionsIndexEmpty(tenant.getId(), STRING);
+        assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
+        assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
     }
 
     @Test
