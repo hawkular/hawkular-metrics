@@ -29,6 +29,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -215,14 +216,15 @@ public class DeleteTenantITest extends BaseITest {
         jobScheduler.advanceTimeTo(details.getTrigger().getTriggerTime());
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));
-
-        assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
-        assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
-        assertRetentionsIndexEmpty(tenant.getId(), STRING);
+        Thread.sleep(10000);
 
         List<Tenant> tenants = getOnNextEvents(() -> metricsService.getTenants()
                 .filter(t -> t.getId().equals(tenant.getId())));
         assertEquals(tenants.size(), 0, "Expected " + tenant + " to be deleted from tenants table");
+
+        assertRetentionsIndexEmpty(tenant.getId(), STRING);
+        assertRetentionsIndexEmpty(tenant.getId(), COUNTER);
+        assertRetentionsIndexEmpty(tenant.getId(), GAUGE);
     }
 
     @Test
@@ -378,7 +380,11 @@ public class DeleteTenantITest extends BaseITest {
 
     private <T> void assertRetentionsIndexEmpty(String tenantId, MetricType<T> type) {
         ResultSet resultSet = session.execute(getRetentions.bind(tenantId, type.getCode()));
-        assertEquals(resultSet.all().size(), 0, "Expected retentions index to be empty for " + type.getText() +
+        List<String> metrics = new ArrayList<>();
+        resultSet.all().forEach(r -> metrics.add(r.getString(0)));
+        logger.debugf("Found metrics %s in retentions index for tenant %s and metric type %s", metrics, tenantId,
+                tenantId);
+        assertEquals(metrics.size(), 0, "Expected retentions index to be empty for " + type.getText() +
                 " metrics");
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,7 +96,7 @@ public interface MetricsService {
      */
     Observable<Void> createMetric(Metric<?> metric, boolean overwrite);
 
-    Observable<Metric<?>> findAllMetrics();
+    Observable<MetricId<?>> findAllMetricIdentifiers();
 
     <T> Observable<Metric<T>> findMetric(MetricId<T> id);
 
@@ -119,14 +119,14 @@ public interface MetricsService {
      * @param tenantId The id of the tenant to which the metrics belong
      * @param type If type is null, no type filtering is used
      * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
-     * @return Metric's that are filtered with given conditions
+     * @return Metric ids that are filtered with given conditions
      */
-    <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> type, Map<String, String>
-            tagsQueries);
+    <T> Observable<MetricId<T>> findMetricIndentifiersWithFilters(String tenantId, MetricType<T> type,
+                                                                  Map<String, String> tagsQueries);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
-     * #findMetricsWithFilters(String, MetricType, Map)}).
+     * #findMetricIndentifiersWithFilters(String, MetricType, Map)}).
      *
      * @param tenantId The id of the tenant to which the metrics belong
      * @param metricType If type is null, no type filtering is used (values are merged)
@@ -338,5 +338,5 @@ public interface MetricsService {
      */
     Observable<Metric<?>> insertedDataEvents();
 
-    <T> Func1<Metric<T>, Boolean> idFilter(String regexp);
+    <T> Func1<MetricId<T>, Boolean> idFilter(String regexp);
 }

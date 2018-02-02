@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,14 +28,13 @@ import static org.testng.Assert.assertFalse;
 
 import java.util.List;
 
-import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricIdentifierFromFullDataRowTransformer;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.Tenant;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -188,6 +187,7 @@ public class DataAccessITest extends BaseITest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void findAllMetricsPartitionKeys() throws Exception {
         long start = now().getMillis();
 
@@ -199,10 +199,9 @@ public class DataAccessITest extends BaseITest {
                 .flatMap(m -> dataAccess.insertGaugeData(m, DEFAULT_TTL))
                 .toBlocking().lastOrDefault(null);
 
-        List<Metric<Double>> metrics = toList(dataAccess.findAllMetricsInData()
-                .compose(new MetricFromFullDataRowTransformer(Duration.standardDays(7).toStandardSeconds().getSeconds
-                        ()))
-                .map(m -> (Metric<Double>) m));
+        List<MetricId<Double>> metrics = toList(dataAccess.findAllMetricIdentifiersInData()
+                .compose(new MetricIdentifierFromFullDataRowTransformer())
+                .map(mId -> (MetricId<Double>) mId));
 
         assertEquals(metrics.size(), 4);
     }
