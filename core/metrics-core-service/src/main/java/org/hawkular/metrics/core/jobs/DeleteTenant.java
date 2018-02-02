@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.jobs;
 
+import java.util.List;
+
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricType;
@@ -25,6 +27,7 @@ import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 
 import rx.Completable;
 import rx.Observable;
@@ -53,6 +56,8 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
 
     private PreparedStatement deleteRetentions;
 
+    private PreparedStatement getRetentions;
+
     private MetricsService metricsService;
 
     public DeleteTenant(RxSession session, MetricsService metricsService) {
@@ -66,6 +71,8 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         findTags = session.getSession().prepare("SELECT DISTINCT tenant_id, tname FROM metrics_tags_idx");
         deleteTag = session.getSession().prepare("DELETE FROM metrics_tags_idx WHERE tenant_id = ? AND tname = ?");
         deleteRetentions = session.getSession().prepare("DELETE FROM retentions_idx WHERE tenant_id = ? AND type = ?");
+        getRetentions = session.getSession().prepare("SELECT type, metric, retention FROM retentions_idx WHERE " +
+                "tenant_id = ?");
     }
 
     @Override
@@ -86,7 +93,13 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                         .doOnCompleted(() -> logger.debug("Finished deleting metric tags")),
                 deleteTenant(tenantId).toCompletable()
                         .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
-        ).doOnCompleted(() -> logger.debug("Finished deleting " + tenantId));
+        ).doOnCompleted(() -> {
+            logger.debug("Finished deleting " + tenantId);
+            List<Row> rows = session.execute(getRetentions.bind(tenantId)).toBlocking().first().all();
+            logger.debug("RETENTIONS...");
+            rows.forEach(r -> logger.debugf("Retention{type: %d, metric: %s, retention: %d}",
+                    new Short(r.getShort(0)), r.getString(1), new Integer(r.getInt(2))));
+        });
     }
 
     private Observable<ResultSet> deleteMetricData(String tenantId) {
