@@ -82,7 +82,7 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         // The concat operator is used instead of merge to ensure things execute in order. The deleteMetricData
         // method queries the metrics index, so we want to update the index only after we have finished deleting
         // data.
-        return Completable.concat(
+        return Completable.merge(
                 deleteMetricData(tenantId).toCompletable()
                         .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),
                 deleteRetentions(tenantId).toCompletable()
@@ -95,14 +95,14 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                         .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
         ).doOnCompleted(() -> {
             logger.debug("Finished deleting " + tenantId);
-            logger.debug("RETENTIONS...");
-            MetricType.all().forEach(type -> {
-                logger.debugf("%s retentions", type);
-                List<Row> rows = session.execute(getRetentions.bind(tenantId, type.getCode())).toBlocking().first()
-                        .all();
-                rows.forEach(r -> logger.debugf("Retention{metric: %s, retention: %d}", r.getString(1),
-                        new Integer(r.getInt(2))));
-            });
+//            logger.debug("RETENTIONS...");
+//            MetricType.all().forEach(type -> {
+//                logger.debugf("%s retentions", type);
+//                List<Row> rows = session.execute(getRetentions.bind(tenantId, type.getCode())).toBlocking().first()
+//                        .all();
+//                rows.forEach(r -> logger.debugf("Retention{metric: %s, retention: %d}", r.getString(1),
+//                        new Integer(r.getInt(2))));
+//            });
         });
     }
 
