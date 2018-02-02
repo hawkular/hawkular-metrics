@@ -32,6 +32,7 @@ import com.datastax.driver.core.Row;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * @author jsanda
@@ -82,7 +83,7 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         // The concat operator is used instead of merge to ensure things execute in order. The deleteMetricData
         // method queries the metrics index, so we want to update the index only after we have finished deleting
         // data.
-        return Completable.merge(
+        return Completable.concat(
                 deleteMetricData(tenantId).toCompletable()
                         .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),
                 deleteRetentions(tenantId).toCompletable()
@@ -113,30 +114,32 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
 
     private <T> Observable<ResultSet> deleteMetricData(Metric<T> metric) {
         return session.execute(deleteData.bind(metric.getMetricId().getTenantId(),
-                metric.getMetricId().getType().getCode(), metric.getMetricId().getName()));
+                metric.getMetricId().getType().getCode(), metric.getMetricId().getName()), Schedulers.io());
     }
 
     private Observable<ResultSet> deleteMetricsIndex(String tenantId) {
         return Observable.from(MetricType.all())
-                .flatMap(type -> session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode())));
+                .flatMap(type -> session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode()),
+                        Schedulers.io()));
     }
 
     private Observable<ResultSet> deleteTags(String tenantId) {
         return session.execute(findTags.bind())
                 .flatMap(Observable::from)
                 .filter(row -> row.getString(0).equals(tenantId))
-                .flatMap(row -> session.execute(deleteTag.bind(row.getString(0), row.getString(1))));
+                .flatMap(row -> session.execute(deleteTag.bind(row.getString(0), row.getString(1)),
+                        Schedulers.io()));
     }
 
     private <T> Observable<ResultSet> deleteRetentions(String tenantId) {
         return Observable.from(MetricType.all())
                 .flatMap(type -> {
                     logger.debugf("Deleting retentions for tenant %s", tenantId);
-                    return session.execute(deleteRetentions.bind(tenantId, type.getCode()));
+                    return session.execute(deleteRetentions.bind(tenantId, type.getCode()), Schedulers.io());
                 }).doOnCompleted(() -> logger.debugf("Retentions deleted for %s", tenantId));
     }
 
     private Observable<ResultSet> deleteTenant(String tenantId) {
-        return session.execute(deleteTenant.bind(tenantId));
+        return session.execute(deleteTenant.bind(tenantId), Schedulers.io());
     }
 }
