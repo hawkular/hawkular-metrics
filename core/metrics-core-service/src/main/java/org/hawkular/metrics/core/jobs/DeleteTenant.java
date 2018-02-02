@@ -109,18 +109,21 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
 
     private Observable<ResultSet> deleteMetricData(String tenantId) {
         return Observable.from(MetricType.all())
-                .flatMap(type -> metricsService.findMetrics(tenantId, type).flatMap(this::deleteMetricData));
+                .flatMap(type -> metricsService.findMetrics(tenantId, type).flatMap(this::deleteMetricData))
+                .observeOn(Schedulers.io());
     }
 
     private <T> Observable<ResultSet> deleteMetricData(Metric<T> metric) {
         return session.execute(deleteData.bind(metric.getMetricId().getTenantId(),
-                metric.getMetricId().getType().getCode(), metric.getMetricId().getName()), Schedulers.io());
+                metric.getMetricId().getType().getCode(), metric.getMetricId().getName()), Schedulers.io())
+                .observeOn(Schedulers.io());
     }
 
     private Observable<ResultSet> deleteMetricsIndex(String tenantId) {
         return Observable.from(MetricType.all())
                 .flatMap(type -> session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode()),
-                        Schedulers.io()));
+                        Schedulers.io()))
+                .observeOn(Schedulers.io());
     }
 
     private Observable<ResultSet> deleteTags(String tenantId) {
@@ -128,7 +131,8 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                 .flatMap(Observable::from)
                 .filter(row -> row.getString(0).equals(tenantId))
                 .flatMap(row -> session.execute(deleteTag.bind(row.getString(0), row.getString(1)),
-                        Schedulers.io()));
+                        Schedulers.io()))
+                .observeOn(Schedulers.io());
     }
 
     private <T> Observable<ResultSet> deleteRetentions(String tenantId) {
@@ -136,10 +140,13 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                 .flatMap(type -> {
                     logger.debugf("Deleting retentions for tenant %s", tenantId);
                     return session.execute(deleteRetentions.bind(tenantId, type.getCode()), Schedulers.io());
-                }).doOnCompleted(() -> logger.debugf("Retentions deleted for %s", tenantId));
+                })
+                .observeOn(Schedulers.io())
+                .doOnCompleted(() -> logger.debugf("Retentions deleted for %s", tenantId));
     }
 
     private Observable<ResultSet> deleteTenant(String tenantId) {
-        return session.execute(deleteTenant.bind(tenantId), Schedulers.io());
+        return session.execute(deleteTenant.bind(tenantId), Schedulers.io())
+                .observeOn(Schedulers.io());
     }
 }
