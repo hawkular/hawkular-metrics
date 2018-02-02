@@ -71,8 +71,8 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         findTags = session.getSession().prepare("SELECT DISTINCT tenant_id, tname FROM metrics_tags_idx");
         deleteTag = session.getSession().prepare("DELETE FROM metrics_tags_idx WHERE tenant_id = ? AND tname = ?");
         deleteRetentions = session.getSession().prepare("DELETE FROM retentions_idx WHERE tenant_id = ? AND type = ?");
-        getRetentions = session.getSession().prepare("SELECT type, metric, retention FROM retentions_idx WHERE " +
-                "tenant_id = ?");
+        getRetentions = session.getSession().prepare("SELECT metric, retention FROM retentions_idx WHERE " +
+                "tenant_id = ? AND type = ?");
     }
 
     @Override
@@ -95,10 +95,14 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
                         .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
         ).doOnCompleted(() -> {
             logger.debug("Finished deleting " + tenantId);
-            List<Row> rows = session.execute(getRetentions.bind(tenantId)).toBlocking().first().all();
             logger.debug("RETENTIONS...");
-            rows.forEach(r -> logger.debugf("Retention{type: %d, metric: %s, retention: %d}",
-                    new Short(r.getShort(0)), r.getString(1), new Integer(r.getInt(2))));
+            MetricType.all().forEach(type -> {
+                logger.debugf("%s retentions", type);
+                List<Row> rows = session.execute(getRetentions.bind(tenantId, type.getCode())).toBlocking().first()
+                        .all();
+                rows.forEach(r -> logger.debugf("Retention{metric: %s, retention: %d}", r.getString(1),
+                        new Integer(r.getInt(2))));
+            });
         });
     }
 
