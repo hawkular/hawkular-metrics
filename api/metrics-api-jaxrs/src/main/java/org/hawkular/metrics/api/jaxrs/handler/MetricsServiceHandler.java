@@ -97,7 +97,7 @@ abstract class MetricsServiceHandler {
                     .map(id -> new MetricId<>(getTenant(), type, id));
         }
         // Tags case
-        return metricsService.findMetricIndentifiersWithFilters(getTenant(), type, tags);
+        return metricsService.findMetricIdentifiersWithFilters(getTenant(), type, tags);
     }
 
     <T> Observable<TimeRange> findTimeRange(String start, String end, Boolean fromEarliest,

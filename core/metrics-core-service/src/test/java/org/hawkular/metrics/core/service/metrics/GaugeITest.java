@@ -288,7 +288,7 @@ public class GaugeITest extends BaseMetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(
-                () -> metricsService.findMetricIndentifiersWithFilters(tenantId, GAUGE, tagFilters)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, tagFilters)
                         .toList()
                         .flatMap(metrics -> metricsService.findNumericStats(metrics, start.getMillis(), start
                                 .plusMinutes(5).getMillis(), buckets, emptyList(), true, false)));

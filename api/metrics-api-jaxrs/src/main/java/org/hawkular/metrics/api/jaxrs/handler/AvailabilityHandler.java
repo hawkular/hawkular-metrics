@@ -141,7 +141,7 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
 
         Observable<Metric<AvailabilityType>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), AVAILABILITY)
-                : metricsService.findMetricIndentifiersWithFilters(getTenant(), AVAILABILITY, tags.getTags())
+                : metricsService.findMetricIdentifiersWithFilters(getTenant(), AVAILABILITY, tags.getTags())
                         .flatMap(metricsService::findMetric);
 
         metricObservable

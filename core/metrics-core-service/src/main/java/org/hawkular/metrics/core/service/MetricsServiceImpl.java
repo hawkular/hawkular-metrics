@@ -551,8 +551,8 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> Observable<MetricId<T>> findMetricIndentifiersWithFilters(String tenantId, MetricType<T> metricType,
-                                                                       Map<String, String> tagsQueries) {
+    public <T> Observable<MetricId<T>> findMetricIdentifiersWithFilters(String tenantId, MetricType<T> metricType,
+                                                                        Map<String, String> tagsQueries) {
         return tagQueryParser.findMetricIdentifiersWithFilters(tenantId, metricType, tagsQueries)
                 .map(mId -> (MetricId<T>) mId);
     }
@@ -783,7 +783,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
             Map<String, String> tagFilters, long start, long end, int limit, Order order) {
-        return findMetricIndentifiersWithFilters(tenantId, metricType, tagFilters)
+        return findMetricIdentifiersWithFilters(tenantId, metricType, tagFilters)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)
                         .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
     }

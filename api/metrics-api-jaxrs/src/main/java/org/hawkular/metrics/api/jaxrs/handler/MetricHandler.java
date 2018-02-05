@@ -195,7 +195,7 @@ public class MetricHandler {
                 metricObservable = metricsService.findMetrics(getTenant(), metricType);
             }
         } else {
-            metricObservable = metricsService.findMetricIndentifiersWithFilters(getTenant(), metricType, tags.getTags())
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), metricType, tags.getTags())
                     .filter(metricsService.idFilter(id))
                     .flatMap(metricsService::findMetric);
         }
@@ -361,7 +361,7 @@ public class MetricHandler {
                 availabilityStats = getAvailabilityStatsFromTags(bucketsConfig, tags);
             } else {
                 if (types.contains(GAUGE) && types.contains(GAUGE_RATE)) {
-                    gauges = metricsService.findMetricIndentifiersWithFilters(getTenant(), GAUGE, tags.getTags()).cache();
+                    gauges = metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags.getTags()).cache();
                     gaugeStats = gauges.flatMap(gauge ->
                             metricsService.findGaugeStats(gauge, bucketsConfig, percentiles)
                                     .map(bucketPoints -> new NamedBucketPoints(gauge.getName(),
@@ -372,12 +372,12 @@ public class MetricHandler {
                 } else if (types.contains(GAUGE)) {
                     gaugeStats = getGaugeStatsFromTags(bucketsConfig, percentiles, tags);
                 } else {
-                    gauges = metricsService.findMetricIndentifiersWithFilters(getTenant(), GAUGE, tags.getTags());
+                    gauges = metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags.getTags());
                     gaugeRateStats = getRateStats(gauges, bucketsConfig, percentiles);
                 }
 
                 if (types.contains(COUNTER) && types.contains(COUNTER_RATE)) {
-                    counters = metricsService.findMetricIndentifiersWithFilters(getTenant(), COUNTER, tags.getTags())
+                    counters = metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags.getTags())
                             .cache();
                     counterStats = counters.flatMap(counter ->
                             metricsService.findCounterStats(counter, bucketsConfig, percentiles)
@@ -389,7 +389,7 @@ public class MetricHandler {
                 } else if (types.contains(COUNTER)) {
                     counterStats = getCounterStatsFromTags(bucketsConfig, percentiles, tags);
                 } else {
-                    counters = metricsService.findMetricIndentifiersWithFilters(getTenant(), COUNTER, tags.getTags());
+                    counters = metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags.getTags());
                     counterRateStats = getRateStats(counters, bucketsConfig, percentiles);
                 }
 
@@ -427,7 +427,7 @@ public class MetricHandler {
     @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getCounterStatsFromTags(BucketConfig bucketsConfig,
             List<Percentile> percentiles, Tags tags) {
-        Observable<MetricId<Long>> counters = metricsService.findMetricIndentifiersWithFilters(getTenant(), COUNTER,
+        Observable<MetricId<Long>> counters = metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER,
                 tags.getTags());
         return counters.flatMap(counter ->
                 metricsService.findCounterStats(counter, bucketsConfig, percentiles)
@@ -440,7 +440,7 @@ public class MetricHandler {
     @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getGaugeStatsFromTags(BucketConfig bucketsConfig,
             List<Percentile> percentiles, Tags tags) {
-        Observable<MetricId<Double>> gauges = metricsService.findMetricIndentifiersWithFilters(getTenant(), GAUGE,
+        Observable<MetricId<Double>> gauges = metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE,
                 tags.getTags());
         return gauges.flatMap(gauge ->
                 metricsService.findGaugeStats(gauge, bucketsConfig, percentiles)
@@ -453,7 +453,7 @@ public class MetricHandler {
     @SuppressWarnings("unchecked")
     private Observable<Map<String, List<? extends BucketPoint>>> getAvailabilityStatsFromTags(
             BucketConfig bucketsConfig, Tags tags) {
-        Observable<MetricId<AvailabilityType>> availabilities = metricsService.findMetricIndentifiersWithFilters(
+        Observable<MetricId<AvailabilityType>> availabilities = metricsService.findMetricIdentifiersWithFilters(
                 getTenant(), AVAILABILITY, tags.getTags());
         Observable<Map<String, List<? extends BucketPoint>>> availabilityStats;
         availabilityStats = availabilities.flatMap(availability -> metricsService.findAvailabilityStats(

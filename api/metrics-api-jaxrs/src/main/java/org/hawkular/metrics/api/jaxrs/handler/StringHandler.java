@@ -129,7 +129,7 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
 
         Observable<Metric<String>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), STRING)
-                : metricsService.findMetricIndentifiersWithFilters(getTenant(), STRING, tags.getTags())
+                : metricsService.findMetricIdentifiersWithFilters(getTenant(), STRING, tags.getTags())
                         .flatMap(metricsService::findMetric);
 
         metricObservable

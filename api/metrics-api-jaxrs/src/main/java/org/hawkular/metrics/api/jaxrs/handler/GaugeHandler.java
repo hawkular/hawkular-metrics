@@ -147,7 +147,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
 
         Observable<Metric<Double>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), GAUGE)
-                : metricsService.findMetricIndentifiersWithFilters(getTenant(), GAUGE, tags.getTags())
+                : metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags.getTags())
                         .flatMap(metricsService::findMetric);
 
         metricObservable

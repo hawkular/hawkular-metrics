@@ -121,12 +121,12 @@ public interface MetricsService {
      * @param tagsQueries If tagsQueries is empty, empty Observable is returned, use findMetrics(tenantId, type) instead
      * @return Metric ids that are filtered with given conditions
      */
-    <T> Observable<MetricId<T>> findMetricIndentifiersWithFilters(String tenantId, MetricType<T> type,
-                                                                  Map<String, String> tagsQueries);
+    <T> Observable<MetricId<T>> findMetricIdentifiersWithFilters(String tenantId, MetricType<T> type,
+                                                                 Map<String, String> tagsQueries);
 
     /**
      * Returns distinct tag values for a given tag query (using the same query format as {@link
-     * #findMetricIndentifiersWithFilters(String, MetricType, Map)}).
+     * #findMetricIdentifiersWithFilters(String, MetricType, Map)}).
      *
      * @param tenantId The id of the tenant to which the metrics belong
      * @param metricType If type is null, no type filtering is used (values are merged)

@@ -147,7 +147,7 @@ public class CounterHandler extends MetricsServiceHandler implements IMetricsHan
 
         Observable<Metric<Long>> metricObservable = (tags == null)
                 ? metricsService.findMetrics(getTenant(), COUNTER)
-                : metricsService.findMetricIndentifiersWithFilters(getTenant(), COUNTER, tags.getTags())
+                : metricsService.findMetricIdentifiersWithFilters(getTenant(), COUNTER, tags.getTags())
                         .flatMap(metricsService::findMetric);
 
         metricObservable
