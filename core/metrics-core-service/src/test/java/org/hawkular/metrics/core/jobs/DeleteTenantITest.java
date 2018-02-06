@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -125,7 +125,7 @@ public class DeleteTenantITest extends BaseITest {
         jobsService.shutdown();
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteTenantHavingGaugesAndNoMetricTags() throws Exception {
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
@@ -158,7 +158,7 @@ public class DeleteTenantITest extends BaseITest {
         assertTrue(metrics.isEmpty());
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteTenantHavingGaugesWithMetricTagsAndDataRetention() throws Exception {
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
@@ -199,7 +199,7 @@ public class DeleteTenantITest extends BaseITest {
         assertTrue(metrics.isEmpty());
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteTenantWithSettings() throws Exception {
         Tenant tenant = new Tenant(nextTenantId(), ImmutableMap.of(GAUGE, 10, COUNTER, 15, STRING, 20));
         doAction(() -> metricsService.createTenant(tenant, true));
@@ -225,7 +225,7 @@ public class DeleteTenantITest extends BaseITest {
         assertEquals(tenants.size(), 0, "Expected " + tenant + " to be deleted from tenants table");
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteTenantHavingAllMetricTypes() throws Exception {
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
@@ -282,7 +282,7 @@ public class DeleteTenantITest extends BaseITest {
         assertDataEmpty(s2, start, start.plusMinutes(3));
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteTenantTwiceConcurrently() throws Exception {
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
@@ -343,7 +343,7 @@ public class DeleteTenantITest extends BaseITest {
         assertDataEmpty(s2, start, start.plusMinutes(3));
     }
 
-    @Test
+    @Test(enabled = false)
     public void deleteNonexistentTenant() throws Exception {
         String tenantId = nextTenantId();
         DateTime start = new DateTime(jobScheduler.now());
