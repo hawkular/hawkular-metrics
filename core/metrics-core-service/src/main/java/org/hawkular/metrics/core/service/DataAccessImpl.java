@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.hawkular.metrics.model.MetricType.STRING;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -565,7 +566,7 @@ public class DataAccessImpl implements DataAccess {
         findMetricsByTagNameValue = session.prepare(
                 "SELECT tenant_id, type, metric, tvalue " +
                 "FROM metrics_tags_idx " +
-                "WHERE tenant_id = ? AND tname = ? AND tvalue = ?");
+                "WHERE tenant_id = ? AND tname = ? AND tvalue IN ?");
 
         updateMetricExpirationIndex = session.prepare(
                 "INSERT INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
@@ -1164,8 +1165,8 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
-        return rxSession.executeAndFetch(findMetricsByTagNameValue.bind(tenantId, tag, tvalue));
+    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String ... tvalues) {
+        return rxSession.executeAndFetch(findMetricsByTagNameValue.bind(tenantId, tag, Arrays.asList(tvalues)));
     }
 
     @Override
