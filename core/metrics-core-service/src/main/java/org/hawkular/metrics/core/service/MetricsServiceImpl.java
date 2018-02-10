@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -189,6 +189,7 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Tools that do tagQueryParsing and execution
      */
+    private boolean disableACostOptimization;
     private TagQueryParser tagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
@@ -287,7 +288,7 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        tagQueryParser = new TagQueryParser(this.dataAccess, this);
+        tagQueryParser = new TagQueryParser(this.dataAccess, this, disableACostOptimization);
     }
 
     void loadDataRetentions() {
@@ -350,6 +351,7 @@ public class MetricsServiceImpl implements MetricsService {
         log.infoInsertRetryConfig(insertMaxRetries, insertRetryMaxDelay);
 
         defaultPageSize = Integer.parseInt(configuration.get("page-size", "5000"));
+        disableACostOptimization = Boolean.parseBoolean(configuration.get("disable.parser.optimization", "false"));
     }
 
     private void setDefaultTTL(Session session, String keyspace) {
