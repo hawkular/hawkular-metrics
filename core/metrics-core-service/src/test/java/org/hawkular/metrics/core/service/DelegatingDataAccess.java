@@ -211,8 +211,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue) {
-        return delegate.findMetricsByTagNameValue(tenantId, tag, tvalue);
+    public Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String ... tvalues) {
+        return delegate.findMetricsByTagNameValue(tenantId, tag, tvalues);
     }
 
     @Override
