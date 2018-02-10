@@ -48,7 +48,6 @@ public class TestDataAccessFactory {
             void prepareTempStatements(String tableName, Long mapKey) {
                 super.prepareTempStatements(tableName, mapKey);
                 if(DataAccessImpl.OUT_OF_ORDER_TABLE_NAME.equals(tableName)) {
-                    log.infof("data_0 statements being prepared");
                     fallBackTable.countDown();
                 }
                 if (latch.getCount() > 0) {
