@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 public class MixedMetricsITest extends BaseMetricsITest {
 
@@ -256,7 +257,11 @@ public class MixedMetricsITest extends BaseMetricsITest {
             Map<String, String> actualTags = metricsService.getMetricTags(mId).toBlocking().lastOrDefault(null);
             assertEquals(actualTags, m.getTags());
 
-            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
+            TestSubscriber<Void> deleteSubscriber = new TestSubscriber<>();
+            metricsService.deleteMetric(mId).subscribe(deleteSubscriber);
+            deleteSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            deleteSubscriber.assertNoErrors();
+            deleteSubscriber.assertCompleted();
             deletedMetrics.add(m);
 
             for (Metric<T> checkMetric : mList) {
@@ -304,8 +309,6 @@ public class MixedMetricsITest extends BaseMetricsITest {
                     assertEquals(countFromTagIndex, 1);
                 }
             }
-
-            metricsService.deleteMetric(mId).toBlocking().lastOrDefault(null);
         }
     }
 }

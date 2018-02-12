@@ -37,10 +37,14 @@ public class TestDataAccessFactory {
 
     public static DataAccess newInstance(Session session) {
         final CountDownLatch latch = new CountDownLatch(3);
+        final CountDownLatch fallBackTable = new CountDownLatch(0);
         DataAccessImpl dataAccess = new DataAccessImpl(session) {
             @Override
             void prepareTempStatements(String tableName, Long mapKey) {
                 super.prepareTempStatements(tableName, mapKey);
+                if(DataAccessImpl.OUT_OF_ORDER_TABLE_NAME.equals(tableName)) {
+                    fallBackTable.countDown();
+                }
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }
@@ -51,6 +55,7 @@ public class TestDataAccessFactory {
                 .toBlocking().subscribe();
         try {
             assertTrue(latch.await(10, TimeUnit.SECONDS));
+            assertTrue(fallBackTable.await(10, TimeUnit.SECONDS));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
