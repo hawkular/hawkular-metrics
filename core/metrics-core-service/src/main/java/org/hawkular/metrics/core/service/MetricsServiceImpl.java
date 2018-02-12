@@ -1095,11 +1095,14 @@ public class MetricsServiceImpl implements MetricsService {
                 .defaultIfEmpty(new HashMap<>())
                 .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
                 .map(r -> null);
-        result = result.mergeWith(dataAccess.deleteMetricFromMetricsIndex(id).map(r -> null))
-                .mergeWith(dataAccess.deleteMetricData(id).map(r -> null))
-                .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null));
+        Observable<Void> indexes = Observable.merge(
+                dataAccess.deleteMetricFromMetricsIndex(id),
+                dataAccess.deleteMetricData(id),
+                dataAccess.deleteMetricFromRetentionIndex(id),
+        )
+                .map(r -> null);
 
-        return result;
+        return result.concatWith(indexes);
     }
 
 }
