@@ -1012,15 +1012,18 @@ public class MetricsServiceImpl implements MetricsService {
                 .defaultIfEmpty(new HashMap<>())
                 .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
                 .toList()
-                .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
                 .flatMap(r -> null);
 
         //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
         //      for the compressed data table.
-        result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
 
-        result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
-        return result;
+        Observable<Void> indexes = Observable.merge(
+                dataAccess.deleteMetricFromMetricsIndex(id),
+                dataAccess.deleteMetricData(id),
+                dataAccess.deleteMetricFromRetentionIndex(id)
+        ).map(r -> null);
+
+        return result.concatWith(indexes);
     }
 
 }
