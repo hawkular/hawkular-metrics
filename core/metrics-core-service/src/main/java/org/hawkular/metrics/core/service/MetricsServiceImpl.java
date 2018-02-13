@@ -1098,7 +1098,7 @@ public class MetricsServiceImpl implements MetricsService {
         Observable<Void> indexes = Observable.merge(
                 dataAccess.deleteMetricFromMetricsIndex(id),
                 dataAccess.deleteMetricData(id),
-                dataAccess.deleteMetricFromRetentionIndex(id),
+                dataAccess.deleteMetricFromRetentionIndex(id)
         )
                 .map(r -> null);
 
