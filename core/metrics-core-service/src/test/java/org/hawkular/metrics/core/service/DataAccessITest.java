@@ -229,9 +229,7 @@ public class DataAccessITest extends BaseITest {
         assertEquals(metrics.size(), 4);
     }
 
-    // Temporarily disabled because of frequent, intermittent failures on travis that hold up PRs
-    // HWKMETRICS-749 was created as a reminder to fix it.
-    @Test(enabled = false)
+    @Test
     void testFindAllDataFromBucket() throws Exception {
         String tenantId = "t1";
         long start = now().getMillis();

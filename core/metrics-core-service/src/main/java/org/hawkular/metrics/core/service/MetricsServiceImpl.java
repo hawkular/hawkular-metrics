@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1099,12 +1099,15 @@ public class MetricsServiceImpl implements MetricsService {
                 .defaultIfEmpty(new HashMap<>())
                 .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
                 .map(r -> null);
-        result = result.mergeWith(dataAccess.deleteMetricFromMetricsIndex(id).map(r -> null))
-                .mergeWith(dataAccess.deleteMetricData(id).map(r -> null))
-                .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null))
-                .mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).map(r -> null));
+        Observable<Void> indexes = Observable.merge(
+                dataAccess.deleteMetricFromMetricsIndex(id),
+                dataAccess.deleteMetricData(id),
+                dataAccess.deleteMetricFromRetentionIndex(id),
+                dataAccess.deleteFromMetricExpirationIndex(id)
+        )
+                .map(r -> null);
 
-        return result;
+        return result.concatWith(indexes);
     }
 
     @Override
