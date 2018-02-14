@@ -28,15 +28,7 @@ import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.joda.time.DateTime;
 
-import com.datastax.driver.core.AggregateMetadata;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.FunctionMetadata;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.MaterializedViewMetadata;
-import com.datastax.driver.core.SchemaChangeListener;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.UserType;
 
 import rx.schedulers.Schedulers;
 
