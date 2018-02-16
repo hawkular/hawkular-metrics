@@ -103,10 +103,7 @@ public abstract class BaseMetricsITest extends BaseITest {
         for (TableMetadata tableMetadata : session.getCluster().getMetadata().getKeyspace(session.getLoggedKeyspace())
                 .getTables()) {
             if(tableMetadata.getName().startsWith(DataAccessImpl.TEMP_TABLE_NAME_PROTOTYPE)) {
-                try {
-                    session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
-                } catch (Exception e) {
-                }
+                session.execute(String.format("TRUNCATE %s", tableMetadata.getName()));
             }
         }
 
