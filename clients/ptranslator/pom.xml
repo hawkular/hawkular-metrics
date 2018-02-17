@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,9 +101,9 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-standalone-dist</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
-      <type>ear</type>
+      <type>war</type>
       <scope>test</scope>
     </dependency>
     <!-- JBoss Logging Annotations Processor -->
@@ -299,30 +299,6 @@
                       </commmand>
                       <!-- caches -->
                       <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=partition/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=triggers/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=data/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=publish/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=dataIds/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=globalActions/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
                         /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
                       </commmand>
                       <commmand>
@@ -340,8 +316,8 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
-                  <name>hawkular-metrics.ear</name>
+                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <name>hawkular-metrics.war</name>
                 </configuration>
               </execution>
               <execution>
