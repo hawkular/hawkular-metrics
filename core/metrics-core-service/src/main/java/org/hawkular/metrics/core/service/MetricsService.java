@@ -363,7 +363,5 @@ public interface MetricsService {
     /**
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
      */
-    Observable<Metric<?>> insertedDataEvents();
-
     <T> Func1<MetricId<T>, Boolean> idFilter(String regexp);
 }
