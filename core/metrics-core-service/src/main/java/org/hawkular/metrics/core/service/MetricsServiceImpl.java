@@ -190,6 +190,7 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Tools that do tag query parsing and execution
      */
+    private boolean disableACostOptimization;
     private SimpleTagQueryParser tagQueryParser;
     private ExpressionTagQueryParser expresssionTagQueryParser;
 
@@ -270,7 +271,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         verifyAndCreateTempTables();
 
-        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
+        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this, disableACostOptimization);
         expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
     }
 
@@ -345,6 +346,7 @@ public class MetricsServiceImpl implements MetricsService {
         log.infoInsertRetryConfig(insertMaxRetries, insertRetryMaxDelay);
 
         defaultPageSize = Integer.parseInt(configuration.get("page-size", "5000"));
+        disableACostOptimization = Boolean.parseBoolean(configuration.get("disable.parser.optimization", "false"));
     }
 
     private void setDefaultTTL(Session session, String keyspace) {
