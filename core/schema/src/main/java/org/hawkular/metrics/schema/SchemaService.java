@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,8 @@ import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -42,7 +43,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class SchemaService {
 
-    private static Logger logger = Logger.getLogger(SchemaService.class);
+    private static Logger logger = LoggerFactory.getLogger(SchemaService.class);
 
     public void run(Session session, String keyspace, boolean resetDB) {
         run(session, keyspace, resetDB, 1);
