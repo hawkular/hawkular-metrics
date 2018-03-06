@@ -27,6 +27,7 @@ import java.util.jar.Manifest;
 
 import javax.net.ssl.SSLContext;
 
+import org.hawkular.metrics.scheduler.api.JobsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +60,10 @@ public class Installer {
 
     private int replicationFactor;
 
+    private long versionUpdateDelay;
+
+    private int versionUpdateMaxRetries;
+
     // Currently the installer is configured via system properties, and none of its fields are exposed as properties.
     // If the need should arise, the fields can be exposed as properties with public getter/setter methods.
     public Installer() {
@@ -70,29 +75,32 @@ public class Installer {
         keyspace = System.getProperty("hawkular.metrics.cassandra.keyspace", "hawkular_metrics");
         resetdb = Boolean.getBoolean("hawkular.metrics.cassandra.resetdb");
         replicationFactor = Integer.getInteger("hawkular.metrics.cassandra.replication-factor", 1);
+        versionUpdateDelay = Long.getLong("hawkular.metrics.version-update.delay", 5) * 1000;
+        versionUpdateMaxRetries = Integer.getInteger("hawkular.metrics.version-update.max-retries", 10);
     }
 
     public void run() {
         logVersion();
         logInstallerProperties();
 
-        Session session = null;
-        try {
-            session = initSession();
-
+        try (Session session = initSession()) {
             SchemaService schemaService = new SchemaService();
-            schemaService.run(session, keyspace, resetdb);
+            schemaService.run(session, keyspace, resetdb, replicationFactor, false);
 
-            session.close();
-            session.getCluster().close();
+            JobsManager jobsManager = new JobsManager(session);
+            jobsManager.installJobs();
 
-            logger.info("Finished applying schema updates");
+            schemaService.updateVersion(session, keyspace, versionUpdateDelay, versionUpdateMaxRetries);
+
+            logger.info("Finished installation");
         } catch (InterruptedException e) {
             logger.warn("Aborting installation");
+            System.exit(1);
+        } catch (Exception e) {
+            logger.warn("Installation failed", e);
+            System.exit(1);
         } finally {
-            if (session != null) {
-                session.getCluster().close();
-            }
+            System.exit(0);
         }
     }
 
@@ -116,7 +124,9 @@ public class Installer {
                 "\tcassandraNodes = " + cassandraNodes + "\n" +
                 "\tkeyspace = " + keyspace + "\n" +
                 "\tresetdb = " + resetdb + "\n" +
-                "\treplicationFactor = " + replicationFactor);
+                "\treplicationFactor = " + replicationFactor + "\n" +
+                "\tversionUpdateDelay = " + versionUpdateDelay + "\n" +
+                "\tversionUpdateMaxRetries" + versionUpdateMaxRetries);
     }
 
     private Session initSession() throws InterruptedException {

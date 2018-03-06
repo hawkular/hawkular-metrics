@@ -116,13 +116,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.infinispan</groupId>
-      <artifactId>infinispan-core</artifactId>
-      <scope>provided</scope>
-      <version>${version.org.infinispan.wildfly}</version>
-    </dependency>
-
-    <dependency>
       <groupId>io.undertow</groupId>
       <artifactId>undertow-servlet</artifactId>
       <scope>provided</scope>
@@ -174,7 +167,6 @@
               <directory>${basedir}/src/main/webapp</directory>
               <excludes>
                 <exclude>WEB-INF/web.xml</exclude>
-                <exclude>static/index.html</exclude>
               </excludes>
             </resource>
             <resource>
@@ -182,7 +174,6 @@
               <directory>${basedir}/src/main/webapp</directory>
               <includes>
                 <include>WEB-INF/web.xml</include>
-                <include>static/index.html</include>
               </includes>
             </resource>
           </webResources>

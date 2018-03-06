@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,13 +101,15 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
+        List<JobDetails> jobDetails = jobsManager.installJobs();
+
         jobsService = new JobsServiceImpl(2, 7, true);
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
 
-        deleteExpiredMetricsJob = jobsService.start().stream()
+        deleteExpiredMetricsJob = jobDetails.stream()
                 .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
                 .findFirst().get();
         assertNotNull(deleteExpiredMetricsJob);
@@ -257,7 +259,10 @@ public class DeleteExpiredMetricsJobITest extends BaseITest {
             jobsService.setMetricsService(metricsService);
             jobsService.setConfigurationService(configurationService);
 
-            assertEquals(jobsService.start().stream()
+            List<JobDetails> jobDetails = jobsManager.installJobs();
+            jobsService.start();
+
+            assertEquals(jobDetails.stream()
                     .filter(details -> details.getJobName().equals(DeleteExpiredMetrics.JOB_NAME))
                     .count(), 0);
         }

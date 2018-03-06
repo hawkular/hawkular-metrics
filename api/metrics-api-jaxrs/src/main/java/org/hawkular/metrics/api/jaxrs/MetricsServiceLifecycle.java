@@ -32,9 +32,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_M
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_QUEUE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_REQUEST_CONN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REPLICATION_FACTOR;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REQUEST_TIMEOUT;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_ENABLED;
@@ -63,11 +61,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Event;
@@ -109,13 +105,10 @@ import org.hawkular.metrics.core.util.GCGraceSecondsManager;
 import org.hawkular.metrics.model.CassandraStatus;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
-import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.infinispan.AdvancedCache;
-import org.infinispan.Cache;
 
 import com.codahale.metrics.JmxReporter;
 import com.datastax.driver.core.Cluster;
@@ -124,7 +117,6 @@ import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
@@ -185,16 +177,6 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY)
     private String clusterConnectionDelay;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(CASSANDRA_REPLICATION_FACTOR)
-    private String replicationFactorProp;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(CASSANDRA_RESETDB)
-    private String resetDb;
 
     @Inject
     @Configurable
@@ -318,10 +300,6 @@ public class MetricsServiceLifecycle {
     @Inject
     private ManifestInformation manifestInfo;
 
-    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
-    private Cache<String, String> locksCache;
-
-
     @Inject
     RESTMetrics restMetrics;
 
@@ -420,7 +398,6 @@ public class MetricsServiceLifecycle {
         try {
             waitForAllNodesToBeUp();
 
-            initSchema();
             dataAcces = new DataAccessImpl(session);
 
             configurationService = new ConfigurationService();
@@ -601,7 +578,7 @@ public class MetricsServiceLifecycle {
         cluster.init();
         Session createdSession = null;
         try {
-            createdSession = cluster.connect("system");
+            createdSession = cluster.connect(keyspace);
             return createdSession;
         } finally {
             if (createdSession == null) {
@@ -650,35 +627,8 @@ public class MetricsServiceLifecycle {
         }
     }
 
-    private void initSchema() {
-        AtomicReference<Integer> replicationFactor = new AtomicReference<>();
-        try {
-            replicationFactor.set(Integer.parseInt(replicationFactorProp));
-        } catch (NumberFormatException e) {
-            log.warnf("Invalid value [%s] for Cassandra replication_factor. Using default value of 1",
-                    replicationFactorProp);
-            replicationFactor.set(1);
-        }
+    private void waitForSchemaInitialization() {
 
-        AdvancedCache<String, String> cache = locksCache.getAdvancedCache();
-        DistributedLock schemaLock = new DistributedLock(cache, "cassalog");
-        schemaLock.lockAndThen(30000, () -> {
-            SchemaService schemaService = new SchemaService();
-            schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb), replicationFactor.get());
-            session.execute("USE " + keyspace);
-            logReplicationFactor();
-        });
-    }
-
-    private void logReplicationFactor() {
-        ResultSet resultSet = session.execute(
-                "SELECT replication FROM system_schema.keyspaces WHERE keyspace_name = '" + keyspace + "'");
-        if (resultSet.isExhausted()) {
-            log.warnf("Unable to determine replication_factor for keyspace %s", keyspace);
-        }
-        Map<String, String> replication = resultSet.one().getMap(0, String.class, String.class);
-        log.infof("The keyspace %s is using a replication_factor of %s", keyspace,
-                replication.get("replication_factor"));
     }
 
     /**
@@ -726,9 +676,7 @@ public class MetricsServiceLifecycle {
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
         jobsService.setScheduler(scheduler);
-
-        DistributedLock jobsLock = new DistributedLock(locksCache.getAdvancedCache(), "background-jobs");
-        jobsLock.lockAndThen(jobsService::start);
+        jobsService.start();
 
         registerMBean("JobsService", jobsService);
     }

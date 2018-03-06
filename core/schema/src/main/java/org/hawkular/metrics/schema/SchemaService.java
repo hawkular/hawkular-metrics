@@ -32,6 +32,7 @@ import org.cassalog.core.CassalogBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
@@ -50,6 +51,10 @@ public class SchemaService {
     }
 
     public void run(Session session, String keyspace, boolean resetDB, int replicationFactor) {
+        run(session, keyspace, resetDB, replicationFactor, true);
+    }
+
+    public void run(Session session, String keyspace, boolean resetDB, int replicationFactor, boolean updateVersion) {
         CassalogBuilder builder = new CassalogBuilder();
         Cassalog cassalog = builder.withKeyspace(keyspace).withSession(session).build();
         Map<String, ?> vars  = ImmutableMap.of(
@@ -67,8 +72,51 @@ public class SchemaService {
         URI script = getScript();
         cassalog.execute(script, tags, vars);
 
-        session.execute("INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES " +
-                "('org.hawkular.metrics', 'version', '" + getNewHawkularMetricsVersion() + "')");
+        if (updateVersion) {
+            try {
+                updateVersion(session, keyspace, 0, 0);
+            } catch (Exception e) {
+                throw new VersionUpdateException("Failed to update version in system configuration", e);
+            }
+        }
+    }
+
+    public void updateVersion(Session session, String keyspace, long delay, int maxRetries)
+            throws InterruptedException {
+        try {
+            doVersionUpdate(session, keyspace, delay, maxRetries);
+        } catch (Exception e) {
+            throw new VersionUpdateException("Failed to update version in system configuration", e);
+        }
+    }
+
+    private void doVersionUpdate(Session session, String keyspace, long delay, int maxRetries)
+        throws InterruptedException {
+        String configId = "org.hawkular.metrics";
+        String configName = "version";
+        String version = getNewHawkularMetricsVersion();
+        PreparedStatement updateVersion = null;
+        int retries = 0;
+
+        while (true) {
+            try {
+                if (updateVersion == null) {
+                    updateVersion = session.prepare(
+                            "INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES (?, ?, ?)");
+                }
+                session.execute(updateVersion.bind(configId, configName, version));
+                logger.info("Updated system configuration to version {}", version);
+                break;
+            } catch (Exception e) {
+                retries++;
+                if (retries > maxRetries) {
+                    throw new RuntimeException("Failed to update version in system configuration after " + maxRetries +
+                            " attempts.", e);
+                }
+                logger.warn("Failed to update version in system configuration. Retrying in " + delay + " ms", e);
+                Thread.sleep(delay);
+            }
+        }
     }
 
     private URI getScript() {
@@ -106,12 +154,14 @@ public class SchemaService {
                 Manifest manifest = new Manifest(resource.openStream());
                 String vendorId = manifest.getMainAttributes().getValue("Implementation-Vendor-Id");
                 if (vendorId != null && vendorId.equals("org.hawkular.metrics")) {
-                    return manifest.getMainAttributes().getValue("Implementation-Version");
+                    String implVersion = manifest.getMainAttributes().getValue("Implementation-Version");
+                    String gitSHA = manifest.getMainAttributes().getValue("Built-From-Git-SHA1");
+                    return implVersion + "+" + gitSHA.substring(0, 10);
                 }
             }
             throw new RuntimeException("Unable to determine implementation version for Hawkular Metrics");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("There was an I/O error when loading META-INF/MANIFEST.MF", e);
         }
     }
 
