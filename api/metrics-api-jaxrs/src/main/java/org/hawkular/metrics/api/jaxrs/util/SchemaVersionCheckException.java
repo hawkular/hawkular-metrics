@@ -16,17 +16,20 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
-import com.datastax.driver.core.Session;
-
 /**
  * @author jsanda
  */
-public class SchemaChecker {
+public class SchemaVersionCheckException extends RuntimeException {
 
-//    private Session session;
-
-    public void waitForSchemaUpdates(Session session, String keyspace) {
-//        PreparedStatement query = session.prepare("SELECT")
+    public SchemaVersionCheckException(String message) {
+        super(message);
     }
 
+    public SchemaVersionCheckException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public SchemaVersionCheckException(Throwable cause) {
+        super(cause);
+    }
 }

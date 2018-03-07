@@ -48,6 +48,8 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REP
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.VERSION_CHECK_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.VERSION_CHECK_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.lang.management.ManagementFactory;
@@ -88,6 +90,8 @@ import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.api.jaxrs.util.SchemaVersionCheckException;
+import org.hawkular.metrics.api.jaxrs.util.SchemaVersionChecker;
 import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
 import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
@@ -301,6 +305,16 @@ public class MetricsServiceLifecycle {
     private ManifestInformation manifestInfo;
 
     @Inject
+    @Configurable
+    @ConfigurationProperty(VERSION_CHECK_DELAY)
+    private String versionCheckDelay;
+
+    @Inject
+    @Configurable
+    @ConfigurationProperty(VERSION_CHECK_MAX_RETRIES)
+    private String versionCheckMaxRetries;
+
+    @Inject
     RESTMetrics restMetrics;
 
     private volatile State state;
@@ -351,7 +365,7 @@ public class MetricsServiceLifecycle {
 
     @PostConstruct
     void init() {
-        log.infof("Hawkular Metrics version: %s", manifestInfo.getAttributes().get("Implementation-Version"));
+        log.infof("Hawkular Metrics version: %s", getVersion());
 
         lifecycleExecutor.submit(this::startMetricsService);
         if (Boolean.parseBoolean(waitForService)
@@ -369,6 +383,13 @@ public class MetricsServiceLifecycle {
                 Uninterruptibles.sleepUninterruptibly(1, SECONDS);
             }
         }
+    }
+
+    private String getVersion() {
+        String implVersion = manifestInfo.getAttributes().get("Implementation-Version");
+        String gitSHA = manifestInfo.getAttributes().get("Built-From-Git-SHA1");
+
+        return implVersion + "+" + gitSHA.substring(0, 10);
     }
 
     private void startMetricsService() {
@@ -396,7 +417,10 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
-            waitForAllNodesToBeUp();
+            doSchemaVersionCheck();
+//            waitForAllNodesToBeUp();
+
+            session.execute("USE " + keyspace);
 
             dataAcces = new DataAccessImpl(session);
 
@@ -457,10 +481,15 @@ public class MetricsServiceLifecycle {
             state = State.STARTED;
             log.infoServiceStarted();
 
-        } catch (CassandraClusterNotUpException e) {
-            log.fatal("It appears that some nodes in the Cassandra cluster are not up. Start up cannot proceed");
+        }
+//        catch (CassandraClusterNotUpException e) {
+//            log.fatal("It appears that some nodes in the Cassandra cluster are not up. Start up cannot proceed");
+//            state = State.FAILED;
+//
+//        }
+        catch (SchemaVersionCheckException e) {
+            log.fatal("The schema version check failed. Start up cannot proceed.", e);
             state = State.FAILED;
-
         } catch (Exception e) {
             log.fatalCannotConnectToCassandra(e);
             state = State.FAILED;
@@ -578,13 +607,20 @@ public class MetricsServiceLifecycle {
         cluster.init();
         Session createdSession = null;
         try {
-            createdSession = cluster.connect(keyspace);
+            createdSession = cluster.connect("system");
             return createdSession;
         } finally {
             if (createdSession == null) {
                 cluster.close();
             }
         }
+    }
+
+    private void doSchemaVersionCheck() throws InterruptedException {
+        long delay = Long.parseLong(versionCheckDelay) * 1000;
+        int maxRetries = Integer.parseInt(versionCheckMaxRetries);
+
+        new SchemaVersionChecker().waitForSchemaUpdates(session, keyspace, getVersion(), delay, maxRetries);
     }
 
     private void waitForAllNodesToBeUp() throws CassandraClusterNotUpException {
