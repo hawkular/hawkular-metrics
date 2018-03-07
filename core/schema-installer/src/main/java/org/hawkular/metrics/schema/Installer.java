@@ -16,14 +16,10 @@
  */
 package org.hawkular.metrics.schema;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 import javax.net.ssl.SSLContext;
 
@@ -105,16 +101,8 @@ public class Installer {
     }
 
     private void logVersion() {
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF")) {
-            Manifest manifest = new Manifest(stream);
-            Attributes attributes = manifest.getMainAttributes();
-            String version = attributes.getValue(IMPL_VERSION);
-            String gitSHA = attributes.getValue(GIT_SHA);
+        logger.info("Hawkular Metrics Schema Installer v{}", VersionUtil.getVersion());
 
-            logger.info("Hawkular Metrics Schema Installer v{}+{}", version, gitSHA.substring(0, 10));
-        } catch (IOException e) {
-            logger.warn("Failed to log version info", e);
-        }
     }
 
     private void logInstallerProperties() {

@@ -30,8 +30,8 @@
 
   <artifactId>hawkular-metrics-schema-installer</artifactId>
 
-  <name>Hawkular Metrics Schema App</name>
-  <description>Hawkular Metrics Schema App</description>
+  <name>Hawkular Metrics Schema Installer</name>
+  <description>Hawkular Metrics Schema Installer</description>
 
   <dependencyManagement>
     <dependencies>

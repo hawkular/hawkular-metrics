@@ -18,14 +18,10 @@ package org.hawkular.metrics.schema;
 
 import static java.util.Arrays.asList;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
@@ -33,10 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.Statement;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -94,7 +87,7 @@ public class SchemaService {
         throws InterruptedException {
         String configId = "org.hawkular.metrics";
         String configName = "version";
-        String version = getNewHawkularMetricsVersion();
+        String version = VersionUtil.getVersion();
         PreparedStatement updateVersion = null;
         int retries = 0;
 
@@ -124,44 +117,6 @@ public class SchemaService {
             return getClass().getResource("/org/hawkular/schema/cassalog.groovy").toURI();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to load schema change script", e);
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private boolean systemSettingsTableExists(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT * FROM sysconfig.schema_columnfamilies WHERE " +
-                "keyspace_name = '" + keyspace + "' AND columnfamily_name = 'system_settings'");
-        ResultSet resultSet = session.execute(statement);
-        return !resultSet.isExhausted();
-    }
-
-    @SuppressWarnings("unused")
-    private String getCurrentHawkularMetricsVersion(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT value FROM " + keyspace + ".sys_config WHERE " +
-                "name = 'org.hawkular.metrics.version'");
-        ResultSet resultSet = session.execute(statement);
-        if (resultSet.isExhausted()) {
-            return null;
-        }
-        return resultSet.all().get(0).getString(0);
-    }
-
-    private String getNewHawkularMetricsVersion() {
-        try {
-            Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-            while (resources.hasMoreElements()) {
-                URL resource = resources.nextElement();
-                Manifest manifest = new Manifest(resource.openStream());
-                String vendorId = manifest.getMainAttributes().getValue("Implementation-Vendor-Id");
-                if (vendorId != null && vendorId.equals("org.hawkular.metrics")) {
-                    String implVersion = manifest.getMainAttributes().getValue("Implementation-Version");
-                    String gitSHA = manifest.getMainAttributes().getValue("Built-From-Git-SHA1");
-                    return implVersion + "+" + gitSHA.substring(0, 10);
-                }
-            }
-            throw new RuntimeException("Unable to determine implementation version for Hawkular Metrics");
-        } catch (IOException e) {
-            throw new RuntimeException("There was an I/O error when loading META-INF/MANIFEST.MF", e);
         }
     }
 
