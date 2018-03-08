@@ -86,7 +86,6 @@ import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.dropwizard.RESTMetrics;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
-import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
@@ -116,7 +115,6 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
 import com.codahale.metrics.JmxReporter;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
@@ -418,7 +416,6 @@ public class MetricsServiceLifecycle {
         }
         try {
             doSchemaVersionCheck();
-//            waitForAllNodesToBeUp();
 
             session.execute("USE " + keyspace);
 
@@ -481,13 +478,7 @@ public class MetricsServiceLifecycle {
             state = State.STARTED;
             log.infoServiceStarted();
 
-        }
-//        catch (CassandraClusterNotUpException e) {
-//            log.fatal("It appears that some nodes in the Cassandra cluster are not up. Start up cannot proceed");
-//            state = State.FAILED;
-//
-//        }
-        catch (SchemaVersionCheckException e) {
+        } catch (SchemaVersionCheckException e) {
             log.fatal("The schema version check failed. Start up cannot proceed.", e);
             state = State.FAILED;
         } catch (Exception e) {
@@ -621,50 +612,6 @@ public class MetricsServiceLifecycle {
         int maxRetries = Integer.parseInt(versionCheckMaxRetries);
 
         new SchemaVersionChecker().waitForSchemaUpdates(session, keyspace, getVersion(), delay, maxRetries);
-    }
-
-    private void waitForAllNodesToBeUp() throws CassandraClusterNotUpException {
-        boolean isReady = false;
-        int attempts = Integer.parseInt(CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.defaultValue());
-        long delay = 2000;
-        long maxDelay = Long.parseLong(CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.defaultValue());
-        try {
-            attempts = Integer.parseInt(clusterConnectionAttempts);
-        } catch (NumberFormatException e) {
-            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.name(),
-                    attempts);
-        }
-        try {
-            maxDelay = Long.parseLong(clusterConnectionDelay);
-        } catch (NumberFormatException e) {
-            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.name(),
-                    delay);
-        }
-
-        while (!isReady && !Thread.currentThread().isInterrupted() && attempts-- >= 0) {
-            isReady = true;
-            for (Host host : session.getCluster().getMetadata().getAllHosts()) {
-                if (!host.isUp()) {
-                    isReady = false;
-                    log.warnf("Cassandra node %s may not be up yet. Waiting %s ms for node to come up", host, delay);
-                    try {
-                        Thread.sleep(delay);
-                        delay = Math.min(delay * 2, maxDelay);
-                    } catch(InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    break;
-                }
-            }
-        }
-        if (!isReady) {
-            throw new CassandraClusterNotUpException("It appears that not all nodes in the Cassandra cluster are up " +
-                    "after " + attempts + " checks. Schema updates cannot proceed without all nodes being up.");
-        }
-    }
-
-    private void waitForSchemaInitialization() {
-
     }
 
     /**
