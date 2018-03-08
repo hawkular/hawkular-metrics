@@ -88,7 +88,7 @@ public enum ConfigurationKey {
     INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
 
-    VERSION_CHECK_DELAY("hawkular.metrics.version.check.delay", "10", "VERSION_CHECK_DELAY", false),
+    VERSION_CHECK_DELAY("hawkular.metrics.version.check.delay-sec", "10", "VERSION_CHECK_DELAY_SEC", false),
     VERSION_CHECK_MAX_RETRIES("hawkular.metrics.version.check.max-retries", "30", "VERSION_CHECK_MAX_RETRIES", false),
 
     //Alerting

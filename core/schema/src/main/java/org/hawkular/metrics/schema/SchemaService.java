@@ -28,8 +28,8 @@ import org.cassalog.core.CassalogBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -66,48 +66,40 @@ public class SchemaService {
         cassalog.execute(script, tags, vars);
 
         if (updateVersion) {
-            try {
-                updateVersion(session, keyspace, 0, 0);
-            } catch (Exception e) {
-                throw new VersionUpdateException("Failed to update version in system configuration", e);
-            }
+            updateVersion(session, keyspace, 0, 0);
         }
     }
 
-    public void updateVersion(Session session, String keyspace, long delay, int maxRetries)
-            throws InterruptedException {
-        try {
-            doVersionUpdate(session, keyspace, delay, maxRetries);
-        } catch (Exception e) {
-            throw new VersionUpdateException("Failed to update version in system configuration", e);
-        }
+    public void updateVersion(Session session, String keyspace, long delay, int maxRetries) {
+        doVersionUpdate(session, keyspace, delay, maxRetries);
     }
 
-    private void doVersionUpdate(Session session, String keyspace, long delay, int maxRetries)
-        throws InterruptedException {
+    private void doVersionUpdate(Session session, String keyspace, long delay, int maxRetries) {
         String configId = "org.hawkular.metrics";
         String configName = "version";
         String version = VersionUtil.getVersion();
-        PreparedStatement updateVersion = null;
+        SimpleStatement updateVersion = new SimpleStatement(
+                "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)", configId, configName, version)
+                .setKeyspace(keyspace);
         int retries = 0;
 
         while (true) {
             try {
-                if (updateVersion == null) {
-                    updateVersion = session.prepare(
-                            "INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES (?, ?, ?)");
-                }
-                session.execute(updateVersion.bind(configId, configName, version));
+                session.execute(updateVersion);
                 logger.info("Updated system configuration to version {}", version);
                 break;
             } catch (Exception e) {
                 retries++;
                 if (retries > maxRetries) {
-                    throw new RuntimeException("Failed to update version in system configuration after " + maxRetries +
-                            " attempts.", e);
+                    throw new VersionUpdateException("Failed to update version in system configuration after " +
+                            maxRetries + " attempts.", e);
                 }
                 logger.warn("Failed to update version in system configuration. Retrying in " + delay + " ms", e);
-                Thread.sleep(delay);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e1) {
+                    throw new VersionUpdateException("Aborting version update due to interrupt", e1);
+                }
             }
         }
     }
