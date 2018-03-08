@@ -44,7 +44,7 @@ public class SchemaService {
     }
 
     public void run(Session session, String keyspace, boolean resetDB, int replicationFactor) {
-        run(session, keyspace, resetDB, replicationFactor, true);
+        run(session, keyspace, resetDB, replicationFactor, false);
     }
 
     public void run(Session session, String keyspace, boolean resetDB, int replicationFactor, boolean updateVersion) {

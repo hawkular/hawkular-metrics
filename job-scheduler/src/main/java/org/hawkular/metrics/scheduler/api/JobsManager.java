@@ -55,7 +55,7 @@ public class JobsManager {
 
     public static final String TEMP_DATA_COMPRESSOR_JOB = "TEMP_DATA_COMPRESSOR";
 
-    public static final String TEMP_DATA_COMPRESSOR_CONFIG_ID = "org.hawkular.metrics.jobs." + TEMP_TABLE_CREATOR_JOB;
+    public static final String TEMP_DATA_COMPRESSOR_CONFIG_ID = "org.hawkular.metrics.jobs." + TEMP_DATA_COMPRESSOR_JOB;
 
     public static final String DELETE_EXPIRED_METRICS_JOB = "DELETE_EXPIRED_METRICS";
 
