@@ -75,18 +75,31 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
         // The concat operator is used instead of merge to ensure things execute in order. The deleteMetricData
         // method queries the metrics index, so we want to update the index only after we have finished deleting
         // data.
-        return Completable.concat(
-                deleteMetricData(tenantId).toCompletable()
+        return Observable.concat(
+                deleteMetricData(tenantId)
                         .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),
-                deleteRetentions(tenantId).toCompletable()
+                deleteRetentions(tenantId)
                         .doOnCompleted(() -> logger.debug("Finished deleting retentions for " + tenantId)),
-                deleteMetricsIndex(tenantId).toCompletable()
+                deleteMetricsIndex(tenantId)
                         .doOnCompleted(() -> logger.debug("Finished updating metrics index")),
-                deleteTags(tenantId).toCompletable()
+                deleteTags(tenantId)
                         .doOnCompleted(() -> logger.debug("Finished deleting metric tags")),
-                deleteTenant(tenantId).toCompletable()
+                deleteTenant(tenantId)
                         .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
-        ).doOnCompleted(() -> logger.debug("Finished deleting " + tenantId));
+        ).toCompletable();
+
+//        return Completable.concat(
+//                deleteMetricData(tenantId).toCompletable()
+//                        .doOnCompleted(() -> logger.debug("Finished deleting metrics for " + tenantId)),
+//                deleteRetentions(tenantId).toCompletable()
+//                        .doOnCompleted(() -> logger.debug("Finished deleting retentions for " + tenantId)),
+//                deleteMetricsIndex(tenantId).toCompletable()
+//                        .doOnCompleted(() -> logger.debug("Finished updating metrics index")),
+//                deleteTags(tenantId).toCompletable()
+//                        .doOnCompleted(() -> logger.debug("Finished deleting metric tags")),
+//                deleteTenant(tenantId).toCompletable()
+//                        .doOnCompleted(() -> logger.debug("Finished updating tenants table for " + tenantId))
+//        ).doOnCompleted(() -> logger.debug("Finished deleting " + tenantId));
     }
 
     private Observable<ResultSet> deleteMetricData(String tenantId) {
