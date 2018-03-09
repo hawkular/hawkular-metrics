@@ -53,7 +53,7 @@ import org.hawkular.metrics.core.service.tags.TagsConverter;
 import org.hawkular.metrics.core.service.transformers.DataPointCompressTransformer;
 import org.hawkular.metrics.core.service.transformers.DataPointDecompressTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricFromDataRowTransformer;
-import org.hawkular.metrics.core.service.transformers.MetricFromFullDataRowTransformer;
+import org.hawkular.metrics.core.service.transformers.MetricIdentifierFromFullDataRowTransformer;
 import org.hawkular.metrics.core.service.transformers.MetricsIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.NumericBucketPointTransformer;
 import org.hawkular.metrics.core.service.transformers.SortedMerge;
@@ -90,6 +90,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -185,6 +186,7 @@ public class MetricsServiceImpl implements MetricsService {
     private ExpressionTagQueryParser expresssionTagQueryParser;
 
     private int defaultTTL = Duration.standardDays(7).toStandardSeconds().getSeconds();
+    private int DEFAULT_RETENTION = (int) Duration.standardSeconds(defaultTTL).getStandardDays();
 
     private int maxStringSize;
 
@@ -501,29 +503,36 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public Observable<Metric<?>> findAllMetrics() {
-        return dataAccess.findAllMetricsInData()
-                .compose(new MetricFromFullDataRowTransformer(defaultTTL))
+    public Observable<MetricId<?>> findAllMetricIdentifiers() {
+        return dataAccess.findAllMetricIdentifiersInData()
+                .compose(new MetricIdentifierFromFullDataRowTransformer(defaultTTL))
                 .distinct();
+    }
+
+    public <T> Observable.Transformer<MetricId<T>, Metric<T>> enrichToMetric() {
+        return t -> t
+                .flatMap(id -> dataAccess.findMetricInMetricsIndex(id)
+                        .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))
+                        .switchIfEmpty(dataAccess.findMetricInData(id) // This only verifies it exists..
+                                .compose(new MetricFromDataRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))));
     }
 
     @Override
     public <T> Observable<Metric<T>> findMetric(final MetricId<T> id) {
-        return dataAccess.findMetricInMetricsIndex(id)
-                .compose(new MetricsIndexRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL))
-                .switchIfEmpty(dataAccess.findMetricInData(id)
-                        .compose(new MetricFromDataRowTransformer<>(id.getTenantId(), id.getType(), defaultTTL)));
+        return Observable.just(id)
+                .compose(enrichToMetric());
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> metricType) {
         Observable<Metric<T>> setFromMetricsIndex = null;
-        Observable<Metric<T>> setFromData = dataAccess.findAllMetricsInData()
+        Observable<Metric<T>> setFromData = dataAccess.findAllMetricIdentifiersInData()
+                .doOnError(Throwable::printStackTrace)
                 .filter(row -> tenantId.equals(row.getString(0)))
+                .compose(new MetricIdentifierFromFullDataRowTransformer(defaultTTL))
                 .distinct()
-                .compose(new MetricFromFullDataRowTransformer(defaultTTL))
-                .map(m -> (Metric<T>) m);
+                .map(m -> new Metric(m, DEFAULT_RETENTION));
 
         if (metricType == null) {
             setFromMetricsIndex = Observable.from(MetricType.userTypes())
@@ -534,17 +543,18 @@ public class MetricsServiceImpl implements MetricsService {
             setFromMetricsIndex = dataAccess.findMetricsInMetricsIndex(tenantId, metricType)
                     .compose(new MetricsIndexRowTransformer<>(tenantId, metricType, defaultTTL));
 
-            setFromData = setFromData.filter(m -> metricType.equals(m.getMetricId().getType()));
+            setFromData = setFromData.filter(m -> metricType.equals(m.getType()));
         }
 
-        return setFromMetricsIndex.concatWith(setFromData).distinct(m -> m.getMetricId());
+        return setFromMetricsIndex.concatWith(setFromData).distinct(Metric::getMetricId);
     }
 
-    @SuppressWarnings("unchecked")
+//    @SuppressWarnings("unchecked")
     @Override
-    public <T> Observable<Metric<T>> findMetricsWithFilters(String tenantId, MetricType<T> metricType, String tags) {
+    public <T> Observable<MetricId<T>> findMetricIdentifiersWithFilters(String tenantId, MetricType<T> metricType,
+                                                                       String tags) {
         Timer.Context context = getMetricsTagsQueryLatency().time();
-        Observable<Metric<T>> results;
+        Observable<MetricId<T>> results;
         try {
             results = expresssionTagQueryParser
                     .parse(tenantId, metricType, tags)
@@ -552,8 +562,8 @@ public class MetricsServiceImpl implements MetricsService {
         } catch (Exception e1) {
             try {
                 Tags parsedSimpleTagQuery = TagsConverter.fromString(tags);
-                results = tagQueryParser.findMetricsWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
-                        .map(tMetric -> (Metric<T>) tMetric);
+                results = tagQueryParser.findMetricIdentifiersWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
+                        .map(m -> (MetricId<T>) m);
             } catch (Exception e2) {
                 results = Observable.error(new RuntimeApiError("Unparseable tag query expression."));
             }
@@ -561,10 +571,13 @@ public class MetricsServiceImpl implements MetricsService {
         return results.doOnCompleted(context::stop);
     }
 
-    public <T> Func1<Metric<T>, Boolean> idFilter(String regexp) {
+    public <T> Func1<MetricId<T>, Boolean> idFilter(String regexp) {
+        if(Strings.isNullOrEmpty(regexp)) {
+            return tMetric -> true;
+        }
         boolean positive = (!regexp.startsWith("!"));
         Pattern p = PatternUtil.filterPattern(regexp);
-        return tMetric -> positive == p.matcher(tMetric.getId()).matches();
+        return tMetric -> positive == p.matcher(tMetric.getName()).matches();
     }
 
     @Override
@@ -737,8 +750,7 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public <T> Observable<NamedDataPoint<T>> findDataPoints(String tenantId, MetricType<T> metricType,
             String tagFilters, long start, long end, int limit, Order order) {
-        return findMetricsWithFilters(tenantId, metricType, tagFilters)
-                .map(Metric::getMetricId)
+        return findMetricIdentifiersWithFilters(tenantId, metricType, tagFilters)
                 .concatMap(id -> findDataPoints(id, start, end, limit, order)
                         .map(dataPoint -> new NamedDataPoint<>(id.getName(), dataPoint)));
     }

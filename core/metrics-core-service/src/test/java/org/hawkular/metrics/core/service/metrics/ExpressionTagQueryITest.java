@@ -55,7 +55,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
 
         ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
 
-        List<Metric<Double>> gauges = test.parse(tenantId, GAUGE, "a1 ='abc'").toList().toBlocking()
+        List<MetricId<Double>> gauges = test.parse(tenantId, GAUGE, "a1 ='abc'").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1");
 
@@ -131,7 +131,7 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
 
         ExpressionTagQueryParser test = new ExpressionTagQueryParser(dataAccess, metricsService);
 
-        List<Metric<Long>> counters = test.parse(tenantId, COUNTER, "a2.label1 =5").toList().toBlocking()
+        List<MetricId<Long>> counters = test.parse(tenantId, COUNTER, "a2.label1 =5").toList().toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(counters, "c2");
 
@@ -161,10 +161,10 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
         String tenantId = "jsonT2Tag";
         createTagMetrics(tenantId);
 
-        List<Metric<Double>> gauges = null;
+        List<MetricId<Double>> gauges = null;
 
         try {
-            gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1 == abc'").toList()
+            gauges = metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, "a1 == abc'").toList()
                 .toBlocking()
                 .lastOrDefault(null);
             fail("Expected error");
@@ -172,18 +172,18 @@ public class ExpressionTagQueryITest extends BaseMetricsITest {
             assertEquals(e.getClass(), RuntimeApiError.class);
         }
 
-        gauges = metricsService.findMetricsWithFilters(tenantId, GAUGE, "a1:*").toList()
+        gauges = metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, "a1:*").toList()
                 .toBlocking()
                 .lastOrDefault(null);
         assertMetricListById(gauges, "m1", "m2", "m3", "m4", "m5");
     }
 
-    private <T> void assertMetricListById(List<Metric<T>> actualMetrics, String... expectedMetricIds) {
+    private <T> void assertMetricListById(List<MetricId<T>> actualMetrics, String... expectedMetricIds) {
         assertEquals(actualMetrics.size(), expectedMetricIds.length);
         for (String expectedMetricId : expectedMetricIds) {
             boolean found = false;
-            for (Metric<T> actualMetric : actualMetrics) {
-                if (actualMetric.getId().equals(expectedMetricId)) {
+            for (MetricId<T> actualMetric : actualMetrics) {
+                if (actualMetric.getName().equals(expectedMetricId)) {
                     found = true;
                     break;
                 }

@@ -149,7 +149,8 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
 
         Observable<Metric<Double>> metricObservable = null;
         if (tags != null) {
-            metricObservable = metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags);
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags)
+                    .flatMap(metricsService::findMetric);
         } else {
             metricObservable = metricsService.findMetrics(getTenant(), GAUGE);
         }
@@ -907,8 +908,7 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(value = "Limit the number of data points returned") @QueryParam("limit") Integer limit,
             @ApiParam(value = "Data point sort order, based on timestamp") @QueryParam("order") Order order
     ) {
-        metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags)
-                .map(Metric::getMetricId)
+        metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags)
                 .toList()
                 .flatMap(metricIds -> TimeAndSortParams.<Double>deferredBuilder(start, end)
                         .fromEarliest(fromEarliest, metricIds, this::findTimeRange)
