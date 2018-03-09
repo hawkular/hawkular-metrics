@@ -166,7 +166,7 @@
                 <argument>-Dhawkular.metrics.cassandra.keyspace=${cassandra.keyspace}</argument>
                 <argument>-Dhawkular.metrics.cassandra.resetdb=true</argument>
                 <argument>-jar</argument>
-                <argument>../../core/schema-installer/target/hawkular-metrics-schema-installer-${project.version}.jar</argument>
+                <argument>../../core/schema-installer/target/hawkular-metrics-schema-installer.jar</argument>
               </arguments>
             </configuration>
             <dependencies>
