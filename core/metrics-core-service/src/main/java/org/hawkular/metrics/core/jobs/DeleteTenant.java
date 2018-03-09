@@ -90,33 +90,38 @@ public class DeleteTenant implements Func1<JobDetails, Completable> {
     }
 
     private Observable<ResultSet> deleteMetricData(String tenantId) {
-        return Observable.from(MetricType.all())
-                .flatMap(type -> metricsService.findMetrics(tenantId, type).flatMap(this::deleteMetricData));
+        return Observable.defer(() ->
+                Observable.from(MetricType.all())
+                        .flatMap(type -> metricsService.findMetrics(tenantId, type).flatMap(this::deleteMetricData)));
     }
 
     private <T> Observable<ResultSet> deleteMetricData(Metric<T> metric) {
-        return session.execute(deleteData.bind(metric.getMetricId().getTenantId(),
-                metric.getMetricId().getType().getCode(), metric.getMetricId().getName()));
+        return Observable.defer(() ->
+                session.execute(deleteData.bind(metric.getMetricId().getTenantId(),
+                        metric.getMetricId().getType().getCode(), metric.getMetricId().getName())));
     }
 
     private Observable<ResultSet> deleteMetricsIndex(String tenantId) {
-        return Observable.from(MetricType.all())
-                .flatMap(type -> session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode())));
+        return Observable.defer(() ->
+                Observable.from(MetricType.all())
+                        .flatMap(type -> session.execute(deleteFromMetricsIndex.bind(tenantId, type.getCode()))));
     }
 
     private Observable<ResultSet> deleteTags(String tenantId) {
-        return session.execute(findTags.bind())
-                .flatMap(Observable::from)
-                .filter(row -> row.getString(0).equals(tenantId))
-                .flatMap(row -> session.execute(deleteTag.bind(row.getString(0), row.getString(1))));
+        return Observable.defer(() ->
+                session.execute(findTags.bind())
+                        .flatMap(Observable::from)
+                        .filter(row -> row.getString(0).equals(tenantId))
+                        .flatMap(row -> session.execute(deleteTag.bind(row.getString(0), row.getString(1)))));
     }
 
     private <T> Observable<ResultSet> deleteRetentions(String tenantId) {
-        return Observable.from(MetricType.all())
-                .flatMap(type -> session.execute(deleteRetentions.bind(tenantId, type.getCode())));
+        return Observable.defer(() ->
+                Observable.from(MetricType.all())
+                        .flatMap(type -> session.execute(deleteRetentions.bind(tenantId, type.getCode()))));
     }
 
     private Observable<ResultSet> deleteTenant(String tenantId) {
-        return session.execute(deleteTenant.bind(tenantId));
+        return Observable.defer(() -> session.execute(deleteTenant.bind(tenantId)));
     }
 }
