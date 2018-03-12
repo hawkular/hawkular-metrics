@@ -679,7 +679,7 @@ public class DataAccessImpl implements DataAccess {
 
 
     @Override
-    public Observable<Row> findAllMetricsInData() {
+    public Observable<Row> findAllMetricIdentifiersInData() {
         return rxSession.executeAndFetch(findAllMetricsInData.bind())
                 .concatWith(rxSession.executeAndFetch(findAllMetricsInDataCompressed.bind()));
     }

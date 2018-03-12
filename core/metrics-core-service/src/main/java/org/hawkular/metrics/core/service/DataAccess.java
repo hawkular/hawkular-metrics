@@ -64,12 +64,12 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricsInMetricsIndex(String tenantId, MetricType<T> type);
 
-    Observable<Row> findAllMetricsInData();
-
     Observable<Integer> insertGaugeDatas(Observable<Metric<Double>> gauges,
             Function<MetricId<Double>, Integer> ttlFunc);
 
     Observable<Integer> insertGaugeData(Metric<Double> metric);
+
+    Observable<Row> findAllMetricIdentifiersInData();
 
     Observable<Integer> insertGaugeData(Metric<Double> metric, int ttl);
 

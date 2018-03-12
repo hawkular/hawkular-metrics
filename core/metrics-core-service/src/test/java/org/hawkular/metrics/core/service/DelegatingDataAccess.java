@@ -33,6 +33,8 @@ import com.datastax.driver.core.Row;
 
 import rx.Observable;
 
+
+
 /**
  * @author John Sanda
  */
@@ -109,8 +111,8 @@ public class DelegatingDataAccess implements DataAccess {
     }
 
     @Override
-    public Observable<Row> findAllMetricsInData() {
-        return delegate.findAllMetricsInData();
+    public Observable<Row> findAllMetricIdentifiersInData() {
+        return delegate.findAllMetricIdentifiersInData();
     }
 
     @Override

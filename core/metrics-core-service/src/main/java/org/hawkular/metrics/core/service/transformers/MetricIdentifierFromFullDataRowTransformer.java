@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service.transformers;
 
 import org.hawkular.metrics.model.Metric;
@@ -33,19 +32,16 @@ import rx.Observable.Transformer;
  *
  * @author Thomas Segismont
  */
-public class MetricFromFullDataRowTransformer implements Transformer<Row, Metric<?>> {
+public class MetricIdentifierFromFullDataRowTransformer implements Transformer<Row, MetricId<?>> {
     private final int defaultDataRetention;
 
-    public MetricFromFullDataRowTransformer(int defaultTTL) {
+    public MetricIdentifierFromFullDataRowTransformer(int defaultTTL) {
         this.defaultDataRetention = (int) Duration.standardSeconds(defaultTTL).getStandardDays();
     }
 
     @Override
-    public Observable<Metric<?>> call(Observable<Row> rows) {
-        return rows.map(row -> {
-            MetricId<?> metricId = new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)),
-                    row.getString(2));
-            return new Metric<>(metricId, defaultDataRetention);
-        });
+    public Observable<MetricId<?>> call(Observable<Row> rows) {
+        return rows.map(row -> new MetricId<>(row.getString(0), MetricType.fromCode(row.getByte(1)),
+                row.getString(2)));
     }
 }

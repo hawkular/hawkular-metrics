@@ -42,7 +42,6 @@ import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.PairContext;
 import org.hawkular.metrics.core.service.tags.parser.TagQueryParser.ValueContext;
 import org.hawkular.metrics.core.service.transformers.MetricIdFromMetricIndexRowTransformer;
 import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFilter;
-import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
 
@@ -61,7 +60,7 @@ public class ExpressionTagQueryParser {
         this.metricsService = metricsService;
     }
 
-    public <T> Observable<Metric<T>> parse(String tenantId, MetricType<T> metricType, String expression) {
+    public <T> Observable<MetricId<T>> parse(String tenantId, MetricType<T> metricType, String expression) {
         ANTLRInputStream input = new ANTLRInputStream(expression);
         TagQueryLexer tql = new TagQueryLexer(input);
         tql.removeErrorListeners();
@@ -102,10 +101,10 @@ public class ExpressionTagQueryParser {
             this.metricType = metricType;
         }
 
-        public Observable<Metric<T>> getResult() {
+        public Observable<MetricId<T>> getResult() {
             if (observables.size() == 1) {
-                return observables.values().iterator().next().get(0)
-                    .flatMap(metricsService::findMetric);
+                return observables.values().iterator().next().get(0);
+//                    .flatMap(metricsService::findMetric);
             }
 
             return Observable.empty();

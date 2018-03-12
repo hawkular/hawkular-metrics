@@ -344,8 +344,7 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test simple counter stats
         List<List<NumericBucketPoint>> actualCounterStatsByTag = getOnNextEvents(
-                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
-                        .map(Metric::getMetricId)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, COUNTER, tagFilters)
                         .toList()
                         .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
                         start.plusMinutes(5).getMillis(), buckets, emptyList(), false, false)));
@@ -365,8 +364,7 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test stacked counter stats
         List<List<NumericBucketPoint>> actualStackedCounterStatsByTag = getOnNextEvents(
-                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
-                        .map(Metric::getMetricId)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, COUNTER, tagFilters)
                         .toList()
                         .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
                             start.plusMinutes(5).getMillis(), buckets, emptyList(), true, false)));
@@ -409,8 +407,7 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test simple counter rate stats
         List<List<NumericBucketPoint>> actualCounterRateStatsByTag = getOnNextEvents(
-                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
-                        .map(Metric::getMetricId)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, COUNTER, tagFilters)
                         .toList()
                         .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
                             start.plusMinutes(5).getMillis(), buckets, emptyList(), false, true)));
@@ -430,8 +427,7 @@ public class CounterITest extends BaseMetricsITest {
 
         //Test stacked counter rate stats
         List<List<NumericBucketPoint>> actualStackedCounterRateStatsByTag = getOnNextEvents(
-                () -> metricsService.findMetricsWithFilters(tenantId, COUNTER, tagFilters)
-                        .map(Metric::getMetricId)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, COUNTER, tagFilters)
                         .toList()
                         .flatMap(ids -> metricsService.findNumericStats(ids, start.getMillis(),
                             start.plusMinutes(5).getMillis(), buckets, emptyList(), true, true)));
