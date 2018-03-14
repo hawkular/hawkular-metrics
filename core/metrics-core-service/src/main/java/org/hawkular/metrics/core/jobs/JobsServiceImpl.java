@@ -81,7 +81,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     }
 
     @Override
-    public List<JobDetails> start() {
+    public void start() {
         List<JobDetails> backgroundJobs = new ArrayList<>();
 
         // The CompressData job has been replaced by the TempDataCompressor job
@@ -102,8 +102,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         maybeScheduleTempDataCompressor(backgroundJobs);
 
         scheduler.start();
-
-        return backgroundJobs;
     }
 
     @Override
