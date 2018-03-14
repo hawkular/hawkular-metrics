@@ -29,6 +29,7 @@ import static org.testng.AssertJUnit.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -99,7 +100,7 @@ public class CompressDataJobITest extends BaseITest {
         resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
                 JOB_NAME + "'");
 
-        configurationService = new ConfigurationService() ;
+        configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
         metricsService = new MetricsServiceImpl();
@@ -115,18 +116,22 @@ public class CompressDataJobITest extends BaseITest {
         session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
-        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
+        long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
                 .with(DateTimeService.startOfNextOddHour())
-                .toInstant(ZoneOffset.UTC).toEpochMilli() - 60000;
-        jobScheduler.advanceTimeTo(nextStart);
+                .toInstant(ZoneOffset.UTC).toEpochMilli();
         jobScheduler.truncateTables(getKeyspace());
+
+        List<JobDetails> jobDetails = jobsManager.installJobs();
+        jobScheduler.advanceTimeTo(nextStart);
 
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
+        jobsService.start();
+
+        compressionJob = jobDetails.stream().filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
         assertNotNull(compressionJob);
@@ -137,7 +142,6 @@ public class CompressDataJobITest extends BaseITest {
         jobsService.shutdown();
     }
 
-    @Test
     public void testCompressJob() throws Exception {
         long now = jobScheduler.now();
 
