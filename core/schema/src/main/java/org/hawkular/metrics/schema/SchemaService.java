@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,18 @@ package org.hawkular.metrics.schema;
 
 import static java.util.Arrays.asList;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Manifest;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
-import org.jboss.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.Statement;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -42,13 +37,17 @@ import com.google.common.collect.ImmutableMap;
  */
 public class SchemaService {
 
-    private static Logger logger = Logger.getLogger(SchemaService.class);
+    private static Logger logger = LoggerFactory.getLogger(SchemaService.class);
 
     public void run(Session session, String keyspace, boolean resetDB) {
         run(session, keyspace, resetDB, 1);
     }
 
     public void run(Session session, String keyspace, boolean resetDB, int replicationFactor) {
+        run(session, keyspace, resetDB, replicationFactor, false);
+    }
+
+    public void run(Session session, String keyspace, boolean resetDB, int replicationFactor, boolean updateVersion) {
         CassalogBuilder builder = new CassalogBuilder();
         Cassalog cassalog = builder.withKeyspace(keyspace).withSession(session).build();
         Map<String, ?> vars  = ImmutableMap.of(
@@ -66,8 +65,43 @@ public class SchemaService {
         URI script = getScript();
         cassalog.execute(script, tags, vars);
 
-        session.execute("INSERT INTO " + keyspace + ".sys_config (config_id, name, value) VALUES " +
-                "('org.hawkular.metrics', 'version', '" + getNewHawkularMetricsVersion() + "')");
+        if (updateVersion) {
+            updateVersion(session, keyspace, 0, 0);
+        }
+    }
+
+    public void updateVersion(Session session, String keyspace, long delay, int maxRetries) {
+        doVersionUpdate(session, keyspace, delay, maxRetries);
+    }
+
+    private void doVersionUpdate(Session session, String keyspace, long delay, int maxRetries) {
+        String configId = "org.hawkular.metrics";
+        String configName = "version";
+        String version = VersionUtil.getVersion();
+        SimpleStatement updateVersion = new SimpleStatement(
+                "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)", configId, configName, version)
+                .setKeyspace(keyspace);
+        int retries = 0;
+
+        while (true) {
+            try {
+                session.execute(updateVersion);
+                logger.info("Updated system configuration to version {}", version);
+                break;
+            } catch (Exception e) {
+                retries++;
+                if (retries > maxRetries) {
+                    throw new VersionUpdateException("Failed to update version in system configuration after " +
+                            maxRetries + " attempts.", e);
+                }
+                logger.warn("Failed to update version in system configuration. Retrying in " + delay + " ms", e);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e1) {
+                    throw new VersionUpdateException("Aborting version update due to interrupt", e1);
+                }
+            }
+        }
     }
 
     private URI getScript() {
@@ -75,42 +109,6 @@ public class SchemaService {
             return getClass().getResource("/org/hawkular/schema/cassalog.groovy").toURI();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to load schema change script", e);
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private boolean systemSettingsTableExists(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT * FROM sysconfig.schema_columnfamilies WHERE " +
-                "keyspace_name = '" + keyspace + "' AND columnfamily_name = 'system_settings'");
-        ResultSet resultSet = session.execute(statement);
-        return !resultSet.isExhausted();
-    }
-
-    @SuppressWarnings("unused")
-    private String getCurrentHawkularMetricsVersion(Session session, String keyspace) {
-        Statement statement = new SimpleStatement("SELECT value FROM " + keyspace + ".sys_config WHERE " +
-                "name = 'org.hawkular.metrics.version'");
-        ResultSet resultSet = session.execute(statement);
-        if (resultSet.isExhausted()) {
-            return null;
-        }
-        return resultSet.all().get(0).getString(0);
-    }
-
-    private String getNewHawkularMetricsVersion() {
-        try {
-            Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-            while (resources.hasMoreElements()) {
-                URL resource = resources.nextElement();
-                Manifest manifest = new Manifest(resource.openStream());
-                String vendorId = manifest.getMainAttributes().getValue("Implementation-Vendor-Id");
-                if (vendorId != null && vendorId.equals("org.hawkular.metrics")) {
-                    return manifest.getMainAttributes().getValue("Implementation-Version");
-                }
-            }
-            throw new RuntimeException("Unable to determine implementation version for Hawkular Metrics");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,6 +87,9 @@ public enum ConfigurationKey {
 
     INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
+
+    VERSION_CHECK_DELAY("hawkular.metrics.version.check.delay-sec", "10", "VERSION_CHECK_DELAY_SEC", false),
+    VERSION_CHECK_MAX_RETRIES("hawkular.metrics.version.check.max-retries", "30", "VERSION_CHECK_MAX_RETRIES", false),
 
     //Alerting
     METRICS_PUBLISH_BUFFER_SIZE("hawkular.metrics.publish-buffer-size", "100", "METRICS_PUBLISH_BUFFER_SIZE", false),

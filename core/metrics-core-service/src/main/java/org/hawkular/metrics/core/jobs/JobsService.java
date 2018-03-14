@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,6 @@
  */
 package org.hawkular.metrics.core.jobs;
 
-import java.util.List;
-
 import org.hawkular.metrics.scheduler.api.JobDetails;
 
 import rx.Single;
@@ -27,7 +25,7 @@ import rx.Single;
  */
 public interface JobsService {
 
-    List<JobDetails> start();
+    void start();
 
     void shutdown();
 

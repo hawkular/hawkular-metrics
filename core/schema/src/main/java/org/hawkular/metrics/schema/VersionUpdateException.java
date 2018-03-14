@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,16 +14,22 @@ package org.hawkular.schema
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.hawkular.metrics.schema;
 
-include '/org/hawkular/schema/bootstrap.groovy'
+/**
+ * @author jsanda
+ */
+public class VersionUpdateException extends RuntimeException {
 
-setKeyspace keyspace
+    public VersionUpdateException() {
+        super();
+    }
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.27.0.groovy'
+    public VersionUpdateException(String message) {
+        super(message);
+    }
+
+    public VersionUpdateException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}

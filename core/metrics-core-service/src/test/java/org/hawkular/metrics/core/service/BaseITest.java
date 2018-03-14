@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 
 import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.hawkular.metrics.core.dropwizard.MetricNameService;
+import org.hawkular.metrics.scheduler.api.JobsManager;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -59,6 +60,10 @@ public abstract class BaseITest {
 
     protected static RxSession rxSession;
 
+    protected static SchemaService schemaService;
+
+    protected static JobsManager jobsManager;
+
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
@@ -75,10 +80,12 @@ public abstract class BaseITest {
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
 
-        SchemaService schemaService = new SchemaService();
+        schemaService = new SchemaService();
         schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
+
+        jobsManager = new JobsManager(session);
 
         metricRegistry = new HawkularMetricRegistry();
         metricRegistry.setMetricNameService(new MetricNameService());
