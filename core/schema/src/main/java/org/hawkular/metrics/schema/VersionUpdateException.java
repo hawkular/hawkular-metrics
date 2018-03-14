@@ -14,26 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.hawkular.metrics.api.jaxrs.util;
-
-import com.codahale.metrics.MetricRegistry;
+package org.hawkular.metrics.schema;
 
 /**
- * Shares a single {@link MetricRegistry} instance.
- *
- * @author Thomas Segismont
+ * @author jsanda
  */
-public enum MetricRegistryProvider {
-    INSTANCE;
+public class VersionUpdateException extends RuntimeException {
 
-    private final MetricRegistry metricRegistry;
-
-    MetricRegistryProvider() {
-        metricRegistry = new MetricRegistry();
+    public VersionUpdateException() {
+        super();
     }
 
-    public MetricRegistry getMetricRegistry() {
-        return metricRegistry;
+    public VersionUpdateException(String message) {
+        super(message);
+    }
+
+    public VersionUpdateException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

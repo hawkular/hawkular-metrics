@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,13 @@
  */
 package org.hawkular.metrics.benchmark.jmh.util;
 
-import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
-import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Session;
 
 /**
@@ -48,8 +47,8 @@ public class MetricServiceManager {
     }
 
     private MetricsServiceImpl createMetricsService(Session session) {
-        SchemaService schemaService = new SchemaService();
-        schemaService.run(session, keyspace, true);
+        SchemaService schemaService = new SchemaService(session, keyspace);
+        schemaService.run(true, 1, true);
 
         ConfigurationService configurationService = new ConfigurationService();
         configurationService.init(new RxSessionImpl(session));
@@ -61,8 +60,7 @@ public class MetricServiceManager {
         metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
 
-        HawkularMetricRegistry metricRegistry = new HawkularMetricRegistry();
-        metricRegistry.setMetricNameService(new MetricNameService());
+        MetricRegistry metricRegistry = new MetricRegistry();
 
         metricsService.startUp(session, keyspace, false, false, metricRegistry);
 

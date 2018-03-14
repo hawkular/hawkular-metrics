@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
@@ -17,16 +16,23 @@
     limitations under the License.
 
 -->
-<jboss-deployment-structure>
-  <deployment>
-    <exclusions>
-      <module name="org.jboss.resteasy.resteasy-jackson-provider"/>
-      <module name="org.jboss.resteasy.resteasy-jettison-provider"/>
-    </exclusions>
-    <dependencies>
-      <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
-      <module name="org.jboss.xnio"/>
-      <module name="org.jboss.xnio.nio"/>
-    </dependencies>
-  </deployment>
-</jboss-deployment-structure>
+<configuration>
+  <property name="pattern" value="%-5level %date{ISO8601} [%thread] %class:%M:%L - %message%n"/>
+
+  <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>INFO</level>
+    </filter>
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
+
+  <root level="info">
+    <appender-ref ref="stdout"/>
+  </root>
+
+  <logger name="org.cassalog" level="info"/>
+  <logger name="org.hawkular" level="info"/>
+  <logger name="com.datastax" level="info"/>
+</configuration>
