@@ -393,6 +393,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/schema-installer</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
         <module>job-scheduler</module>
@@ -417,6 +418,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/schema-installer</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
         <module>job-scheduler</module>

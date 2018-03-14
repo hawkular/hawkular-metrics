@@ -157,6 +157,36 @@
             </executions>
           </plugin>
           <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.6.0</version>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-Dhawkular.metrics.cassandra.keyspace=${cassandra.keyspace}</argument>
+                <argument>-Dhawkular.metrics.cassandra.resetdb=true</argument>
+                <argument>-jar</argument>
+                <argument>../../core/schema-installer/target/hawkular-metrics-schema-installer.jar</argument>
+              </arguments>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>hawkular-metrics-schema-installer</artifactId>
+                <version>${project.version}</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>install-schema</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
             <groupId>org.wildfly.plugins</groupId>
             <artifactId>wildfly-maven-plugin</artifactId>
             <configuration>
@@ -212,8 +242,11 @@
                       <command>
                         /subsystem=logging/logger=org.hawkular:add(level="TRACE")
                       </command>
+                      <!--<command>-->
+                        <!--/subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")-->
+                      <!--</command>-->
                       <command>
-                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
+                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="INFO")
                       </command>
                       <command>
                         /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${wildfly.logging.file.level}")
