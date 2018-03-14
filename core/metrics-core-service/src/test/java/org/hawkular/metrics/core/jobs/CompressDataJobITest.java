@@ -121,12 +121,16 @@ public class CompressDataJobITest extends BaseITest {
         jobScheduler.advanceTimeTo(nextStart);
         jobScheduler.truncateTables(getKeyspace());
 
+        List<JobDetails> jobDetails = jobsManager.installJobs();
+
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
+        jobsService.start();
+
+        compressionJob = jobDetails.stream().filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
         assertNotNull(compressionJob);

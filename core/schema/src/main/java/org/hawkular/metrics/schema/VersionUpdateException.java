@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.jobs;
-
-import org.hawkular.metrics.scheduler.api.JobDetails;
-
-import rx.Single;
+package org.hawkular.metrics.schema;
 
 /**
  * @author jsanda
  */
-public interface JobsService {
+public class VersionUpdateException extends RuntimeException {
 
-    void start();
+    public VersionUpdateException() {
+        super();
+    }
 
-    void shutdown();
+    public VersionUpdateException(String message) {
+        super(message);
+    }
 
-    Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
-
+    public VersionUpdateException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

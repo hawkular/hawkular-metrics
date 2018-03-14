@@ -16,22 +16,16 @@
  */
 package org.hawkular.metrics.core.jobs;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
-import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
-import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
 import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
-import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
@@ -39,7 +33,6 @@ import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
 
-import rx.Completable;
 import rx.Single;
 import rx.functions.Func2;
 
@@ -81,10 +74,8 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     }
 
     @Override
-    public List<JobDetails> start() {
+    public void start() {
         List<JobDetails> backgroundJobs = new ArrayList<>();
-
-        unscheduleDeleteExpiredMetrics();
 
         deleteTenant = new DeleteTenant(session, metricsService);
 
@@ -100,11 +91,8 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
         CompressData compressDataJob = new CompressData(metricsService, configurationService);
         scheduler.register(CompressData.JOB_NAME, compressDataJob);
-        maybeScheduleCompressData(backgroundJobs);
 
         scheduler.start();
-
-        return backgroundJobs;
     }
 
     @Override
@@ -116,40 +104,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     public Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-    }
-
-    private void unscheduleDeleteExpiredMetrics() {
-        String jobName = "DELETE_EXPIRED_METRICS";
-        String configId = "org.hawkular.metrics.jobs.DELETE_EXPIRED_METRICS";
-        // We load the configuration first so that delete is done only if it exists in order to avoid generating
-        // tombstones.
-        Completable deleteConfig = configurationService.load(configId)
-                .map(config -> configurationService.delete(configId))
-                .toCompletable();
-        // unscheduleJobByTypeAndName will not generate unnecessary tombstones as it does reads before writes
-        Completable unscheduleJob = scheduler.unscheduleJobByTypeAndName(jobName, jobName);
-        Completable.merge(deleteConfig, unscheduleJob).await();
-    }
-
-    private void maybeScheduleCompressData(List<JobDetails> backgroundJobs) {
-        String configId = "org.hawkular.metrics.jobs." + CompressData.JOB_NAME;
-        Configuration config = configurationService.load(configId).toBlocking()
-                .firstOrDefault(new Configuration(configId, new HashMap<>()));
-        if (config.get("jobId") == null) {
-            logger.info("Preparing to create and schedule " + CompressData.JOB_NAME + " job");
-
-            // Get next start of odd hour
-            long nextStart = LocalDateTime.now(ZoneOffset.UTC)
-                    .with(DateTimeService.startOfNextOddHour())
-                    .toInstant(ZoneOffset.UTC).toEpochMilli();
-            JobDetails jobDetails = scheduler.scheduleJob(CompressData.JOB_NAME, CompressData.JOB_NAME,
-                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
-                            .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
-            backgroundJobs.add(jobDetails);
-            configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
-
-            logger.info("Created and scheduled " + jobDetails);
-        }
     }
 
     // JMX management
