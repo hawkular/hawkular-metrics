@@ -20,6 +20,8 @@ import org.joda.time.DateTime
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
+
 /**
  * @author jsanda
  */
@@ -2895,5 +2897,58 @@ class MetricsITest extends RESTTest {
         }
       }
     }
+  }
+
+  @Test
+  void fetchAllTenantMetrics() {
+    String tenantId = nextTenantId()
+    String secondTenantId = nextTenantId()
+
+    // Create metric
+    def response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'N1',
+        tags: ['descriptor_name': 'cpu/usage'],
+        dataRetention: 7
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    response = hawkularMetrics.post(path: 'counters', body: [
+        id  : 'N2',
+        tags: ['descriptor_name': 'cpu/usage'],
+        dataRetention: 7
+    ], headers: [(tenantHeaderName): secondTenantId])
+    assertEquals(201, response.status)
+
+    // This should not appear in the return list as it does not have descriptor_name
+    response = hawkularMetrics.post(path: 'gauges', body: [
+        id  : 'N2',
+        tags: ['a1': 'A2'],
+        dataRetention: 7
+    ], headers: [(tenantHeaderName): tenantId])
+    assertEquals(201, response.status)
+
+    // Fetch metrics using tags
+    response = hawkularMetrics.get(path: "openshift",
+        headers: [(tenantHeaderName): tenantId,
+                  (adminTokenHeaderName): adminToken])
+
+    assertEquals(200, response.status)
+    assertTrue(response.data instanceof List)
+    assertEquals(2, response.data.size())
+    assertTrue((response.data ?: []).contains([
+        dataRetention: null,
+        tenantId: tenantId,
+        id      : 'N1',
+        tags: ['descriptor_name': 'cpu/usage'],
+        type: 'gauge'
+    ]))
+    assertTrue((response.data ?: []).contains([
+        dataRetention: null,
+        tenantId: secondTenantId,
+        id      : 'N2',
+        tags: ['descriptor_name': 'cpu/usage'],
+        type: 'counter'
+    ]))
+
   }
 }

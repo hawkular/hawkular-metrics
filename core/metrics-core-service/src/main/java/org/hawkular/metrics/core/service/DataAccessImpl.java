@@ -252,6 +252,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricInDataCompressed;
 
+    private PreparedStatement scanMetricInMetricsIndex;
+
     private PreparedStatement findAllMetricsInData;
 
     private PreparedStatement findAllMetricsInDataCompressed;
@@ -523,6 +525,13 @@ public class DataAccessImpl implements DataAccess {
             "FROM metrics_idx " +
             "WHERE tenant_id = ? AND type = ? AND metric = ?");
 
+        scanMetricInMetricsIndex = session.prepare(
+                "SELECT tenant_id, type, metric, tags, token(tenant_id, type) " +
+                        "FROM metrics_idx " +
+                        "WHERE token(tenant_id, type) > ? AND token(tenant_id, type) <=" +
+                        " ?"
+        );
+
         getMetricTags = session.prepare(
             "SELECT tags " +
             "FROM metrics_idx " +
@@ -752,6 +761,17 @@ public class DataAccessImpl implements DataAccess {
                                 rxSession.executeAndFetch(findMetricInDataCompressed
                                         .bind(id.getTenantId(), id.getType().getCode(), id.getName(), DPART))))
                 .take(1);
+    }
+
+    @Override
+    public <T> Observable<Observable<Row>> scanMetricsInMetricsIndex() {
+        // TODO MetricsServiceImpl can do tags filtering
+        return Observable.from(getTokenRanges())
+                .map(tr -> rxSession.executeAndFetch(
+                        scanMetricInMetricsIndex.bind()
+                                .setToken(0, tr.getStart())
+                                .setToken(1, tr.getEnd())));
+
     }
 
     @Override

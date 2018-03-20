@@ -73,6 +73,10 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findMetricInData(id);
     }
 
+    @Override public <T> Observable<Observable<Row>> scanMetricsInMetricsIndex() {
+        return delegate.scanMetricsInMetricsIndex();
+    }
+
     @Override
     public <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id) {
         return delegate.findMetricInMetricsIndex(id);

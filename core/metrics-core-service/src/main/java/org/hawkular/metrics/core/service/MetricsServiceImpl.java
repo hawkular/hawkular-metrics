@@ -552,6 +552,19 @@ public class MetricsServiceImpl implements MetricsService {
         return setFromMetricsIndex.concatWith(setFromData).distinct(Metric::getMetricId);
     }
 
+    @Override
+    public <T> Observable<Metric<T>> scanAllMetricIndexes() {
+        return dataAccess.scanMetricsInMetricsIndex()
+                .flatMap(r -> r)
+                .flatMap(r -> {
+                    MetricId<T> metricId =
+                            new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
+                                    r.getString(2));
+                    Metric<T> metric = new Metric<>(metricId, r.getMap(3, String.class, String.class));
+                    return Observable.just(metric);
+                });
+    }
+
 //    @SuppressWarnings("unchecked")
     @Override
     public <T> Observable<MetricId<T>> findMetricIdentifiersWithFilters(String tenantId, MetricType<T> metricType,
