@@ -111,7 +111,7 @@ public interface DataAccess {
 
     Observable<Row> findMetricsByTagName(String tenantId, String tag);
 
-    Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String tvalue);
+    Observable<Row> findMetricsByTagNameValue(String tenantId, String tag, String ... tvalues);
 
     Observable<Row> findAllMetricsFromTagsIndex();
 
