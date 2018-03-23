@@ -111,6 +111,8 @@ public interface MetricsService {
      */
     <T> Observable<Metric<T>> findMetrics(String tenantId, MetricType<T> type);
 
+    <T> Observable<Metric<T>> scanAllMetricIndexes();
+
     /**
      * Find tenant's metrics with filtering abilities. The filtering can take place at the type level or at the
      * tag level.

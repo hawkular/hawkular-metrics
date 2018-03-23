@@ -33,8 +33,24 @@
     </init-param>
   </servlet>
 
+  <servlet>    
+    <servlet-name>openshiftServlet</servlet-name>
+    <servlet-class>org.hawkular.metrics.api.servlet.OpenshiftServlet</servlet-class>
+    <async-supported>true</async-supported>
+  </servlet>
+
   <servlet-mapping>
     <servlet-name>staticContent</servlet-name>
     <url-pattern>/static/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>openshiftServlet</servlet-name>
+    <url-pattern>/openshift</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>openshiftServlet</servlet-name>
+    <url-pattern>/openshift/*</url-pattern>
   </servlet-mapping>
 </web-app>

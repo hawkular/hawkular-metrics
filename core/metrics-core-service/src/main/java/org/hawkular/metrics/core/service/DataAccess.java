@@ -49,6 +49,8 @@ public interface DataAccess {
 
     <T> Observable<Row> findMetricInData(MetricId<T> id);
 
+    <T> Observable<Observable<Row>> scanMetricsInMetricsIndex();
+
     <T> Observable<Row> findMetricInMetricsIndex(MetricId<T> id);
 
     <T> Observable<Row> getMetricTags(MetricId<T> id);
