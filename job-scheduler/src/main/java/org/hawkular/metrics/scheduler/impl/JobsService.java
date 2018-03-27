@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,6 +98,18 @@ public class JobsService {
                 .doOnNext(timeSlices -> logger.debugf("Active time slices %s", timeSlices))
                 .flatMap(Observable::from)
                 .concatWith(Observable.just(currentTime));
+    }
+
+    public Observable<JobDetailsImpl> findAllScheduledJobs(rx.Scheduler scheduler) {
+        return session.executeAndFetch(findAllScheduled.bind(), scheduler)
+                .map(row -> createJobDetails(
+                        row.getUUID(1),
+                        row.getString(2),
+                        row.getString(3),
+                        row.getMap(4, String.class, String.class),
+                        getTrigger(row.getUDTValue(5)),
+                        JobStatus.fromCode(row.getByte(6)),
+                        row.getTimestamp(0)));
     }
 
     public Observable<JobDetailsImpl> findJobs(Date timeSlice, rx.Scheduler scheduler) {

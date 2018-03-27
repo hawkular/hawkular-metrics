@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,13 +71,6 @@ public enum ConfigurationKey {
     METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
     METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "300",
             "METRICS_REPORTING_COLLECTION_INTERVAL", false),
-
-    //Metric expiration job configuration
-    METRICS_EXPIRATION_DELAY("hawkular.metrics.expiration.delay", "1", "METRICS_EXPIRATION_DELAY", false),
-    METRICS_EXPIRATION_JOB_FREQUENCY("hawkular.metrics.jobs.expiration.frequency", "7",
-            "METRICS_EXPIRATION_JOB_FREQUENCY", false),
-    METRICS_EXPIRATION_JOB_ENABLED("hawkular.metrics.jobs.expiration.enabled", "true",
-            "METRICS_EXPIRATION_JOB_ENABLED", false),
 
     // Request logging properties
     // Useful for debugging
