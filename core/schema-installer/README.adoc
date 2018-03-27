@@ -14,7 +14,7 @@ In its simplest form the installer can be run as:
 
 [source,bash]
 ----
-[jsanda@localhost schema-installer]$ java -jar target/hawkular-metrics-schema-installer.jar
+[jsanda@localhost schema-installer]$ java -jar target/hawkular-metrics-schema-installer-<version>.jar
 INFO  2018-03-08 15:26:48,783 [main] org.hawkular.metrics.schema.Installer:logVersion:104 - Hawkular Metrics Schema Installer v0.29.0-SNAPSHOT+12ad36d504
 INFO  2018-03-08 15:26:48,786 [main] org.hawkular.metrics.schema.Installer:logInstallerProperties:109 - Configured installer properties:
   cqlPort = 9042
@@ -94,7 +94,7 @@ Here is an example of overriding some of the default settings:
     -Dhawkular.metrics.cassandra.nodes=node1.com,node2.com \
     -Dhawkular.metrics.cassandra.keyspace=hawkulartest \
     -Dhawkular.metrics.version-update.delay=10 \
-    -jar target/hawkular-metrics-schema-installer.jar
+    -jar target/hawkular-metrics-schema-installer-<version>.jar
 ----
 
 == Logging
