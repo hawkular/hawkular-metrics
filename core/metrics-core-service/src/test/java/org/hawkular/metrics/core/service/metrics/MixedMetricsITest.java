@@ -207,7 +207,8 @@ public class MixedMetricsITest extends BaseMetricsITest {
                 new MetricsTagsIndexEntry("A", m4.getMetricId())));
     }
 
-    @Test
+    // This is disabled since it fails inconsistently
+    @Test(enabled = false)
     public void createAndDeleteMetrics() {
         createAndDeleteMetrics(MetricType.GAUGE, new Double[] { 1.2D, 2.3D, 3.4D, 4.5D });
         createAndDeleteMetrics(MetricType.COUNTER, new Long[] { 12L, 23L, 34L, 45L });

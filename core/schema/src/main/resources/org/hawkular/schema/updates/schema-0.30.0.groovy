@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -16,15 +15,10 @@ package org.hawkular.schema
  * limitations under the License.
  */
 
-include '/org/hawkular/schema/bootstrap.groovy'
-
-setKeyspace keyspace
-
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.27.0.groovy'
+schemaChange {
+    version '9.0'
+    author 'jsanda'
+    tags '0.30.x'
+    cql "DROP TABLE metrics_expiration_idx"
+    verify { tableDoesNotExist(keyspace, 'metrics_expiration_idx') }
+}
