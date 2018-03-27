@@ -33,7 +33,7 @@
     </init-param>
   </servlet>
 
-  <servlet>    
+  <servlet>
     <servlet-name>openshiftServlet</servlet-name>
     <servlet-class>org.hawkular.metrics.api.servlet.OpenshiftServlet</servlet-class>
     <async-supported>true</async-supported>
