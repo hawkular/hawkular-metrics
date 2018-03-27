@@ -387,7 +387,6 @@ public class CompressDataJobITest extends BaseITest {
         MetricId<Double> mId2 = new MetricId<>(tenantId, GAUGE, "m2");
         Metric<Double> m2 = new Metric<>(mId2);
         doAction(() -> metricsService.createMetric(m2, true));
-        doAction(() -> dataAccess.deleteFromMetricExpirationIndex(m2.getMetricId()));
 
         MetricId<Double> mId = new MetricId<>(tenantId, GAUGE, "m1");
         Metric<Double> m1 = new Metric<>(mId, asList(
@@ -396,9 +395,6 @@ public class CompressDataJobITest extends BaseITest {
                 new DataPoint<>(start.plusMinutes(4).getMillis(), 3.3),
                 new DataPoint<>(end.getMillis(), 4.4)));
         testCompressResults(GAUGE, m1, start);
-
-        assertNotNull(dataAccess.findMetricExpiration(m1.getMetricId()).toBlocking().firstOrDefault(null));
-        assertNull(dataAccess.findMetricExpiration(m2.getMetricId()).toBlocking().firstOrDefault(null));
     }
 
     private String nextTenantId() {

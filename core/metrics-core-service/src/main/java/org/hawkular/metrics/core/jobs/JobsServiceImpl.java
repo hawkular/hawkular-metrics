@@ -51,23 +51,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
     private DeleteTenant deleteTenant;
 
-    private DeleteExpiredMetrics deleteExpiredMetrics;
-    private int metricExpirationJobFrequencyInDays;
-    private int metricExpirationDelay;
-    private boolean metricExpirationJobEnabled;
-
     private ConfigurationService configurationService;
-
-    public JobsServiceImpl() {
-        this(1, 7, true);
-    }
-
-    public JobsServiceImpl(int metricExpirationDelay, int metricExpirationJobFrequencyInDays,
-            boolean metricExpirationJobEnabled) {
-        this.metricExpirationJobFrequencyInDays = metricExpirationJobFrequencyInDays;
-        this.metricExpirationDelay = metricExpirationDelay;
-        this.metricExpirationJobEnabled = metricExpirationJobEnabled;
-    }
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -109,10 +93,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         TempDataCompressor tempJob = new TempDataCompressor(metricsService, configurationService);
         scheduler.register(TempDataCompressor.JOB_NAME, tempJob);
 
-        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
-                this.metricExpirationDelay);
-        scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
-
         scheduler.start();
     }
 
@@ -124,13 +104,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     @Override
     public Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
-                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-    }
-
-    @Override
-    public Single<? extends JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName) {
-        return scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, jobName,
-                ImmutableMap.of("expirationTimestamp", expiration + ""),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
@@ -159,10 +132,4 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         );
     }
 
-    @Override
-    public void submitDeleteExpiredMetrics() {
-        long time = System.currentTimeMillis();
-        logger.debugf("Scheduling manual deleteExpiredMetrics job with timestamp->%d", time);
-        submitDeleteExpiredMetricsJob(time, "delete_expired_" + time);
-    }
 }
