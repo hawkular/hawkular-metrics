@@ -245,21 +245,6 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.insertCompressedData(id, timeslice, cpc, ttl);
     }
 
-    @Override
-    public <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime) {
-        return delegate.updateMetricExpirationIndex(id, expirationTime);
-    }
-
-    @Override
-    public <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id) {
-        return delegate.deleteFromMetricExpirationIndex(id);
-    }
-
-    @Override
-    public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
-        return delegate.findMetricExpiration(id);
-    }
-
     @Override public void shutdown() {
         delegate.shutdown();
     }

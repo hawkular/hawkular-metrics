@@ -40,7 +40,6 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
-import rx.subjects.PublishSubject;
 
 /**
  * Interface that defines the functionality of the Metrics Service.
@@ -199,7 +198,7 @@ public interface MetricsService {
      * @return onComplete when job is done
      */
     Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice, long endTimeSlice,
-            int pageSize, PublishSubject<Metric<?>> metricIdSubject);
+            int pageSize);
 
     <T> Observable<NamedDataPoint<T>> findDataPoints(List<MetricId<T>> ids, long start, long end, int limit,
                                                      Order order);
@@ -367,6 +366,4 @@ public interface MetricsService {
      * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
      */
     <T> Func1<MetricId<T>, Boolean> idFilter(String regexp);
-
-    <T> Observable<Void> updateMetricExpiration(MetricId<T> metric);
 }

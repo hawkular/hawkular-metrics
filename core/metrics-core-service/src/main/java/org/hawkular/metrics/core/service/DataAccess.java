@@ -95,9 +95,6 @@ public interface DataAccess {
     <T> Observable<Row> findTempData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
                                      int pageSize);
 
-//    <T> Observable<Row> findOldData(MetricId<T> id, long startTime, long endTime, int limit, Order order,
-//                                    int pageSize);
-
     Observable<Row> findStringData(MetricId<String> id, long startTime, long endTime, int limit, Order order,
                                    int pageSize);
 
@@ -130,12 +127,6 @@ public interface DataAccess {
     <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
                                                              CompressedPointContainer cpc,
                                                              long sliceStart, long sliceEnd, int ttl);
-
-    <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime);
-
-    <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
-
-    <T> Observable<Row> findMetricExpiration(MetricId<T> id);
 
     void shutdown();
 }

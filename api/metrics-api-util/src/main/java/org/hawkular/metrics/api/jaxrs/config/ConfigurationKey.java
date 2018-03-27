@@ -72,13 +72,6 @@ public enum ConfigurationKey {
     METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "300",
             "METRICS_REPORTING_COLLECTION_INTERVAL", false),
 
-    //Metric expiration job configuration
-    METRICS_EXPIRATION_DELAY("hawkular.metrics.expiration.delay", "1", "METRICS_EXPIRATION_DELAY", false),
-    METRICS_EXPIRATION_JOB_FREQUENCY("hawkular.metrics.jobs.expiration.frequency", "7",
-            "METRICS_EXPIRATION_JOB_FREQUENCY", false),
-    METRICS_EXPIRATION_JOB_ENABLED("hawkular.metrics.jobs.expiration.enabled", "true",
-            "METRICS_EXPIRATION_JOB_ENABLED", false),
-
     // Request logging properties
     // Useful for debugging
     REQUEST_LOGGING_LEVEL("hawkular.metrics.request.logging.level", null, "REQUEST_LOGGING_LEVEL", false),
