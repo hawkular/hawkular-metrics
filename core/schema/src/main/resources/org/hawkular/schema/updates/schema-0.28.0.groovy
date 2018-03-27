@@ -14,23 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.hawkular.metrics.core.jobs;
 
-import java.util.List;
-
-import org.hawkular.metrics.scheduler.api.JobDetails;
-
-import rx.Single;
-
-/**
- * @author jsanda
- */
-public interface JobsService {
-
-    List<JobDetails> start();
-
-    void shutdown();
-
-    Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName);
-
+schemaChange {
+    version '9.0'
+    author 'jsanda'
+    tags '0.28.x'
+    cql "DROP TABLE metrics_expiration_idx"
+    verify { tableDoesNotExist(keyspace, 'metrics_expiration_idx') }
 }

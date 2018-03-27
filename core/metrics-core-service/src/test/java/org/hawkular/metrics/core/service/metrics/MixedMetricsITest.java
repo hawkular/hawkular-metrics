@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,9 @@ package org.hawkular.metrics.core.service.metrics;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static org.hawkular.metrics.core.service.Functions.makeSafe;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
-import static org.hawkular.metrics.model.MetricType.COUNTER;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
@@ -31,7 +29,6 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +50,6 @@ import org.hawkular.metrics.model.exception.MetricAlreadyExistsException;
 import org.hawkular.metrics.model.exception.TenantAlreadyExistsException;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -210,70 +206,8 @@ public class MixedMetricsITest extends BaseMetricsITest {
                 new MetricsTagsIndexEntry("A", m4.getMetricId())));
     }
 
-    @Test
-    public void shouldReceiveInsertedDataNotifications() throws Exception {
-        String tenantId = createRandomId();
-        ImmutableList<MetricType<?>> metricTypes = ImmutableList.of(GAUGE, COUNTER, AVAILABILITY);
-        AvailabilityType[] availabilityTypes = AvailabilityType.values();
-
-        int numberOfPoints = 10;
-
-        List<Metric<?>> actual = Collections.synchronizedList(new ArrayList<>());
-        CountDownLatch latch = new CountDownLatch(metricTypes.size() * numberOfPoints);
-        metricsService.insertedDataEvents()
-                .filter(metric -> metric.getMetricId().getTenantId().equals(tenantId))
-                .subscribe(metric -> {
-                    actual.add(metric);
-                    latch.countDown();
-                });
-
-        List<Metric<?>> expected = new ArrayList<>();
-        for (MetricType<?> metricType : metricTypes) {
-            for (int i = 0; i < numberOfPoints; i++) {
-                if (metricType == GAUGE) {
-
-                    DataPoint<Double> dataPoint = new DataPoint<>((long) i, (double) i);
-                    MetricId<Double> metricId = new MetricId<>(tenantId, GAUGE, "gauge");
-                    Metric<Double> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
-
-                    metricsService.addDataPoints(GAUGE, Observable.just(metric)).subscribe();
-
-                    expected.add(metric);
-
-                } else if (metricType == COUNTER) {
-
-                    DataPoint<Long> dataPoint = new DataPoint<>((long) i, (long) i);
-                    MetricId<Long> metricId = new MetricId<>(tenantId, COUNTER, "counter");
-                    Metric<Long> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
-
-                    metricsService.addDataPoints(COUNTER, Observable.just(metric)).subscribe();
-
-                    expected.add(metric);
-
-                } else if (metricType == AVAILABILITY) {
-
-                    AvailabilityType availabilityType = availabilityTypes[i % availabilityTypes.length];
-                    DataPoint<AvailabilityType> dataPoint = new DataPoint<>((long) i, availabilityType);
-                    MetricId<AvailabilityType> metricId = new MetricId<>(tenantId, AVAILABILITY, "avail");
-                    Metric<AvailabilityType> metric = new Metric<>(metricId, ImmutableList.of(dataPoint));
-
-                    metricsService.addDataPoints(AVAILABILITY, Observable.just(metric)).subscribe();
-
-                    expected.add(metric);
-
-                } else {
-                    fail("Unexpected metric type: " + metricType);
-                }
-            }
-        }
-
-        assertTrue(latch.await(1, MINUTES), "Did not receive all notifications");
-
-        assertEquals(actual.size(), expected.size());
-        assertTrue(actual.containsAll(expected));
-    }
-
-    @Test
+    // This is disabled since it fails inconsistently
+    @Test(enabled = false)
     public void createAndDeleteMetrics() {
         createAndDeleteMetrics(MetricType.GAUGE, new Double[] { 1.2D, 2.3D, 3.4D, 4.5D });
         createAndDeleteMetrics(MetricType.COUNTER, new Long[] { 12L, 23L, 34L, 45L });

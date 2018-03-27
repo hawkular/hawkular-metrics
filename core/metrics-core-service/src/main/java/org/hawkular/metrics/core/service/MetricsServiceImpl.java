@@ -472,8 +472,6 @@ public class MetricsServiceImpl implements MetricsService {
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
 
-        this.updateMetricExpiration(metric.getMetricId());
-
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!overwrite && !resultSet.wasApplied()) {
@@ -614,8 +612,6 @@ public class MetricsServiceImpl implements MetricsService {
         } catch (Exception e) {
             return Observable.error(e);
         }
-
-        this.updateMetricExpiration(metric.getMetricId());
 
         return dataAccess.insertIntoMetricsTagsIndex(metric, tags).concatWith(dataAccess.addTags(metric, tags))
                 .toList().map(l -> null);
@@ -791,9 +787,8 @@ public class MetricsServiceImpl implements MetricsService {
                                         MetricId<?> metricId =
                                                 new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
                                                         r.getString(2));
-                                        return dataAccess
-                                                .insertCompressedData(metricId, startTimeSlice, cpc, getTTL(metricId))
-                                                .mergeWith(updateMetricExpiration(metricId).map(rs -> null));
+                                        return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc,
+                                                getTTL(metricId));
                                     });
                                 }), maxConcurrency)
                         .flatMap(rs -> rs)
@@ -808,14 +803,13 @@ public class MetricsServiceImpl implements MetricsService {
     @Deprecated
     @SuppressWarnings("unchecked")
     public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
-            long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {
+            long endTimeSlice, int pageSize) {
 
         return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .doOnNext(cpc -> subject.onNext(new Metric<>(metricId, getTTL(metricId))))
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                 .compose(applyRetryPolicy()))));
@@ -1103,22 +1097,9 @@ public class MetricsServiceImpl implements MetricsService {
                 .map(r -> null);
         result = result.mergeWith(dataAccess.deleteMetricFromMetricsIndex(id).map(r -> null))
                 .mergeWith(dataAccess.deleteMetricData(id).map(r -> null))
-                .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null))
-                .mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).map(r -> null));
+                .mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).map(r -> null));
 
         return result;
     }
 
-    @Override
-    public <T> Observable<Void> updateMetricExpiration(MetricId<T> metric) {
-        if (!MetricType.STRING.equals(metric.getType())) {
-                long expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric) * DAY_TO_MILLIS;
-
-            return dataAccess.updateMetricExpirationIndex(metric, expiration)
-                    .doOnError(t -> log.error("Failure to update expiration index", t))
-                    .flatMap(r -> null);
-        }
-
-        return Observable.empty();
-    }
 }
