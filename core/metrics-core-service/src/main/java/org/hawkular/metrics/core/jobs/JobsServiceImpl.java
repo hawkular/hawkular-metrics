@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,23 +61,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
     private DeleteTenant deleteTenant;
 
-    private DeleteExpiredMetrics deleteExpiredMetrics;
-    private int metricExpirationJobFrequencyInDays;
-    private int metricExpirationDelay;
-    private boolean metricExpirationJobEnabled;
-
     private ConfigurationService configurationService;
-
-    public JobsServiceImpl() {
-        this(1, 7, true);
-    }
-
-    public JobsServiceImpl(int metricExpirationDelay, int metricExpirationJobFrequencyInDays,
-            boolean metricExpirationJobEnabled) {
-        this.metricExpirationJobFrequencyInDays = metricExpirationJobFrequencyInDays;
-        this.metricExpirationDelay = metricExpirationDelay;
-        this.metricExpirationJobEnabled = metricExpirationJobEnabled;
-    }
 
     public void setMetricsService(MetricsService metricsService) {
         this.metricsService = metricsService;
@@ -105,6 +89,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
         // The CompressData job has been replaced by the TempDataCompressor job
         unscheduleCompressData();
+        unscheduleDeleteExpiredMetrics();
 
         deleteTenant = new DeleteTenant(session, metricsService);
 
@@ -127,11 +112,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
         maybeScheduleTempDataCompressor(backgroundJobs);
 
-        deleteExpiredMetrics = new DeleteExpiredMetrics(metricsService, session, configurationService,
-                this.metricExpirationDelay);
-        scheduler.register(DeleteExpiredMetrics.JOB_NAME, deleteExpiredMetrics);
-        maybeScheduleMetricExpirationJob(backgroundJobs);
-
         scheduler.start();
 
         return backgroundJobs;
@@ -145,13 +125,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
     @Override
     public Single<? extends JobDetails> submitDeleteTenantJob(String tenantId, String jobName) {
         return scheduler.scheduleJob(DeleteTenant.JOB_NAME, jobName, ImmutableMap.of("tenantId", tenantId),
-                new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
-    }
-
-    @Override
-    public Single<? extends JobDetails> submitDeleteExpiredMetricsJob(long expiration, String jobName) {
-        return scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, jobName,
-                ImmutableMap.of("expirationTimestamp", expiration + ""),
                 new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build());
     }
 
@@ -197,6 +170,19 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         }
     }
 
+    private void unscheduleDeleteExpiredMetrics() {
+        String jobName = "DELETE_EXPIRED_METRICS";
+        String configId = "org.hawkular.metrics.jobs.DELETE_EXPIRED_METRICS";
+        // We load the configuration first so that delete is done only if it exists in order to avoid generating
+        // tombstones.
+        Completable deleteConfig = configurationService.load(configId)
+                .map(config -> configurationService.delete(configId))
+                .toCompletable();
+        // unscheduleJobByTypeAndName will not generate unnecessary tombstones as it does reads before writes
+        Completable unscheduleJob = scheduler.unscheduleJobByTypeAndName(jobName, jobName);
+        Completable.merge(deleteConfig, unscheduleJob).await();
+    }
+
     private void maybeScheduleTempDataCompressor(List<JobDetails> backgroundJobs) {
         String configId = TempDataCompressor.CONFIG_ID;
         Configuration config = configurationService.load(configId).toBlocking()
@@ -215,53 +201,6 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
                             .withInterval(2, TimeUnit.HOURS).build()).toBlocking().value();
             backgroundJobs.add(jobDetails);
             configurationService.save(configId, "jobId", jobDetails.getJobId().toString()).toBlocking();
-
-            logger.info("Created and scheduled " + jobDetails);
-        }
-    }
-
-    private void maybeScheduleMetricExpirationJob(List<JobDetails> backgroundJobs) {
-        String jobIdConfigKey = "jobId";
-        String jobFrequencyKey = "jobFrequency";
-
-        String configId = "org.hawkular.metrics.jobs." + DeleteExpiredMetrics.JOB_NAME;
-        Configuration config = configurationService.load(configId).toBlocking()
-                .firstOrDefault(new Configuration(configId, new HashMap<>()));
-
-        if (config.get(jobIdConfigKey) != null) {
-            Integer configuredJobFrequency = null;
-            try {
-                configuredJobFrequency = Integer.parseInt(config.get(jobFrequencyKey));
-            } catch (Exception e) {
-                //do nothing, the parsing failed which makes the value unknown
-            }
-
-            if (configuredJobFrequency == null || configuredJobFrequency != this.metricExpirationJobFrequencyInDays
-                    || this.metricExpirationJobFrequencyInDays <= 0 || configuredJobFrequency <= 0 ||
-                    !this.metricExpirationJobEnabled) {
-                scheduler.unscheduleJobById(config.get(jobIdConfigKey)).await();
-                configurationService.delete(configId, jobIdConfigKey)
-                        .concatWith(configurationService.delete(configId, jobFrequencyKey))
-                        .await();
-                config.delete(jobIdConfigKey);
-                config.delete(jobFrequencyKey);
-            }
-        }
-
-        if (config.get(jobIdConfigKey) == null && this.metricExpirationJobFrequencyInDays > 0
-                && this.metricExpirationJobEnabled) {
-            logger.info("Preparing to create and schedule " + DeleteExpiredMetrics.JOB_NAME + " job");
-
-            //Get start of next day
-            long nextStart = DateTimeService.current24HourTimeSlice().plusDays(1).getMillis();
-            JobDetails jobDetails = scheduler.scheduleJob(DeleteExpiredMetrics.JOB_NAME, DeleteExpiredMetrics.JOB_NAME,
-                    ImmutableMap.of(), new RepeatingTrigger.Builder().withTriggerTime(nextStart)
-                            .withInterval(this.metricExpirationJobFrequencyInDays, TimeUnit.DAYS).build())
-                    .toBlocking().value();
-            backgroundJobs.add(jobDetails);
-            configurationService.save(configId, jobIdConfigKey, jobDetails.getJobId().toString()).toBlocking();
-            configurationService.save(configId, jobFrequencyKey, this.metricExpirationJobFrequencyInDays + "")
-                    .toBlocking();
 
             logger.info("Created and scheduled " + jobDetails);
         }
@@ -292,10 +231,4 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
         );
     }
 
-    @Override
-    public void submitDeleteExpiredMetrics() {
-        long time = System.currentTimeMillis();
-        logger.debugf("Scheduling manual deleteExpiredMetrics job with timestamp->%d", time);
-        submitDeleteExpiredMetricsJob(time, "delete_expired_" + time);
-    }
 }
