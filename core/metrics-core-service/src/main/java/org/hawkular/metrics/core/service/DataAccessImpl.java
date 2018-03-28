@@ -806,6 +806,13 @@ public class DataAccessImpl implements DataAccess {
         return rxSession.executeAndFetch(readMetricsIndex.bind(tenantId, type.getCode()));
     }
 
+    @Override
+    public Set<Long> findExpiredTables() {
+        long currentTime = System.currentTimeMillis();
+        Long currentTableKey = prepMap.floorKey(currentTime);
+        return prepMap.subMap(0L, false, currentTableKey, false).keySet();
+    }
+
     /**
      * Fetch all the data from a temporary table for the compression job. Using TokenRanges avoids fetching first
      * all the metrics' partition keys and then requesting them.
