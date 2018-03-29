@@ -776,7 +776,7 @@ public class MetricsServiceImpl implements MetricsService {
     @SuppressWarnings("unchecked")
     public Completable compressBlock(long jobStartTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
-                Observable.from(dataAccess.findExpiredTables())
+                Observable.from(dataAccess.findExpiredTables(jobStartTimeSlice))
                         .flatMap(startTimeSlice ->
                                 dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
                                         .switchIfEmpty(Observable.empty())

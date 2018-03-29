@@ -116,8 +116,8 @@ public class DelegatingDataAccess implements DataAccess {
         return delegate.findMetricsInMetricsIndex(tenantId, type);
     }
 
-    @Override public Set<Long> findExpiredTables() {
-        return delegate.findExpiredTables();
+    @Override public Set<Long> findExpiredTables(long startTime) {
+        return delegate.findExpiredTables(startTime);
     }
 
     @Override public Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency) {

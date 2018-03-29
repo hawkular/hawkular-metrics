@@ -807,10 +807,9 @@ public class DataAccessImpl implements DataAccess {
     }
 
     @Override
-    public Set<Long> findExpiredTables() {
-        long currentTime = System.currentTimeMillis();
-        Long currentTableKey = prepMap.floorKey(currentTime);
-        return prepMap.subMap(0L, false, currentTableKey, false).keySet();
+    public Set<Long> findExpiredTables(long startTime) {
+        Long currentTableKey = prepMap.floorKey(startTime);
+        return prepMap.subMap(0L, false, currentTableKey, true).keySet();
     }
 
     /**
