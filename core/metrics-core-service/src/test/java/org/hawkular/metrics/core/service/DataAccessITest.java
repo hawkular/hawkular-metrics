@@ -22,7 +22,6 @@ import static java.util.Collections.singletonList;
 import static org.hawkular.metrics.model.AvailabilityType.UP;
 import static org.hawkular.metrics.model.MetricType.AVAILABILITY;
 import static org.hawkular.metrics.model.MetricType.GAUGE;
-import static org.joda.time.DateTime.now;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -31,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hawkular.metrics.core.service.transformers.MetricIdentifierFromFullDataRowTransformer;
+import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.model.AvailabilityType;
 import org.hawkular.metrics.model.DataPoint;
 import org.hawkular.metrics.model.Metric;
@@ -63,6 +63,7 @@ public class DataAccessITest extends BaseITest {
     private static int DEFAULT_PAGE_SIZE = 5000;
 
     private DataAccessImpl dataAccess;
+    private static final DateTime now = DateTimeService.now.get();
 
     private PreparedStatement truncateTenants;
     private PreparedStatement truncateGaugeData;
@@ -71,7 +72,7 @@ public class DataAccessITest extends BaseITest {
 
     @BeforeClass
     public void initClass() {
-        this.dataAccess = (DataAccessImpl) TestDataAccessFactory.newInstance(session);
+        this.dataAccess = (DataAccessImpl) TestDataAccessFactory.newInstance(session, now());
 
         truncateTenants = session.prepare("TRUNCATE tenants");
         truncateGaugeData = session.prepare("TRUNCATE data");
@@ -229,7 +230,11 @@ public class DataAccessITest extends BaseITest {
         assertEquals(metrics.size(), 4);
     }
 
-    @Test(enabled = false)
+    private static DateTime now() {
+        return new DateTime(now);
+    }
+
+    @Test
     void testFindAllDataFromBucket() throws Exception {
         String tenantId = "t1";
         long start = now().getMillis();
