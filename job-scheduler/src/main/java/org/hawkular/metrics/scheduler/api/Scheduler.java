@@ -21,7 +21,6 @@ import java.util.Map;
 import rx.Completable;
 import rx.Single;
 import rx.functions.Func1;
-import rx.functions.Func2;
 
 /**
  * @author jsanda
