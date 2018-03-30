@@ -23,6 +23,7 @@ import javax.servlet.ServletOutputStream;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
+import rx.exceptions.Exceptions;
 
 /**
  * An {@link Observable} interface to Servlet API
@@ -76,12 +77,12 @@ public class ObservableServlet {
         return Observable.create(new Observable.OnSubscribe<Void>() {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
-                Observable<Void> events = create(out).onBackpressureDrop();
+                Observable<Void> events = create(out).onBackpressureBuffer();
                 Observable<Void> writeobs = Observable.zip(data, events, (b, aVoid) -> {
                     try {
                         out.write(b);
                     } catch (IOException ioe) {
-                        ioe.printStackTrace();
+                        Exceptions.propagate(ioe);
                     }
                     return null;
                 });
