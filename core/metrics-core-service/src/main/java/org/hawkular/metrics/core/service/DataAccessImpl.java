@@ -789,7 +789,15 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Set<Long> findExpiredTables(long startTime) {
         Long currentTableKey = prepMap.floorKey(startTime);
-        return prepMap.subMap(0L, false, currentTableKey, true).keySet();
+        NavigableMap<Long, Map<Integer, PreparedStatement>> expiredTempMap =
+                prepMap.subMap(0L, false, currentTableKey, true);
+        if(log.isDebugEnabled()) {
+            log.debug(String.format("Returning expired keys from %d to %d, in total %d items",
+                    expiredTempMap.firstEntry().getKey(),
+                    expiredTempMap.lastEntry().getKey(),
+                    expiredTempMap.size())); // No idea why debugf throws compiler issues
+        }
+        return expiredTempMap.keySet();
     }
 
     /**
@@ -816,7 +824,7 @@ public class DataAccessImpl implements DataAccess {
 
         return Observable.from(getTokenRanges())
                 .map(tr -> rxSession.executeAndFetch(
-                        getTempStatement(MetricType.UNDEFINED, TempStatement.SCAN_WITH_TOKEN_RANGES, timestamp)
+                        ts
                                 .bind()
                                 .setToken(0, tr.getStart())
                                 .setToken(1, tr.getEnd())
