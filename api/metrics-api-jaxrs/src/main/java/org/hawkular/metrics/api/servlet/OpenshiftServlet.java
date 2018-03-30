@@ -66,15 +66,29 @@ public class OpenshiftServlet extends HttpServlet {
         resp.setContentType("application/json");
         AsyncContext asyncContext = getAsyncContext(req);
 
+        PublishSubject<byte[]> byteSubject = PublishSubject.create();
+
         Observable<Metric<Object>> metricObservable = metricsService.scanAllMetricIndexes()
                 .filter(m -> m.getTags().containsKey(DESCRIPTOR_TAG))
                 .onBackpressureBuffer();
 
-        PublishSubject<byte[]> byteSubject = PublishSubject.create();
+        serializeMetrics(byteSubject, metricObservable);
 
+        ObservableServlet.write(byteSubject, resp.getOutputStream())
+                .subscribe(v -> {},
+                        t -> {
+                            t.printStackTrace();
+                            // invoked..
+                            asyncContext.complete();
+                        },
+                        asyncContext::complete);
+    }
+
+    public static void serializeMetrics(PublishSubject<byte[]> targetSubject, Observable<Metric<Object>>
+            sourceObservable) {
         // Transform above on the fly to ByteBuffers and write them as soon as we have them
         Observable<byte[]> buffers =
-                metricObservable.map(m -> {
+                sourceObservable.map(m -> {
                     try {
                         return objectWriter.writeValueAsBytes(m);
                     } catch (JsonProcessingException e) {
@@ -87,34 +101,25 @@ public class OpenshiftServlet extends HttpServlet {
 
             @Override public void onCompleted() {
                 if(!first.get()) {
-                    byteSubject.onNext("]".getBytes(Charset.forName("UTF-8")));
+                    targetSubject.onNext("]".getBytes(Charset.forName("UTF-8")));
                 }
-                byteSubject.onCompleted();
+                targetSubject.onCompleted();
             }
 
             @Override public void onError(Throwable throwable) {
-
+                targetSubject.onError(throwable);
             }
 
             @Override public void onNext(byte[] bytes) {
                 if(first.compareAndSet(true, false)) {
-                    byteSubject.onNext("[".getBytes(Charset.forName("UTF-8")));
-                    byteSubject.onNext(bytes);
+                    targetSubject.onNext("[".getBytes(Charset.forName("UTF-8")));
+                    targetSubject.onNext(bytes);
                 } else {
-                    byteSubject.onNext(comma);
-                    byteSubject.onNext(bytes);
+                    targetSubject.onNext(comma);
+                    targetSubject.onNext(bytes);
                 }
             }
         });
-
-        ObservableServlet.write(byteSubject, resp.getOutputStream())
-                .subscribe(v -> {},
-                        t -> {
-                            t.printStackTrace();
-                            // invoked..
-                            asyncContext.complete();
-                        },
-                        asyncContext::complete);
     }
 
     private AsyncContext getAsyncContext(HttpServletRequest req) {
