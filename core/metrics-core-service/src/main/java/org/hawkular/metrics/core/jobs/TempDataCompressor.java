@@ -89,6 +89,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
 
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
         return metricsService.compressBlock(startOfSlice, pageSize, maxReadConcurrency)
+                .doOnError(t -> logger.errorf("Compression job failed: %s", t.getMessage()))
                 .doOnCompleted(() -> {
                     stopwatch.stop();
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
