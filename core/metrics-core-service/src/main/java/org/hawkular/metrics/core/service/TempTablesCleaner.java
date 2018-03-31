@@ -66,7 +66,6 @@ public class TempTablesCleaner {
                 .map(row -> row.getString(0))
                 .filter(this::isTableExpired)
                 .flatMap(this::dropTable)
-                .filter(table -> !table.isEmpty())
                 .subscribe(
                         table -> logger.infof("Dropped table %s", table),
                         t -> logger.warn("Cleaning temp tables failed", t),
@@ -108,7 +107,7 @@ public class TempTablesCleaner {
                     // dropped. We will instead wait until findTables runs again and retry dropping the table then
                     // if dropping it did indeed fail for some reason.
                     logger.infof(t, "Failed to drop %s", table);
-                    return Observable.just("");
+                    return Observable.empty();
                 });
     }
 
