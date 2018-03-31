@@ -767,7 +767,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Completable compressBlock(long jobStartTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
                 Observable.from(dataAccess.findExpiredTables(jobStartTimeSlice))
-                        .flatMap(startTimeSlice ->
+                        .concatMap(startTimeSlice ->
                                 dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
                                         .switchIfEmpty(Observable.empty())
                                         .flatMap(rows -> rows
