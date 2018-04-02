@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,6 +131,7 @@ public class StatsQueryRequest {
 
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
+                .omitNullValues()
                 .add("metrics", metrics)
                 .add("tags", tags)
                 .add("start", start)
