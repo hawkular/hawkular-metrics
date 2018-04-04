@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,12 +49,10 @@ import java.util.function.Supplier;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.JobParameters;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
-import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.jboss.logging.Logger;
 import org.joda.time.DateTime;
-import org.joda.time.Minutes;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -69,7 +67,6 @@ import rx.Completable;
 import rx.Observable;
 import rx.functions.Action1;
 import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 /**
@@ -484,8 +481,12 @@ public class JobExecutionTest extends JobSchedulerTest {
         assertEquals(executions.get(), 2);
     }
 
+    /**
+     * In this test the single execution job fails its first execution and completes normally on the subsequent
+     * execution.
+     */
     @Test
-    public void executeJobThatFailsAndRetriesImmediately() throws Exception {
+    public void executeSingleExecutionJobThatFails() throws Exception {
         Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
         DateTime timeSlice = new DateTime(trigger.getTriggerTime());
         JobDetails jobDetails = createJobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
@@ -497,41 +498,22 @@ public class JobExecutionTest extends JobSchedulerTest {
             }
             return Completable.complete();
         };
-        Func2<JobDetails, Throwable, RetryPolicy> retry = (details, throwable) -> RetryPolicy.NOW;
 
-        jobScheduler.register(jobDetails.getJobType(), job, retry);
-
-        scheduleJob(jobDetails);
-
-        waitForSchedulerToFinishTimeSlice(timeSlice);
-
-        assertEquals(attempts.get(), 2);
-    }
-
-    @Test
-    public void executeJobThatFailsAndRetriesAfterDelay() throws Exception {
-        Trigger trigger = new SingleExecutionTrigger.Builder().withDelay(1, TimeUnit.MINUTES).build();
-        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
-        JobDetails jobDetails = createJobDetails(randomUUID(), "Failed Job", "Failed Job", emptyMap(), trigger);
-
-        AtomicInteger attempts = new AtomicInteger();
-        Func1<JobDetails, Completable> job = details -> {
-            if (attempts.getAndIncrement() == 0) {
-                return Completable.error(new Exception());
-            }
-            return Completable.complete();
-        };
-        Func2<JobDetails, Throwable, RetryPolicy> retry = (details, throwable) ->
-                () -> Minutes.ONE.toStandardDuration().getMillis();
-
-        jobScheduler.register(jobDetails.getJobType(), job, retry);
+        jobScheduler.register(jobDetails.getJobType(), job);
 
         scheduleJob(jobDetails);
 
         waitForSchedulerToFinishTimeSlice(timeSlice);
+
+        assertEquals(attempts.get(), 1);
+        assertEquals(getScheduledJobs(timeSlice), ImmutableSet.of(jobDetails));
+        assertEquals(getFinishedJobs(timeSlice), emptySet());
+
         waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
         assertEquals(attempts.get(), 2);
+        assertEquals(getScheduledJobs(timeSlice.plusMinutes(1)), emptySet());
+        assertEquals(getFinishedJobs(timeSlice.plusMinutes(1)), emptySet());
     }
 
     @Test
@@ -556,9 +538,16 @@ public class JobExecutionTest extends JobSchedulerTest {
         scheduleJob(jobDetails);
 
         waitForSchedulerToFinishTimeSlice(timeSlice);
+
+        assertEquals(attempts.get(), 1);
+        assertEquals(getScheduledJobs(timeSlice), ImmutableSet.of(jobDetails));
+        assertEquals(getFinishedJobs(timeSlice), emptySet());
+
         waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
 
         assertEquals(attempts.get(), 2);
+        assertEquals(getScheduledJobs(timeSlice), emptySet());
+        assertEquals(getFinishedJobs(timeSlice.plusMinutes(1)), emptySet());
     }
 
     /**
