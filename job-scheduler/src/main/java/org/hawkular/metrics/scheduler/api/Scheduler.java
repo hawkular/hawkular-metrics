@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,6 @@ import java.util.Map;
 import rx.Completable;
 import rx.Single;
 import rx.functions.Func1;
-import rx.functions.Func2;
 
 /**
  * @author jsanda
@@ -59,17 +58,6 @@ public interface Scheduler {
      * @param jobProducer
      */
     void register(String jobType, Func1<JobDetails, Completable> jobProducer);
-
-    /**
-     * Registers two functions. The first produces a job of the specfied type. The second function returns a retry
-     * policy that is used with non-repeating jobs when the fail.
-     *
-     * @param jobType
-     * @param jobProducer
-     * @param retryFunction
-     */
-    void register(String jobType, Func1<JobDetails, Completable> jobProducer,
-            Func2<JobDetails, Throwable, RetryPolicy> retryFunction);
 
     /**
      * Start executing jobs.
