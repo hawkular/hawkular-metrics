@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,16 +39,13 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.JobStatus;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
-import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
-import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.scheduler.api.Trigger;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
@@ -64,7 +61,6 @@ import rx.Observable;
 import rx.Single;
 import rx.functions.Action0;
 import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -77,8 +73,6 @@ public class SchedulerImpl implements Scheduler {
 
     private Map<String, Func1<JobDetails, Completable>> jobFactories;
 
-    private Map<String, Func2<JobDetails, Throwable, RetryPolicy>> retryFunctions;
-
     private ScheduledExecutorService tickExecutor;
 
     private rx.Scheduler tickScheduler;
@@ -88,8 +82,6 @@ public class SchedulerImpl implements Scheduler {
     private rx.Scheduler queryScheduler;
 
     private RxSession session;
-
-    private PreparedStatement deleteScheduleJob;
 
     private PreparedStatement deleteScheduledJobs;
 
@@ -111,17 +103,11 @@ public class SchedulerImpl implements Scheduler {
 
     private boolean running;
 
-    private AtomicInteger ticks = new AtomicInteger();
-
-    private static Func2<JobDetails, Throwable, RetryPolicy> NO_RETRY = (details, throwable) -> RetryPolicy.NONE;
-
     static final String QUEUE_LOCK_PREFIX = "org.hawkular.metrics.scheduler.queue.";
 
     static final String SCHEDULING_LOCK = "scheduling";
 
     static final String TIME_SLICE_EXECUTION_LOCK = "executing";
-
-    static final String JOB_EXECUTION_LOCK = "locked";
 
     // TODO We probably want this to be configurable
     static final int SCHEDULING_LOCK_TIMEOUT_IN_SEC = 5;
@@ -147,7 +133,6 @@ public class SchedulerImpl implements Scheduler {
     public SchedulerImpl(RxSession session, String hostname, JobsService jobsService) {
         this.session = session;
         jobFactories = new HashMap<>();
-        retryFunctions = new HashMap<>();
 
         tickExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
                 .setNameFormat("ticker-pool-%d").build(), new ThreadPoolExecutor.DiscardPolicy());
@@ -210,13 +195,6 @@ public class SchedulerImpl implements Scheduler {
     @Override
     public void register(String jobType, Func1<JobDetails, Completable> jobProducer) {
         jobFactories.put(jobType, jobProducer);
-    }
-
-    @Override
-    public void register(String jobType, Func1<JobDetails, Completable> jobProducer,
-            Func2<JobDetails, Throwable, RetryPolicy> retryFunction) {
-        jobFactories.put(jobType, jobProducer);
-        retryFunctions.put(jobType, retryFunction);
     }
 
     @Override
@@ -418,38 +396,6 @@ public class SchedulerImpl implements Scheduler {
             jobsService.prepareJobDetailsForExecution(details, timeSlice);
             job = factory
                     .call(details)
-                    .onErrorResumeNext(t -> {
-                        logger.infof(t, "Execution of %s in time slice [%s] failed", details, timeSlice);
-
-                        RetryPolicy retryPolicy =
-                                retryFunctions.getOrDefault(details.getJobType(), NO_RETRY).call(details, t);
-                        if (retryPolicy == RetryPolicy.NONE) {
-                            return Completable.complete();
-                        }
-                        if (details.getTrigger().nextTrigger() != null) {
-                            logger.warnf("Retry policies cannot be used with jobs that repeat. %s will execute " +
-                                    "again according to its next trigger", details);
-                            return Completable.complete();
-                        }
-                        if (retryPolicy == RetryPolicy.NOW) {
-                            return factory.call(details);
-                        }
-                        Trigger newTrigger = new Trigger() {
-                            @Override
-                            public long getTriggerTime() {
-                                return details.getTrigger().getTriggerTime();
-                            }
-
-                            @Override
-                            public Trigger nextTrigger() {
-                                return new SingleExecutionTrigger.Builder()
-                                        .withDelay(retryPolicy.getDelay(), TimeUnit.MILLISECONDS)
-                                        .build();
-                            }
-                        };
-                        JobDetailsImpl newDetails = new JobDetailsImpl(details, newTrigger);
-                        return reschedule(new JobExecutionState(newDetails, activeJobs)).toCompletable();
-            })
                     .doOnTerminate(() -> jobsService.resetJobDetails(details))
                     .doOnCompleted(() -> {
                         stopwatch.stop();
@@ -466,18 +412,48 @@ public class SchedulerImpl implements Scheduler {
 
     private Completable doPostJobExecution(Completable job, JobDetailsImpl jobDetails, Date timeSlice,
             Set<UUID> activeJobs) {
+
         return job
                 .toSingle(() -> new JobExecutionState(jobDetails, timeSlice, null, null, activeJobs))
-                .flatMap(state -> jobsService.updateStatusToFinished(timeSlice, state.currentDetails.getJobId())
-                        .toSingle()
-                        .map(resultSet -> state))
-                .flatMap(this::reschedule)
-                .flatMap(state -> releaseJobExecutionLock(state).flatMap(this::setJobFinished))
+                .onErrorReturn(t -> {
+                    logger.warnf(t, "Job execution of %s for time slice %d failed", jobDetails, timeSlice.getTime());
+                    return new JobExecutionState(jobDetails, timeSlice, t, activeJobs);
+                })
+                .flatMap(state -> {
+                    // Only set the job status to finished if it completed normally without error. If there was an
+                    // error, the job will get executed again for the current time slice.
+                    if (state.error == null) {
+                        return jobsService.updateStatusToFinished(timeSlice, state.currentDetails.getJobId())
+                                .toSingle()
+                                .map(resultSet -> state);
+                    } else {
+                        return Single.just(state);
+                    }
+
+                })
+                .flatMap(state -> {
+                    // Only reschedule if the job completed normally without error. In other words, advance the trigger
+                    // time only when the job completes normally.
+                    if (state.error == null) {
+                        return reschedule(state);
+                    } else {
+                        return Single.just(state);
+                    }
+                })
+                .flatMap(state -> {
+                    // We only want to release the job execution lock if the job completed normally. Acquiring and
+                    // releasing locks has overhead that can be avoided when we are going to retry the job again.
+                    if (state.error == null) {
+                        return releaseJobExecutionLock(state).flatMap(this::setJobFinished);
+                    } else {
+                        return Single.just(state);
+                    }
+                })
                 .doOnError(t -> {
-                    logger.debug("There was an error during post-job execution", t);
+                    logger.warn("There was an error during post-job execution", t);
                     publishJobFinished(jobDetails);
                 })
-                .doOnSuccess(states -> publishJobFinished(states.currentDetails))
+                .doAfterTerminate(() -> publishJobFinished(jobDetails))
                 .toCompletable();
     }
 
@@ -713,6 +689,7 @@ public class SchedulerImpl implements Scheduler {
         final Set<UUID> activeJobs;
         final Date timeSlice;
         final Date nextTimeSlice;
+        final Throwable error;
 
         public JobExecutionState(JobDetailsImpl details, Set<UUID> activeJobs) {
             this.currentDetails = details;
@@ -720,6 +697,16 @@ public class SchedulerImpl implements Scheduler {
             this.timeSlice = new Date(details.getTrigger().getTriggerTime());
             nextDetails = null;
             nextTimeSlice = null;
+            this.error = null;
+        }
+
+        public JobExecutionState(JobDetailsImpl details, Date timeSlice, Throwable error, Set<UUID> activeJobs) {
+            this.currentDetails = details;
+            this.activeJobs = activeJobs;
+            this.timeSlice = timeSlice;
+            nextDetails = null;
+            nextTimeSlice = null;
+            this.error = error;
         }
 
         public JobExecutionState(JobDetailsImpl details, Date timeSlice, JobDetailsImpl nextDetails, Date nextTimeSlice,
@@ -729,6 +716,7 @@ public class SchedulerImpl implements Scheduler {
             this.nextDetails = nextDetails;
             this.nextTimeSlice = nextTimeSlice;
             this.activeJobs = activeJobs;
+            this.error = null;
         }
 
         public boolean isRepeating() {
