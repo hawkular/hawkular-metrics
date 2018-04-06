@@ -2899,7 +2899,8 @@ class MetricsITest extends RESTTest {
     }
   }
 
-  @Test
+    // Temporarily disabled. See HWKMETRICS-773.
+//  @Test
   void fetchAllTenantMetrics() {
     String tenantId = nextTenantId()
     String secondTenantId = nextTenantId()
