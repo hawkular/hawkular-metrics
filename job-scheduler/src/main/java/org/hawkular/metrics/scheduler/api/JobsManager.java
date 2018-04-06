@@ -75,6 +75,7 @@ public class JobsManager {
         List<JobDetails> backgroundJobs = new ArrayList<>();
 
         unscheduleCompressData();
+        unscheduleDeleteExpiredMetrics();
         maybeScheduleTableCreator(backgroundJobs);
         maybeScheduleTempDataCompressor(backgroundJobs);
 
@@ -82,7 +83,7 @@ public class JobsManager {
     }
 
     private void unscheduleCompressData() {
-        Configuration config = configurationService.load(COMPRESS_DATA_JOB).toBlocking()
+        Configuration config = configurationService.load(COMPRESS_DATA_CONFIG_ID).toBlocking()
                 .firstOrDefault(new Configuration(COMPRESS_DATA_CONFIG_ID, new HashMap<>()));
         String jobId = config.get("jobId");
 
@@ -103,6 +104,21 @@ public class JobsManager {
                 configurationService.delete(COMPRESS_DATA_CONFIG_ID).await();
             }
         }
+    }
+
+    private void unscheduleDeleteExpiredMetrics() {
+        String jobName = "DELETE_EXPIRED_METRICS";
+        String configId = "org.hawkular.metrics.jobs.DELETE_EXPIRED_METRICS";
+
+        // We load the configuration first so that delete is done only if it exists in order to avoid generating
+        // tombstones.
+        Completable deleteConfig = configurationService.load(configId)
+                .map(config -> configurationService.delete(configId))
+                .toCompletable();
+        // unscheduleJobByTypeAndName will not generate unnecessary tombstones as it does reads before writes
+        Completable unscheduleJob = scheduler.unscheduleJobByTypeAndName(jobName, jobName);
+
+        Completable.merge(deleteConfig, unscheduleJob).await();
     }
 
     private void maybeScheduleTableCreator(List<JobDetails> backgroundJobs) {
