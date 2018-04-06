@@ -74,6 +74,8 @@ public interface DataAccess {
      */
 //    Completable resetTempTable(long timestamp);
 
+    Set<Long> findExpiredTables(long startTime);
+
     Observable<Observable<Row>> findAllDataFromBucket(long timestamp, int pageSize, int maxConcurrency);
 
     Observable<ResultSet> dropTempTable(long timestamp);
