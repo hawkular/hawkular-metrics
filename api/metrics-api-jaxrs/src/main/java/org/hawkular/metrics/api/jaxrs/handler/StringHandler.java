@@ -129,9 +129,13 @@ public class StringHandler extends MetricsServiceHandler implements IMetricsHand
             @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
             @QueryParam("timestamps") Boolean fetchTimestamps) {
 
-        Observable<Metric<String>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), STRING)
-                : metricsService.findMetricsWithFilters(getTenant(), STRING, tags.getTags());
+        Observable<Metric<String>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), STRING, tags.getTags())
+                    .flatMap(metricsService::findMetric);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), STRING);
+        }
 
         if(fetchTimestamps) {
             metricObservable = metricObservable

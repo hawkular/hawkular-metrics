@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,10 +30,10 @@ import rx.Observable.Transformer;
  *
  * @author Michael Burman
  */
-public class TagsIndexRowTransformer<T> implements Transformer<Row, MetricId<T>> {
+public class TagsIndexRowTransformerFilter<T> implements Transformer<Row, MetricId<T>> {
     private final MetricType<T> type;
 
-    public TagsIndexRowTransformer(MetricType<T> type) {
+    public TagsIndexRowTransformerFilter(MetricType<T> type) {
         this.type = type;
     }
 

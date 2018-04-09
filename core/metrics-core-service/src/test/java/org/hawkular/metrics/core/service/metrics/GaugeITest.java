@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -291,8 +291,7 @@ public class GaugeITest extends BaseMetricsITest {
         Map<String, String> tagFilters = ImmutableMap.of("type", "cpu_usage", "node", "server1|server2");
 
         List<List<NumericBucketPoint>> actual = getOnNextEvents(
-                () -> metricsService.findMetricsWithFilters(tenantId, GAUGE, tagFilters)
-                        .map(Metric::getMetricId)
+                () -> metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, tagFilters)
                         .toList()
                         .flatMap(metrics -> metricsService.findNumericStats(metrics, start.getMillis(), start
                                 .plusMinutes(5).getMillis(), buckets, emptyList(), true, false)));
