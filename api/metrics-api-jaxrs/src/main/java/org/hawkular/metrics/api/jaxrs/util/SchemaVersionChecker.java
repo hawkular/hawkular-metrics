@@ -22,14 +22,12 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 
-import sun.misc.Version;
-
 /**
  * @author jsanda
  */
 public class SchemaVersionChecker {
 
-    private static final Logger logger = Logger.getLogger(Version.class);
+    private static final Logger logger = Logger.getLogger(SchemaVersionChecker.class);
 
     public void waitForSchemaUpdates(Session session, String keyspace, String version, long delay, int maxRetries)
             throws InterruptedException {
