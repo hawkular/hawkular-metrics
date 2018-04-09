@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +78,7 @@ import org.hawkular.metrics.model.param.BucketConfig;
 import org.hawkular.metrics.model.param.Duration;
 import org.hawkular.metrics.model.param.Tags;
 import org.hawkular.metrics.model.param.TimeRange;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.GZIP;
 
 import com.google.common.base.Strings;
@@ -104,6 +105,9 @@ import rx.Observable;
 @ApplicationScoped
 @Logged
 public class MetricHandler {
+
+    private static Logger logger = Logger.getLogger(MetricHandler.class);
+
     @Inject
     private MetricsService metricsService;
 
@@ -302,6 +306,10 @@ public class MetricHandler {
     public void findStats(@Suspended AsyncResponse asyncResponse, StatsQueryRequest query) {
         try {
             checkRequiredParams(query);
+
+            logger.debugf("Performing POST /metrics/stats/query for tenant %s with request body %s", getTenant(),
+                    query);
+
             doStatsQuery(query)
                     .map(ApiUtils::mapToResponse)
                     .subscribe(asyncResponse::resume, t -> asyncResponse.resume(ApiUtils.error(t)));
