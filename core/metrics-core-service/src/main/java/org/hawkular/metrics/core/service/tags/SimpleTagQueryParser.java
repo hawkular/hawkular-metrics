@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.core.service.DataAccess;
@@ -93,10 +94,11 @@ public class SimpleTagQueryParser {
             return tagValues;
         }
 
-        public static String toString(String tenantId, Query query) {
+        public static String toString(String tenantId, Query query, String queryType) {
             return MoreObjects.toStringHelper(query)
                     .omitNullValues()
                     .add("tenantId", tenantId)
+                    .add("queryType", queryType)
                     .add("tagName", query.tagName)
                     .add("tagValueMatcher", query.tagValueMatcher)
                     .add("tagValues", query.tagValues == null ? null : Arrays.toString(query.tagValues))
@@ -191,6 +193,9 @@ public class SimpleTagQueryParser {
     public Observable<MetricId<?>> findMetricIdentifiersWithFilters(String tenantId, MetricType<?> metricType,
                                                                     Map<String, String> tagsQueries) {
 
+        logger.debugf("Preparing to optimize and execute %s for tenant %s and for metric type %s", tagsQueries,
+                tenantId, metricType);
+
         Map<Long, List<Query>> costSortedMap =
                 QueryOptimizer.reOrderTagsQuery(tagsQueries, enableACostQueries);
 
@@ -221,7 +226,7 @@ public class SimpleTagQueryParser {
                         .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValueMatcher())
                                 .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
-                                .doOnNext(metricIds -> logQuery(tenantId, e, metricIds)))
+                                .doOnNext(metricIds -> logQuery(tenantId, e, "A", metricIds)))
                         .reduce((s1, s2) -> {
                             s1.retainAll(s2);
                             return s1;
@@ -238,7 +243,7 @@ public class SimpleTagQueryParser {
                         .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValues())
                                 .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
-                                .doOnNext(metricIds -> logQuery(tenantId, e, metricIds))
+                                .doOnNext(metricIds -> logQuery(tenantId, e, "A_OR", metricIds))
                                 .reduce((s1, s2) -> {
                                     s1.addAll(s2);
                                     return s1;
@@ -262,8 +267,14 @@ public class SimpleTagQueryParser {
 
             // Options A+B, A+B+C and A+C
             if(!groupBEntries.isEmpty() || !groupCEntries.isEmpty()) {
+                logger.debug("Fetching metric definitions");
+                AtomicLong count = new AtomicLong();
                 Observable<Metric<?>> enrichedMetrics = groupMetrics
-                        .flatMap(metricsService::findMetric);
+                        .flatMap(mId -> metricsService.findMetric(mId)
+                                .doOnNext(m -> count.incrementAndGet())
+                                .doOnTerminate(() ->
+                                        logger.debugf("Fetched %d metric definitions for tenant %s", count,
+                                                tenantId)));
 
                 // Option +B (A+B and A+B+C)
                 if(!groupBEntries.isEmpty()) {
@@ -281,15 +292,18 @@ public class SimpleTagQueryParser {
             // Options B
             // Fetch everything from the tagsQueries
             groupMetrics = Observable.from(groupBEntries)
-                    .flatMap(e -> dataAccess.findMetricsByTagName(tenantId, e.getTagName())
+                    .flatMap(e -> {
+                        logger.debugf("Fetching all metrics for %s", Query.toString(tenantId, e, "B"));
+                        return dataAccess.findMetricsByTagName(tenantId, e.getTagName())
                             .filter(tagValueFilter(e.getTagValueMatcher(), 3))
                             .compose(new TagsIndexRowTransformerFilter<>(metricType))
                             .compose(new ItemsToSetTransformer<>())
-                            .doOnNext(metricIds -> logQuery(tenantId, e, metricIds))
+                            .doOnNext(metricIds -> logQuery(tenantId, e, "B", metricIds))
                             .reduce((s1, s2) -> {
                                 s1.addAll(s2);
                                 return s1;
-                            }))
+                            });
+                    })
                     .reduce((s1, s2) -> {
                         s1.retainAll(s2);
                         return s1;
@@ -304,6 +318,8 @@ public class SimpleTagQueryParser {
         } else {
             // Option C
             // Fetch all the available metrics for this tenant
+            logger.warnf("Fetching all metric definitions for tenant %s. This can be an expensive operation for " +
+                    "large data sets which can result in timeouts!", tenantId);
             Observable<? extends MetricId<?>> tagsMetrics = dataAccess.findAllMetricsFromTagsIndex()
                     .compose(new TagsIndexRowTransformerFilter<>(metricType))
                     .filter(mId -> mId.getTenantId().equals(tenantId));
@@ -312,11 +328,15 @@ public class SimpleTagQueryParser {
                     .filter(m -> m.getTenantId().equals(tenantId))
                     .filter(metricTypeFilter(metricType));
 
+            AtomicLong count = new AtomicLong();
             groupMetrics = applyCFilters(
                     Observable
                             .concat(tagsMetrics, dataMetrics)
                             .distinct()
-                            .flatMap(metricsService::findMetric),
+                            .flatMap(mId -> metricsService.findMetric(mId)
+                                    .doOnNext(m -> count.incrementAndGet())
+                                    .doAfterTerminate(() ->
+                                            logger.infof("Fetched %d metric definitions for tenant %s", count, tenantId))),
                     groupCEntries)
                     .map(Metric::getMetricId);
         }
@@ -324,15 +344,17 @@ public class SimpleTagQueryParser {
         return groupMetrics;
     }
 
-    private void logQuery(String tenantId, Query query, Set<? extends MetricId<?>> metricIds) {
+    private void logQuery(String tenantId, Query query, String queryType, Set<? extends MetricId<?>> metricIds) {
         // If debug is enabled, then always log the query info; otherwise, only log query info if the page threshold
         // is exceeded so as to avoid spamming the log file. The page threshold is a simple mechanism to let us know
         // that a particular query has a large result set and requires a number of round trips to Cassandra that exceeds
         // the threshold.
         if (logger.isDebugEnabled()) {
-            logger.debugf("Tag query %s returned %d rows", Query.toString(tenantId, query), metricIds.size());
+            logger.debugf("Tag query %s returned %d rows", Query.toString(tenantId, query, queryType),
+                    metricIds.size());
         } else if ((metricIds.size() / pageSize) > pageThreshold) {
-            logger.infof("Tag query %s returned %d rows", Query.toString(tenantId, query), metricIds.size());
+            logger.infof("Tag query %s returned %d rows", Query.toString(tenantId, query, queryType),
+                    metricIds.size());
         }
     }
 
