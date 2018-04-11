@@ -269,7 +269,7 @@ public class TagQueryParser {
                         .flatMap(mId -> metricsService.findMetric(mId)
                                 .doOnNext(m -> count.incrementAndGet())
                                 .doOnTerminate(() ->
-                                        logger.debugf("Fetched %d metric definitions for tenant %s", count,
+                                        logger.debugf("Fetched %d metric definitions for tenant %s", count.get(),
                                                 tenantId)));
 
                 // Option +B (A+B and A+B+C)
@@ -332,7 +332,8 @@ public class TagQueryParser {
                             .flatMap(mId -> metricsService.findMetric(mId)
                                     .doOnNext(m -> count.incrementAndGet())
                                     .doAfterTerminate(() ->
-                                            logger.infof("Fetched %d metric definitions for tenant %s", count, tenantId))),
+                                            logger.infof("Fetched %d metric definitions for tenant %s", count.get(),
+                                                    tenantId))),
                     groupCEntries)
                     .map(Metric::getMetricId);
         }
