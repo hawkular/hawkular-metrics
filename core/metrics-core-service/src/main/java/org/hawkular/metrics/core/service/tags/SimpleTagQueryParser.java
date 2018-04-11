@@ -17,6 +17,7 @@
 package org.hawkular.metrics.core.service.tags;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,8 +35,10 @@ import org.hawkular.metrics.core.service.transformers.TagsIndexRowTransformerFil
 import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.model.MetricType;
+import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.Row;
+import com.google.common.base.MoreObjects;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -47,14 +50,21 @@ import rx.functions.Func1;
  */
 public class SimpleTagQueryParser {
 
+    private static final Logger logger = Logger.getLogger(SimpleTagQueryParser.class);
+
     private DataAccess dataAccess;
     private MetricsService metricsService;
     private boolean enableACostQueries;
+    private int pageSize;
+    private int pageThreshold;
 
-    public SimpleTagQueryParser(DataAccess dataAccess, MetricsService metricsService, boolean disableACostQueries) {
+    public SimpleTagQueryParser(DataAccess dataAccess, MetricsService metricsService, boolean disableACostQueries,
+            int pageSize, int pageThreshold) {
         this.dataAccess = dataAccess;
         this.metricsService = metricsService;
         this.enableACostQueries = !disableACostQueries;
+        this.pageSize = pageSize;
+        this.pageThreshold = pageThreshold;
     }
 
     static class Query {
@@ -81,6 +91,16 @@ public class SimpleTagQueryParser {
 
         public String[] getTagValues() {
             return tagValues;
+        }
+
+        public static String toString(String tenantId, Query query) {
+            return MoreObjects.toStringHelper(query)
+                    .omitNullValues()
+                    .add("tenantId", tenantId)
+                    .add("tagName", query.tagName)
+                    .add("tagValueMatcher", query.tagValueMatcher)
+                    .add("tagValues", query.tagValues == null ? null : Arrays.toString(query.tagValues))
+                    .toString();
         }
     }
 
@@ -200,7 +220,8 @@ public class SimpleTagQueryParser {
                 groupMetrics = Observable.from(groupAEntries)
                         .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValueMatcher())
                                 .compose(new TagsIndexRowTransformerFilter<>(metricType))
-                                .compose(new ItemsToSetTransformer<>()))
+                                .compose(new ItemsToSetTransformer<>())
+                                .doOnNext(metricIds -> logQuery(tenantId, e, metricIds)))
                         .reduce((s1, s2) -> {
                             s1.retainAll(s2);
                             return s1;
@@ -217,6 +238,7 @@ public class SimpleTagQueryParser {
                         .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValues())
                                 .compose(new TagsIndexRowTransformerFilter<>(metricType))
                                 .compose(new ItemsToSetTransformer<>())
+                                .doOnNext(metricIds -> logQuery(tenantId, e, metricIds))
                                 .reduce((s1, s2) -> {
                                     s1.addAll(s2);
                                     return s1;
@@ -263,6 +285,7 @@ public class SimpleTagQueryParser {
                             .filter(tagValueFilter(e.getTagValueMatcher(), 3))
                             .compose(new TagsIndexRowTransformerFilter<>(metricType))
                             .compose(new ItemsToSetTransformer<>())
+                            .doOnNext(metricIds -> logQuery(tenantId, e, metricIds))
                             .reduce((s1, s2) -> {
                                 s1.addAll(s2);
                                 return s1;
@@ -299,6 +322,18 @@ public class SimpleTagQueryParser {
         }
 
         return groupMetrics;
+    }
+
+    private void logQuery(String tenantId, Query query, Set<? extends MetricId<?>> metricIds) {
+        // If debug is enabled, then always log the query info; otherwise, only log query info if the page threshold
+        // is exceeded so as to avoid spamming the log file. The page threshold is a simple mechanism to let us know
+        // that a particular query has a large result set and requires a number of round trips to Cassandra that exceeds
+        // the threshold.
+        if (logger.isDebugEnabled()) {
+            logger.debugf("Tag query %s returned %d rows", Query.toString(tenantId, query), metricIds.size());
+        } else if ((metricIds.size() / pageSize) > pageThreshold) {
+            logger.infof("Tag query %s returned %d rows", Query.toString(tenantId, query), metricIds.size());
+        }
     }
 
     private Observable<Metric<?>> applyBFilters(Observable<Metric<?>> metrics, List<Query> groupBEntries) {
