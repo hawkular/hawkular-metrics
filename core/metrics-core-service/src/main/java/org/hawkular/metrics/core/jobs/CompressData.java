@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
-import org.hawkular.metrics.model.Metric;
 import org.hawkular.metrics.model.MetricId;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
@@ -41,7 +40,6 @@ import com.google.common.base.Stopwatch;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
-import rx.subjects.PublishSubject;
 
 /**
  * @author Michael Burman
@@ -124,25 +122,11 @@ public class CompressData implements Func1<JobDetails, Completable> {
         Observable<? extends MetricId<?>> metricIds = metricsService.findAllMetricIdentifiers()
                 .filter(m -> (m.getType() == GAUGE || m.getType() == COUNTER || m.getType() == AVAILABILITY));
 
-        PublishSubject<Metric<?>> subject = PublishSubject.create();
-        subject.subscribe(metric -> {
-            try {
-                this.metricsService.updateMetricExpiration(metric.getMetricId());
-            } catch (Exception e) {
-                logger.error("Could not update the metric expiration index for metric " + metric.getId()
-                        + " of tenant " + metric.getTenantId());
-            }
-        });
-
         // Fetch all partition keys and compress the previous timeSlice
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
-        return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize, subject)
-                .doOnError(t -> {
-                    subject.onCompleted();
-                    logger.warn("Failed to compress data", t);
-                })
+        return metricsService.compressBlock(metricIds, startOfSlice, endOfSlice, pageSize)
+                .doOnError(t -> logger.warn("Failed to compress data", t))
                 .doOnCompleted(() -> {
-                    subject.onCompleted();
                     stopwatch.stop();
                     logger.info("Finished compressing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
                             " ms");

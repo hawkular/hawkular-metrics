@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,9 +43,6 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.JMX_REPORTING_ENABLED;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_DELAY;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_ENABLED;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_EXPIRATION_JOB_FREQUENCY;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_COLLECTION_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
@@ -295,21 +292,6 @@ public class MetricsServiceLifecycle {
     @Configurable
     @ConfigurationProperty(METRICS_REPORTING_COLLECTION_INTERVAL)
     private String collectionIntervalConfig;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_EXPIRATION_DELAY)
-    private String metricExpirationDelay;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_EXPIRATION_JOB_FREQUENCY)
-    private String metricsExpirationJobFrequency;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_EXPIRATION_JOB_ENABLED)
-    private String metricsExpirationJobEnabled;
 
     @Inject
     @ServiceReady
@@ -719,10 +701,7 @@ public class MetricsServiceLifecycle {
     private void initJobsService() {
 
         RxSession rxSession = new RxSessionImpl(session);
-        jobsService = new JobsServiceImpl(
-                parseIntConfig(metricExpirationDelay, METRICS_EXPIRATION_DELAY),
-                parseIntConfig(metricsExpirationJobFrequency, METRICS_EXPIRATION_JOB_FREQUENCY),
-                parseBooleanConfig(metricsExpirationJobEnabled, METRICS_EXPIRATION_JOB_ENABLED));
+        jobsService = new JobsServiceImpl();
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
         jobsService.setSession(rxSession);
