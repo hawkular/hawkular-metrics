@@ -229,7 +229,7 @@ public class DataAccessITest extends BaseITest {
         assertEquals(metrics.size(), 4);
     }
 
-    @Test
+    @Test(enabled = false)
     void testFindAllDataFromBucket() throws Exception {
         String tenantId = "t1";
         long start = now().getMillis();
