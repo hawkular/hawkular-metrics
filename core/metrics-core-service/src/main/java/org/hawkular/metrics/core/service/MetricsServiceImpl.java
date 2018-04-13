@@ -191,6 +191,7 @@ public class MetricsServiceImpl implements MetricsService {
     /**
      * Tools that do tag query parsing and execution
      */
+    private boolean disableACostOptimization;
     private SimpleTagQueryParser tagQueryParser;
     private ExpressionTagQueryParser expresssionTagQueryParser;
 
@@ -271,7 +272,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         verifyAndCreateTempTables();
 
-        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this);
+        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this, disableACostOptimization);
         expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
     }
 
