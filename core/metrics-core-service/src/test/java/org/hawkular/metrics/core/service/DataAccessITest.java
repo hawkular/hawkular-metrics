@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -229,7 +229,7 @@ public class DataAccessITest extends BaseITest {
         assertEquals(metrics.size(), 4);
     }
 
-    @Test
+    @Test(enabled = false)
     void testFindAllDataFromBucket() throws Exception {
         String tenantId = "t1";
         long start = now().getMillis();

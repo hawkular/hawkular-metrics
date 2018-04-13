@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.hawkular.metrics.core.service.log.CoreLogger;
+import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.joda.time.DateTime;
 
@@ -35,12 +37,20 @@ import rx.schedulers.Schedulers;
  */
 public class TestDataAccessFactory {
 
+    private static final CoreLogger log = CoreLogging.getCoreLogger(TestDataAccessFactory.class);
+
     public static DataAccess newInstance(Session session) {
+        session.execute(String.format("USE %s", BaseITest.getKeyspace()));
         final CountDownLatch latch = new CountDownLatch(3);
+        final CountDownLatch fallBackTable = new CountDownLatch(0);
         DataAccessImpl dataAccess = new DataAccessImpl(session) {
             @Override
             void prepareTempStatements(String tableName, Long mapKey) {
                 super.prepareTempStatements(tableName, mapKey);
+                if(DataAccessImpl.OUT_OF_ORDER_TABLE_NAME.equals(tableName)) {
+                    log.infof("data_0 statements being prepared");
+                    fallBackTable.countDown();
+                }
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }
@@ -51,6 +61,7 @@ public class TestDataAccessFactory {
                 .toBlocking().subscribe();
         try {
             assertTrue(latch.await(10, TimeUnit.SECONDS));
+            assertTrue(fallBackTable.await(10, TimeUnit.SECONDS));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
