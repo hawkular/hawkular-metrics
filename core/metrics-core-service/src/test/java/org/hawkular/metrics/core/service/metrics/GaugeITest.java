@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,6 @@ import rx.Completable;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
-import rx.subjects.PublishSubject;
 
 /**
  * @author John Sanda
@@ -371,7 +370,7 @@ public class GaugeITest extends BaseMetricsITest {
 
         Completable compressCompletable =
                 metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                        COMPRESSION_PAGE_SIZE, PublishSubject.create()).doOnError(Throwable::printStackTrace);
+                        COMPRESSION_PAGE_SIZE).doOnError(Throwable::printStackTrace);
 
         TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
         compressCompletable.subscribe(testSubscriber);
@@ -450,7 +449,7 @@ public class GaugeITest extends BaseMetricsITest {
 
         Completable compressCompletable =
                 metricsService.compressBlock(Observable.just(mId), startSlice.getMillis(), endSlice.getMillis(),
-                        COMPRESSION_PAGE_SIZE, PublishSubject.create());
+                        COMPRESSION_PAGE_SIZE);
 
         TestSubscriber<Void> testSubscriber = new TestSubscriber<>();
         compressCompletable.subscribe(testSubscriber);

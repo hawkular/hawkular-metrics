@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -135,8 +135,13 @@ public class TestScheduler implements Scheduler {
     }
 
     @Override
-    public Completable unscheduleJob(String jobId) {
-        return scheduler.unscheduleJob(jobId);
+    public Completable unscheduleJobById(String jobId) {
+        return scheduler.unscheduleJobById(jobId);
+    }
+
+    @Override
+    public Completable unscheduleJobByTypeAndName(String jobType, String jobName) {
+        return scheduler.unscheduleJobByTypeAndName(jobType, jobName);
     }
 
     @Override

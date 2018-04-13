@@ -1,4 +1,3 @@
-package org.hawkular.schema
 /*
  * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -15,16 +14,19 @@ package org.hawkular.schema
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.hawkular.metrics.scheduler.impl;
 
-include '/org/hawkular/schema/bootstrap.groovy'
+import java.util.Date;
 
-setKeyspace keyspace
+import org.hawkular.metrics.scheduler.api.JobDetails;
 
-include '/org/hawkular/schema/updates/schema-0.15.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.18.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.19.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.20.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.21.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.23.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.26.0.groovy'
-include '/org/hawkular/schema/updates/schema-0.27.0.groovy'
+/**
+ * @author jsanda
+ */
+public class UnregisteredJobException extends RuntimeException {
+
+    public UnregisteredJobException(JobDetails jobDetails, Date timeSlice) {
+        super("No factory has been registered for " + jobDetails + ". It cannot be executed for time slice [" +
+                timeSlice + "]");
+    }
+}

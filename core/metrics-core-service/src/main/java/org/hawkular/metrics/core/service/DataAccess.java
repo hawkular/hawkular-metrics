@@ -137,10 +137,4 @@ public interface DataAccess {
     <T> Observable<ResultSet> deleteAndInsertCompressedGauge(MetricId<T> id, long timeslice,
                                                              CompressedPointContainer cpc,
                                                              long sliceStart, long sliceEnd, int ttl);
-
-    <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime);
-
-    <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id);
-
-    <T> Observable<Row> findMetricExpiration(MetricId<T> id);
 }

@@ -470,8 +470,6 @@ public class MetricsServiceImpl implements MetricsService {
 
         ResultSetFuture future = dataAccess.insertMetricInMetricsIndex(metric, overwrite);
 
-        this.updateMetricExpiration(metric);
-
         Observable<ResultSet> indexUpdated = ListenableFutureObservable.from(future, metricsTasks);
         return Observable.create(subscriber -> indexUpdated.subscribe(resultSet -> {
             if (!overwrite && !resultSet.wasApplied()) {
@@ -613,8 +611,6 @@ public class MetricsServiceImpl implements MetricsService {
             return Observable.error(e);
         }
 
-        this.updateMetricExpiration(metric);
-
         return dataAccess.insertIntoMetricsTagsIndex(metric, tags).concatWith(dataAccess.addTags(metric, tags))
                 .toList().map(l -> null);
     }
@@ -728,14 +724,13 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     @SuppressWarnings("unchecked")
     public Completable compressBlock(Observable<? extends MetricId<?>> metrics, long startTimeSlice,
-            long endTimeSlice, int pageSize, PublishSubject<Metric<?>> subject) {
+            long endTimeSlice, int pageSize) {
 
         return Completable.fromObservable(metrics
                 .compose(applyRetryPolicy())
                 .concatMap(metricId -> findDataPoints(metricId, startTimeSlice, endTimeSlice, 0, ASC, pageSize)
                         .compose(applyRetryPolicy())
                         .compose(new DataPointCompressTransformer(metricId.getType(), startTimeSlice))
-                        .doOnNext(cpc -> subject.onNext(new Metric<>(metricId, getTTL(metricId))))
                         .concatMap(cpc -> dataAccess.deleteAndInsertCompressedGauge(metricId, startTimeSlice,
                                 (CompressedPointContainer) cpc, startTimeSlice, endTimeSlice, getTTL(metricId))
                                 .compose(applyRetryPolicy()))));
@@ -1017,34 +1012,18 @@ public class MetricsServiceImpl implements MetricsService {
                 .defaultIfEmpty(new HashMap<>())
                 .flatMap(map -> dataAccess.deleteFromMetricsTagsIndex(id, map))
                 .toList()
-                .flatMap(r -> dataAccess.deleteMetricFromMetricsIndex(id))
                 .flatMap(r -> null);
 
         //NOTE: compressed data is not deleted due to the using TWCS compaction strategy
         //      for the compressed data table.
-        result.mergeWith(dataAccess.deleteMetricData(id).flatMap(r -> null));
 
-        result.mergeWith(dataAccess.deleteMetricFromRetentionIndex(id).flatMap(r -> null));
-        result.mergeWith(dataAccess.deleteFromMetricExpirationIndex(id).flatMap(r -> null));
+        Observable<Void> indexes = Observable.merge(
+                dataAccess.deleteMetricFromMetricsIndex(id),
+                dataAccess.deleteMetricData(id),
+                dataAccess.deleteMetricFromRetentionIndex(id)
+        ).map(r -> null);
 
-        return result;
+        return result.concatWith(indexes);
     }
 
-    @Override
-    public <T> Observable<Void> updateMetricExpiration(Metric<T> metric) {
-        if (!MetricType.STRING.equals(metric.getType())) {
-            long expiration = 0;
-            if (metric.getDataRetention() != null) {
-                expiration = DateTimeService.now.get().getMillis() + metric.getDataRetention() * DAY_TO_MILLIS;
-            } else {
-                expiration = DateTimeService.now.get().getMillis() + this.getTTL(metric.getMetricId()) * DAY_TO_MILLIS;
-            }
-
-            return dataAccess.updateMetricExpirationIndex(metric.getMetricId(), expiration)
-                    .doOnError(t -> log.error("Failure to update expiration index", t))
-                    .flatMap(r -> null);
-        }
-
-        return Observable.empty();
-    }
 }

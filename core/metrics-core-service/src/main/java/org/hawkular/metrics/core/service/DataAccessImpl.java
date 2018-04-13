@@ -219,12 +219,6 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
-    private PreparedStatement updateMetricExpirationIndex;
-
-    private PreparedStatement deleteFromMetricExpirationIndex;
-
-    private PreparedStatement findMetricExpiration;
-
     private CodecRegistry codecRegistry;
     private Metadata metadata;
 
@@ -567,18 +561,6 @@ public class DataAccessImpl implements DataAccess {
                 "SELECT tenant_id, type, metric, tvalue " +
                 "FROM metrics_tags_idx " +
                 "WHERE tenant_id = ? AND tname = ? AND tvalue IN ?");
-
-        updateMetricExpirationIndex = session.prepare(
-                "INSERT INTO metrics_expiration_idx (tenant_id, type, metric, time) VALUES (?, ?, ?, ?)");
-
-        deleteFromMetricExpirationIndex = session.prepare(
-                "DELETE FROM metrics_expiration_idx " +
-                "WHERE tenant_id = ? AND type = ? AND metric = ?");
-
-        findMetricExpiration = session.prepare(
-                "SELECT time " +
-                "FROM metrics_expiration_idx " +
-                "WHERE tenant_id = ? AND type = ? and metric = ?");
     }
 
     @Override
@@ -1225,23 +1207,5 @@ public class DataAccessImpl implements DataAccess {
     @Override
     public Observable<Row> findAllMetricsFromTagsIndex() {
         return rxSession.executeAndFetch(findAllMetricsFromTagsIndex.bind());
-    }
-
-    @Override
-    public <T> Observable<ResultSet> updateMetricExpirationIndex(MetricId<T> id, long expirationTime) {
-        return rxSession.execute(updateMetricExpirationIndex.bind(id.getTenantId(),
-                id.getType().getCode(), id.getName(), new Date(expirationTime)));
-    }
-
-    @Override
-    public <T> Observable<ResultSet> deleteFromMetricExpirationIndex(MetricId<T> id) {
-        return rxSession
-                .execute(deleteFromMetricExpirationIndex.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
-    }
-
-    @Override
-    public <T> Observable<Row> findMetricExpiration(MetricId<T> id) {
-        return rxSession
-                .executeAndFetch(findMetricExpiration.bind(id.getTenantId(), id.getType().getCode(), id.getName()));
     }
 }
