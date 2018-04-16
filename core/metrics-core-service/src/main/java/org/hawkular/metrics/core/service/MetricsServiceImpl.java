@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.hawkular.metrics.core.service;
 
 import static org.hawkular.metrics.core.service.Functions.isValidTagMap;
@@ -289,7 +288,10 @@ public class MetricsServiceImpl implements MetricsService {
         setDefaultTTL(session, keyspace);
         initMetrics();
 
-        tagQueryParser = new TagQueryParser(this.dataAccess, this, disableACostOptimization);
+        int defaultPageSize = session.getCluster().getConfiguration().getQueryOptions().getFetchSize();
+        int pageThreshold = Integer.getInteger("hawkular.metrics.page-threshold", 10);
+        tagQueryParser = new TagQueryParser(this.dataAccess, this, disableACostOptimization, defaultPageSize,
+                pageThreshold);
     }
 
     void loadDataRetentions() {
