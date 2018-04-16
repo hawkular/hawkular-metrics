@@ -56,7 +56,8 @@ public class TagQueryParser {
     private int pageSize;
     private int pageThreshold;
 
-    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService, boolean disableACostQueries) {
+    public TagQueryParser(DataAccess dataAccess, MetricsService metricsService, boolean disableACostQueries,
+            int pageSize, int pageThreshold) {
         this.dataAccess = dataAccess;
         this.metricsService = metricsService;
         this.enableACostQueries = !disableACostQueries;
