@@ -270,7 +270,10 @@ public class MetricsServiceImpl implements MetricsService {
 
         verifyAndCreateTempTables();
 
-        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this, disableACostOptimization);
+        int defaultPageSize = session.getCluster().getConfiguration().getQueryOptions().getFetchSize();
+        int pageThreshold = Integer.getInteger("hawkular.metrics.page-threshold", 10);
+        tagQueryParser = new SimpleTagQueryParser(this.dataAccess, this, disableACostOptimization, defaultPageSize,
+                pageThreshold);
         expresssionTagQueryParser = new ExpressionTagQueryParser(this.dataAccess, this);
     }
 
