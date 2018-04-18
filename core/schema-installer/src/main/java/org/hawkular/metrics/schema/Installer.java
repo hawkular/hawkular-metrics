@@ -85,13 +85,14 @@ public class Installer {
         try (Session session = initSession()) {
             waitForAllNodesToBeUp(session);
 
-            SchemaService schemaService = new SchemaService();
-            schemaService.run(session, keyspace, resetdb, replicationFactor, false);
+            SchemaService schemaService = new SchemaService(session, keyspace);
+            schemaService.run(resetdb, replicationFactor, false);
 
             JobsManager jobsManager = new JobsManager(session);
             jobsManager.installJobs();
 
-            schemaService.updateVersion(session, keyspace, versionUpdateDelay, versionUpdateMaxRetries);
+            schemaService.updateVersion(versionUpdateDelay, versionUpdateMaxRetries);
+            schemaService.updateSchemaVersionSession(versionUpdateDelay, versionUpdateMaxRetries);
 
             logger.info("Finished installation");
         } catch (InterruptedException e) {

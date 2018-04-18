@@ -588,7 +588,7 @@ public class MetricsServiceLifecycle {
         long delay = Long.parseLong(versionCheckDelay) * 1000;
         int maxRetries = Integer.parseInt(versionCheckMaxRetries);
 
-        new SchemaVersionChecker().waitForSchemaUpdates(session, keyspace, getVersion(), delay, maxRetries);
+        new SchemaVersionChecker().waitForSchemaUpdates(session, keyspace, delay, maxRetries);
     }
 
     /**
