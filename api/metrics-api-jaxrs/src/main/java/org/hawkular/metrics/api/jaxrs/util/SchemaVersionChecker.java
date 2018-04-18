@@ -16,27 +16,28 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
+import org.hawkular.metrics.schema.SchemaService;
 import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 
-import sun.misc.Version;
-
 /**
  * @author jsanda
  */
 public class SchemaVersionChecker {
 
-    private static final Logger logger = Logger.getLogger(Version.class);
+    private static final Logger logger = Logger.getLogger(SchemaVersionChecker.class);
 
-    public void waitForSchemaUpdates(Session session, String keyspace, String version, long delay, int maxRetries)
+    public void waitForSchemaUpdates(Session session, String keyspace, long delay, int maxRetries)
             throws InterruptedException {
         String configId = "org.hawkular.metrics";
-        String configName = "version";
+        String configName = "schema-version";
         int retries = 0;
         PreparedStatement getVersion = null;
+        SchemaService schemaService = new SchemaService(session, keyspace);
+        String version = schemaService.getSchemaVersion();
 
         while (maxRetries > retries) {
             try {
@@ -45,9 +46,17 @@ public class SchemaVersionChecker {
                             "WHERE config_id = ? AND name = ?");
                 }
                 ResultSet resultSet = session.execute(getVersion.bind(configId, configName));
-                if (!resultSet.isExhausted() && version.equals(resultSet.one().getString(0))) {
-                    logger.infof("Hawkular Metrics is up to date at version %s", version);
-                    return;
+                if (!resultSet.isExhausted()) {
+                    String schemaVersion = resultSet.one().getString(0);
+                    if(version.equals(schemaVersion)) {
+                        logger.infof("Hawkular Metrics schema is up to date at version %s", version);
+                        return;
+                    } else {
+                        logger.infof("Hawkular Metrics schema version does not match," +
+                                        " should be %s, present: %s, Trying again in %d ms",
+                                version, schemaVersion, delay);
+
+                    }
                 }
             } catch (Exception e) {
                 if (logger.isDebugEnabled()) {

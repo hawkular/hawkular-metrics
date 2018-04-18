@@ -25,11 +25,13 @@ import java.util.Map;
 
 import org.cassalog.core.Cassalog;
 import org.cassalog.core.CassalogBuilder;
+import org.cassalog.core.ChangeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -39,67 +41,119 @@ public class SchemaService {
 
     private static Logger logger = LoggerFactory.getLogger(SchemaService.class);
 
-    public void run(Session session, String keyspace, boolean resetDB) {
-        run(session, keyspace, resetDB, 1);
-    }
+    private PreparedStatement versionUpdateQuery;
 
-    public void run(Session session, String keyspace, boolean resetDB, int replicationFactor) {
-        run(session, keyspace, resetDB, replicationFactor, false);
-    }
+    private Session session;
 
-    public void run(Session session, String keyspace, boolean resetDB, int replicationFactor, boolean updateVersion) {
+    private String keyspace;
+
+    private Cassalog cassalog;
+
+    public SchemaService(Session session, String keyspace) {
+        this.keyspace = keyspace;
+        this.session = session;
         CassalogBuilder builder = new CassalogBuilder();
-        Cassalog cassalog = builder.withKeyspace(keyspace).withSession(session).build();
-        Map<String, ?> vars  = ImmutableMap.of(
+        cassalog = builder.withKeyspace(keyspace).withSession(session).build();
+    }
+
+    public void run(boolean resetDB) {
+        run(resetDB, 1);
+    }
+
+    public void run(boolean resetDB, int replicationFactor) {
+        run(resetDB, replicationFactor, false);
+    }
+
+    public void run(boolean resetDB, int replicationFactor, boolean updateVersion) {
+
+        URI script = getScript();
+        Map<String, ?> vars = this.getVars(resetDB, replicationFactor);
+        cassalog.execute(script, this.getTags(), vars);
+
+        if (updateVersion) {
+            updateVersion(0, 0);
+        }
+    }
+
+    private PreparedStatement prepareUpdateStatementIfNeeded() {
+        if(this.versionUpdateQuery == null) {
+            versionUpdateQuery = session.prepare("INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)");
+        }
+        return this.versionUpdateQuery;
+    }
+
+    private Map<String, ?> getVars(boolean resetDB, int replicationFactor) {
+        Map<String, ?> vars = ImmutableMap.of(
                 "keyspace", keyspace,
                 "reset", resetDB,
                 "session", session,
                 "replicationFactor", replicationFactor,
                 "logger", logger
         );
+        return vars;
+    }
+
+
+    private List<String> getTags() {
         // TODO Add logic to determine the version tags we need to pass
         // For now, I am just hard coding the version tag, but a more robust solution would be
         // to calculate the tags using the current version stored in the sys_config table
         // and the new version which we can extract from any of our JAR manifest files.
         List<String> tags = asList("0.15.x", "0.18.x", "0.19.x", "0.20.x", "0.21.x", "0.23.x", "0.26.x", "0.27.x",
-                "0.29.x");
+                "0.30.x");
+        return tags;
+    }
+
+    public void updateVersion(long delay, int maxRetries) {
+        doVersionUpdate(delay, maxRetries);
+    }
+
+    public void updateSchemaVersionSession(long delay, int maxRetries) {
+        doSchemaVersionUpdate(delay, maxRetries);
+    }
+
+    public String getSchemaVersion() {
         URI script = getScript();
-        cassalog.execute(script, tags, vars);
-
-        if (updateVersion) {
-            updateVersion(session, keyspace, 0, 0);
+        Map<String, ?> vars = this.getVars(false, 1);
+        List<ChangeSet> changeSets = cassalog.load(script, this.getTags(), vars);
+        if (changeSets.size() == 0) {
+            throw new RuntimeException("Failed get schema version, there is no changes available.");
         }
+        return changeSets.get(changeSets.size() - 1).getVersion();
     }
 
-    public void updateVersion(Session session, String keyspace, long delay, int maxRetries) {
-        doVersionUpdate(session, keyspace, delay, maxRetries);
-    }
-
-    private void doVersionUpdate(Session session, String keyspace, long delay, int maxRetries) {
-        String configId = "org.hawkular.metrics";
-        String configName = "version";
+    private void doVersionUpdate(long delay, int maxRetries) {
         String version = VersionUtil.getVersion();
-        SimpleStatement updateVersion = new SimpleStatement(
-                "INSERT INTO sys_config (config_id, name, value) VALUES (?, ?, ?)", configId, configName, version)
-                .setKeyspace(keyspace);
-        int retries = 0;
+        writeVersion("version", version, delay, maxRetries);
+    }
 
+    private void doSchemaVersionUpdate(long delay, int maxRetries) {
+        String version = this.getSchemaVersion();
+        writeVersion("schema-version", version, delay, maxRetries);
+    }
+
+    private void writeVersion(String versionType, String version, long delay, int maxRetries) {
+        String configId = "org.hawkular.metrics";
+        BoundStatement boundStatement = prepareUpdateStatementIfNeeded().bind(configId, versionType, version);
+        int retries = 0;
+        session.execute("USE " + keyspace);
         while (true) {
             try {
-                session.execute(updateVersion);
-                logger.info("Updated system configuration to version {}", version);
+                session.execute(boundStatement);
+                logger.info("Updated system configuration to {} {}", versionType, version);
                 break;
             } catch (Exception e) {
                 retries++;
                 if (retries > maxRetries) {
-                    throw new VersionUpdateException("Failed to update version in system configuration after " +
-                            maxRetries + " attempts.", e);
+                    throw new VersionUpdateException("Failed to update" + versionType + "in system configuration " +
+                            "after " + maxRetries + " attempts.", e);
                 }
-                logger.warn("Failed to update version in system configuration. Retrying in " + delay + " ms", e);
+                logger.warn("Failed to update " + versionType + " in system configuration. Retrying in " + delay +
+                        " ms", e);
                 try {
                     Thread.sleep(delay);
                 } catch (InterruptedException e1) {
-                    throw new VersionUpdateException("Aborting version update due to interrupt", e1);
+                    throw new VersionUpdateException("Aborting " + versionType + " update due to interrupt", e1);
                 }
             }
         }
