@@ -80,8 +80,8 @@ public abstract class BaseITest {
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
 
-        schemaService = new SchemaService();
-        schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
+        schemaService = new SchemaService(session, getKeyspace());
+        schemaService.run(Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
 
