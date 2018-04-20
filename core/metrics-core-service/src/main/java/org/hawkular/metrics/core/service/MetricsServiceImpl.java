@@ -764,38 +764,41 @@ public class MetricsServiceImpl implements MetricsService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Completable compressBlock(long startTimeSlice, int pageSize, int maxConcurrency) {
+    public Completable compressBlock(long jobStartTimeSlice, int pageSize, int maxConcurrency) {
         return Completable.fromObservable(
-                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
-                        .switchIfEmpty(Observable.empty())
-                        .flatMap(rows -> rows
-                                // Each time the tokenrange changes inside the query, create new window, publish allows
-                                // reuse of the observable in two distinct processing phases
-                                .publish(p -> p.window(
-                                        p.map(Row::getPartitionKeyToken)
-                                                .distinctUntilChanged()))
-                                // ConcatMap so we don't mess the order as that's important in the compression job
-                                .concatMap(o -> {
-                                    // Cache the first key from the observable so we can use it to create a key later
-                                    Observable<Row> sharedRows = o.share();
-                                    Observable<CompressedPointContainer> compressed =
-                                            sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
-                                    Observable<Row> keyTake = sharedRows.take(1);
+                Observable.from(dataAccess.findExpiredTables(jobStartTimeSlice))
+                        .concatMap(startTimeSlice ->
+                                dataAccess.findAllDataFromBucket(startTimeSlice, pageSize, maxConcurrency)
+                                        .switchIfEmpty(Observable.empty())
+                                        .flatMap(rows -> rows
+                                                // Each time the tokenrange changes inside the query, create new window, publish allows
+                                                // reuse of the observable in two distinct processing phases
+                                                .publish(p -> p.window(
+                                                        p.map(Row::getPartitionKeyToken)
+                                                                .distinctUntilChanged()))
+                                                // ConcatMap so we don't mess the order as that's important in the compression job
+                                                .concatMap(o -> {
+                                                    // Cache the first key from the observable so we can use it to create a key later
+                                                    Observable<Row> sharedRows = o.share();
+                                                    Observable<CompressedPointContainer> compressed =
+                                                            sharedRows.compose(new TempTableCompressTransformer(startTimeSlice));
+                                                    Observable<Row> keyTake = sharedRows.take(1);
 
-                                    // Merge the first row with the compressed package to be able to write to Cassandra
-                                    return compressed.zipWith(keyTake, (cpc, r) -> {
-                                        MetricId<?> metricId =
-                                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
-                                                        r.getString(2));
-                                        return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc,
-                                                getTTL(metricId));
-                                    });
-                                }), maxConcurrency)
-                        .flatMap(rs -> rs)
-                        .doOnCompleted(() -> dataAccess.dropTempTable(startTimeSlice)
-                                .compose(applyRetryPolicy())
-                                .subscribeOn(Schedulers.io())
-                                .subscribe())
+                                                    // Merge the first row with the compressed package to be able to write to Cassandra
+                                                    return compressed.zipWith(keyTake, (cpc, r) -> {
+                                                        MetricId<?> metricId =
+                                                                new MetricId(r.getString(0), MetricType.fromCode(r.getByte(1)),
+                                                                        r.getString(2));
+                                                        return dataAccess.insertCompressedData(metricId, startTimeSlice, cpc,
+                                                                getTTL(metricId));
+                                                    });
+                                                }), maxConcurrency)
+                                        .flatMap(rs -> rs)
+                                        .doOnCompleted(() -> dataAccess.dropTempTable(startTimeSlice)
+                                                .compose(applyRetryPolicy())
+                                                .subscribeOn(Schedulers.io())
+                                                .subscribe())
+                        )
         );
     }
 
