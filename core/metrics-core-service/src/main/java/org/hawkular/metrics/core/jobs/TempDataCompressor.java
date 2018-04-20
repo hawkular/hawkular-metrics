@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,6 +89,7 @@ public class TempDataCompressor implements Func1<JobDetails, Completable> {
 
         // TODO Optimization - new worker per token - use parallelism in Cassandra (with configured parallelism)
         return metricsService.compressBlock(startOfSlice, pageSize, maxReadConcurrency)
+                .doOnError(t -> logger.errorf("Compression job failed: %s", t.getMessage()))
                 .doOnCompleted(() -> {
                     stopwatch.stop();
                     logger.info("Finished processing data in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) +
