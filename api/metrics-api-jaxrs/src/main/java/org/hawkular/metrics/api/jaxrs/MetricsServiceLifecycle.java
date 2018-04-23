@@ -80,7 +80,6 @@ import javax.management.ObjectName;
 import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
-import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.api.jaxrs.dropwizard.RESTMetrics;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
@@ -102,6 +101,7 @@ import org.hawkular.metrics.core.service.DataAccess;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
+import org.hawkular.metrics.core.service.TempTablesCleaner;
 import org.hawkular.metrics.core.util.GCGraceSecondsManager;
 import org.hawkular.metrics.model.CassandraStatus;
 import org.hawkular.metrics.scheduler.api.Scheduler;
@@ -314,6 +314,7 @@ public class MetricsServiceLifecycle {
     private ConfigurationService configurationService;
     private DataAccess dataAcces;
     private GCGraceSecondsManager gcGraceSecondsManager;
+    private TempTablesCleaner tempTablesCleaner;
 
     MetricsServiceLifecycle() {
         ThreadFactory threadFactory = r -> {
@@ -452,6 +453,7 @@ public class MetricsServiceLifecycle {
             metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initGCGraceSecondsManager();
+            initTempTablesCleaner();
 
             if (Boolean.parseBoolean(jmxReportingEnabled)) {
                 HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(metricRegistry);
@@ -673,28 +675,18 @@ public class MetricsServiceLifecycle {
         gcGraceSecondsManager.maybeUpdateGCGraceSeconds();
     }
 
+    private void initTempTablesCleaner() {
+        tempTablesCleaner = new TempTablesCleaner(new RxSessionImpl(session), (DataAccessImpl) dataAcces, keyspace,
+                Integer.parseInt(defaultTTL));
+        tempTablesCleaner.run();
+    }
+
     private int getDefaultTTL() {
         try {
             return Integer.parseInt(defaultTTL);
         } catch (NumberFormatException e) {
             log.warnInvalidDefaultTTL(defaultTTL, DEFAULT_TTL.defaultValue());
             return Integer.parseInt(DEFAULT_TTL.defaultValue());
-        }
-    }
-
-    private int parseIntConfig(String value, ConfigurationKey configKey) {
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return Integer.parseInt(configKey.defaultValue());
-        }
-    }
-
-    private boolean parseBooleanConfig(String value, ConfigurationKey configKey) {
-        try {
-            return Boolean.parseBoolean(value);
-        } catch (NumberFormatException e) {
-            return Boolean.parseBoolean(configKey.defaultValue());
         }
     }
 
@@ -825,6 +817,8 @@ public class MetricsServiceLifecycle {
         try {
             // The order here is important. We need to shutdown jobsService first so that any running jobs can finish
             // gracefully.
+            tempTablesCleaner.shutdown();
+
             if (jobsService != null) {
                 jobsService.shutdown();
             }

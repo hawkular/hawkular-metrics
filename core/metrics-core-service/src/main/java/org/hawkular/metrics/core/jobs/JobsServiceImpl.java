@@ -29,20 +29,17 @@ import org.hawkular.metrics.core.service.MetricsService;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.hawkular.metrics.scheduler.api.JobDetails;
 import org.hawkular.metrics.scheduler.api.RepeatingTrigger;
-import org.hawkular.metrics.scheduler.api.RetryPolicy;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.api.SingleExecutionTrigger;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.jboss.logging.Logger;
-import org.joda.time.Minutes;
 
 import com.google.common.collect.ImmutableMap;
 
 import rx.Completable;
 import rx.Single;
-import rx.functions.Func2;
 
 /**
  * @author jsanda
@@ -93,15 +90,7 @@ public class JobsServiceImpl implements JobsService, JobsServiceImplMBean {
 
         deleteTenant = new DeleteTenant(session, metricsService);
 
-        // Use a simple retry policy to make sure tenant deletion does complete in the event of failure. For now
-        // we simply retry after 5 minutes. We can implement a more sophisticated strategy later on if need be.
-        Func2<JobDetails, Throwable, RetryPolicy> deleteTenantRetryPolicy = (details, throwable) ->
-                () -> {
-                    logger.warn("Execution of " + details + " failed", throwable);
-                    logger.info(details + " will be retried in 5 minutes");
-                    return Minutes.minutes(5).toStandardDuration().getMillis();
-                };
-        scheduler.register(DeleteTenant.JOB_NAME, deleteTenant, deleteTenantRetryPolicy);
+        scheduler.register(DeleteTenant.JOB_NAME, deleteTenant);
 
         TempTableCreator tempCreator = new TempTableCreator(metricsService, configurationService);
         scheduler.register(TempTableCreator.JOB_NAME, tempCreator);
