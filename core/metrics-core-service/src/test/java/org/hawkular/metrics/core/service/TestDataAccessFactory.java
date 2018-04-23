@@ -40,6 +40,10 @@ public class TestDataAccessFactory {
     private static final CoreLogger log = CoreLogging.getCoreLogger(TestDataAccessFactory.class);
 
     public static DataAccess newInstance(Session session) {
+        return newInstance(session, DateTimeService.now.get());
+    }
+
+    public static DataAccess newInstance(Session session, DateTime now) {
         session.execute(String.format("USE %s", BaseITest.getKeyspace()));
         final CountDownLatch latch = new CountDownLatch(3);
         final CountDownLatch fallBackTable = new CountDownLatch(0);
@@ -56,7 +60,7 @@ public class TestDataAccessFactory {
                 }
             }
         };
-        dataAccess.createTempTablesIfNotExists(tableListForTesting())
+        dataAccess.createTempTablesIfNotExists(tableListForTesting(now))
                 .subscribeOn(Schedulers.io())
                 .toBlocking().subscribe();
         try {
@@ -71,9 +75,8 @@ public class TestDataAccessFactory {
     /**
      * Create few temporary tables for tests
      */
-    static Set<Long> tableListForTesting() {
+    static Set<Long> tableListForTesting(DateTime now) {
         Set<Long> tempTables = new HashSet<>(3);
-        DateTime now = DateTimeService.now.get();
         tempTables.add(now.getMillis());
         tempTables.add(now.minusHours(2).getMillis());
         tempTables.add(now.plusHours(2).getMillis());
