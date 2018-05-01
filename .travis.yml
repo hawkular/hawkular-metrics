@@ -49,7 +49,7 @@ install:
 # unshallow is needed by license-maven-plugin
 - git fetch origin --unshallow
 script:
-- ./mvnw verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=INFO -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -Dtravis -B
+- ./mvnw verify -Dtest.logging.console.level=INFO -Dwildfly.logging.console.level=INFO -Djboss-as.logging.console.level=INFO -Dterminal-event.timeout=25 -Dtravis -B -U
 before_cache:
 # Clean the cached directories once their size exceeds the space left on the partition.
 # This is important because Travis zips the cached directories to a temporary file on the same partition.
