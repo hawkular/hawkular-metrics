@@ -167,16 +167,35 @@ public class SimpleTagQueryParser {
                 }
             }
 
-            Iterator<Query> iterator = groupASortedList.iterator();
-            while(iterator.hasNext()) {
-                Query next = iterator.next();
-                if(OPENSHIFT_OPTIMIZED_TAG_QUERY.equals(next.tagName)) {
-                    openshiftQuery.add(next);
-                    iterator.remove();
+            // There can only be a single occurrence of a tag key in the map of tags passed to
+            // findMetricIdentifiersWithFilters; so, if and when we find the pod_id tag, we can stop searching. The
+            // pod_id tag query can have a single or multiple values, so we have to search both GROUP_A_COST and
+            // GROUP_A_OR_COST.
+            Query podIdQuery = getPodIdQuery(groupASortedList);
+            if (podIdQuery == null) {
+                podIdQuery = getPodIdQuery(costSortedMap.get(GROUP_A_OR_COST));
+                if (podIdQuery != null) {
+                    openshiftQuery.add(podIdQuery);
                 }
+            } else {
+                openshiftQuery.add(new Query(podIdQuery.tagName, null, podIdQuery.tagValueMatcher));
             }
 
             return costSortedMap;
+        }
+
+        private static Query getPodIdQuery(List<Query> queries) {
+            Query podIdQuery = null;
+            Iterator<Query> iterator = queries.iterator();
+            while (iterator.hasNext()) {
+                Query next = iterator.next();
+                if (OPENSHIFT_OPTIMIZED_TAG_QUERY.equals(next.tagName)) {
+                    podIdQuery = next;
+                    iterator.remove();
+                    break;
+                }
+            }
+            return podIdQuery;
         }
 
         /**
@@ -216,7 +235,7 @@ public class SimpleTagQueryParser {
         Map<Long, List<Query>> costSortedMap =
                 QueryOptimizer.reOrderTagsQuery(tagsQueries, enableACostQueries);
 
-        List<Query> openshiftQuery = costSortedMap.get(QueryOptimizer.OPENSHIFT_OPTIMIZED_TAG_QUERY);
+        List<Query> openshiftQuery = costSortedMap.get(QueryOptimizer.GROUP_OPENSHIFT_OPTIMIZATION);
         List<Query> groupAEntries = costSortedMap.get(QueryOptimizer.GROUP_A_COST);
         List<Query> groupAOREntries = costSortedMap.get(QueryOptimizer.GROUP_A_OR_COST);
         List<Query> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
@@ -227,13 +246,14 @@ public class SimpleTagQueryParser {
         if(openshiftQuery.size() > 0) {
             // Filter using this option
             Observable<Metric<?>> enrichedMetrics = Observable.from(openshiftQuery)
-                    .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValueMatcher())
+                    .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValues())
                             .compose(new TagsIndexRowTransformerFilter<>(metricType))
                             .compose(new ItemsToSetTransformer<>()))
                     .reduce((s1, s2) -> {
                         s1.retainAll(s2);
                         return s1;
                     })
+                    .doOnNext(set -> logger.debugf("Metrics with matching pod_id = %s", set))
                     .flatMap(Observable::from)
                     .flatMap(metricsService::findMetric);
 

@@ -581,7 +581,7 @@ public class MetricsServiceImpl implements MetricsService {
                 results = tagQueryParser.findMetricIdentifiersWithFilters(tenantId, metricType, parsedSimpleTagQuery.getTags())
                         .map(m -> (MetricId<T>) m);
             } catch (Exception e2) {
-                results = Observable.error(new RuntimeApiError("Unparseable tag query expression."));
+                results = Observable.error(new RuntimeApiError("Unparseable tag query expression.", e2));
             }
         }
         return results.doOnCompleted(context::stop);

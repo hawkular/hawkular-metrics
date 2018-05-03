@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,7 @@ import static org.testng.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,6 +172,119 @@ public class TagsITest extends BaseMetricsITest {
                 .doOnError(Throwable::printStackTrace)
                 .toList().toBlocking().lastOrDefault(null);
         assertEquals(gauges.size(), 8, "Only metrics without a1 and type GAUGE should have been found");
+    }
+
+    @Test
+    public void findMetricsWithPodIdTagHavingMultipleValues() throws Exception {
+        String tenantId = "PodIdQueryTestForMultipleIds";
+        createMetricsWithPodIdTag(tenantId);
+
+        String tags =
+                "pod_id:871497e0-16b6-11e8-985b-54e1ad486be8|941497e0-16b6-11e8-985b-54e1ad486ae2," +
+                "descriptor_name:memory/usage," +
+                "type:pod_container," +
+                "container_name:myservice";
+        List<MetricId<Double>> actual = metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, tags)
+                .toList()
+                .toBlocking()
+                .firstOrDefault(emptyList());
+        List<MetricId<Double>> expected = ImmutableList.of(
+                new MetricId<>(tenantId, GAUGE, "M1"),
+                new MetricId<>(tenantId, GAUGE, "M3")
+        );
+
+        // convert to sets since we do not compare about order
+        assertEquals(new HashSet<>(actual), new HashSet<>(expected),
+                "The pod_id query returned unexpected results. Expected " + expected + " but got " + actual);
+    }
+
+    @Test
+    public void findMetricsWithPodIdTagHavingSingleValue() throws Exception {
+        String tenantId = "PodIdQueryTestForSingleId";
+        createMetricsWithPodIdTag(tenantId);
+
+        String tags =
+                "pod_id:871497e0-16b6-11e8-985b-54e1ad486be8," +
+                "descriptor_name:memory/usage," +
+                "type:pod_container," +
+                "container_name:myservice";
+
+        List<MetricId<Double>> actual = metricsService.findMetricIdentifiersWithFilters(tenantId, GAUGE, tags)
+                .toList()
+                .toBlocking()
+                .firstOrDefault(emptyList());
+        List<MetricId<Double>> expected = ImmutableList.of(new MetricId<>(tenantId, GAUGE, "M1"));
+
+        // convert to sets since we do not compare about order
+        assertEquals(new HashSet<>(actual), new HashSet<>(expected),
+                "The pod_id query returned unexpected results. Expected " + expected + " but got " + actual);
+    }
+
+    private void createMetricsWithPodIdTag(String tenantId) {
+        List<Metric<Double>> metrics = ImmutableList.of(
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M1"), ImmutableMap.of(
+                        "descriptor_name", "memory/usage",
+                        "type", "pod_container",
+                        "pod_id", "871497e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M2"), ImmutableMap.of(
+                        "descriptor_name", "cpu/usage",
+                        "type", "pod_container",
+                        "pod_id", "871497e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M3"), ImmutableMap.of(
+                        "descriptor_name", "memory/usage",
+                        "type", "pod_container",
+                        "pod_id", "941497e0-16b6-11e8-985b-54e1ad486ae2",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M4"), ImmutableMap.of(
+                        "descriptor_name", "cpu/usage",
+                        "type", "pod_container",
+                        "pod_id", "941497e0-16b6-11e8-985b-54e1ad486ae2",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M5"), ImmutableMap.of(
+                        "descriptor_name", "memory/usage",
+                        "type", "pod_container",
+                        "pod_id", "541497e0-16b6-33e8-981c-54e1ad486ae2",
+                        "container_name", "nodeapp"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M6"), ImmutableMap.of(
+                        "descriptor_name", "cpu/usage",
+                        "type", "pod_container",
+                        "pod_id", "541497e0-16b6-33e8-981c-54e1ad486ae2",
+                        "container_name", "nodeapp"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M7"), ImmutableMap.of(
+                        "descriptor_name", "memory/page_faults",
+                        "type", "pod_container",
+                        "pod_id", "871497e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M8"), ImmutableMap.of(
+                        "descriptor_name", "memory/major_page_faults",
+                        "type", "pod_container",
+                        "pod_id", "871497e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M7"), ImmutableMap.of(
+                        "descriptor_name", "cpu/usage",
+                        "type", "deployment",
+                        "pod_id", "93a697e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                )),
+                new Metric<>(new MetricId<>(tenantId, GAUGE, "M8"), ImmutableMap.of(
+                        "descriptor_name", "memory/usage",
+                        "type", "deployment",
+                        "pod_id", "93a697e0-16b6-11e8-985b-54e1ad486be8",
+                        "container_name", "myservice"
+                ))
+        );
+
+        metrics.forEach(metric -> metricsService.createMetric(metric, true).toBlocking().lastOrDefault(null));
     }
 
     @Test
