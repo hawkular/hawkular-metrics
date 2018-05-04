@@ -28,8 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
-import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.scheduler.api.JobsManager;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
@@ -37,6 +35,7 @@ import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeSuite;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.QueryOptions;
@@ -68,7 +67,7 @@ public abstract class BaseITest {
 
     private PreparedStatement truncateCounters;
 
-    protected static HawkularMetricRegistry metricRegistry;
+    protected static MetricRegistry metricRegistry;
 
     @BeforeSuite
     public static void initSuite() {
@@ -87,8 +86,7 @@ public abstract class BaseITest {
 
         jobsManager = new JobsManager(session);
 
-        metricRegistry = new HawkularMetricRegistry();
-        metricRegistry.setMetricNameService(new MetricNameService());
+        metricRegistry = new MetricRegistry();
     }
 
     protected void resetDB() {
