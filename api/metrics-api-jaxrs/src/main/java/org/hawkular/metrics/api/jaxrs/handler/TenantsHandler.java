@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +78,7 @@ public class TenantsHandler {
     @Inject
     private JobsService jobsService;
 
+    @Deprecated
     @POST
     @ApiOperation(value = "Create a new tenant.", notes = "Clients are not required to create explicitly create a "
             + "tenant before starting to store metric data. It is recommended to do so however to ensure that there "
@@ -100,11 +101,13 @@ public class TenantsHandler {
                     required = false) @DefaultValue("false") @QueryParam("overwrite") Boolean overwrite,
             @Context UriInfo uriInfo
     ) {
+        logger.warn("The create tenant endpoint is deprecated");
         URI location = uriInfo.getBaseUriBuilder().path("/tenants").build();
         metricsService.createTenant(tenantDefinition.toTenant(), overwrite)
                 .subscribe(new TenantCreatedObserver(asyncResponse, location));
     }
 
+    @Deprecated
     @GET
     @ApiOperation(value = "Returns a list of tenants.", response = TenantDefinition.class, responseContainer = "List")
     @ApiResponses(value = {
@@ -114,12 +117,14 @@ public class TenantsHandler {
                     response = ApiError.class)
     })
     public void findTenants(@Suspended AsyncResponse asyncResponse) {
+        logger.warn("The findTenants endpoint is deprecated");
         metricsService.getTenants().map(TenantDefinition::new).toList().subscribe(
                 tenants -> asyncResponse.resume(collectionToResponse(tenants)),
                 error -> asyncResponse.resume(serverError(error))
         );
     }
 
+    @Deprecated
     @DELETE
     @Path("/{id}")
     @ApiOperation(value = "Asynchronously deletes a tenant. All metrics and their data points will be deleted. " +
@@ -130,9 +135,10 @@ public class TenantsHandler {
             @ApiResponse(code = 500, message = "Unexpected error occurred trying to scheduled the tenant deletion job.")
     })
     public void deleteTenant(@Suspended AsyncResponse asyncResponse, @PathParam("id") String id) {
+        logger.warn("The tenant deletion endpoint is deprecated");
         jobsService.submitDeleteTenantJob(id, "Delete" + id).subscribe(
                 jobDetails -> asyncResponse.resume(Response.ok(ImmutableMap.of("jobId",
-                        jobDetails.getJobId().toString())).build()),
+                        jobDetails.getJobId().toString())).header("WARNING: 299", "Deprecated API").build()),
                 t -> {
                     logger.warn("Deleting tenant [" + id + "] failed", t);
                     asyncResponse.resume(badRequest(t));
