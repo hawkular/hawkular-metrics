@@ -67,10 +67,6 @@ public enum ConfigurationKey {
     //Admin
     ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
     ADMIN_TENANT("hawkular.metrics.admin-tenant", "admin", "ADMIN_TENANT", false),
-    METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
-    METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
-    METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "300",
-            "METRICS_REPORTING_COLLECTION_INTERVAL", false),
 
     // Request logging properties
     // Useful for debugging
