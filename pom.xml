@@ -404,7 +404,6 @@
         <module>api/metrics-api-jaxrs</module>
         <module>containers</module>
         <module>dist</module>
-        <module>clients</module>
         <module>integration-tests</module>
       </modules>
     </profile>
@@ -426,7 +425,6 @@
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
-        <module>containers</module>
         <module>dist</module>
       </modules>
     </profile>
