@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service.tags;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.Row;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -118,6 +121,10 @@ public class SimpleTagQueryParser {
 
         enum RegExpOptimizer {OR_SINGLE_SEEK, NONE }
 
+        // This is to restrict the amount of rows fetched, we know the cost so it is a constant complexity operation
+        public static final String OPENSHIFT_OPTIMIZED_TAG_QUERY = "pod_id";
+
+        public static final long GROUP_OPENSHIFT_OPTIMIZATION = 01;
         public static final long GROUP_A_COST = 10;
         public static final long GROUP_A_OR_COST = 11;
         public static final long GROUP_B_COST = 50;
@@ -134,8 +141,12 @@ public class SimpleTagQueryParser {
          */
         public static Map<Long, List<Query>> reOrderTagsQuery(Map<String, String> tagsQuery,
                                                                                   boolean enableACostQueries) {
+
+            ArrayList<Query> groupASortedList = new ArrayList<>();
+            ArrayList<Query> openshiftQuery = new ArrayList<>(1);
             Map<Long, List<Query>> costSortedMap = new TreeMap<>();
-            costSortedMap.put(GROUP_A_COST, new ArrayList<>());
+            costSortedMap.put(GROUP_OPENSHIFT_OPTIMIZATION, openshiftQuery);
+            costSortedMap.put(GROUP_A_COST, groupASortedList);
             costSortedMap.put(GROUP_A_OR_COST, new ArrayList<>());
             costSortedMap.put(GROUP_B_COST, new ArrayList<>());
             costSortedMap.put(GROUP_C_COST, new ArrayList<>());
@@ -159,7 +170,35 @@ public class SimpleTagQueryParser {
                 }
             }
 
+            // There can only be a single occurrence of a tag key in the map of tags passed to
+            // findMetricIdentifiersWithFilters; so, if and when we find the pod_id tag, we can stop searching. The
+            // pod_id tag query can have a single or multiple values, so we have to search both GROUP_A_COST and
+            // GROUP_A_OR_COST.
+            Query podIdQuery = getPodIdQuery(groupASortedList);
+            if (podIdQuery == null) {
+                podIdQuery = getPodIdQuery(costSortedMap.get(GROUP_A_OR_COST));
+                if (podIdQuery != null) {
+                    openshiftQuery.add(podIdQuery);
+                }
+            } else {
+                openshiftQuery.add(new Query(podIdQuery.tagName, null, podIdQuery.tagValueMatcher));
+            }
+
             return costSortedMap;
+        }
+
+        private static Query getPodIdQuery(List<Query> queries) {
+            Query podIdQuery = null;
+            Iterator<Query> iterator = queries.iterator();
+            while (iterator.hasNext()) {
+                Query next = iterator.next();
+                if (OPENSHIFT_OPTIMIZED_TAG_QUERY.equals(next.tagName)) {
+                    podIdQuery = next;
+                    iterator.remove();
+                    break;
+                }
+            }
+            return podIdQuery;
         }
 
         /**
@@ -199,12 +238,53 @@ public class SimpleTagQueryParser {
         Map<Long, List<Query>> costSortedMap =
                 QueryOptimizer.reOrderTagsQuery(tagsQueries, enableACostQueries);
 
+        List<Query> openshiftQuery = costSortedMap.get(QueryOptimizer.GROUP_OPENSHIFT_OPTIMIZATION);
         List<Query> groupAEntries = costSortedMap.get(QueryOptimizer.GROUP_A_COST);
         List<Query> groupAOREntries = costSortedMap.get(QueryOptimizer.GROUP_A_OR_COST);
         List<Query> groupBEntries = costSortedMap.get(QueryOptimizer.GROUP_B_COST);
         List<Query> groupCEntries = costSortedMap.get(QueryOptimizer.GROUP_C_COST);
 
         Observable<MetricId<?>> groupMetrics = null;
+
+        if(openshiftQuery.size() > 0) {
+            // Filter using this option
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            Observable<Metric<?>> enrichedMetrics = Observable.just(openshiftQuery.get(0))
+                    .flatMap(query -> dataAccess.findMetricsByTagNameValue(tenantId, query.getTagName(),
+                            query.getTagValues())
+                            .compose(new TagsIndexRowTransformerFilter<>(metricType))
+                            .compose(new ItemsToSetTransformer<>())
+                            .doOnNext(metricIds -> logQuery(tenantId, query, "pod_id", metricIds)))
+                    .flatMap(Observable::from)
+                    // Here we fetch the full metric definition, namely the tags, for each metric id in a separate
+                    // query. Each query is made against the same partition. I would like fetch the metric definitions
+                    // with a single query using the IN clause; however, CQL does not allow this when one of the columns
+                    // in the SELECT clause is a non-frozen collection. This highlights a problem with the data model.
+                    // If we later decide to introduce a table in which we index on the pod_id, then we can altogether
+                    // avoid querying metrics_idx.
+                    .flatMap(metricId -> {
+                        Stopwatch findMetricStopWatch = Stopwatch.createStarted();
+                        return metricsService.findMetric(metricId)
+                                .doOnCompleted(() -> {
+                                    findMetricStopWatch.stop();
+                                    logger.debugf("Fetched metric definition for %s in %d ms", metricId,
+                                            findMetricStopWatch.elapsed(MILLISECONDS));
+                                });
+                    });
+
+            // Use the fetched metrics to filter out the remaining
+            // No, this isn't pretty.. but it'll suffice
+            enrichedMetrics = applyBFilters(enrichedMetrics, groupAEntries);
+            enrichedMetrics = applyBFilters(enrichedMetrics, groupAOREntries);
+            enrichedMetrics = applyBFilters(enrichedMetrics, groupBEntries);
+            enrichedMetrics = applyCFilters(enrichedMetrics, groupCEntries);
+            groupMetrics = enrichedMetrics.map(Metric::getMetricId);
+            return groupMetrics.doOnCompleted(() -> {
+                stopwatch.stop();
+                logger.debugf("Finished fetch metrics using pod_id optimization in %d ms",
+                        stopwatch.elapsed(MILLISECONDS));
+            });
+        }
 
         /*
         Potential candidates:

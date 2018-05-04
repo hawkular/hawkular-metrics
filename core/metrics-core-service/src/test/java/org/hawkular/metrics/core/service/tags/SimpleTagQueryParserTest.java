@@ -73,7 +73,8 @@ public class SimpleTagQueryParserTest {
     public void testReOrder() {
         Map<String, String> tagsQuery = Maps.newHashMap();
         tagsQuery.put("pod_hit", "norate"); // A
-        tagsQuery.put("pod_id", "pod1|pod2|pod3"); // AOR
+        tagsQuery.put("env", "qa|stage|prod"); // AOR
+        tagsQuery.put("pod_id", "pod1|pod2|pod3"); // openshift pod_id optimization
         tagsQuery.put("time", "*"); // B
         tagsQuery.put("!seek", ""); // C
         tagsQuery.put("pod_name", "pod1|!pod2"); // B
@@ -84,8 +85,12 @@ public class SimpleTagQueryParserTest {
 
         assertEquals(1, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_A_COST).size());
         assertEquals(1, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_A_OR_COST).size());
-        assertEquals(3, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_A_OR_COST).get(0).getTagValues().length);
+        assertEquals(3, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_A_OR_COST).get(0)
+                .getTagValues().length);
         assertEquals(2, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_B_COST).size());
         assertEquals(1, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_C_COST).size());
+        assertEquals(1, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_OPENSHIFT_OPTIMIZATION).size());
+        assertEquals(3, entries.get(SimpleTagQueryParser.QueryOptimizer.GROUP_OPENSHIFT_OPTIMIZATION).get(0)
+                .getTagValues().length);
     }
 }
