@@ -16,6 +16,8 @@
  */
 package org.hawkular.metrics.core.service.tags;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import org.jboss.logging.Logger;
 
 import com.datastax.driver.core.Row;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Stopwatch;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -245,17 +248,29 @@ public class SimpleTagQueryParser {
 
         if(openshiftQuery.size() > 0) {
             // Filter using this option
-            Observable<Metric<?>> enrichedMetrics = Observable.from(openshiftQuery)
-                    .flatMap(e -> dataAccess.findMetricsByTagNameValue(tenantId, e.getTagName(), e.getTagValues())
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            Observable<Metric<?>> enrichedMetrics = Observable.just(openshiftQuery.get(0))
+                    .flatMap(query -> dataAccess.findMetricsByTagNameValue(tenantId, query.getTagName(),
+                            query.getTagValues())
                             .compose(new TagsIndexRowTransformerFilter<>(metricType))
-                            .compose(new ItemsToSetTransformer<>()))
-                    .reduce((s1, s2) -> {
-                        s1.retainAll(s2);
-                        return s1;
-                    })
-                    .doOnNext(set -> logger.debugf("Metrics with matching pod_id = %s", set))
+                            .compose(new ItemsToSetTransformer<>())
+                            .doOnNext(metricIds -> logQuery(tenantId, query, "pod_id", metricIds)))
                     .flatMap(Observable::from)
-                    .flatMap(metricsService::findMetric);
+                    // Here we fetch the full metric definition, namely the tags, for each metric id in a separate
+                    // query. Each query is made against the same partition. I would like fetch the metric definitions
+                    // with a single query using the IN clause; however, CQL does not allow this when one of the columns
+                    // in the SELECT clause is a non-frozen collection. This highlights a problem with the data model.
+                    // If we later decide to introduce a table in which we index on the pod_id, then we can altogether
+                    // avoid querying metrics_idx.
+                    .flatMap(metricId -> {
+                        Stopwatch findMetricStopWatch = Stopwatch.createStarted();
+                        return metricsService.findMetric(metricId)
+                                .doOnCompleted(() -> {
+                                    findMetricStopWatch.stop();
+                                    logger.debugf("Fetched metric definition for %s in %d ms", metricId,
+                                            findMetricStopWatch.elapsed(MILLISECONDS));
+                                });
+                    });
 
             // Use the fetched metrics to filter out the remaining
             // No, this isn't pretty.. but it'll suffice
@@ -264,7 +279,11 @@ public class SimpleTagQueryParser {
             enrichedMetrics = applyBFilters(enrichedMetrics, groupBEntries);
             enrichedMetrics = applyCFilters(enrichedMetrics, groupCEntries);
             groupMetrics = enrichedMetrics.map(Metric::getMetricId);
-            return groupMetrics;
+            return groupMetrics.doOnCompleted(() -> {
+                stopwatch.stop();
+                logger.debugf("Finished fetch metrics using pod_id optimization in %d ms",
+                        stopwatch.elapsed(MILLISECONDS));
+            });
         }
 
         /*
