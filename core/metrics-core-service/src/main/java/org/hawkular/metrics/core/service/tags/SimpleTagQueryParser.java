@@ -565,18 +565,13 @@ public class SimpleTagQueryParser {
     private Func1<Metric<?>, Boolean> tagValueFilter(String regexp, String tagName) {
         // If no such tagName -> no match
         return tMetric -> {
-            try {
-                String tagValue = tMetric.getTags().get(tagName);
-                if(tagValue != null) {
-                    boolean positive = (!regexp.startsWith("!"));
-                    Pattern p = PatternUtil.filterPattern(regexp);
-                    return positive == p.matcher(tagValue).matches(); // XNOR
-                }
-                return false;
-            } catch (Exception e) {
-                logger.warn("tagValueFilter failed", e);
-                return false;
+            String tagValue = tMetric.getTags().get(tagName);
+            if(tagValue != null) {
+                boolean positive = (!regexp.startsWith("!"));
+                Pattern p = PatternUtil.filterPattern(regexp);
+                return positive == p.matcher(tagValue).matches(); // XNOR
             }
+            return false;
         };
     }
 
