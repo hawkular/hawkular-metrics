@@ -43,6 +43,7 @@ import org.jboss.logging.Logger;
 import com.datastax.driver.core.Row;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Sets;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -272,14 +273,26 @@ public class SimpleTagQueryParser {
                                 });
                     });
 
-            // Use the fetched metrics to filter out the remaining
-            // No, this isn't pretty.. but it'll suffice
+            if (!groupAOREntries.isEmpty()) {
+                enrichedMetrics = enrichedMetrics.filter(m -> {
+                    for (Query q : groupAOREntries) {
+                        Set<String> values = Sets.newHashSet(q.tagValues);
+                        if (!values.contains(m.getTags().getOrDefault(q.tagName, ""))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+
             enrichedMetrics = applyBFilters(enrichedMetrics, groupAEntries);
-            enrichedMetrics = applyBFilters(enrichedMetrics, groupAOREntries);
             enrichedMetrics = applyBFilters(enrichedMetrics, groupBEntries);
             enrichedMetrics = applyCFilters(enrichedMetrics, groupCEntries);
             groupMetrics = enrichedMetrics.map(Metric::getMetricId);
-            return groupMetrics.doOnCompleted(() -> {
+            return groupMetrics
+                    .doOnError(t -> logger.warnf(t,"Finding %s metrics with tag queries %s failed", metricType,
+                            tagsQueries))
+                    .doOnCompleted(() -> {
                 stopwatch.stop();
                 logger.debugf("Finished fetch metrics using pod_id optimization in %d ms",
                         stopwatch.elapsed(MILLISECONDS));
