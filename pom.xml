@@ -121,7 +121,7 @@
     <version.commons-cli.commons-cli>1.2</version.commons-cli.commons-cli>
     <version.commons-codec>1.10</version.commons-codec>
     <version.io.fabric8>2.2.16</version.io.fabric8>
-    <version.io.netty>4.0.33.Final</version.io.netty>
+    <version.io.netty>4.0.47.Final</version.io.netty>
     <version.io.vertx.vertx-core>3.3.1</version.io.vertx.vertx-core>
     <version.maven-surefire-report-plugin>2.6</version.maven-surefire-report-plugin>
     <version.org.acplt.oncrpc>1.0.7</version.org.acplt.oncrpc>
@@ -134,6 +134,14 @@
     <version.org.jmxtrans.embedded.embedded-jmxtrans>1.0.15</version.org.jmxtrans.embedded.embedded-jmxtrans>
     <version.com.squareup.okhttp>2.0.0</version.com.squareup.okhttp>
     <version.fi.iki.yak.compression-gorilla>1.1.0</version.fi.iki.yak.compression-gorilla>
+
+   <!-- override some Wildfly dependencies for support Wildfly 11.0.0-Final -->
+    <version.com.google.guava>20.0</version.com.google.guava>
+    <version.org.wildfly>11.0.0.Final</version.org.wildfly>
+    <version.org.wildfly.core>3.0.8.Final</version.org.wildfly.core>
+    <version.org.wildfly.bom>11.0.0.Final</version.org.wildfly.bom>
+    <version.com.datastax.cassandra>3.3.0</version.com.datastax.cassandra>
+
   </properties>
 
   <dependencyManagement>
