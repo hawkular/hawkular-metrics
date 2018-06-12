@@ -99,7 +99,6 @@
     <!-- Dependencies versions -->
     <version.org.cassalog>0.4.1</version.org.cassalog>
     <version.org.hawkular.accounts>2.0.26.Final</version.org.hawkular.accounts>
-    <version.org.hawkular.alerts>1.3.4.Final</version.org.hawkular.alerts>
     <version.org.hawkular.commons>0.7.10.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.7</version.joda-time>
@@ -390,9 +389,7 @@
         <module>data-generator</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
-        <module>alerting</module>
         <module>containers</module>
-        <module>bus</module>
         <module>dist</module>
         <module>clients</module>
         <module>integration-tests</module>

@@ -103,7 +103,6 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func6;
 import rx.observable.ListenableFutureObservable;
-import rx.subjects.PublishSubject;
 
 /**
  * @author John Sanda
@@ -148,7 +147,6 @@ public class MetricsServiceImpl implements MetricsService {
      * Note that while user specifies the durations in hours, we store them in seconds.
      */
     private final Map<DataRetentionKey, Integer> dataRetentions = new ConcurrentHashMap<>();
-    private final PublishSubject<Metric<?>> insertedDataPointEvents = PublishSubject.create();
 
     private ListeningExecutorService metricsTasks;
 
@@ -657,8 +655,7 @@ public class MetricsServiceImpl implements MetricsService {
                                                 TimeUnit.SECONDS);
                                     });
                         })
-                        .doOnError(t -> log.debug("Failed to insert data points for " + metric.getMetricId()))
-                        .doOnNext(i -> insertedDataPointEvents.onNext(metric)))
+                        .doOnError(t -> log.debug("Failed to insert data points for " + metric.getMetricId())))
                 .doOnNext(meter::mark);
 
         return updates.map(i -> null);
@@ -1021,11 +1018,6 @@ public class MetricsServiceImpl implements MetricsService {
                 });
     }
 
-    @Override
-    public Observable<Metric<?>> insertedDataEvents() {
-        return insertedDataPointEvents;
-    }
-
     private int getTTL(MetricId<?> metricId) {
         Integer ttl = dataRetentions.get(new DataRetentionKey(metricId));
         if (ttl == null) {
@@ -1038,7 +1030,6 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     public void shutdown() {
-        insertedDataPointEvents.onCompleted();
         metricsTasks.shutdown();
         unloadDataRetentions();
     }
