@@ -83,9 +83,9 @@
     </dependency>
     <dependency>
       <groupId>org.hawkular.metrics</groupId>
-      <artifactId>hawkular-metrics-standalone-dist</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
-      <type>ear</type>
+      <type>war</type>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -207,30 +207,6 @@
                       </commmand>
                       <!-- caches -->
                       <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=partition/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=triggers/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=data/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=publish/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=dataIds/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=globalActions/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
                         /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
                       </commmand>
                       <commmand>
@@ -248,8 +224,8 @@
                 </goals>
                 <configuration>
                   <groupId>org.hawkular.metrics</groupId>
-                  <artifactId>hawkular-metrics-standalone-dist</artifactId>
-                  <name>hawkular-metrics.ear</name>
+                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <name>hawkular-metrics.war</name>
                 </configuration>
               </execution>
               <execution>
