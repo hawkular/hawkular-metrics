@@ -348,10 +348,5 @@ public interface MetricsService {
      */
     Observable<List<long[]>> getPeriods(MetricId<Double> id, Predicate<Double> predicate, long start, long end);
 
-    /**
-     * @return a hot {@link Observable} emitting {@link Metric} events after data has been inserted
-     */
-    Observable<Metric<?>> insertedDataEvents();
-
     <T> Func1<MetricId<T>, Boolean> idFilter(String regexp);
 }

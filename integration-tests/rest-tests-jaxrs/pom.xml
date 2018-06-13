@@ -57,13 +57,6 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-test-dist</artifactId>
-      <version>${project.version}</version>
-      <type>ear</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
       <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <version>${project.version}</version>
       <classifier>classes</classifier>
@@ -71,16 +64,9 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-alerter</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs-test</artifactId>
       <version>${project.version}</version>
-      <classifier>classes</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hawkular.alerts</groupId>
-      <artifactId>hawkular-alerts-api</artifactId>
-      <version>${version.org.hawkular.alerts}</version>
-      <scope>test</scope>
+      <type>war</type>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -153,7 +139,6 @@
               </includes>
               <systemPropertyVariables>
                 <keyspace>${cassandra.keyspace}</keyspace>
-                <hawkular-alerts.base-uri>${base-uri}/alerts</hawkular-alerts.base-uri>
                 <hawkular-metrics.base-uri>${base-uri}/metrics</hawkular-metrics.base-uri>
                 <hawkular-metrics.test.origin>http://test.hawkular.org</hawkular-metrics.test.origin>
                 <hawkular-metrics.test.access-control-allow-headers>random-header1,random-header2</hawkular-metrics.test.access-control-allow-headers>
@@ -202,10 +187,8 @@
                     <javaOpt>-Dhawkular.metrics.allowed-cors-access-control-allow-headers=random-header1,random-header2</javaOpt>
                     <javaOpt>-Dhawkular.metrics.admin-token=${admin-token}</javaOpt>
                     <javaOpt>-Dhawkular.metrics.cassandra.schema.refresh-interval=0</javaOpt>
-                    <javaOpt>-Dhawkular-metrics.alerter.mgt.job-period-seconds=5</javaOpt>
                     <javaOpt>-Xdebug</javaOpt>
                     <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
-                    <javaOpt>-Dhawkular-alerts.engine-period=50</javaOpt>
                     <javaOpt>-Dhawkular.metrics.publish-period=50</javaOpt>
                     <!-- Tests don't require SMTP server but for manual verification of test e-mail, run on 2525 -->
                     <javaOpt>-Dmail.smtp.port=2525</javaOpt>
@@ -238,30 +221,6 @@
                       </commmand>
                       <!-- caches -->
                       <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=partition/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=triggers/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=data/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=publish/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=schema/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=dataIds/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
-                        /subsystem=infinispan/cache-container=hawkular-alerts/local-cache=globalActions/:add(indexing=NONE,start=LAZY)
-                      </commmand>
-                      <commmand>
                         /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
                       </commmand>
                       <commmand>
@@ -279,8 +238,8 @@
                 </goals>
                 <configuration>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>hawkular-metrics-test-dist</artifactId>
-                  <name>hawkular-metrics.ear</name>
+                  <artifactId>hawkular-metrics-api-jaxrs-test</artifactId>
+                  <name>hawkular-metrics.war</name>
                 </configuration>
               </execution>
               <execution>

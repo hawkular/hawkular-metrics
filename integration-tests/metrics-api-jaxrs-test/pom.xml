@@ -49,7 +49,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>hawkular-metrics-standalone</artifactId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
       <type>war</type>
       <version>${project.version}</version>
     </dependency>
@@ -119,7 +119,7 @@
           <overlays>
             <overlay>
               <groupId>${project.groupId}</groupId>
-              <artifactId>hawkular-metrics-standalone</artifactId>
+              <artifactId>hawkular-metrics-api-jaxrs</artifactId>
               <excludes>
                 <exclude>/WEB-INF/classes/org/hawkular/metrics/api/jaxrs/util/JobSchedulerFactory</exclude>
               </excludes>

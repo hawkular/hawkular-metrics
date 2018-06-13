@@ -67,7 +67,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -294,10 +293,6 @@ public class MetricsServiceLifecycle {
     private String collectionIntervalConfig;
 
     @Inject
-    @ServiceReady
-    Event<ServiceReadyEvent> metricsServiceReady;
-
-    @Inject
     private ManifestInformation manifestInfo;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
@@ -447,7 +442,6 @@ public class MetricsServiceLifecycle {
                 reporter.start(interval, SECONDS);
             }
 
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initJobsService();
 

@@ -55,7 +55,6 @@
       <!-- the driver is packaged in the dists that need it -->
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
