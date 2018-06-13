@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -226,9 +225,6 @@ public class MetricsServiceLifecycle {
     @Inject
     DriverUsageMetricsManager driverUsageMetricsManager;
 
-    @Inject
-    @ServiceReady
-    Event<ServiceReadyEvent> metricsServiceReady;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
     private Cache<String, String> locksCache;
@@ -331,8 +327,6 @@ public class MetricsServiceLifecycle {
                 jmxReporter.start();
             }
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
-
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initJobsService();
 
