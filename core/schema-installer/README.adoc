@@ -1,0 +1,110 @@
+= Hawkular Metrics Schema Installer
+
+== About
+
+This module produces a fat JAR that installs the Hawkular Metrics schema in Cassandra.
+Prior to the installer, the schema was automatically installed or updated at server start
+up.
+
+NOTE: The Hawkular Metrics server does not have to be running in order to run the
+
+== Running
+
+In its simplest form the installer can be run as:
+
+[source,bash]
+----
+[jsanda@localhost schema-installer]$ java -jar target/hawkular-metrics-schema-installer-<version>.jar
+INFO  2018-03-08 15:26:48,783 [main] org.hawkular.metrics.schema.Installer:logVersion:104 - Hawkular Metrics Schema Installer v0.29.0-SNAPSHOT+12ad36d504
+INFO  2018-03-08 15:26:48,786 [main] org.hawkular.metrics.schema.Installer:logInstallerProperties:109 - Configured installer properties:
+  cqlPort = 9042
+  useSSL = false
+  cassandraNodes = [127.0.0.1]
+  cassandraConnectionMaxDelay = 1000
+  cassandraConnectionMaxRetries = 5
+  keyspace = hawkular_metrics
+  resetdb = false
+  replicationFactor = 1
+  versionUpdateDelay = 5000
+  versionUpdateMaxRetries10
+
+  ...
+
+INFO  2018-03-08 15:26:50,288 [main] org.hawkular.metrics.scheduler.api.JobsManager:installJobs:78 - Installing scheduled jobs
+INFO  2018-03-08 15:26:50,334 [main] org.hawkular.metrics.schema.SchemaService:doVersionUpdate:89 - Updated system configuration to version 0.29.0-SNAPSHOT+12ad36d504
+INFO  2018-03-08 15:26:50,334 [main] org.hawkular.metrics.schema.Installer:run:91 - Finished installation
+----
+
+The installer logs output to the console by default. Logging is covered in the Logging
+section below.
+
+The first line logs the current version of the installer. The second line logs all
+installer configuration properties along with their values. All of the configuration
+properties are set via Java system properties. The configuration properties are described
+in the table below:
+
+|======================================================================
+|Property |System Property |Default Value |Description
+
+|cqlPort |hawkular.metrics.cassandra.cql-port |9042 |The port on which Cassandra listens
+for client requests
+
+|useSSL |hawkular.metrics.cassandra.use-ssl |false |Turn SSL on/off for driver connections
+to Cassandra. Note that is using SSL, Cassandra must be properly configured to handle
+secure, encrypted client connections.
+
+|cassandraNodes |hawkular.metrics.cassandra.nodes |127.0.0.1 |A comma-delimited list of
+hostnames or IP addresses.
+
+|cassandraConnectionMaxDelay |hawkular.metrics.cassandra.connection.max-delay |30 |A max
+delay in seconds that the installer will wait for All Cassandra nodes to be up. Schema
+installation requires all nodes to be up. An initial delay of two seconds will be used with
+an exponential back off that doubles the delay up to the max on subsequent attempts.
+
+|cassandraConnectionMaxRetries |hawkular.metrics.cassandra.connection.max-retries |5 |The
+max number of attempts to verify that all Cassandra nodes in the cluster are up. If max
+attempts fail, then the installer will exit with a non-zero exit code.
+
+|keyspace |hawkular.metrics.cassandra.keyspace |hawkular_metrics |The keyspace in which
+schema updates will be applied.
+
+|resetdb |hawkular.metrics.cassandra.resetdb |false |If set to true, drops the keyspace
+before applying schema updates. This is primarily used for development.
+
+|replicationFactor |hawkular.metrics.cassandra.replication-factor |1 |The replication
+factor to use in the keyspace. This is an experimental, unsupported feature. Pretty much
+all queries in Hawkular Metrics assume a replication factor of 1.
+
+|versionUpdateDelay |hawkular.metrics.version-update.delay |5 |The second to last line in
+the installer output above mentions updating the system configuration. This is an update to
+a table in Cassandra. If that request fails, this property specifies the amount of time in
+seconds to wait before retrying the request.
+
+|versionUpdateMaxRetries |hawkular.metrics.version-update.max-retries |10 |The maximum
+number of times to retry the version update. If the version update fails for the max number
+of retries, then the installer will exit with a non-zero exit code.
+
+|======================================================================
+
+Here is an example of overriding some of the default settings:
+
+[source,bash]
+----
+[jsanda@localhost schema-installer]$ java \
+    -Dhawkular.metrics.cassandra.nodes=node1.com,node2.com \
+    -Dhawkular.metrics.cassandra.keyspace=hawkulartest \
+    -Dhawkular.metrics.version-update.delay=10 \
+    -jar target/hawkular-metrics-schema-installer-<version>.jar
+----
+
+== Logging
+
+The installer uses https://logback.qos.ch/[Logback] for logging. An external logging
+configuration file can be used as follows:
+
+[source,bash]
+----
+[jsanda@localhost schema-installer]$ java \
+    -Dlogback.configurationFile=<path to logback file> \
+    -jar target/hawkular-metrics-schema-installer.jar
+----

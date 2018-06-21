@@ -67,10 +67,6 @@ public enum ConfigurationKey {
     //Admin
     ADMIN_TOKEN("hawkular.metrics.admin-token", null, "ADMIN_TOKEN", false),
     ADMIN_TENANT("hawkular.metrics.admin-tenant", "admin", "ADMIN_TENANT", false),
-    METRICS_REPORTING_HOSTNAME("hawkular.metrics.reporting.hostname", null, "METRICS_REPORTING_HOSTNAME", false),
-    METRICS_REPORTING_ENABLED("hawkular.metrics.reporting.enabled", null, "METRICS_REPORTING_ENABLED", true),
-    METRICS_REPORTING_COLLECTION_INTERVAL("hawkular.metrics.reporting.collection-interval", "300",
-            "METRICS_REPORTING_COLLECTION_INTERVAL", false),
 
     // Request logging properties
     // Useful for debugging
@@ -80,6 +76,9 @@ public enum ConfigurationKey {
 
     INGEST_MAX_RETRIES("hawkular.metrics.ingestion.retry.max-retries", null, "INGEST_MAX_RETRIES", false),
     INGEST_MAX_RETRY_DELAY("hawkular.metrics.ingestion.retry.max-delay", null, "INGEST_MAX_RETRY_DELAY", false),
+
+    VERSION_CHECK_DELAY("hawkular.metrics.version.check.delay-sec", "10", "VERSION_CHECK_DELAY_SEC", false),
+    VERSION_CHECK_MAX_RETRIES("hawkular.metrics.version.check.max-retries", "30", "VERSION_CHECK_MAX_RETRIES", false),
 
     //Alerting
     METRICS_PUBLISH_BUFFER_SIZE("hawkular.metrics.publish-buffer-size", "100", "METRICS_PUBLISH_BUFFER_SIZE", false),
