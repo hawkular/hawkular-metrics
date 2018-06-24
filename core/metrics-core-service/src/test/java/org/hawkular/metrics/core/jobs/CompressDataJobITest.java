@@ -90,19 +90,16 @@ public class CompressDataJobITest extends BaseITest {
     private ConfigurationService configurationService;
     private TestScheduler jobScheduler;
     private PreparedStatement resetConfig;
-
     private JobDetails compressionJob;
 
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
-
-        resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
-                JOB_NAME + "'");
+        resetConfig = session.prepare("DELETE FROM " + getKeyspace() + ".sys_config " +
+                "WHERE config_id = 'org.hawkular.metrics.jobs." + JOB_NAME + "'");
 
         configurationService = new ConfigurationService();
         configurationService.init(rxSession);
-
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
@@ -116,11 +113,10 @@ public class CompressDataJobITest extends BaseITest {
         session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
+        jobScheduler.truncateTables(getKeyspace());
         long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
                 .with(DateTimeService.startOfNextOddHour())
                 .toInstant(ZoneOffset.UTC).toEpochMilli();
-        jobScheduler.truncateTables(getKeyspace());
-
         List<JobDetails> jobDetails = jobsManager.installJobs();
         jobScheduler.advanceTimeTo(nextStart);
 
