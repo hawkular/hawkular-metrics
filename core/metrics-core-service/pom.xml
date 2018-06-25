@@ -236,13 +236,6 @@
               <includes>
                 <include>**/*ITest*</include>
               </includes>
-              <excludes>
-                <!--
-                  CompressDataJobITest has intermittent failures. I have created HWKMETRICS-772 as a reminder
-                   to fix and re-enable them.
-                -->
-                <exclude>**/CompressDataJobITest.java</exclude>
-              </excludes>
               <systemPropertyVariables>
                 <resetdb>${resetdb}</resetdb>
                 <keyspace>${test.keyspace}</keyspace>
