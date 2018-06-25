@@ -97,7 +97,7 @@
     <test.keyspace>hawkulartest</test.keyspace>
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
-    <version.org.cassalog>0.4.2</version.org.cassalog>
+    <version.org.cassalog>0.7.0</version.org.cassalog>
     <version.org.hawkular.commons>0.9.6.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.9.5</version.joda-time>
@@ -388,6 +388,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/schema-installer</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
         <module>job-scheduler</module>
@@ -398,7 +399,6 @@
         <module>api/metrics-api-jaxrs</module>
         <module>containers</module>
         <module>dist</module>
-        <module>clients</module>
         <module>integration-tests</module>
       </modules>
     </profile>
@@ -412,6 +412,7 @@
       <modules>
         <module>core/rx-java-driver</module>
         <module>core/schema</module>
+        <module>core/schema-installer</module>
         <module>core/datetime-service</module>
         <module>core/configuration-service</module>
         <module>job-scheduler</module>
@@ -419,7 +420,6 @@
         <module>core/metrics-core-service</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
-        <module>containers</module>
         <module>dist</module>
       </modules>
     </profile>
