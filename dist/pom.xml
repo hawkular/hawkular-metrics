@@ -38,25 +38,7 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
-        <module>component/component-war</module>
-        <module>component/component-ear</module>
-        <module>standalone/standalone-war</module>
-        <module>standalone/standalone-ear</module>
-        <module>standalone/wildfly-standalone</module>
-        <module>containers/hawkular-metrics-openshift-alerting</module>
         <module>containers/hawkular-metrics-openshift</module>
-        <module>containers/hawkular-metrics-openshift-dist</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>openshift</id>
-      <properties>
-        <skipTests>true</skipTests>
-      </properties>
-      <modules>
-        <module>containers/hawkular-metrics-openshift-alerting</module>
-        <module>containers/hawkular-metrics-openshift</module>
-        <module>containers/hawkular-metrics-openshift-dist</module>
       </modules>
     </profile>
   </profiles>

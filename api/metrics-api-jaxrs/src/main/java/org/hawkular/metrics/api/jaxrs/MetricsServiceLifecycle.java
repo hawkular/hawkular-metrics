@@ -450,8 +450,6 @@ public class MetricsServiceLifecycle {
                 reporter.start(interval, SECONDS);
             }
 
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
-
             initGCGraceSecondsManager();
             initTempTablesCleaner();
 
