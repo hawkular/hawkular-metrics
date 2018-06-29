@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,16 +23,6 @@
          version="3.1">
 
   <display-name>Hawkular Metrics Rest interface</display-name>
-
-  <resource-env-ref>
-    <resource-env-ref-name>container/hawkular-metrics</resource-env-ref-name>
-    <lookup-name>java:jboss/infinispan/container/hawkular-metrics</lookup-name>
-  </resource-env-ref>
-
-  <resource-env-ref>
-    <resource-env-ref-name>cache/locks</resource-env-ref-name>
-    <lookup-name>java:jboss/infinispan/cache/hawkular-metrics/locks</lookup-name>
-  </resource-env-ref>
 
   <servlet>
     <servlet-name>staticContent</servlet-name>

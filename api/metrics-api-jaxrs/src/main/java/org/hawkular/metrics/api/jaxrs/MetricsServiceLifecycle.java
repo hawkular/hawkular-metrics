@@ -32,9 +32,7 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_M
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_QUEUE_SIZE;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_MAX_REQUEST_CONN;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_NODES;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REPLICATION_FACTOR;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_REQUEST_TIMEOUT;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_RESETDB;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_SCHEMA_REFRESH_INTERVAL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.CASSANDRA_USESSL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION_JOB_ENABLED;
@@ -42,11 +40,9 @@ import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.COMPRESSION
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.DEFAULT_TTL;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.INGEST_MAX_RETRY_DELAY;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.JMX_REPORTING_ENABLED;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_COLLECTION_INTERVAL;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_ENABLED;
-import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.PAGE_SIZE;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.VERSION_CHECK_DELAY;
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.VERSION_CHECK_MAX_RETRIES;
 import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.WAIT_FOR_SERVICE;
 
 import java.lang.management.ManagementFactory;
@@ -60,11 +56,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Event;
@@ -81,19 +75,13 @@ import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.api.jaxrs.dropwizard.RESTMetrics;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
-import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
-import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
-import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
-import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
-import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
-import org.hawkular.metrics.core.dropwizard.HawkularObjectNameFactory;
-import org.hawkular.metrics.core.dropwizard.MetricNameService;
+import org.hawkular.metrics.api.jaxrs.util.SchemaVersionCheckException;
+import org.hawkular.metrics.api.jaxrs.util.SchemaVersionChecker;
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
@@ -106,22 +94,18 @@ import org.hawkular.metrics.core.util.GCGraceSecondsManager;
 import org.hawkular.metrics.model.CassandraStatus;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.TestScheduler;
-import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.Configuration;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
-import org.infinispan.AdvancedCache;
-import org.infinispan.Cache;
 
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
@@ -185,16 +169,6 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(CASSANDRA_REPLICATION_FACTOR)
-    private String replicationFactorProp;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(CASSANDRA_RESETDB)
-    private String resetDb;
-
-    @Inject
-    @Configurable
     @ConfigurationProperty(CASSANDRA_MAX_CONN_HOST)
     private String maxConnectionsPerHost;
 
@@ -240,11 +214,6 @@ public class MetricsServiceLifecycle {
 
     @Inject
     @Configurable
-    @ConfigurationProperty(JMX_REPORTING_ENABLED)
-    private String jmxReportingEnabled;
-
-    @Inject
-    @Configurable
     @ConfigurationProperty(ADMIN_TOKEN)
     private String adminToken;
 
@@ -279,33 +248,21 @@ public class MetricsServiceLifecycle {
     private String compressionJobEnabled;
 
     @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_REPORTING_HOSTNAME)
-    private String metricsReportingHostname;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_REPORTING_ENABLED)
-    private String metricsReportingEnabled;
-
-    @Inject
-    @Configurable
-    @ConfigurationProperty(METRICS_REPORTING_COLLECTION_INTERVAL)
-    private String collectionIntervalConfig;
-
-    @Inject
     @ServiceReady
     Event<ServiceReadyEvent> metricsServiceReady;
 
     @Inject
     private ManifestInformation manifestInfo;
 
-    @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
-    private Cache<String, String> locksCache;
-
+    @Inject
+    @Configurable
+    @ConfigurationProperty(VERSION_CHECK_DELAY)
+    private String versionCheckDelay;
 
     @Inject
-    RESTMetrics restMetrics;
+    @Configurable
+    @ConfigurationProperty(VERSION_CHECK_MAX_RETRIES)
+    private String versionCheckMaxRetries;
 
     private volatile State state;
     private int connectionAttempts;
@@ -356,7 +313,7 @@ public class MetricsServiceLifecycle {
 
     @PostConstruct
     void init() {
-        log.infof("Hawkular Metrics version: %s", manifestInfo.getAttributes().get("Implementation-Version"));
+        log.infof("Hawkular Metrics version: %s", getVersion());
 
         lifecycleExecutor.submit(this::startMetricsService);
         if (Boolean.parseBoolean(waitForService)
@@ -374,6 +331,13 @@ public class MetricsServiceLifecycle {
                 Uninterruptibles.sleepUninterruptibly(1, SECONDS);
             }
         }
+    }
+
+    private String getVersion() {
+        String implVersion = manifestInfo.getAttributes().get("Implementation-Version");
+        String gitSHA = manifestInfo.getAttributes().get("Built-From-Git-SHA1");
+
+        return implVersion + "+" + gitSHA.substring(0, 10);
     }
 
     private void startMetricsService() {
@@ -401,9 +365,10 @@ public class MetricsServiceLifecycle {
             return;
         }
         try {
-            waitForAllNodesToBeUp();
+            doSchemaVersionCheck();
 
-            initSchema();
+            session.execute("USE " + keyspace);
+
             dataAcces = new DataAccessImpl(session);
 
             configurationService = new ConfigurationService();
@@ -418,56 +383,21 @@ public class MetricsServiceLifecycle {
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
 
-            MetricNameService metricNameService;
-            if (metricsReportingHostname == null) {
-                metricNameService = new MetricNameService(adminTenant);
-            } else {
-                metricNameService = new MetricNameService(metricsReportingHostname, adminTenant);
-            }
+            MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
 
-            HawkularMetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            metricRegistry.setMetricNameService(metricNameService);
-
-            restMetrics.setMetricNameService(metricNameService);
-            restMetrics.initMetrics();
-
-            metricsService.setMetricNameService(metricNameService);
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
 
-            HawkularMetricsRegistryListener metricsRegistryListener = new HawkularMetricsRegistryListener();
-            metricsRegistryListener.setMetricNameService(metricNameService);
-            metricsRegistryListener.setMetricRegistry(metricRegistry);
-            metricsRegistryListener.setMetricsService(metricsService);
-            metricRegistry.addListener(metricsRegistryListener);
-
-            new CassandraDriverMetrics(session, metricRegistry).registerAll();
-
             initJobsService();
-
-            if (Boolean.valueOf(metricsReportingEnabled)) {
-                DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
-                int interval = Integer.getInteger(collectionIntervalConfig, 180);
-                reporter.start(interval, SECONDS);
-            }
 
             initGCGraceSecondsManager();
             initTempTablesCleaner();
 
-            if (Boolean.parseBoolean(jmxReportingEnabled)) {
-                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(metricRegistry);
-                JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
-                        .inDomain("org.hawkular.metrics")
-                        .createsObjectNamesWith(JMXObjNameFactory)
-                        .build();
-                jmxReporter.start();
-            }
             state = State.STARTED;
             log.infoServiceStarted();
 
-        } catch (CassandraClusterNotUpException e) {
-            log.fatal("It appears that some nodes in the Cassandra cluster are not up. Start up cannot proceed");
+        } catch (SchemaVersionCheckException e) {
+            log.fatal("The schema version check failed. Start up cannot proceed.", e);
             state = State.FAILED;
-
         } catch (Exception e) {
             log.fatalCannotConnectToCassandra(e);
             state = State.FAILED;
@@ -594,75 +524,11 @@ public class MetricsServiceLifecycle {
         }
     }
 
-    private void waitForAllNodesToBeUp() throws CassandraClusterNotUpException {
-        boolean isReady = false;
-        int attempts = Integer.parseInt(CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.defaultValue());
-        long delay = 2000;
-        long maxDelay = Long.parseLong(CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.defaultValue());
-        try {
-            attempts = Integer.parseInt(clusterConnectionAttempts);
-        } catch (NumberFormatException e) {
-            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_ATTEMPTS.name(),
-                    attempts);
-        }
-        try {
-            maxDelay = Long.parseLong(clusterConnectionDelay);
-        } catch (NumberFormatException e) {
-            log.infof("Invalid value for %s. Using default of %d", CASSANDRA_CLUSTER_CONNECTION_MAX_DELAY.name(),
-                    delay);
-        }
+    private void doSchemaVersionCheck() throws InterruptedException {
+        long delay = Long.parseLong(versionCheckDelay) * 1000;
+        int maxRetries = Integer.parseInt(versionCheckMaxRetries);
 
-        while (!isReady && !Thread.currentThread().isInterrupted() && attempts-- >= 0) {
-            isReady = true;
-            for (Host host : session.getCluster().getMetadata().getAllHosts()) {
-                if (!host.isUp()) {
-                    isReady = false;
-                    log.warnf("Cassandra node %s may not be up yet. Waiting %s ms for node to come up", host, delay);
-                    try {
-                        Thread.sleep(delay);
-                        delay = Math.min(delay * 2, maxDelay);
-                    } catch(InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    break;
-                }
-            }
-        }
-        if (!isReady) {
-            throw new CassandraClusterNotUpException("It appears that not all nodes in the Cassandra cluster are up " +
-                    "after " + attempts + " checks. Schema updates cannot proceed without all nodes being up.");
-        }
-    }
-
-    private void initSchema() {
-        AtomicReference<Integer> replicationFactor = new AtomicReference<>();
-        try {
-            replicationFactor.set(Integer.parseInt(replicationFactorProp));
-        } catch (NumberFormatException e) {
-            log.warnf("Invalid value [%s] for Cassandra replication_factor. Using default value of 1",
-                    replicationFactorProp);
-            replicationFactor.set(1);
-        }
-
-        AdvancedCache<String, String> cache = locksCache.getAdvancedCache();
-        DistributedLock schemaLock = new DistributedLock(cache, "cassalog");
-        schemaLock.lockAndThen(30000, () -> {
-            SchemaService schemaService = new SchemaService();
-            schemaService.run(session, keyspace, Boolean.parseBoolean(resetDb), replicationFactor.get());
-            session.execute("USE " + keyspace);
-            logReplicationFactor();
-        });
-    }
-
-    private void logReplicationFactor() {
-        ResultSet resultSet = session.execute(
-                "SELECT replication FROM system_schema.keyspaces WHERE keyspace_name = '" + keyspace + "'");
-        if (resultSet.isExhausted()) {
-            log.warnf("Unable to determine replication_factor for keyspace %s", keyspace);
-        }
-        Map<String, String> replication = resultSet.one().getMap(0, String.class, String.class);
-        log.infof("The keyspace %s is using a replication_factor of %s", keyspace,
-                replication.get("replication_factor"));
+        new SchemaVersionChecker().waitForSchemaUpdates(session, keyspace, delay, maxRetries);
     }
 
     /**
@@ -697,9 +563,7 @@ public class MetricsServiceLifecycle {
         jobsService.setSession(rxSession);
         scheduler = new JobSchedulerFactory().getJobScheduler(rxSession);
         jobsService.setScheduler(scheduler);
-
-        DistributedLock jobsLock = new DistributedLock(locksCache.getAdvancedCache(), "background-jobs");
-        jobsLock.lockAndThen(jobsService::start);
+        jobsService.start();
 
         registerMBean("JobsService", jobsService);
     }
