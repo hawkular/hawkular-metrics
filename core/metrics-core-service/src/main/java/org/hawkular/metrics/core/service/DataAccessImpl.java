@@ -1368,8 +1368,13 @@ public class DataAccessImpl implements DataAccess {
         public void onTableAdded(TableMetadata tableMetadata) {
             log.debugf("Table added %s", tableMetadata.getName());
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                log.debugf("Registering prepared statements for table %s", tableMetadata.getName());
                 Observable.fromCallable(() -> {
+                    long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 100);
+                    while (!session.getCluster().getMetadata().checkSchemaAgreement()) {
+                        log.debugf("Waiting for schema agreement to prepare statements for %s",
+                                tableMetadata.getName());
+                        Thread.sleep(delay);
+                    }
                     prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName()));
                     return null;
                 })
