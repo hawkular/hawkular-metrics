@@ -324,6 +324,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
+    private PreparedStatement findSchemaVersions;
+
     private static DateTimeFormatter TEMP_TABLE_DATEFORMATTER = (new DateTimeFormatterBuilder())
             .appendValue(ChronoField.YEAR, 4)
             .appendValue(ChronoField.MONTH_OF_YEAR, 2)
@@ -524,6 +526,12 @@ public class DataAccessImpl implements DataAccess {
                         "FROM metrics_idx " +
                         "WHERE token(tenant_id, type) > ? AND token(tenant_id, type) <=" +
                         " ?"
+        );
+
+        findSchemaVersions = session.prepare(
+                "SELECT schema_version " +
+                       "FROM system.peers " +
+                       "WHERE token(peer) > ? AND token(peer) <= ?"
         );
 
         getMetricTags = session.prepare(
@@ -1367,17 +1375,25 @@ public class DataAccessImpl implements DataAccess {
         @Override
         public void onTableAdded(TableMetadata tableMetadata) {
             log.debugf("Table added %s", tableMetadata.getName());
+            long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 1000);
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                Observable.fromCallable(() -> {
-                    long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 100);
-                    while (!session.getCluster().getMetadata().checkSchemaAgreement()) {
-                        log.debugf("Waiting for schema agreement to prepare statements for %s",
-                                tableMetadata.getName());
-                        Thread.sleep(delay);
-                    }
-                    prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName()));
-                    return null;
-                })
+                Observable.from(getTokenRanges())
+                        .flatMap(tokenRange -> rxSession.execute(findSchemaVersions.bind()
+                                .setToken(0, tokenRange.getStart())
+                                .setToken(1, tokenRange.getEnd()))
+                        )
+                        .filter(resultSet -> !resultSet.isExhausted())
+                        .flatMap(resultSet -> Observable.from(resultSet)
+                                .collect(HashSet::new, (set, row) -> set.add(row.getUUID(0))))
+                        .collect(HashSet::new, (allSchemaVersions, set) -> allSchemaVersions.add(set))
+                        // The repeatWhen causes the upstream observable to be retried after the delay. This is
+                        // necessary to "refresh" the schema versions.
+                        .repeatWhen(completed -> completed.delay(delay, TimeUnit.MILLISECONDS))
+                        // The takeUntil is basically the loop terminating condition. We continue until we converge
+                        // on a single schema version.
+                        .takeUntil(set -> set.size() == 1)
+                        .doOnCompleted(() ->
+                                prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName())))
                         .subscribeOn(Schedulers.io())
                         .subscribe();
             }
