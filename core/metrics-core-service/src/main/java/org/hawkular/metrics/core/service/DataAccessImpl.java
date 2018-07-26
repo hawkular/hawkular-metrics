@@ -1375,26 +1375,21 @@ public class DataAccessImpl implements DataAccess {
         @Override
         public void onTableAdded(TableMetadata tableMetadata) {
             log.debugf("Table added %s", tableMetadata.getName());
-            long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 1000);
+            long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 5000);
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
-                Observable.from(getTokenRanges())
-                        .flatMap(tokenRange -> rxSession.execute(findSchemaVersions.bind()
-                                .setToken(0, tokenRange.getStart())
-                                .setToken(1, tokenRange.getEnd()))
-                        )
-                        .filter(resultSet -> !resultSet.isExhausted())
-                        .flatMap(resultSet -> Observable.from(resultSet)
-                                .collect(HashSet::new, (set, row) -> set.add(row.getUUID(0))))
-                        .collect(HashSet::new, (allSchemaVersions, set) -> allSchemaVersions.add(set))
-                        // The repeatWhen causes the upstream observable to be retried after the delay. This is
-                        // necessary to "refresh" the schema versions.
-                        .repeatWhen(completed -> completed.delay(delay, TimeUnit.MILLISECONDS))
-                        // The takeUntil is basically the loop terminating condition. We continue until we converge
-                        // on a single schema version.
-                        .takeUntil(set -> set.size() == 1)
-                        .doOnCompleted(() ->
-                                prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName())))
+                log.debugf("Registering prepared statements for table %s", tableMetadata.getName());
+                Observable.fromCallable(() -> {
+                    prepareTempStatements(tableMetadata.getName(), tableToMapKey(tableMetadata.getName()));
+                    return null;
+                })
                         .subscribeOn(Schedulers.io())
+                        .retryWhen(errors -> errors.flatMap(error -> {
+                            log.debugf(error, "Failed to prepare statements for table %s",
+                                    tableMetadata.getName());
+                            return Observable.timer(delay, TimeUnit.MILLISECONDS);
+                        }))
+                        .doOnCompleted(() -> log.debugf("Finished preparing statements for table %s",
+                                tableMetadata.getName()))
                         .subscribe();
             }
         }
