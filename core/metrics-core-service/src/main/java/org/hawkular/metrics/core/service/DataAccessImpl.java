@@ -324,6 +324,8 @@ public class DataAccessImpl implements DataAccess {
 
     private PreparedStatement findMetricsByTagNameValue;
 
+    private PreparedStatement findSchemaVersions;
+
     private static DateTimeFormatter TEMP_TABLE_DATEFORMATTER = (new DateTimeFormatterBuilder())
             .appendValue(ChronoField.YEAR, 4)
             .appendValue(ChronoField.MONTH_OF_YEAR, 2)
@@ -524,6 +526,12 @@ public class DataAccessImpl implements DataAccess {
                         "FROM metrics_idx " +
                         "WHERE token(tenant_id, type) > ? AND token(tenant_id, type) <=" +
                         " ?"
+        );
+
+        findSchemaVersions = session.prepare(
+                "SELECT schema_version " +
+                       "FROM system.peers " +
+                       "WHERE token(peer) > ? AND token(peer) <= ?"
         );
 
         getMetricTags = session.prepare(
@@ -1367,6 +1375,7 @@ public class DataAccessImpl implements DataAccess {
         @Override
         public void onTableAdded(TableMetadata tableMetadata) {
             log.debugf("Table added %s", tableMetadata.getName());
+            long delay = Long.getLong("hawkular.metrics.cassandra.schema.refresh-delay", 5000);
             if(tableMetadata.getName().startsWith(TEMP_TABLE_NAME_PROTOTYPE)) {
                 log.debugf("Registering prepared statements for table %s", tableMetadata.getName());
                 Observable.fromCallable(() -> {
@@ -1374,6 +1383,13 @@ public class DataAccessImpl implements DataAccess {
                     return null;
                 })
                         .subscribeOn(Schedulers.io())
+                        .retryWhen(errors -> errors.flatMap(error -> {
+                            log.debugf("Failed to prepare statements for table %s. Retrying in %d ms",
+                                    tableMetadata.getName(), delay);
+                            return Observable.timer(delay, TimeUnit.MILLISECONDS);
+                        }))
+                        .doOnCompleted(() -> log.debugf("Finished preparing statements for table %s",
+                                tableMetadata.getName()))
                         .subscribe();
             }
         }
