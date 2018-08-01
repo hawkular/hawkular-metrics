@@ -1384,8 +1384,8 @@ public class DataAccessImpl implements DataAccess {
                 })
                         .subscribeOn(Schedulers.io())
                         .retryWhen(errors -> errors.flatMap(error -> {
-                            log.debugf(error, "Failed to prepare statements for table %s",
-                                    tableMetadata.getName());
+                            log.debugf("Failed to prepare statements for table %s. Retrying in %d ms",
+                                    tableMetadata.getName(), delay);
                             return Observable.timer(delay, TimeUnit.MILLISECONDS);
                         }))
                         .doOnCompleted(() -> log.debugf("Finished preparing statements for table %s",
