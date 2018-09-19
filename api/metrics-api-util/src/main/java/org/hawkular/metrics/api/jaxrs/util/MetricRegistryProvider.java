@@ -17,6 +17,8 @@
 
 package org.hawkular.metrics.api.jaxrs.util;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+
 import com.codahale.metrics.MetricRegistry;
 
 /**
@@ -27,13 +29,13 @@ import com.codahale.metrics.MetricRegistry;
 public enum MetricRegistryProvider {
     INSTANCE;
 
-    private final MetricRegistry metricRegistry;
+    private final HawkularMetricRegistry metricRegistry;
 
     MetricRegistryProvider() {
-        metricRegistry = new MetricRegistry();
+        metricRegistry = new HawkularMetricRegistry();
     }
 
-    public MetricRegistry getMetricRegistry() {
+    public HawkularMetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 }

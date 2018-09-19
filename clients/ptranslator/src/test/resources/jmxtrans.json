@@ -1,0 +1,55 @@
+{
+  "queries": [
+    {
+      "objectName": "java.lang:type=Memory",
+      "resultAlias": "jvm.memory",
+      "attributes": [
+        {
+          "name": "HeapMemoryUsage",
+          "keys": [
+            "committed",
+            "init",
+            "max",
+            "used"
+          ]
+        },
+        {
+          "name": "NonHeapMemoryUsage",
+          "keys": [
+            "committed",
+            "init",
+            "max",
+            "used"
+          ]
+        }
+      ]
+    },
+    {
+      "objectName": "java.lang:type=OperatingSystem",
+      "resultAlias": "jvm.operatingsystem",
+      "attributes": [
+        "SystemLoadAverage",
+        "ProcessCpuTime",
+        "FreePhysicalMemorySize",
+        "FreeSwapSpaceSize"
+      ]
+    }
+  ],
+  "outputWriters": [
+    {
+      "@class": "org.hawkular.metrics.clients.ptrans.fullstack.GraphiteITest$ListAppenderWriter"
+    },
+    {
+      "@class": "org.jmxtrans.embedded.output.GraphiteWriter",
+      "settings": {
+        "host": "localhost",
+        "port": "12003",
+        "namePrefix": ""
+      }
+    }
+  ],
+  "queryIntervalInSeconds": "1",
+  "numQueryThreads": "1",
+  "numExportThreads": "1",
+  "exportIntervalInSeconds": "1"
+}
