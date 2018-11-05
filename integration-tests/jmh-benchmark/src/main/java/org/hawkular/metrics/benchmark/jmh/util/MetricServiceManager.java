@@ -16,13 +16,14 @@
  */
 package org.hawkular.metrics.benchmark.jmh.util;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.DataAccessImpl;
 import org.hawkular.metrics.core.service.MetricsServiceImpl;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Session;
 
 /**
@@ -47,8 +48,8 @@ public class MetricServiceManager {
     }
 
     private MetricsServiceImpl createMetricsService(Session session) {
-        SchemaService schemaService = new SchemaService(session, keyspace);
-        schemaService.run(true, 1, true);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, true);
 
         ConfigurationService configurationService = new ConfigurationService();
         configurationService.init(new RxSessionImpl(session));
@@ -60,7 +61,8 @@ public class MetricServiceManager {
         metricsService.setConfigurationService(configurationService);
         metricsService.setDefaultTTL(DEFAULT_TTL);
 
-        MetricRegistry metricRegistry = new MetricRegistry();
+        HawkularMetricRegistry metricRegistry = new HawkularMetricRegistry();
+        metricRegistry.setMetricNameService(new MetricNameService());
 
         metricsService.startUp(session, keyspace, false, false, metricRegistry);
 

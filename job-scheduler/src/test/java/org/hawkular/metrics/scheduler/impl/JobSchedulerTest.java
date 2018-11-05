@@ -67,8 +67,8 @@ public class JobSchedulerTest {
 
         boolean resetdb = Boolean.valueOf(System.getProperty("resetdb", "true"));
 
-        SchemaService schemaService = new SchemaService(session, keyspace);
-        schemaService.run( resetdb);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, resetdb);
 
         session.execute("USE " + keyspace);
 
