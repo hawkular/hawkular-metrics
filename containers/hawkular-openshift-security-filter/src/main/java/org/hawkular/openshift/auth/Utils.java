@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,9 @@
 
 package org.hawkular.openshift.auth;
 
+import io.undertow.io.Sender;
 import io.undertow.server.HttpServerExchange;
+
 
 /**
  * @author Thomas Segismont
@@ -34,7 +36,7 @@ public class Utils {
      * @see HttpServerExchange#endExchange()
      */
     public static void endExchange(HttpServerExchange exchange, int statusCode) {
-        endExchange(exchange, statusCode, null);
+        endExchange(exchange, statusCode, null, null);
     }
 
     /**
@@ -49,9 +51,36 @@ public class Utils {
      * @see HttpServerExchange#endExchange()
      */
     public static void endExchange(HttpServerExchange exchange, int statusCode, String reasonPhrase) {
+        endExchange(exchange, statusCode, reasonPhrase, null);
+    }
+
+    /**
+     * Changes the status code of the response, sets the HTTP reason phrase and the response body, and ends the exchange.
+     *
+     * @param exchange     the HTTP server request/response exchange
+     * @param statusCode   the HTTP status code
+     * @param reasonPhrase the HTTP status message
+     * @param body         the body of the response
+     *
+     * @see HttpServerExchange#setStatusCode(int)
+     * @see HttpServerExchange#setReasonPhrase(String)
+     * @see HttpServerExchange#endExchange()
+     */
+    public static void endExchange(HttpServerExchange exchange, int statusCode, String reasonPhrase, String body) {
         exchange.setStatusCode(statusCode);
         if (reasonPhrase != null) {
             exchange.setReasonPhrase(reasonPhrase);
+        }
+        if(body != null) {
+            Sender sender = null;
+            try {
+                sender = exchange.getResponseSender();
+                sender.send(body);
+            } finally {
+                if (sender != null) {
+                    sender.close();
+                }
+            }
         }
         exchange.endExchange();
     }
