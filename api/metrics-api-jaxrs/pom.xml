@@ -116,6 +116,13 @@
     </dependency>
 
     <dependency>
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
+      <scope>provided</scope>
+      <version>${version.org.infinispan.wildfly}</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.undertow</groupId>
       <artifactId>undertow-servlet</artifactId>
       <scope>provided</scope>
