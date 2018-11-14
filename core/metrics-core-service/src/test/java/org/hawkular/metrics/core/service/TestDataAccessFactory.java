@@ -28,8 +28,10 @@ import org.hawkular.metrics.core.service.log.CoreLogging;
 import org.hawkular.metrics.datetime.DateTimeService;
 import org.joda.time.DateTime;
 
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 
+import rx.Observable;
 import rx.schedulers.Schedulers;
 
 /**
@@ -44,6 +46,10 @@ public class TestDataAccessFactory {
     }
 
     public static DataAccess newInstance(Session session, DateTime now) {
+        return newInstance(session, now, true);
+    }
+
+    public static DataAccess newInstance(Session session, DateTime now, boolean dropTempTables) {
         session.execute(String.format("USE %s", BaseITest.getKeyspace()));
         final CountDownLatch latch = new CountDownLatch(3);
         final CountDownLatch fallBackTable = new CountDownLatch(0);
@@ -58,6 +64,13 @@ public class TestDataAccessFactory {
                 if (latch.getCount() > 0) {
                     latch.countDown();
                 }
+            }
+
+            @Override public Observable<ResultSet> dropTempTable(long timestamp) {
+                if (dropTempTables) {
+                    return super.dropTempTable(timestamp);
+                }
+                return Observable.empty();
             }
         };
         dataAccess.createTempTablesIfNotExists(tableListForTesting(now))
