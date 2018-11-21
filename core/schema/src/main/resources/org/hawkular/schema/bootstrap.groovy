@@ -3,7 +3,7 @@ package org.hawkular.schema
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.SimpleStatement
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
