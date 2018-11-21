@@ -81,19 +81,13 @@ import javax.net.ssl.SSLContext;
 import org.hawkular.metrics.api.jaxrs.config.Configurable;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationKey;
 import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
-import org.hawkular.metrics.api.jaxrs.dropwizard.RESTMetrics;
 import org.hawkular.metrics.api.jaxrs.log.RestLogger;
 import org.hawkular.metrics.api.jaxrs.log.RestLogging;
 import org.hawkular.metrics.api.jaxrs.util.CassandraClusterNotUpException;
 import org.hawkular.metrics.api.jaxrs.util.JobSchedulerFactory;
 import org.hawkular.metrics.api.jaxrs.util.ManifestInformation;
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
-import org.hawkular.metrics.core.dropwizard.CassandraDriverMetrics;
-import org.hawkular.metrics.core.dropwizard.DropWizardReporter;
-import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
-import org.hawkular.metrics.core.dropwizard.HawkularMetricsRegistryListener;
-import org.hawkular.metrics.core.dropwizard.HawkularObjectNameFactory;
-import org.hawkular.metrics.core.dropwizard.MetricNameService;
+
 import org.hawkular.metrics.core.jobs.CompressData;
 import org.hawkular.metrics.core.jobs.JobsService;
 import org.hawkular.metrics.core.jobs.JobsServiceImpl;
@@ -114,6 +108,7 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
@@ -299,9 +294,6 @@ public class MetricsServiceLifecycle {
     private Cache<String, String> locksCache;
 
 
-    @Inject
-    RESTMetrics restMetrics;
-
     private volatile State state;
     private int connectionAttempts;
     private Session session;
@@ -411,50 +403,13 @@ public class MetricsServiceLifecycle {
             metricsService.setDataAccess(dataAcces);
             metricsService.setConfigurationService(configurationService);
             metricsService.setDefaultTTL(getDefaultTTL());
-
-            MetricNameService metricNameService;
-            if (metricsReportingHostname == null) {
-                metricNameService = new MetricNameService(adminTenant);
-            } else {
-                metricNameService = new MetricNameService(metricsReportingHostname, adminTenant);
-            }
-
-            HawkularMetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
-            metricRegistry.setMetricNameService(metricNameService);
-
-            restMetrics.setMetricNameService(metricNameService);
-            restMetrics.initMetrics();
-
-            metricsService.setMetricNameService(metricNameService);
+            MetricRegistry metricRegistry = MetricRegistryProvider.INSTANCE.getMetricRegistry();
             metricsService.startUp(session, keyspace, false, false, metricRegistry);
-
-            HawkularMetricsRegistryListener metricsRegistryListener = new HawkularMetricsRegistryListener();
-            metricsRegistryListener.setMetricNameService(metricNameService);
-            metricsRegistryListener.setMetricRegistry(metricRegistry);
-            metricsRegistryListener.setMetricsService(metricsService);
-            metricRegistry.addListener(metricsRegistryListener);
-
-            new CassandraDriverMetrics(session, metricRegistry).registerAll();
-
-            if (Boolean.valueOf(metricsReportingEnabled)) {
-                DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
-                int interval = Integer.getInteger(collectionIntervalConfig, 180);
-                reporter.start(interval, SECONDS);
-            }
-
 
             initJobsService();
 
             initGCGraceSecondsManager();
 
-            if (Boolean.parseBoolean(jmxReportingEnabled)) {
-                HawkularObjectNameFactory JMXObjNameFactory = new HawkularObjectNameFactory(metricRegistry);
-                JmxReporter jmxReporter = JmxReporter.forRegistry(metricRegistry)
-                        .inDomain("org.hawkular.metrics")
-                        .createsObjectNamesWith(JMXObjNameFactory)
-                        .build();
-                jmxReporter.start();
-            }
             state = State.STARTED;
             log.infoServiceStarted();
 
