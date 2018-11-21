@@ -1,0 +1,24 @@
+${project.build.finalName}
+
+${project.description}
+
+=== RUNNING
+
+The following command starts ptrans:
+
+java -jar ptrans-all.jar -c <path to ptrans.conf>
+
+By default, ptrans logs everything to the console, but you can use your own logback configuration file:
+
+java -jar ptrans-all.jar -Dlogback.configurationFile=<path to logback file> -c <path to ptrans.conf>
+
+=== STOPPING
+
+Send the KILL signal to the process.
+
+=== USAGE
+
+Run the following command to print usage:
+
+java -jar ptrans-all.jar -h
+

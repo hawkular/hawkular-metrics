@@ -111,8 +111,6 @@ public class DeleteTenantITest extends BaseITest {
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
-        jobsManager.installJobs();
-
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);

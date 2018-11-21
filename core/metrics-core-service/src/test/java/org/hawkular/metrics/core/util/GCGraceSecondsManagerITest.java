@@ -102,9 +102,8 @@ public class GCGraceSecondsManagerITest extends BaseITest {
         configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
-        SchemaService schemaService = new SchemaService(rxSession.getSession(), keyspace);
-
-        schemaService.run(Boolean.valueOf(System.getProperty("resetdb", "true")));
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         manager = new TestGCGraceSecondsManager(rxSession, keyspace, configurationService);
         session.getCluster().register(manager);

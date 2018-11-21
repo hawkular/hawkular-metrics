@@ -46,8 +46,8 @@ public class MetricServiceManager {
     }
 
     private MetricsServiceImpl createMetricsService(Session session) {
-        SchemaService schemaService = new SchemaService(session, keyspace);
-        schemaService.run(true, 1, true);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, true);
 
         ConfigurationService configurationService = new ConfigurationService();
         configurationService.init(new RxSessionImpl(session));
