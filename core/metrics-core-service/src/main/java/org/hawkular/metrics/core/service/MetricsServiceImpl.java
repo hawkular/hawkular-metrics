@@ -42,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.core.service.compress.CompressedPointContainer;
 import org.hawkular.metrics.core.service.log.CoreLogger;
 import org.hawkular.metrics.core.service.log.CoreLogging;
@@ -82,7 +84,6 @@ import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.joda.time.Duration;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -156,7 +157,9 @@ public class MetricsServiceImpl implements MetricsService {
 
     private ConfigurationService configurationService;
 
-    private MetricRegistry metricRegistry;
+    private MetricNameService metricNameService = new MetricNameService();
+
+    private HawkularMetricRegistry metricRegistry;
 
     /**
      * Functions used to insert metric data points.
@@ -192,12 +195,12 @@ public class MetricsServiceImpl implements MetricsService {
 
     private int defaultPageSize;
 
-    public void startUp(Session session, String keyspace, boolean resetDb, MetricRegistry metricRegistry) {
+    public void startUp(Session session, String keyspace, boolean resetDb, HawkularMetricRegistry metricRegistry) {
         startUp(session, keyspace, resetDb, true, metricRegistry);
     }
 
     public void startUp(Session session, String keyspace, boolean resetDb, boolean createSchema,
-            MetricRegistry metricRegistry) {
+            HawkularMetricRegistry metricRegistry) {
         session.execute("USE " + keyspace);
         log.infoKeyspaceUsed(keyspace);
         metricsTasks = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4, new MetricsThreadFactory()));
@@ -263,6 +266,7 @@ public class MetricsServiceImpl implements MetricsService {
 
         initConfiguration(session);
         setDefaultTTL(session, keyspace);
+        initMetrics();
 
         int defaultPageSize = session.getCluster().getConfiguration().getQueryOptions().getFetchSize();
         int pageThreshold = Integer.getInteger("hawkular.metrics.page-threshold", 10);
@@ -297,6 +301,12 @@ public class MetricsServiceImpl implements MetricsService {
 
     void unloadDataRetentions() {
         dataRetentions.clear();
+    }
+
+    private void initMetrics() {
+        metricRegistry.registerMetaData("DataPointsInserted", "Core", "Write");
+        metricRegistry.registerMetaData("RawDataReadLatency", "Core", "Read");
+        metricRegistry.registerMetaData("MetricTagsQueryLatency", "Core", "Read");
     }
 
     /**
@@ -400,6 +410,10 @@ public class MetricsServiceImpl implements MetricsService {
 
     public void setConfigurationService(ConfigurationService configurationService) {
         this.configurationService = configurationService;
+    }
+
+    public void setMetricNameService(MetricNameService metricNameService) {
+        this.metricNameService = metricNameService;
     }
 
     public void setDefaultTTL(int defaultTTL) {

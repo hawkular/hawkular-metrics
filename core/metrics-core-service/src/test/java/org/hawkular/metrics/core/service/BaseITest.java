@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,14 +28,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.hawkular.metrics.scheduler.api.JobsManager;
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
+import org.hawkular.metrics.core.dropwizard.MetricNameService;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 import org.joda.time.DateTime;
 import org.testng.annotations.BeforeSuite;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.QueryOptions;
@@ -59,15 +59,11 @@ public abstract class BaseITest {
 
     protected static RxSession rxSession;
 
-    protected static SchemaService schemaService;
-
-    protected static JobsManager jobsManager;
-
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
 
-    protected static MetricRegistry metricRegistry;
+    protected static HawkularMetricRegistry metricRegistry;
 
     @BeforeSuite
     public static void initSuite() {
@@ -79,14 +75,13 @@ public abstract class BaseITest {
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
 
-        schemaService = new SchemaService(session, getKeyspace());
-        schemaService.run(Boolean.valueOf(System.getProperty("resetdb", "true")));
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
 
-        jobsManager = new JobsManager(session);
-
-        metricRegistry = new MetricRegistry();
+        metricRegistry = new HawkularMetricRegistry();
+        metricRegistry.setMetricNameService(new MetricNameService());
     }
 
     protected void resetDB() {

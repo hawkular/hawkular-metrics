@@ -29,7 +29,6 @@ import static org.testng.AssertJUnit.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -90,16 +89,19 @@ public class CompressDataJobITest extends BaseITest {
     private ConfigurationService configurationService;
     private TestScheduler jobScheduler;
     private PreparedStatement resetConfig;
+
     private JobDetails compressionJob;
 
     @BeforeClass
     public void initClass() {
         dataAccess = new DataAccessImpl(session);
-        resetConfig = session.prepare("DELETE FROM " + getKeyspace() + ".sys_config " +
-                "WHERE config_id = 'org.hawkular.metrics.jobs." + JOB_NAME + "'");
 
-        configurationService = new ConfigurationService();
+        resetConfig = session.prepare("DELETE FROM sys_config WHERE config_id = 'org.hawkular.metrics.jobs." +
+                JOB_NAME + "'");
+
+        configurationService = new ConfigurationService() ;
         configurationService.init(rxSession);
+
         metricsService = new MetricsServiceImpl();
         metricsService.setDataAccess(dataAccess);
         metricsService.setConfigurationService(configurationService);
@@ -113,21 +115,18 @@ public class CompressDataJobITest extends BaseITest {
         session.execute(resetConfig.bind());
 
         jobScheduler = new TestScheduler(rxSession);
-        jobScheduler.truncateTables(getKeyspace());
-        long nextStart = LocalDateTime.ofInstant(Instant.ofEpochMilli(jobScheduler.now()), ZoneOffset.UTC)
+        long nextStart = LocalDateTime.now(ZoneOffset.UTC)
                 .with(DateTimeService.startOfNextOddHour())
-                .toInstant(ZoneOffset.UTC).toEpochMilli();
-        List<JobDetails> jobDetails = jobsManager.installJobs();
+                .toInstant(ZoneOffset.UTC).toEpochMilli() - 60000;
         jobScheduler.advanceTimeTo(nextStart);
+        jobScheduler.truncateTables(getKeyspace());
 
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        jobsService.start();
-
-        compressionJob = jobDetails.stream().filter(details -> details.getJobName().equals(JOB_NAME))
+        compressionJob = jobsService.start().stream().filter(details -> details.getJobName().equals(JOB_NAME))
                 .findFirst().get();
 
         assertNotNull(compressionJob);
@@ -138,6 +137,7 @@ public class CompressDataJobITest extends BaseITest {
         jobsService.shutdown();
     }
 
+    @Test
     public void testCompressJob() throws Exception {
         long now = jobScheduler.now();
 

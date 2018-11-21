@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,15 @@
  */
 package org.hawkular.metrics.api.jaxrs.util;
 
+import static org.hawkular.metrics.api.jaxrs.config.ConfigurationKey.METRICS_REPORTING_HOSTNAME;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import javax.inject.Inject;
+
+import org.hawkular.metrics.api.jaxrs.config.Configurable;
+import org.hawkular.metrics.api.jaxrs.config.ConfigurationProperty;
 import org.hawkular.metrics.scheduler.api.Scheduler;
 import org.hawkular.metrics.scheduler.impl.SchedulerImpl;
 import org.hawkular.rx.cassandra.driver.RxSession;
@@ -31,6 +37,9 @@ import org.hawkular.rx.cassandra.driver.RxSession;
  */
 public class JobSchedulerFactory {
 
+    @Inject
+    @Configurable
+    @ConfigurationProperty(METRICS_REPORTING_HOSTNAME)
     private String metricsHostname;
 
     public Scheduler getJobScheduler(RxSession session) {

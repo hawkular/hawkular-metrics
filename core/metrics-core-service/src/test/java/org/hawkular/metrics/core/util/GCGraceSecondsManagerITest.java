@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -102,9 +102,8 @@ public class GCGraceSecondsManagerITest extends BaseITest {
         configurationService = new ConfigurationService();
         configurationService.init(rxSession);
 
-        SchemaService schemaService = new SchemaService(rxSession.getSession(), keyspace);
-
-        schemaService.run(Boolean.valueOf(System.getProperty("resetdb", "true")));
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, keyspace, Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         manager = new TestGCGraceSecondsManager(rxSession, keyspace, configurationService);
         session.getCluster().register(manager);

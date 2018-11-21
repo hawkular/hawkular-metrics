@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,9 +54,8 @@ public class ConfigurationServiceTest {
         Cluster cluster = new Cluster.Builder().addContactPoint("127.0.0.1").build();
         session = cluster.connect();
 
-        String keyspace = System.getProperty("keyspace", "hawkulartest");
-        SchemaService schemaService = new SchemaService(session, keyspace);
-        schemaService.run(true);
+        SchemaService schemaService = new SchemaService();
+        schemaService.run(session, "hawkulartest", true);
 
         configurationService = new ConfigurationService();
         configurationService.init(new RxSessionImpl(session));

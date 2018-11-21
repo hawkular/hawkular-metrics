@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+    and other contributors as indicated by the @author tags.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.hawkular.metrics</groupId>
+    <artifactId>hawkular-metrics-clients</artifactId>
+    <version>0.27.7.Final</version>
+  </parent>
+
+  <artifactId>ptrans</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Protocol Translator</name>
+  <description>A protocol translator that can receive data from various system and feed it to the Hawkular Metrics REST api.</description>
+
+  <properties>
+    <wildfly-maven-plugin.skip>true</wildfly-maven-plugin.skip>
+    <cassandra.keyspace>hawkular_metrics_ptrans_integration_tests</cassandra.keyspace>
+    <!-- Configuration files used when starting a development ptrans instance with mvn exec:java -->
+    <dev.logback.configuration>${project.basedir}/src/main/resources/logback-test.xml</dev.logback.configuration>
+    <dev.ptrans.conf>${project.basedir}/ptrans.conf</dev.ptrans.conf>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.hawkular.metrics</groupId>
+      <artifactId>hawkular-metrics-clients-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-hawkular-metrics</artifactId>
+      <version>${version.io.vertx.vertx-core}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.acplt</groupId>
+      <artifactId>oncrpc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-cli</groupId>
+      <artifactId>commons-cli</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jnr-posix</artifactId>
+    </dependency>
+    <!-- Tests dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jmxtrans.embedded</groupId>
+      <artifactId>embedded-jmxtrans</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+      <version>${project.version}</version>
+      <type>war</type>
+      <scope>test</scope>
+    </dependency>
+    <!-- JBoss Logging Annotations Processor -->
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-processor</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>ptrans</finalName>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+        <excludes>
+          <exclude>logback-test.xml</exclude>
+        </excludes>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*ITest*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>all</shadedClassifierName>
+              <finalName>${project.build.finalName}-all</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>org.hawkular.metrics.clients.ptrans.Main</Main-Class>
+                  </manifestEntries>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/io.vertx.core.spi.VerticleFactory</resource>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>org.hawkular.metrics.clients.ptrans.Main</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>logback.configurationFile</key>
+              <value>${dev.logback.configuration}</value>
+            </systemProperty>
+          </systemProperties>
+          <arguments>
+            <argument>-c</argument>
+            <argument>${dev.ptrans.conf}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>dist</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <descriptor>src/assembly/dist/assembly.xml</descriptor>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>ptrans-integration-tests</id>
+      <activation>
+        <property>
+          <name>!skipTests</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/*ITest*</include>
+              </includes>
+              <systemPropertyVariables>
+                <keyspace>${cassandra.keyspace}</keyspace>
+                <hawkular-metrics.base-uri>${base-uri}</hawkular-metrics.base-uri>
+              </systemPropertyVariables>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-maven-plugin</artifactId>
+            <configuration>
+              <skip>${wildfly-maven-plugin.skip}</skip>
+              <port>${ptrans.wildfly.management.port}</port>
+            </configuration>
+            <executions>
+              <execution>
+                <id>start-wildfly</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <javaOpts>
+                    <javaOpt>-Xms64m</javaOpt>
+                    <javaOpt>-Xmx512m</javaOpt>
+                    <javaOpt>-Xss256k</javaOpt>
+                    <javaOpt>-Djava.net.preferIPv4Stack=true</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.client.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Dsun.rmi.dgc.server.gcInterval=3600000</javaOpt>
+                    <javaOpt>-Djboss.socket.binding.port-offset=${ptrans.wildfly.port.offset}</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.keyspace=${cassandra.keyspace}</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.cassandra.resetdb</javaOpt>
+                    <javaOpt>-Dhawkular.metrics.waitForService</javaOpt>
+                    <javaOpt>-Xdebug</javaOpt>
+                    <javaOpt>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8787</javaOpt>
+                  </javaOpts>
+                </configuration>
+              </execution>
+              <execution>
+                <id>configure-loggers-and-caches</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>execute-commands</goal>
+                </goals>
+                <configuration>
+                  <jbossHome>${project.build.directory}/wildfly-run/wildfly-${version.org.wildfly}</jbossHome>
+                  <executeCommands>
+                    <commands>
+                      <!-- loggers -->
+                      <command>
+                        /subsystem=logging/logger=org.hawkular:add(level="TRACE")
+                      </command>
+                      <command>
+                        /subsystem=logging/console-handler=CONSOLE:write-attribute(name="level",value="${wildfly.logging.console.level}")
+                      </command>
+                      <command>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="level",value="${wildfly.logging.file.level}")
+                      </command>
+                      <commmand>
+                        /subsystem=logging/periodic-rotating-file-handler=FILE:write-attribute(name="file",value={path="${project.build.directory}/wildfly-test.log"})
+                      </commmand>
+                      <!-- caches -->
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-metrics/:add(module=org.jboss.as.clustering.infinispan,start=LAZY)
+                      </commmand>
+                      <commmand>
+                        /subsystem=infinispan/cache-container=hawkular-metrics/local-cache=locks/:add(indexing=NONE,start=LAZY)
+                      </commmand>
+                    </commands>
+                  </executeCommands>
+                </configuration>
+              </execution>
+              <execution>
+                <id>deploy-dist</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>deploy-artifact</goal>
+                </goals>
+                <configuration>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>hawkular-metrics-api-jaxrs</artifactId>
+                  <name>hawkular-metrics.war</name>
+                </configuration>
+              </execution>
+              <execution>
+                <id>stop-wildfly</id>
+                <phase>post-integration-test</phase>
+                <goals>
+                  <goal>shutdown</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>wildfly.deployment</id>
+      <activation>
+        <property>
+          <name>!running.service</name>
+        </property>
+      </activation>
+      <properties>
+        <wildfly-maven-plugin.skip>false</wildfly-maven-plugin.skip>
+        <!-- IMPORTANT: The port must be the port offset + 8080. -->
+        <base-uri>127.0.0.1:55988/hawkular/metrics</base-uri>
+        <ptrans.wildfly.port.offset>47908</ptrans.wildfly.port.offset>
+        <!-- IMPORTANT: The management port must be the port offset + 9990. -->
+        <ptrans.wildfly.management.port>57898</ptrans.wildfly.management.port>
+        <wildfly.logging.console.level>ERROR</wildfly.logging.console.level>
+        <wildfly.logging.file.level>ERROR</wildfly.logging.file.level>
+      </properties>
+    </profile>
+
+  </profiles>
+</project>

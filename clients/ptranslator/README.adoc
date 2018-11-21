@@ -1,0 +1,122 @@
+= ptrans - A Hawkular Metrics proxy
+:type: article
+
+This is a proxy server taking in metrics data in several common formats and emitting
+them as REST requests into Hawkular Metrics backend for storage.
+
+== Supported input formats
+
+=== Syslog
+
+This module contains a simple proxy server that also listens on UDP port 5140
+for syslog messages. If a message is of the format:
+
+----
+type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000
+----
+
+Then it is taken and the individual key-value-pairs are broken apart and
+sent as individual metrics to a hawkular-metrics rest server. The timestamp
+is the current time on the proxy when the udp packet was received.
+
+==== Configuring syslog
+
+You need to configure syslog to forward you the messages.
+For this you need to edit `/ec/syslog.conf` and add a line like this:
+
+----
+*.info          @127.0.0.1:5140
+----
+
+(the facility and severity may vary depending on how your application is logging the metrics)
+
+==== Manually testing
+
+On a *nix command line you can run:
+
+[source,bash]
+----
+logger -p local3.info "type=metric thread.count=7 thread.active=5 heap.permgen.size=20000000"
+----
+
+to add entries to syslog for testing purposes.
+
+=== Graphite
+
+The converter also accepts Graphite plaintext format:
+
+----
+path value timestamp_in_s
+----
+
+Or with multiple entries per message:
+
+----
+path1 value1 timestamp_in_s1
+path2 value2 timestamp_in_s2
+----
+
+=== Ganglia
+
+If you have Ganglia `gmond` running, you can import its data by running the pTrans client, listening
+to `gmond` udp mlticast packets.
+For this to work, the packets from Ganglia need to have a large enough TTL to be seen on the host where you run pTrans.
+
+Excerpt from gmond.conf:
+
+----
+udp_send_channel {
+ mcast_join = 239.2.11.71
+ port = 8649
+ ttl = 4   <<--- Must be >> 1 if gmond is not on the host ptrans runs.
+}
+----
+
+=== StatsD
+
+The converter accepts statsD packets sent via UDP (to the UDP port).
+Format is:
+
+----
+key:value|type
+----
+
+Where only key and value are accepted and the type is ignored (for now).
+
+Example command:
+
+[source,bash]
+----
+echo "my_time:100|ms" | nc -u4 localhost 8125
+----
+
+=== collectd
+
+You must configure the collectd network plugin to send UDP packets.
+
+----
+LoadPlugin network
+<Plugin network>
+        <Server "127.0.0.1" "25826">
+        </Server>
+</Plugin>
+----
+
+== Running ptrans for development
+
+TIP: Don't forget to start a Hawkular Metrics web server as well.
+
+Once the project is built, simply run the following command:
+
+[source,bash]
+----
+mvn exec:java
+----
+
+By default, the `logging-dev.properties` and `ptrans.conf` files at the project base directory will be used.
+If you want to use your own files:
+
+[source,bash]
+----
+mvn exec:java -Dlogback.configurationFile=<path to logback file> -Ddev.ptrans.conf=<path to ptrans.conf>
+----

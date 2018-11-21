@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,6 +60,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.hawkular.metrics.api.jaxrs.util.MetricRegistryProvider;
+import org.hawkular.metrics.core.dropwizard.HawkularMetricRegistry;
 import org.jboss.logging.Logger;
 import org.xnio.BufferAllocator;
 import org.xnio.ByteBufferSlicePool;
@@ -70,7 +71,6 @@ import org.xnio.XnioExecutor;
 import org.xnio.XnioIoThread;
 import org.xnio.ssl.XnioSsl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -177,7 +177,7 @@ class TokenAuthenticator implements Authenticator {
         }
         connectionPools = new ConcurrentHashMap<>(Runtime.getRuntime().availableProcessors(), 1);
         connectionFactory = new ConnectionFactory(kubernetesMasterUri);
-        MetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
+        HawkularMetricRegistry metrics = MetricRegistryProvider.INSTANCE.getMetricRegistry();
         // Note: HawkularMetricRegistry.registerMetaData cannot be used here because the registry is not yet
         // fully initialized. Calling registerMetaData will result in an NPE.
         authLatency = metrics.timer("openshift-oauth-latency");
