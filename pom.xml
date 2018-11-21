@@ -398,7 +398,6 @@
         <module>api/metrics-api-jaxrs</module>
         <module>containers</module>
         <module>dist</module>
-        <module>clients</module>
         <module>integration-tests</module>
       </modules>
     </profile>
