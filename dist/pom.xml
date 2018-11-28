@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,14 +38,7 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
-        <module>component/component-war</module>
-        <module>component/component-ear</module>
-        <module>standalone/standalone-war</module>
-        <module>standalone/standalone-ear</module>
-        <module>standalone/wildfly-standalone</module>
-        <module>containers/hawkular-metrics-openshift-alerting</module>
         <module>containers/hawkular-metrics-openshift</module>
-        <module>containers/hawkular-metrics-openshift-dist</module>
       </modules>
     </profile>
     <profile>
@@ -54,9 +47,7 @@
         <skipTests>true</skipTests>
       </properties>
       <modules>
-        <module>containers/hawkular-metrics-openshift-alerting</module>
         <module>containers/hawkular-metrics-openshift</module>
-        <module>containers/hawkular-metrics-openshift-dist</module>
       </modules>
     </profile>
   </profiles>

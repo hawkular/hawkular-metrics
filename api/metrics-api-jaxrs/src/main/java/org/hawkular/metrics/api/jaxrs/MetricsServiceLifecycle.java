@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,7 +64,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -272,10 +271,6 @@ public class MetricsServiceLifecycle {
     DriverUsageMetricsManager driverUsageMetricsManager;
 
     @Inject
-    @ServiceReady
-    Event<ServiceReadyEvent> metricsServiceReady;
-
-    @Inject
     private ManifestInformation manifestInfo;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
@@ -411,8 +406,6 @@ public class MetricsServiceLifecycle {
                 DropWizardReporter reporter = new DropWizardReporter(metricRegistry, metricNameService, metricsService);
                 reporter.start(30, SECONDS);
             }
-
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
 
             initJobsService();
 
