@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,7 +98,6 @@
     <nodes>127.0.0.1</nodes>
     <!-- Dependencies versions -->
     <version.org.cassalog>0.4.2</version.org.cassalog>
-    <version.org.hawkular.alerts>1.5.4.Final</version.org.hawkular.alerts>
     <version.org.hawkular.commons>0.9.1.Final</version.org.hawkular.commons>
     <version.javax.enterprise.cdi-api>1.2</version.javax.enterprise.cdi-api>
     <version.joda-time>2.9.5</version.joda-time>
@@ -388,11 +387,8 @@
         <module>data-generator</module>
         <module>api/metrics-api-util</module>
         <module>api/metrics-api-jaxrs</module>
-        <module>alerting</module>
         <module>containers</module>
-        <module>bus</module>
         <module>dist</module>
-        <module>clients</module>
         <module>integration-tests</module>
       </modules>
     </profile>
