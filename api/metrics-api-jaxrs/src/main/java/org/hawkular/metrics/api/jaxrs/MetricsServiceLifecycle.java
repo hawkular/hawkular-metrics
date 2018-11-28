@@ -107,7 +107,6 @@ import org.infinispan.Cache;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
@@ -268,9 +267,6 @@ public class MetricsServiceLifecycle {
     private String metricsReportingEnabled;
 
     @Inject
-    DriverUsageMetricsManager driverUsageMetricsManager;
-
-    @Inject
     private ManifestInformation manifestInfo;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
@@ -408,8 +404,6 @@ public class MetricsServiceLifecycle {
             }
 
             initJobsService();
-
-            session.getCluster().register(new ClusterStateListener());
 
             initGCGraceSecondsManager();
 
@@ -728,44 +722,6 @@ public class MetricsServiceLifecycle {
             }
         } finally {
             state = State.STOPPED;
-        }
-    }
-
-    private class ClusterStateListener implements Host.StateListener {
-        @Override
-        public void onAdd(Host host) {
-            update();
-        }
-
-        private void update() {
-            lifecycleExecutor.submit(() -> {
-                driverUsageMetricsManager.updateDriverUsageMetrics(session);
-            });
-        }
-
-        @Override
-        public void onUp(Host host) {
-            update();
-        }
-
-        @Override
-        public void onDown(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRemove(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRegister(Cluster cluster) {
-            update();
-        }
-
-        @Override
-        public void onUnregister(Cluster cluster) {
-            lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
         }
     }
 }
