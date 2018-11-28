@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,9 +92,8 @@ abstract class MetricsServiceHandler {
             return Observable.from(metricNames)
                     .map(id -> new MetricId<>(getTenant(), type, id));
         }
-        // Tags case
-        return metricsService.findMetricsWithFilters(getTenant(), type, tags)
-                .map(Metric::getMetricId);
+
+        return metricsService.findMetricIdentifiersWithFilters(getTenant(), type, tags);
     }
 
     <T> Observable<TimeRange> findTimeRange(String start, String end, Boolean fromEarliest,

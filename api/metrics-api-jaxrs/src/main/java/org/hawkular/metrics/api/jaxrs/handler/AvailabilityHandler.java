@@ -140,10 +140,13 @@ public class AvailabilityHandler extends MetricsServiceHandler implements IMetri
             @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
             @QueryParam("timestamps") Boolean fetchTimestamps) {
 
-
-        Observable<Metric<AvailabilityType>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), AVAILABILITY)
-                : metricsService.findMetricsWithFilters(getTenant(), AVAILABILITY, tags.getTags());
+        Observable<Metric<AvailabilityType>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), AVAILABILITY, tags.getTags())
+                    .flatMap(metricsService::findMetric);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), AVAILABILITY);
+        }
 
         if(fetchTimestamps) {
             metricObservable = metricObservable

@@ -147,9 +147,13 @@ public class GaugeHandler extends MetricsServiceHandler implements IMetricsHandl
             @ApiParam(value = "Fetch min and max timestamps of available datapoints") @DefaultValue("false")
             @QueryParam("timestamps") Boolean fetchTimestamps) {
 
-        Observable<Metric<Double>> metricObservable = (tags == null)
-                ? metricsService.findMetrics(getTenant(), GAUGE)
-                : metricsService.findMetricsWithFilters(getTenant(), GAUGE, tags.getTags());
+        Observable<Metric<Double>> metricObservable = null;
+        if (tags != null) {
+            metricObservable = metricsService.findMetricIdentifiersWithFilters(getTenant(), GAUGE, tags.getTags())
+                    .flatMap(metricsService::findMetric);
+        } else {
+            metricObservable = metricsService.findMetrics(getTenant(), GAUGE);
+        }
 
         if(fetchTimestamps) {
             metricObservable = metricObservable
