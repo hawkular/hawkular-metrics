@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,7 +64,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
@@ -108,7 +107,6 @@ import org.infinispan.Cache;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.PoolingOptions;
@@ -269,13 +267,6 @@ public class MetricsServiceLifecycle {
     private String metricsReportingEnabled;
 
     @Inject
-    DriverUsageMetricsManager driverUsageMetricsManager;
-
-    @Inject
-    @ServiceReady
-    Event<ServiceReadyEvent> metricsServiceReady;
-
-    @Inject
     private ManifestInformation manifestInfo;
 
     @Resource(lookup = "java:jboss/infinispan/cache/hawkular-metrics/locks")
@@ -412,11 +403,7 @@ public class MetricsServiceLifecycle {
                 reporter.start(30, SECONDS);
             }
 
-            metricsServiceReady.fire(new ServiceReadyEvent(metricsService.insertedDataEvents()));
-
             initJobsService();
-
-            session.getCluster().register(new ClusterStateListener());
 
             initGCGraceSecondsManager();
 
@@ -735,44 +722,6 @@ public class MetricsServiceLifecycle {
             }
         } finally {
             state = State.STOPPED;
-        }
-    }
-
-    private class ClusterStateListener implements Host.StateListener {
-        @Override
-        public void onAdd(Host host) {
-            update();
-        }
-
-        private void update() {
-            lifecycleExecutor.submit(() -> {
-                driverUsageMetricsManager.updateDriverUsageMetrics(session);
-            });
-        }
-
-        @Override
-        public void onUp(Host host) {
-            update();
-        }
-
-        @Override
-        public void onDown(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRemove(Host host) {
-            update();
-        }
-
-        @Override
-        public void onRegister(Cluster cluster) {
-            update();
-        }
-
-        @Override
-        public void onUnregister(Cluster cluster) {
-            lifecycleExecutor.submit(driverUsageMetricsManager::removeDriverUsageMetrics);
         }
     }
 }
