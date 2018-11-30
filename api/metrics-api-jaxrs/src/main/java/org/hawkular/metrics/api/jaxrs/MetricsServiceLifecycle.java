@@ -698,7 +698,7 @@ public class MetricsServiceLifecycle {
     void destroy() {
         Future<?> stopFuture = lifecycleExecutor.submit(this::stopServices);
         try {
-            Futures.get(stopFuture, 1, MINUTES, Exception.class);
+            Futures.getChecked(stopFuture, Exception.class, 1, MINUTES);
         } catch (Exception e) {
             log.errorShutdownProblem(e);
         }
