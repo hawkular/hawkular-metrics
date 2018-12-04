@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.hawkular.metrics.scheduler.api.JobsManager;
 import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.rx.cassandra.driver.RxSession;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
@@ -61,8 +60,6 @@ public abstract class BaseITest {
 
     protected static SchemaService schemaService;
 
-    protected static JobsManager jobsManager;
-
     private PreparedStatement truncateMetrics;
 
     private PreparedStatement truncateCounters;
@@ -79,12 +76,10 @@ public abstract class BaseITest {
         session = cluster.connect();
         rxSession = new RxSessionImpl(session);
 
-        schemaService = new SchemaService(session, getKeyspace());
-        schemaService.run(Boolean.valueOf(System.getProperty("resetdb", "true")));
+        schemaService = new SchemaService();
+        schemaService.run(session, getKeyspace(), Boolean.valueOf(System.getProperty("resetdb", "true")));
 
         session.execute("USE " + getKeyspace());
-
-        jobsManager = new JobsManager(session);
 
         metricRegistry = new MetricRegistry();
     }

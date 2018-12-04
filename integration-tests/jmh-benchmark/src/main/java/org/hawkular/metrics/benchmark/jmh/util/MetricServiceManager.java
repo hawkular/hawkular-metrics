@@ -22,7 +22,6 @@ import org.hawkular.metrics.schema.SchemaService;
 import org.hawkular.metrics.sysconfig.ConfigurationService;
 import org.hawkular.rx.cassandra.driver.RxSessionImpl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.Session;
 
 /**
