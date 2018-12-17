@@ -44,34 +44,30 @@ def createType(String type, String cql) {
   }
 }
 
-bootstrap {
+if (reset) {
+  executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
+}
 
-  if (reset) {
-    executeCQL("DROP KEYSPACE IF EXISTS $keyspace", 20000)
-  }
+def keyspaceCreate = "CREATE KEYSPACE IF NOT EXISTS $keyspace WITH replication = {'class': 'SimpleStrategy', " +
+    "'replication_factor': $replicationFactor}"
 
-  def keyspaceCreate = "CREATE KEYSPACE IF NOT EXISTS $keyspace WITH replication = {'class': 'SimpleStrategy', " +
-          "'replication_factor': $replicationFactor}"
+if (keyspace.equals("hawkulartest") || keyspace.equals("hawkular_metrics_rest_tests")) {
+  keyspaceCreate = "$keyspaceCreate AND DURABLE_WRITES = 'false'"
+}
 
-  if (keyspace.equals("hawkulartest") || keyspace.equals("hawkular_metrics_rest_tests")) {
-    keyspaceCreate = "$keyspaceCreate AND DURABLE_WRITES = 'false'"
-  }
-
-
-
-  executeCQL(keyspaceCreate)
-  executeCQL("USE $keyspace")
+executeCQL(keyspaceCreate)
+executeCQL("USE $keyspace")
 
 // The retentions map entries are {metric type, retention} key/value paris where
 // retention is specified in days
-  createTable('tenants', """
+createTable('tenants', """
 CREATE TABLE tenants (
     id text PRIMARY KEY,
     retentions map<text, int>
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  createType('aggregation_template', """
+createType('aggregation_template', """
 CREATE TYPE aggregation_template (
     type int,
     src text,
@@ -80,7 +76,7 @@ CREATE TYPE aggregation_template (
 )
 """)
 
-  createTable('tenants_by_time', """
+createTable('tenants_by_time', """
 CREATE TABLE tenants_by_time (
   bucket timestamp,
     tenant text,
@@ -88,7 +84,7 @@ CREATE TABLE tenants_by_time (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  createType('aggregate_data', """
+createType('aggregate_data', """
 CREATE TYPE aggregate_data (
     type text,
     value double,
@@ -98,7 +94,7 @@ CREATE TYPE aggregate_data (
 )
 """)
 
-  createTable('data', """
+createTable('data', """
 CREATE TABLE data (
     tenant_id text,
     type tinyint,
@@ -114,7 +110,7 @@ CREATE TABLE data (
 ) WITH CLUSTERING ORDER BY (time DESC)
 """)
 
-  createTable('metrics_tags_idx', """
+createTable('metrics_tags_idx', """
 CREATE TABLE metrics_tags_idx (
     tenant_id text,
     tname text,
@@ -125,7 +121,7 @@ CREATE TABLE metrics_tags_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  createTable('metrics_idx', """
+createTable('metrics_idx', """
 CREATE TABLE metrics_idx (
      tenant_id text,
     type tinyint,
@@ -136,7 +132,7 @@ CREATE TABLE metrics_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  createTable('retentions_idx', """
+createTable('retentions_idx', """
 CREATE TABLE retentions_idx (
     tenant_id text,
     type tinyint,
@@ -146,7 +142,7 @@ CREATE TABLE retentions_idx (
 ) WITH compaction = { 'class': 'LeveledCompactionStrategy' }
 """)
 
-  createType('trigger_def', """
+createType('trigger_def', """
 CREATE TYPE trigger_def (
     type int,
     trigger_time bigint,
@@ -157,7 +153,7 @@ CREATE TYPE trigger_def (
 )
 """)
 
-  createTable('tasks', """
+createTable('tasks', """
 CREATE TABLE tasks (
     id uuid,
     group_key text,
@@ -169,7 +165,7 @@ CREATE TABLE tasks (
 )
 """)
 
-  createTable('leases', """
+createTable('leases', """
 CREATE TABLE leases (
     time_slice timestamp,
     shard int,
@@ -178,4 +174,3 @@ CREATE TABLE leases (
     PRIMARY KEY (time_slice, shard)
 )
 """)
-}

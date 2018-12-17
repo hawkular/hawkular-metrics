@@ -123,14 +123,12 @@ public class CompressDataJobITest extends BaseITest {
         jobScheduler = new TestScheduler(rxSession);
         jobScheduler.truncateTables(getKeyspace());
 
-        List<JobDetails> jobDetails = jobsManager.installJobs();
-
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        jobsService.start();
+        List<JobDetails> jobDetails = jobsService.start();
 
         JobDetails tableCreator =
                 jobDetails.stream().filter(d -> d.getJobName().equalsIgnoreCase(TempTableCreator.JOB_NAME))
@@ -180,14 +178,12 @@ public class CompressDataJobITest extends BaseITest {
         // job in isolation.
         saveJobConfigJobId(TempTableCreator.CONFIG_ID, UUID.randomUUID().toString());
 
-        List<JobDetails> jobDetails = jobsManager.installJobs();
-
         jobsService = new JobsServiceImpl();
         jobsService.setSession(rxSession);
         jobsService.setScheduler(jobScheduler);
         jobsService.setMetricsService(metricsService);
         jobsService.setConfigurationService(configurationService);
-        jobsService.start();
+        List<JobDetails> jobDetails = jobsService.start();
 
         compressionJob = jobDetails
                 .stream()
