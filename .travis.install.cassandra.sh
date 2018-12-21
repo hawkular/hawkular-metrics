@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+# Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,11 +24,10 @@ cd "${HOME}"
 C_MAJOR="3"
 C_MINOR="0"
 
-# Find the closest Apache mirror
-APACHE_MIRROR="$(curl -sL https://www.apache.org/dyn/closer.cgi?asjson=1 | python -c 'import sys, json; print json.load(sys.stdin)["preferred"]')"
+# Apache mirror
+APACHE_MIRROR="https://archive.apache.org/dist"
 
-VERSIONS_LIST="$(curl -sL ${APACHE_MIRROR}/cassandra/ | grep -o -E "href=\"${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*/" | grep -o -E "${C_MAJOR}\.${C_MINOR}(\.[0-9]+)*")"
-CASSANDRA_VERSION="$(echo "${VERSIONS_LIST}" | sort --version-sort --reverse | head --lines=1)"
+CASSANDRA_VERSION="3.0.15"
 
 CASSANDRA_BINARY="apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
 CASSANDRA_DOWNLOADS="${HOME}/cassandra-downloads"
