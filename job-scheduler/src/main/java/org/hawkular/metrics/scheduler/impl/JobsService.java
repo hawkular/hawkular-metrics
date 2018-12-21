@@ -228,18 +228,15 @@ public class JobsService {
     public Observable<ResultSet> updateStatusToFinished(Date timeSlice, UUID jobId) {
         // First check if the job exists
         return session.executeAndFetch(findByIdAndSlice.bind(timeSlice, jobId))
-                .isEmpty()
-                .flatMap(empty -> {
-                    if (empty) {
-                        logger.warnf("Attempt to update status of non-exist job with id %s", jobId);
-                        return Observable.empty();
-                    } else {
-                        return session.execute(updateStatus.bind((byte) 1, timeSlice, jobId))
-                                .doOnError(t -> logger
-                                        .warnf("There was an error updating the status to finished for %s in time " +
-                                                "slice [%s]", jobId, timeSlice.getTime()));
-                    }
-                });
+                .flatMap(jobRow -> session.execute(updateStatus.bind((byte) 1, timeSlice, jobId))
+                        .doOnError(t -> logger
+                                .warnf("There was an error updating the status to finished for %s in time " +
+                                        "slice [%s]", jobId, timeSlice.getTime()))
+                )
+                .switchIfEmpty(Observable.<ResultSet>empty().doOnCompleted(() -> logger.warnf(
+                        "Attempt to update the status of a non-exist job [%s] " +
+                                "in time slice [%s]", jobId, timeSlice.getTime())));
+
     }
 
     public JobDetailsImpl createJobDetails(UUID jobId, String jobType, String jobName, Map<String, String> parameters,
