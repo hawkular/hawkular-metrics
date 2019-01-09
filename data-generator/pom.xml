@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.hawkular.metrics</groupId>
     <artifactId>hawkular-metrics-parent</artifactId>
-    <version>0.30.7.Final</version>
+    <version>0.30.8.Final</version>
   </parent>
 
   <artifactId>hawkular-metrics-data-generator</artifactId>
