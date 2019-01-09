@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -340,6 +340,35 @@ public class JobExecutionTest extends JobSchedulerTest {
      */
     @Test
     public void executeJobThatRepeatsEveryMinute() throws Exception {
+        Trigger trigger = new RepeatingTrigger.Builder()
+                .withDelay(1, TimeUnit.MINUTES)
+                .withInterval(1, TimeUnit.MINUTES)
+                .build();
+        DateTime timeSlice = new DateTime(trigger.getTriggerTime());
+        JobDetails jobDetails = createJobDetails(randomUUID(), "Repeat Test", "Repeat Test", emptyMap(), trigger);
+        TestJob job = new TestJob();
+
+        jobScheduler.register(jobDetails.getJobType(), details -> Completable.fromAction(() -> {
+            job.call(details);
+        }));
+
+        scheduleJob(jobDetails);
+
+        waitForSchedulerToFinishTimeSlice(timeSlice);
+        waitForSchedulerToFinishTimeSlice(timeSlice.plusMinutes(1));
+
+        assertEquals(job.getExecutionTimes(), asList(timeSlice, timeSlice.plusMinutes(1)));
+        assertEquals(getScheduledJobs(timeSlice), emptySet());
+        assertEquals(getScheduledJobs(timeSlice.plusMinutes(1)), emptySet());
+        assertEquals(getFinishedJobs(timeSlice), emptySet());
+        assertEquals(getFinishedJobs(timeSlice.plusMinutes(1)), emptySet());
+    }
+
+    @Test
+    public void executeJobThatRepeatsEveryMinuteWithNullRows() throws Exception {
+        session.execute(insertJob.bind(new Date(currentMinute().minusHours(2).getMillis()), randomUUID(),
+                null, null, null, null));
+      //  (time_slice, job_id, job_type, job_name, job_params, trigger
         Trigger trigger = new RepeatingTrigger.Builder()
                 .withDelay(1, TimeUnit.MINUTES)
                 .withInterval(1, TimeUnit.MINUTES)
