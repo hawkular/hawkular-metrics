@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.Md5Crypt;
+import org.apache.commons.codec.digest.Sha2Crypt;
 import org.jboss.logging.Logger;
 
 import io.undertow.server.HttpHandler;
@@ -51,6 +52,7 @@ class BasicAuthenticator implements Authenticator {
 
     private static final String MD5_PREFIX = "$apr1$";
     private static final String SHA_PREFIX = "{SHA}";
+    private static final String SHA256_PREFIX = "$5$";
 
     private final HttpHandler containerHandler;
     private final Map<String, String> users;
@@ -112,7 +114,8 @@ class BasicAuthenticator implements Authenticator {
     private boolean isAuthorized(String username, String password) {
         String storedPassword = users.get(username);
         return (storedPassword.startsWith(MD5_PREFIX) && verifyMD5Password(storedPassword, password))
-                || (storedPassword.startsWith(SHA_PREFIX) && verifySHA1Password(storedPassword, password));
+                || (storedPassword.startsWith(SHA_PREFIX) && verifySHA1Password(storedPassword, password))
+                || (storedPassword.startsWith(SHA256_PREFIX) && verifySHA256Password(storedPassword, password));
     }
 
 
@@ -133,6 +136,17 @@ class BasicAuthenticator implements Authenticator {
         //Check if the stored password matches the passed one
         return digestedPassword.equals(storedPassword);
     }
+
+    private boolean verifySHA256Password(String storedPassword, String passedPassword) {
+        //Obtain the salt from the beginning of the storedPassword
+        String salt = storedPassword.substring(0,storedPassword.lastIndexOf("$")+1);
+
+        String digestedPassword = Sha2Crypt.sha256Crypt(passedPassword.getBytes(),salt);
+
+        //Check if the stored password matches the passed one
+        return digestedPassword.equals(storedPassword);
+    }
+
 
     @Override
     public void stop() {
