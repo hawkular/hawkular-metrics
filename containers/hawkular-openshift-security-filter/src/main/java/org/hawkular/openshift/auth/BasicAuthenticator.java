@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -139,9 +139,9 @@ class BasicAuthenticator implements Authenticator {
 
     private boolean verifySHA256Password(String storedPassword, String passedPassword) {
         //Obtain the salt from the beginning of the storedPassword
-        String salt = storedPassword.substring(0,storedPassword.lastIndexOf("$")+1);
+        String salt = storedPassword.substring(0, storedPassword.lastIndexOf("$") + 1);
 
-        String digestedPassword = Sha2Crypt.sha256Crypt(passedPassword.getBytes(),salt);
+        String digestedPassword = Sha2Crypt.sha256Crypt(passedPassword.getBytes(), salt);
 
         //Check if the stored password matches the passed one
         return digestedPassword.equals(storedPassword);
