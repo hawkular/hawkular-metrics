@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.digest.Md5Crypt;
 import org.jboss.logging.Logger;
 
 import io.undertow.server.HttpHandler;
@@ -49,13 +47,15 @@ class BasicAuthenticator implements Authenticator {
     private static final String HTPASSWD_FILE_SYSPROP_SUFFIX = ".openshift.htpasswd-file";
     private final File htpasswdFile;
 
-    private static final String MD5_PREFIX = "$apr1$";
-    private static final String SHA_PREFIX = "{SHA}";
 
     private final HttpHandler containerHandler;
     private final Map<String, String> users;
 
+    private PasswordManager passwordManager;
+
     BasicAuthenticator(HttpHandler containerHandler, String componentName) {
+        passwordManager = new PasswordManager();
+
         String htpasswdPath = System.getProperty(componentName + HTPASSWD_FILE_SYSPROP_SUFFIX);
         if (htpasswdPath == null) {
             htpasswdFile = new File(System.getProperty("user.home"), ".htpasswd");
@@ -102,37 +102,13 @@ class BasicAuthenticator implements Authenticator {
         String username = entries[0];
         String password = entries[1];
 
-        if (users.containsKey(username) && isAuthorized(username, password)) {
+        if (users.containsKey(username) && passwordManager.isAuthorized(users.get(username), password)) {
             containerHandler.handleRequest(serverExchange);
         } else {
             endExchange(serverExchange, FORBIDDEN);
         }
     }
 
-    private boolean isAuthorized(String username, String password) {
-        String storedPassword = users.get(username);
-        return (storedPassword.startsWith(MD5_PREFIX) && verifyMD5Password(storedPassword, password))
-                || (storedPassword.startsWith(SHA_PREFIX) && verifySHA1Password(storedPassword, password));
-    }
-
-
-    private boolean verifyMD5Password(String storedPassword, String passedPassword) {
-        // We send in the password presented by the user and use the stored password as the salt
-        // If they match, then the password matches the original non-encrypted stored password
-        return Md5Crypt.apr1Crypt(passedPassword, storedPassword).equals(storedPassword);
-    }
-
-    private boolean verifySHA1Password(String storedPassword, String passedPassword) {
-        //Remove the SHA_PREFIX from the password string
-        storedPassword = storedPassword.substring(SHA_PREFIX.length());
-
-        //Get the SHA digest and encode it in Base64
-        byte[] digestedPasswordBytes = DigestUtils.sha1(passedPassword);
-        String digestedPassword = Base64.getEncoder().encodeToString(digestedPasswordBytes);
-
-        //Check if the stored password matches the passed one
-        return digestedPassword.equals(storedPassword);
-    }
 
     @Override
     public void stop() {
