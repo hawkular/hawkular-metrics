@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,6 +61,11 @@ public class Installer {
 
     private int versionUpdateMaxRetries;
 
+    private long waitRetry;
+
+    private int jobMaxRetries;
+
+
     // Currently the installer is configured via system properties, and none of its fields are exposed as properties.
     // If the need should arise, the fields can be exposed as properties with public getter/setter methods.
     public Installer() {
@@ -76,34 +81,49 @@ public class Installer {
         replicationFactor = Integer.getInteger("hawkular.metrics.cassandra.replication-factor", 1);
         versionUpdateDelay = Long.getLong("hawkular.metrics.version-update.delay", 5) * 1000;
         versionUpdateMaxRetries = Integer.getInteger("hawkular.metrics.version-update.max-retries", 10);
+        waitRetry =  Long.getLong("hawkular.metrics.version-update.retry-delay", 10);
+        jobMaxRetries =  Integer.getInteger("hawkular.metrics.job-max-retires", 20);
+
     }
 
     public void run() {
+        int retryCounter = 0;
+        while (retryCounter < jobMaxRetries) {
+            try {
+                this.install();
+                System.exit(0);
+            }
+            catch (InterruptedException e) {
+                logger.warn("Aborting installation");
+                System.exit(1);
+            } catch (Exception e) {
+                retryCounter++;
+                logger.error("Schema installer failed on retry " + retryCounter + " of " + jobMaxRetries +
+                        ", retry again.");
+                if (retryCounter >= jobMaxRetries) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }
+        }
+    }
+
+    public void install() throws Exception {
         logVersion();
         logInstallerProperties();
 
-        try (Session session = initSession()) {
-            waitForAllNodesToBeUp(session);
+        Session session = initSession();
+        waitForAllNodesToBeUp(session);
 
-            SchemaService schemaService = new SchemaService(session, keyspace);
-            schemaService.run(resetdb, replicationFactor, false);
+        SchemaService schemaService = new SchemaService(session, keyspace);
+        schemaService.run(resetdb, replicationFactor, false);
 
-            JobsManager jobsManager = new JobsManager(session);
-            jobsManager.installJobs();
+        JobsManager jobsManager = new JobsManager(session);
+        jobsManager.installJobs();
 
-            schemaService.updateVersion(versionUpdateDelay, versionUpdateMaxRetries);
-            schemaService.updateSchemaVersionSession(versionUpdateDelay, versionUpdateMaxRetries);
-
-            logger.info("Finished installation");
-        } catch (InterruptedException e) {
-            logger.warn("Aborting installation");
-            System.exit(1);
-        } catch (Exception e) {
-            logger.warn("Installation failed", e);
-            System.exit(1);
-        } finally {
-            System.exit(0);
-        }
+        schemaService.updateVersion(versionUpdateDelay, versionUpdateMaxRetries);
+        schemaService.updateSchemaVersionSession(versionUpdateDelay, versionUpdateMaxRetries);
+        logger.info("Finished installation");
     }
 
     private void logVersion() {
