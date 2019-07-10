@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+ * Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@ import java.util.List;
 import javax.net.ssl.SSLContext;
 
 import org.hawkular.metrics.scheduler.api.JobsManager;
+import org.hawkular.metrics.version.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

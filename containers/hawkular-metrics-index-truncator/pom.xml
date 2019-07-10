@@ -34,6 +34,11 @@
   <description>Hawkular Metrics Index Truncator</description>
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-version-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>
     </dependency>

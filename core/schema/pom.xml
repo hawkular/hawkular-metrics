@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2014-2018 Red Hat, Inc. and/or its affiliates
+    Copyright 2014-2019 Red Hat, Inc. and/or its affiliates
     and other contributors as indicated by the @author tags.
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,11 @@
       <artifactId>cassalog</artifactId>
       <version>${version.org.cassalog}</version>
     </dependency>
-
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>hawkular-metrics-version-service</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.datastax.cassandra</groupId>
       <artifactId>cassandra-driver-core</artifactId>

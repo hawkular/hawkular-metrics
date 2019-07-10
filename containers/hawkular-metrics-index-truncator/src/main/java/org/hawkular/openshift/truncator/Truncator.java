@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.hawkular.metrics.version.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,6 +136,10 @@ public class Truncator {
         }
     }
 
+    private void logVersion() {
+        log.info("Hawkular Metrics Index Truncator v{}", VersionUtil.getVersion());
+    }
+
     private void logTruncatorProperties() {
         log.info("Configured truncator properties:\n" +
                 "\thawkular.metrics.rc-name = " + metricsRC + "\n" +
@@ -152,6 +157,7 @@ public class Truncator {
 
 
     public void run() {
+        this.logVersion();
         this.logTruncatorProperties();
         int retryCounter = 0;
         while (retryCounter < truncatorMaxRetries) {

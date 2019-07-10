@@ -28,7 +28,7 @@
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>hawkular-metrics-version</artifactId>
+  <artifactId>hawkular-metrics-version-service</artifactId>
 
   <name>Hawkular Metrics Version</name>
   <description>Hawkular Metrics Version Utils</description>
