@@ -75,7 +75,7 @@ public class Truncator {
         cassandraConnectionMaxDelay = Long.getLong("hawkular.metrics.cassandra.connection.max-delay", 30);
         cassandraConnectionMaxRetries = Integer.getInteger("hawkular.metrics.cassandra.connection.max-retries", 5);
         truncatorMaxRetries = Integer.getInteger("hawkular.metrics.truncator.max-retries", 5);
-        truncatorMaxDelay = Long.getLong("hawkular.metrics.truncator.max-retries", 5*1000);
+        truncatorMaxDelay = Long.getLong("hawkular.metrics.truncator.max-delay", 5*1000);
         metricsReplicas = heapsterReplicas = 0;
     }
 
@@ -135,7 +135,24 @@ public class Truncator {
         }
     }
 
+    private void logTruncatorProperties() {
+        log.info("Configured truncator properties:\n" +
+                "\thawkular.metrics.rc-name = " + metricsRC + "\n" +
+                "\thawkular.metrics.heapster.rc-name = " + heapsterRC + "\n" +
+                "\thawkular.metrics.cassandra.pod-prefix = " + cassandraPodPrefix + "\n" +
+                "\thawkular.metrics.partition-threshold (bytes) = " + partitionThreshold + "\n" +
+                "\thawkular.metrics.cassandra.use-ssl = " + useSSL + "\n" +
+                "\thawkular.metrics.force-truncation = " + forceTruncation + "\n" +
+                "\thawkular.metrics.cassandra.keyspace = " + keyspace + "\n" +
+                "\thawkular.metrics.cassandra.connection.max-delay = " + cassandraConnectionMaxDelay + "\n" +
+                "\thawkular.metrics.cassandra.connection.max-retries = " + cassandraConnectionMaxRetries + "\n" +
+                "\thawkular.metrics.truncator.max-retries = " + truncatorMaxRetries +
+                "\thawkular.metrics.truncator.max-delay = " + truncatorMaxDelay);
+    }
+
+
     public void run() {
+        this.logTruncatorProperties();
         int retryCounter = 0;
         while (retryCounter < truncatorMaxRetries) {
             try {
