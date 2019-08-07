@@ -34,5 +34,6 @@
 
   <modules>
     <module>hawkular-openshift-security-filter</module>
+    <module>hawkular-htpasswd</module>
   </modules>
 </project>
